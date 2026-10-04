@@ -592,7 +592,12 @@ function ui:load(theme_options)
     self.feedback.speed = theme_options.feedback_speed
     self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback_icon:hide()
-    ui:update_offsets(settings.Style.OffsetX, settings.Style.OffsetY)
+    if self.drag_handle then self.drag_handle:destroy() end
+    self.drag_handle = texts.new({flags = {draggable = false}, bg = {visible = true, alpha = 190},
+        padding = 4, text = {size = 10, font = 'Arial'}})
+    self.drag_handle:text('Drag crossbar  |  //xb ui lock')
+    self.drag_handle:hide()
+    ui:update_offsets(theme_options.offset_x, theme_options.offset_y)
 end
 
 -- setup positions and dimensions for ui
@@ -612,8 +617,8 @@ function ui:setup_metrics(theme_options)
 end
 
 function ui:update_offsets(offset_x, offset_y)
-    self.pos_x = (windower.get_windower_settings().ui_x_res / 2 - 240) + settings.Style.OffsetX + offset_x
-    self.pos_y = (windower.get_windower_settings().ui_y_res - 120) + settings.Style.OffsetY + offset_y
+    self.pos_x = (windower.get_windower_settings().ui_x_res / 2 - 240) + (offset_x or 0)
+    self.pos_y = (windower.get_windower_settings().ui_y_res - 120) + (offset_y or 0)
 
     for h=1,self.theme.hotbar_number,1 do
         for i=1,8,1 do
@@ -624,6 +629,8 @@ function ui:update_offsets(offset_x, offset_y)
             self.hotbars[h].slot_background[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_icon[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_frame[i]:pos(slot_pos_x, slot_pos_y)
+            self.hotbars[h].slot_recast[i]:pos(slot_pos_x, slot_pos_y)
+            self.hotbars[h].slot_warmup[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
             self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2, slot_pos_y + 40)
@@ -646,8 +653,34 @@ function ui:update_offsets(offset_x, offset_y)
     end
 end
 
+function ui:get_drag_bounds()
+    -- A separate background strip above the buttons avoids action/binder hits.
+    local x, y = self:get_slot_x(1, 1), self:get_slot_y(1, 4)
+    for h = 2, self.theme.hotbar_number do
+        x = math.min(x, self:get_slot_x(h, 1))
+        y = math.min(y, self:get_slot_y(h, 4))
+    end
+    return {x = x, y = y - 62, width = 230, height = 24}
+end
+
+function ui:show_drag_handle(show)
+    if not self.drag_handle then return end
+    if show then
+        local b = self:get_drag_bounds()
+        self.drag_handle:pos(b.x, b.y)
+        self.drag_handle:show()
+    else
+        self.drag_handle:hide()
+    end
+end
+
 -- hide all ui components
 function ui:hide()
+    self:show_drag_handle(false)
+    for _, name in ipairs({'skillchain_indicator', 'skillchain_indicator_bg',
+        'gcd_indicator', 'gcd_indicator_bg', 'aa_indicator_red', 'aa_indicator_green', 'aa_indicator_bg'}) do
+        windower.prim.set_visibility(name, false)
+    end
     self.battle_notice:hide()
     self.feedback_icon:hide()
 
@@ -686,6 +719,7 @@ end
 
 -- show ui components
 function ui:show(player_hotbar, environment)
+    if self.suspended then return end
     if self.theme.hide_battle_notice == false and environment == 'battle' then self.battle_notice:show() end
 
     self:maybe_show_button_hints()
@@ -721,6 +755,7 @@ function ui:maybe_show_button_hints()
 end
 
 function ui:show_button_hints()
+    if self.suspended then return end
     self.action_binder_icon:show()
     self.action_binder_text:show()
     self.environment_selector_icon:show()
@@ -759,6 +794,7 @@ end
 
 -- load player hotbar
 function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepad_state)
+    if self.suspended then return end
     if environment == 'battle' and self.theme.hide_battle_notice == false then
         self.battle_notice:show()
     else
@@ -1019,6 +1055,7 @@ end
 
 -- check player vitals
 function ui:check_vitals(player_hotbar, player_vitals, environment)
+    if self.suspended then return end
     for h=1,self.theme.hotbar_number,1 do
         for i=1,8,1 do
             local slot = i
@@ -2045,13 +2082,13 @@ function maybe_get_default_action(hotbar, environment, hb, slot)
     local action = nil
 
     if (environment ~= 'job-default' and environment ~= 'all-jobs-default' and
-        hotbar['default'] and hotbar['default'][h] and hotbar['default'][h][i]) then
+        hotbar['default'] and hotbar['default'][h] and hotbar['default'][h][i] and hotbar['default'][h][i].action ~= nil) then
         action = hotbar['default'][h][i]
         action.source_environment = 'default'
-    elseif (environment ~= 'all-jobs-default' and hotbar['job-default'] and hotbar['job-default'][h] and hotbar['job-default'][h][i]) then
+    elseif (environment ~= 'all-jobs-default' and hotbar['job-default'] and hotbar['job-default'][h] and hotbar['job-default'][h][i] and hotbar['job-default'][h][i].action ~= nil) then
         action = hotbar['job-default'][h][i]
         action.source_environment = 'job-default'
-    elseif (hotbar['all-jobs-default'] and hotbar['all-jobs-default'][h] and hotbar['all-jobs-default'][h][i]) then
+    elseif (hotbar['all-jobs-default'] and hotbar['all-jobs-default'][h] and hotbar['all-jobs-default'][h][i] and hotbar['all-jobs-default'][h][i].action ~= nil) then
         action = hotbar['all-jobs-default'][h][i]
         action.source_environment = 'all-jobs-default'
     end

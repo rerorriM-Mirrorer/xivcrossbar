@@ -16,8 +16,8 @@ function selectable_list:setup(theme_options, base_x, base_y, max_width, max_hei
     self.base_y = base_y or 150
     local temp_width = max_width or (windower.get_windower_settings().ui_x_res - 300)
     local temp_height = max_height or (windower.get_windower_settings().ui_y_res - 300)
-    self.max_row = math.floor((temp_height - 2 * BORDER_PADDING) / ROW_HEIGHT)
-    self.max_col = math.floor((temp_width - 2 * BORDER_PADDING) / COLUMN_WIDTH)
+    self.max_row = math.max(1, math.floor((temp_height - 2 * BORDER_PADDING) / ROW_HEIGHT))
+    self.max_col = math.max(1, math.floor((temp_width - 2 * BORDER_PADDING) / COLUMN_WIDTH))
     self.width = 2 * BORDER_PADDING + self.max_col * COLUMN_WIDTH
     self.height = 2 * BORDER_PADDING + self.max_row * ROW_HEIGHT
     self.fields = L{}
@@ -71,10 +71,15 @@ function selectable_list:export_selection_state()
 end
 
 function selectable_list:import_selection_state(selection_state)
-    self.current_page = selection_state.page
-    self.selected_row = selection_state.row
-    self.selected_col = selection_state.col
-    self:highlight_selection()
+    if self.current_page ~= selection_state.page then
+        self.current_page = selection_state.page
+        self:display_options(self.current_options)
+    end
+    if self.current_page == selection_state.page and self:is_valid_row_col(selection_state.row, selection_state.col) then
+        self.selected_row = selection_state.row
+        self.selected_col = selection_state.col
+    end
+    if self:has_selection() then self:highlight_selection() end
 end
 
 function selectable_list:set_page(page)
@@ -110,6 +115,7 @@ function selectable_list:decrement_page()
 end
 
 function selectable_list:increment_row()
+    if not self:has_selection() then return end
     local new_row = self.selected_row + 1
     if (self.field_coords[self.selected_col][new_row] ~= nil) then
         self.selected_row = new_row
@@ -122,21 +128,25 @@ function selectable_list:increment_row()
 end
 
 function selectable_list:decrement_row()
+    if not self:has_selection() then return end
     local new_row = self.selected_row - 1
     if (self.field_coords[self.selected_col][new_row] ~= nil) then
         self.selected_row = new_row
         self:highlight_selection()
     elseif (self.field_coords[self.selected_col][self.selected_row].id == 'PREV') then
         -- handling jumping from the "Previous Page" button to the last row with entries
-        while (self.field_coords[self.selected_col][new_row] == nil) do
+        while new_row > 0 and self.field_coords[self.selected_col][new_row] == nil do
             new_row = new_row - 1
         end
-        self.selected_row = new_row
-        self:highlight_selection()
+        if new_row > 0 then
+            self.selected_row = new_row
+            self:highlight_selection()
+        end
     end
 end
 
 function selectable_list:increment_col()
+    if not self:has_selection() then return end
     local new_col = self.selected_col + 1
     if (self.field_coords[new_col] ~= nil and self.field_coords[new_col][self.selected_row] ~= nil) then
         self.selected_col = new_col
@@ -149,6 +159,7 @@ function selectable_list:increment_col()
 end
 
 function selectable_list:decrement_col()
+    if not self:has_selection() then return end
     local new_col = self.selected_col - 1
     if (self.field_coords[new_col] ~= nil and self.field_coords[new_col][self.selected_row] ~= nil) then
         self.selected_col = new_col
@@ -231,7 +242,9 @@ function selectable_list:get_row_col(index)
 end
 
 function selectable_list:display_options(options)
-    local current_page = self.current_page
+    -- A new list (e.g. review after picking an icon on page 3) may be shorter.
+    local last_page = math.max(1, math.ceil(#options / (self.max_row * self.max_col)))
+    local current_page = math.max(1, math.min(self.current_page, last_page))
     self:reset_state()
     self.is_showing = true
     self.current_options = options
@@ -266,11 +279,11 @@ function selectable_list:display_options(options)
                 self.fields:append(self:create_text(option_caption, row, col))
 
                 local icon = images.new({draggable = false})
-                local icon_path = windower.addon_path .. value.icon
+                local icon_path = type(value.icon) == 'string' and (windower.addon_path .. value.icon) or nil
                 local x, y = self:get_pos(row, col)
                 x = x + 5
                 y = y + 5
-                setup_image(icon, icon_path)
+                if icon_path then setup_image(icon, icon_path) end
                 local icon_offset = value.icon_offset or 0
                 icon:pos(x + icon_offset, y + icon_offset)
                 self.images:append(icon)
@@ -282,12 +295,13 @@ function selectable_list:display_options(options)
 
                 -- populate the "collision" map for dpad navigation
                 local field_col = self.field_coords[col] or {}
-                if data and data.target_type['None'] then
-					if value.icon:contains('home-point') or value.icon:contains('survival-guide') then
+                -- Icon directories and review rows carry UI data, not action targets.
+                if type(data) == 'table' and type(data.target_type) == 'table' and data.target_type['None'] then
+					if type(value.icon) == 'string' and (value.icon:contains('home-point') or value.icon:contains('survival-guide')) then
 						local splat = value.icon:split('/')
 						local last = #splat
 						local icon_name = splat[last]
-						if icon_name then icon_name = icon_name:gsub('.png','') end
+						if icon_name then icon_name = icon_name:gsub('%.png$','') end
 						field_col[row] = {['id'] = option_id, ['text'] = option_caption, ['data'] = data, ['icon'] = icon_name}
 					else
 						field_col[row] = {['id'] = option_id, ['text'] = option_caption, ['data'] = data, ['icon'] = value.name}
@@ -346,12 +360,17 @@ function selectable_list:display_options(options)
 end
 
 function selectable_list:submit_selected_option()
+    if not self:has_selection() then return nil end
     local option = self.field_coords[self.selected_col][self.selected_row]
     if (option.id ~= 'PREV' and option.id ~= 'NEXT') then
         self:hide()
         self:reset_state()
     end
     return option
+end
+
+function selectable_list:has_selection()
+    return self:is_valid_row_col(self.selected_row, self.selected_col)
 end
 
 function selectable_list:is_valid_row_col(row, col)

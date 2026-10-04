@@ -486,6 +486,8 @@ end
 -- reset player hotbar
 function player:reset_hotbar()
     self.hotbar = {}
+    self.temp_switch_previous_env = nil
+    self.pending_env_switch = nil
 
     self.hotbar_settings.active_hotbar = 1
 end
@@ -500,7 +502,11 @@ function player:setup_environment_hotbars(environment)
 end
 
 -- set bar environment
-function player:set_active_environment(environment)
+function player:set_active_environment(environment, preserve_quick_switch)
+    if not preserve_quick_switch then
+        self.temp_switch_previous_env = nil
+        self.pending_env_switch = nil
+    end
     self.hotbar_settings.active_environment = kebab_casify(environment)
 end
 
@@ -589,22 +595,18 @@ function player:execute_action(slot)
     local h = self.hotbar_settings.active_hotbar
     local env = self.hotbar_settings.active_environment
 
-    local action = self.hotbar[env]['hotbar_' .. h]['slot_' .. slot]
-    local is_missing = action == nil or action.action == nil
-
-    if (is_missing and env ~= 'default' and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['default'] and self.hotbar['default']['hotbar_' .. h] and
-        self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]
-    elseif (is_missing and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['job-default'] and self.hotbar['job-default']['hotbar_' .. h] and
-        self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]
-    elseif (is_missing and env ~= 'all-jobs-default' and self.hotbar['all-jobs-default'] and self.hotbar['all-jobs-default']['hotbar_' .. h] and
-        self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]
+    local function lookup(name)
+        local hb = self.hotbar[name] and self.hotbar[name]['hotbar_' .. h]
+        local entry = hb and hb['slot_' .. slot]
+        return entry and entry.action ~= nil and entry or nil
     end
-
-    local is_still_missing = action == nil or action.action == nil
-    if (is_still_missing) then return end
+    local action = lookup(env)
+    if not action and env ~= 'shared' then
+        if env ~= 'default' and env ~= 'job-default' and env ~= 'all-jobs-default' then action = lookup('default') end
+        if not action and env ~= 'job-default' and env ~= 'all-jobs-default' then action = lookup('job-default') end
+        if not action and env ~= 'all-jobs-default' then action = lookup('all-jobs-default') end
+    end
+    if not action then return end
 
     if action.type == 'switch' then
         local target_env = kebab_casify(action.action or '')
@@ -656,7 +658,7 @@ function player:dispatch_action(action)
     end
 
     if action.type == 'ex' then
-        windower.send_command(action.action)
+        if action.action and not action.action:match('^%s*$') then windower.send_command(action.action) end
         return
     end
 

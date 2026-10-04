@@ -43,6 +43,9 @@ local consumables = require('consumables')
 local gamepad_mapper = require('gamepad_mapper')
 local gamepad_converter = require('gamepad_converter')
 local function_key_bindings = require('function_key_bindings')
+local ui_drag = require('ui_drag')
+local ui_visibility = require('ui_visibility')
+local visibility = ui_visibility.new(require('socket').gettime)
 
 -----------------------------
 -- Main
@@ -61,6 +64,89 @@ local right_trigger_lifted_during_doublepress_window = false
 local is_left_doublepress_window_open = false
 local is_right_doublepress_window_open = false
 local y_adjust = 450
+
+local function apply_ui_offsets(x, y, persist)
+    x, y = math.floor(x + 0.5), math.floor(y + 0.5)
+    settings.Style.OffsetX, settings.Style.OffsetY = x, y
+    theme_options.offset_x, theme_options.offset_y = x, y
+    ui:update_offsets(x, y)
+    if persist then config.save(settings) end
+end
+
+local function can_drag_ui()
+    return xivcrossbar.ready and ui.is_setup and not settings.UILocked and
+        not xivcrossbar.hide_hotbars and action_binder.is_hidden and
+        not gamepad_mapper.is_showing and not env_chooser:is_showing()
+end
+
+local crossbar_drag = ui_drag.new({
+    enabled = can_drag_ui,
+    bounds = function() return ui:get_drag_bounds() end,
+    offsets = function() return settings.Style.OffsetX, settings.Style.OffsetY end,
+    move = function(x, y) apply_ui_offsets(x, y, false) end,
+    save = function() config.save(settings) end,
+})
+
+local function refresh_ui_visibility()
+    if not xivcrossbar.ready or not ui.is_setup then return false end
+    local active = gamepad_state.left_trigger or gamepad_state.right_trigger or
+        gamepad_state.plus_button or gamepad_state.minus_button or
+        not action_binder.is_hidden or gamepad_mapper.is_showing or
+        env_chooser:is_showing() or env_chooser.capturing or not settings.UILocked
+    local grace = math.max(0, math.min(5, tonumber(settings.VisibilityGrace) or 0.25))
+    local show = visibility:visible(settings.VisibilityMode, grace, active) and not xivcrossbar.hide_hotbars
+    if show and ui.suspended then
+        ui.suspended = false
+        ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
+        ui:show(player.hotbar, player.hotbar_settings.active_environment)
+        ui:check_vitals(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+        ui_dirty = true
+    elseif not show and not ui.suspended then
+        crossbar_drag:finish()
+        ui.suspended = true
+        ui.feedback.is_active = false
+        ui:hide()
+    end
+    return show
+end
+
+local function ui_command(args)
+    local command = (args[1] or ''):lower()
+    if command == 'unlock' or command == 'lock' or command == 'togglelock' then
+        crossbar_drag:finish()
+        if command == 'togglelock' then settings.UILocked = not settings.UILocked
+        else settings.UILocked = command == 'lock' end
+        config.save(settings)
+        refresh_ui_visibility()
+        ui:show_drag_handle(can_drag_ui())
+        windower.add_to_chat(207, '[XIVCrossbar] UI ' .. (settings.UILocked and 'locked.' or 'unlocked: drag the labeled strip above the crossbar.'))
+    elseif command == 'visibility' then
+        local mode = (args[2] or ''):lower()
+        if mode ~= 'always' and mode ~= 'oninput' then
+            windower.add_to_chat(123, '[XIVCrossbar] //xb ui visibility Always | OnInput')
+            return
+        end
+        settings.VisibilityMode = mode == 'always' and 'Always' or 'OnInput'
+        visibility:reset()
+        config.save(settings)
+        refresh_ui_visibility()
+        windower.add_to_chat(207, '[XIVCrossbar] Visibility: ' .. settings.VisibilityMode)
+    elseif command == 'grace' then
+        local seconds = tonumber(args[2])
+        if not seconds or seconds ~= seconds or seconds < 0 or seconds > 5 then
+            windower.add_to_chat(123, '[XIVCrossbar] //xb ui grace <seconds, 0 to 5>')
+            return
+        end
+        settings.VisibilityGrace = seconds
+        config.save(settings)
+    else
+        windower.add_to_chat(207, '[XIVCrossbar] //xb ui unlock | lock | togglelock | visibility Always/OnInput | grace <seconds>')
+    end
+end
+
+windower.register_event('mouse', function(kind, x, y, delta, blocked)
+    return crossbar_drag:mouse(kind, x, y, blocked)
+end)
 
 local function close_left_doublepress_window()
     is_left_doublepress_window_open = false
@@ -214,12 +300,33 @@ end
 
 -- Edit Custom Action callback: persists changes to an existing entry,
 -- handling rename by removing the old key before writing the new one. The
--- binder has already chat-warned the user about orphaned slot bindings if
--- the name changed.
+-- Loaded job/shared bindings are refreshed below; other job files retain
+-- their saved command snapshots until rebound or regenerated.
 function update_custom_action(original_name, record)
     if (record == nil or record.name == nil or record.name == '') then
         windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: missing name.')
         return
+    end
+    local previous = player.custom_actions[original_name]
+    local refreshed = 0
+    -- Older slots store a snapshot of the command, rather than a catalog key.
+    -- Refresh exact command+alias matches across the loaded job and shared layers.
+    if previous then
+        for _, env in pairs(player.hotbar) do
+            for hb_name, hb in pairs(env) do
+                if type(hb) == 'table' and hb_name:match('^hotbar_') then
+                    for _, action in pairs(hb) do
+                        if action.type == 'ex' and action.action == (previous.command or '')
+                            and action.alias == (previous.alias or original_name) then
+                            action.action, action.alias = record.command or '', record.alias or record.name
+                            action.icon = record.icon
+                            action.linked_action, action.linked_type = record.linked_action, record.linked_type
+                            refreshed = refreshed + 1
+                        end
+                    end
+                end
+            end
+        end
     end
     if (original_name ~= nil and original_name ~= record.name) then
         player.custom_actions[original_name] = nil
@@ -232,6 +339,10 @@ function update_custom_action(original_name, record)
         linked_type   = record.linked_type,
     }
     player:save_custom_actions_file()
+    if refreshed > 0 then
+        player:save_hotbar()
+        reload_hotbar()
+    end
     windower.add_to_chat(123, '[XIVCrossbar] Custom action updated: "' .. record.name .. '"')
 end
 
@@ -298,14 +409,8 @@ function initialize()
     player:load_hotbar()
     ui:setup(theme_options, enchanted_items)
     action_binder:set_ui_offset_callback(function(x, y)
-        ui:update_offsets(x, y)
-        if (settings.Style.OffsetX ~= x) then
-            settings.Style.OffsetX = x
-        end
-        if (settings.Style.OffsetY ~= y) then
-            settings.Style.OffsetY = y
-        end
-        config.save(settings)
+        crossbar_drag:finish()
+        apply_ui_offsets(x, y, true)
     end)
 
     local default_active_environment = env_chooser:get_default_active_environment(player.hotbar)
@@ -317,10 +422,12 @@ function initialize()
     gamepad_converter:setup(theme_options.button_layout)
 
     local current_status = windower.ffxi.get_player().status
+    xivcrossbar.hide_hotbars = current_status == 4
     aa_set_engaged(current_status == 1 or current_status == 3)
 
     xivcrossbar.ready = true
     xivcrossbar.initialized = true
+    refresh_ui_visibility()
 end
 
 -- trigger hotbar action
@@ -330,7 +437,7 @@ function trigger_action(slot)
     if (player.pending_env_switch ~= nil) then
         local target = player.pending_env_switch
         player.pending_env_switch = nil
-        set_active_environment(target)
+        set_active_environment(target, true)
     end
 
     ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
@@ -343,8 +450,8 @@ function set_battle_environment(in_battle)
 end
 
 -- set active environment
-function set_active_environment(environment_name)
-    player:set_active_environment(environment_name)
+function set_active_environment(environment_name, preserve_quick_switch)
+    player:set_active_environment(environment_name, preserve_quick_switch)
     ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
 end
 
@@ -547,8 +654,17 @@ end
 -- Only accepted while a Custom Action review screen is 
 -- active; otherwise the binder reports the error to chat.
 function custom_action_field_command(args)
-    if (not args[1] or not args[2]) then
-        windower.add_to_chat(123, '[XIVCrossbar] Usage: //xcb ca <a|n|c> <value>')
+    if args[1] and args[1]:lower() == 'debug' then
+        action_binder.custom_action_debug = args[2] and args[2]:lower() == 'on' or false
+        windower.add_to_chat(207, '[XIVCrossbar] Custom-action diagnostics ' .. (action_binder.custom_action_debug and 'ON' or 'OFF'))
+        return
+    end
+    if args[1] and args[1]:lower() == 'new' then
+        action_binder:new_custom_action(args[2], table.concat(args, ' ', 3))
+        return
+    end
+    if (not args[1] or (not args[2] and args[1]:lower() ~= 'c' and args[1]:lower() ~= 'command')) then
+        windower.add_to_chat(123, '[XIVCrossbar] Usage: //xb ca new <alias> [name] | ca <a|n|c> <value>')
         return
     end
 
@@ -871,6 +987,10 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    crossbar_drag:finish()
+    xivcrossbar.ready = false
+    ui.suspended = true
+    visibility:reset()
     ui:hide()
     skillchains.logout()
 
@@ -881,6 +1001,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    crossbar_drag:finish()
 	if theme_options.on_unload_killahk then
 		windower.send_command('run addons/xivcrossbar/killahk.bat')
 	end
@@ -893,7 +1014,8 @@ windower.register_event('addon command', function(command, ...)
 
     if command == 'reload' then
         return reload_hotbar()
-
+    elseif command == 'ui' then
+        return ui_command(args)
     elseif command == 'bar' or command == 'crossbar' or command == 'hotbar' then
         switch_crossbars_command(args)
     elseif command == 'set' then
@@ -1010,6 +1132,8 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     elseif (gamepad.is_plus(dik)) then
         gamepad_state.plus_button = pressed
     end
+
+    refresh_ui_visibility()
 
     local only_left_trigger_just_pressed = left_trigger_just_pressed and not gamepad_state.right_trigger
     if (not is_left_doublepress_window_open and only_left_trigger_just_pressed) then
@@ -1269,6 +1393,8 @@ local frame = 0
 
 -- ON PRERENDER
 windower.register_event('prerender',function()
+    -- Refresh before frame skipping: a held trigger/menu reveals immediately.
+    local visible = refresh_ui_visibility()
     -- allow settings to skip rendering frames
     frame = (frame + 1)  % (theme_options.frame_skip + 1)
     if (frame > 0 and not ui_dirty) then
@@ -1280,11 +1406,12 @@ windower.register_event('prerender',function()
         return
     end
 
-    if ui.feedback.is_active then
+    if visible and ui.feedback.is_active then
         ui:show_feedback()
     end
 
-    if ui.is_setup and xivcrossbar.hide_hotbars == false then
+    if visible then
+        ui:show_drag_handle(can_drag_ui())
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle)
     end
@@ -1313,27 +1440,22 @@ end)
 windower.register_event('mp change', function(new, old)
     if (not xivcrossbar.ready) then return end
     player.vitals.mp = new
-    ui:check_vitals(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+    if not ui.suspended then ui:check_vitals(player.hotbar, player.vitals, player.hotbar_settings.active_environment) end
 end)
 
 -- ON TP CHANGE
 windower.register_event('tp change', function(new, old)
     if (not xivcrossbar.ready) then return end
     player.vitals.tp = new
-    ui:check_vitals(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+    if not ui.suspended then ui:check_vitals(player.hotbar, player.vitals, player.hotbar_settings.active_environment) end
 end)
 
 -- ON STATUS CHANGE
 windower.register_event('status change', function(new_status_id)
     if (not xivcrossbar.ready) then return end
     -- hide/show bar in cutscenes
-    if xivcrossbar.hide_hotbars == false and new_status_id == 4 then
-        xivcrossbar.hide_hotbars = true
-        ui:hide()
-    elseif xivcrossbar.hide_hotbars and new_status_id ~= 4 then
-        xivcrossbar.hide_hotbars = false
-        ui:show(player.hotbar, player.hotbar_settings.active_environment)
-    end
+    xivcrossbar.hide_hotbars = new_status_id == 4
+    refresh_ui_visibility()
 
     -- Disabling this for now, but we might want it later
     -- -- alternate environment on battle

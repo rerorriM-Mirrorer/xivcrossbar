@@ -140,6 +140,8 @@ Each entry has:
 - **Icon** (optional) — pulled from the active iconpack
 - **Linked metadata** (optional) — borrow MP/TP cost, recast, and element from a real spell or job ability so the slot displays cost and recast indicators just like a native action, neat if you're using gearswap commands to act as specific spells/JAs/WSs for whatever reason
 
+Quick creation in this PartyControl copy: `//xb ca new <alias> [name]` jumps directly to editable review with a blank command and optional icon/linked metadata. If name is omitted it equals alias. Set the command with `//xb ca c <command>`, then select Save Changes. Empty saved commands do nothing.
+
 Manage custom actions through the in-game binder:
 - **Create Custom Action** — wizard that walks you through the process: alias → name → command → icon → linked action → save
 - **Edit Custom Action** — single review screen showing all fields, with options to revise text fields via chat command or pick new icon / linked action
@@ -155,7 +157,7 @@ The text fields (alias, name, command) are entered via chat commands during the 
 
 Typing directly into the window (my first attempt) would "bleed" the keybinds to the game. Meaning you would move, sit, start typing in chat as well, etc. It was too confusing/annoying. There were also some other limitations with accepted characters that I didn't want to deal with. 
 
-**Warning on Edit/Delete**: These two actions only modify the information stored in `CustomActions.xml`. So if you already have that action bound to your crossbar, you would need to reassign it (on edit), or manually remove it (on delete).
+Edits refresh exact old command/alias matches in the currently loaded job and shared layers. Other job files retain their saved command snapshots until rebound. Delete still requires manually removing existing bindings. `//xb ca debug on` records selector state, selected option and exception stacks in the Windower console.
 
 See [Global and Local Icon Overrides](#global-and-local-icon-overrides) below for more info regarding the icon selection process.
 
@@ -326,7 +328,9 @@ The bulk of these can be done by editing the XMLs files manually as well, if you
 ### Custom Actions (only valid during a Create/Edit flow in the binder)
 | Command | Purpose |
 |---|---|
-| `ca <a\|n\|c> <value>` | Set alias / name / command field (alias: `custom`) |
+| `ca new <alias> [name]` | Create directly at editable review; icon/linked metadata optional |
+| `ca <a\|n\|c> <value>` | Set alias / name / command field (alias: `custom`); omit command value to clear it |
+| `ca debug <on\|off>` | Record selector state and exception stack in the Windower console |
 
 ### Other
 | Command | Purpose |

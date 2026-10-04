@@ -17,6 +17,9 @@ defaults.AutoCreateXML = true
 defaults.UseAltLayout = false
 defaults.AutoHideExtraBars = false
 defaults.UseSharedSet = true
+defaults.UILocked = true
+defaults.VisibilityMode = 'Always'
+defaults.VisibilityGrace = 0.25
 
 defaults.SkillchainIndicator = {}
 defaults.SkillchainIndicator.Opacity = 220

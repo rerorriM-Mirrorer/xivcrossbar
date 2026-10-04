@@ -388,12 +388,15 @@ function action_binder:reset_state()
     self.hotkey = nil
     self.selection_states = {}
     self.selector:hide()
+    self.selector:reset_state()
     self.images = L{}
     self.hints = L{}
     self.icon_picker_stack = {}
     self.icon_picker_path = ''
     self.global_icon_source_name = nil
     self.custom_action_draft = nil
+    self.quick_custom_action = false
+    self.custom_action_review_field = nil
     self.is_linking_for_custom_action = false
     self.editing_custom_action = false
     self.custom_action_original_name = nil
@@ -756,6 +759,31 @@ function action_binder:decrement_col()
 end
 
 function action_binder:submit_selected_option()
+    if not self.custom_action_debug then return self:submit_selected_option_internal() end
+    local row = self.selector.field_coords[self.selector.selected_col]
+    local option = row and row[self.selector.selected_row]
+    local data = option and option.data
+    windower.console.write('[XIVCrossbar ca] state=' .. tostring(self.state) .. ' action_type=' .. tostring(self.action_type)
+        .. ' option=' .. tostring(option and option.id) .. ' data=' .. type(option and option.data)
+        .. ' target_type=' .. type(type(data) == 'table' and data.target_type or nil))
+    local ok, err = xpcall(function() self:submit_selected_option_internal() end, debug.traceback)
+    if not ok then
+        windower.console.write('[XIVCrossbar ca] ' .. err)
+        windower.add_to_chat(123, '[XIVCrossbar] ' .. err)
+    end
+end
+
+function action_binder:submit_selected_option_internal()
+    if self:is_in_selector_state() and not self.selector:has_selection() then
+        windower.add_to_chat(123, '[XIVCrossbar] No entries here. Use Go Back to return.')
+        return
+    end
+    if self.custom_action_review_field then
+        self.custom_action_review_field = nil
+        self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+        self:display_edit_custom_action_review()
+        return
+    end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self.selection_states[states.SELECT_ACTION_TYPE] = self.selector:export_selection_state()
         self.action_type = self.selector:submit_selected_option().id
@@ -841,8 +869,8 @@ function action_binder:submit_selected_option()
         elseif (self.is_linking_for_custom_action) then
             self.custom_action_draft.linked_action = option.text
             self.is_linking_for_custom_action = false
-            if (self.editing_custom_action) then
-                self.action_type = action_types.EDIT_CUSTOM_ACTION
+            if (self.editing_custom_action or self.quick_custom_action) then
+                self.action_type = self.quick_custom_action and action_types.CREATE_CUSTOM_ACTION or action_types.EDIT_CUSTOM_ACTION
                 self.state = states.EDIT_CUSTOM_ACTION_REVIEW
                 self:display_edit_custom_action_review()
             else
@@ -898,18 +926,6 @@ function action_binder:submit_selected_option()
         self.action_target = action_targets[self.selector:submit_selected_option().id]
         self.state = states.SELECT_BUTTON_ASSIGNMENT
         self:display_button_assigner()
-    elseif (self.state == states.SELECT_ICON) then
-        self.selection_states[states.SELECT_ICON] = self.selector:export_selection_state()
-        local option = self.selector:submit_selected_option()
-        if (option.id == 'PREV') then
-            self.selector:decrement_page()
-        elseif (option.id == 'NEXT') then
-            self.selector:increment_page()
-        else
-            self.action_icon = option.data.icon_path
-            self.state = states.SELECT_BUTTON_ASSIGNMENT
-            self:display_button_assigner()
-        end
     elseif (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self.state = states.CONFIRM_BUTTON_ASSIGNMENT
         self:display_button_confirmer()
@@ -967,6 +983,10 @@ function action_binder:submit_selected_option()
                 self:apply_global_icon()
                 self:hide()
                 self:reset_state()
+            elseif (self.quick_custom_action) then
+                self.custom_action_draft.icon = option.data.icon_path
+                self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+                self:display_edit_custom_action_review()
             elseif (self.action_type == action_types.CREATE_CUSTOM_ACTION) then
                 self.custom_action_draft.icon = option.data.icon_path
                 self.icon_picker_path = ''
@@ -979,6 +999,9 @@ function action_binder:submit_selected_option()
                 self.icon_picker_stack = {}
                 self.state = states.EDIT_CUSTOM_ACTION_REVIEW
                 self:display_edit_custom_action_review()
+            elseif (self.action_type == action_types.CREATE_NEW_SET) then
+                self.state = states.SELECT_BUTTON_ASSIGNMENT
+                self:display_button_assigner()
             else
                 self:apply_icon_change()
                 self:hide()
@@ -1032,8 +1055,8 @@ function action_binder:submit_selected_option()
         elseif (option.id == 'SKIP_LINKED') then
             self.custom_action_draft.linked_action = nil
             self.custom_action_draft.linked_type = nil
-            if (self.editing_custom_action) then
-                self.action_type = action_types.EDIT_CUSTOM_ACTION
+            if (self.editing_custom_action or self.quick_custom_action) then
+                self.action_type = self.quick_custom_action and action_types.CREATE_CUSTOM_ACTION or action_types.EDIT_CUSTOM_ACTION
                 self.state = states.EDIT_CUSTOM_ACTION_REVIEW
                 self:display_edit_custom_action_review()
             else
@@ -1048,9 +1071,10 @@ function action_binder:submit_selected_option()
             self:display_action_selector()
         end
     elseif (self.state == states.CONFIRM_CUSTOM_ACTION) then
-        self:apply_custom_action_save()
-        self:hide()
-        self:reset_state()
+        if self:apply_custom_action_save() then
+            self:hide()
+            self:reset_state()
+        end
     elseif (self.state == states.EDIT_CUSTOM_ACTION_PICK) then
         local option = self.selector:submit_selected_option()
         if (option.id == 'PREV') then
@@ -1084,8 +1108,18 @@ function action_binder:submit_selected_option()
             self.selector:decrement_page()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
+        elseif option.id == 'CHANGE_ALIAS' or option.id == 'CHANGE_NAME' or option.id == 'CHANGE_COMMAND' then
+            local fields = {
+                CHANGE_ALIAS = {states.ENTER_CUSTOM_ACTION_ALIAS, 'Alias', 'a', 'alias'},
+                CHANGE_NAME = {states.ENTER_CUSTOM_ACTION_NAME, 'Catalog Name', 'n', 'name'},
+                CHANGE_COMMAND = {states.ENTER_CUSTOM_ACTION_COMMAND, 'Command', 'c', 'command'},
+            }
+            local field = fields[option.id]
+            self.custom_action_review_field = field[4]
+            self.state = field[1]
+            self:display_custom_action_field_review(field[2], field[3], self.custom_action_draft[field[4]])
         elseif (option.id == 'CHANGE_ICON') then
-            self.action_type = action_types.EDIT_CUSTOM_ACTION
+            self.action_type = self.quick_custom_action and action_types.CREATE_CUSTOM_ACTION or action_types.EDIT_CUSTOM_ACTION
             self.state = states.SELECT_ICON
             self.icon_picker_stack = {}
             self.icon_picker_path = ''
@@ -1094,7 +1128,7 @@ function action_binder:submit_selected_option()
             self.custom_action_draft.icon = nil
             self:display_edit_custom_action_review()
         elseif (option.id == 'CHANGE_LINKED') then
-            self.action_type = action_types.EDIT_CUSTOM_ACTION
+            self.action_type = self.quick_custom_action and action_types.CREATE_CUSTOM_ACTION or action_types.EDIT_CUSTOM_ACTION
             self.state = states.SELECT_LINKED_TYPE
             self:display_linked_type_selector()
         elseif (option.id == 'REMOVE_LINKED') then
@@ -1102,9 +1136,15 @@ function action_binder:submit_selected_option()
             self.custom_action_draft.linked_type = nil
             self:display_edit_custom_action_review()
         elseif (option.id == 'SAVE_EDIT') then
-            self:apply_custom_action_update()
-            self:hide()
-            self:reset_state()
+            local saved
+            if self.quick_custom_action then saved = self:apply_custom_action_save()
+            else saved = self:apply_custom_action_update() end
+            if saved then
+                self:hide()
+                self:reset_state()
+            else
+                self:display_edit_custom_action_review()
+            end
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_PICK) then
         local option = self.selector:submit_selected_option()
@@ -1130,6 +1170,12 @@ function action_binder:submit_selected_option()
 end
 
 function action_binder:go_back()
+    if self.custom_action_review_field then
+        self.custom_action_review_field = nil
+        self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+        self:display_edit_custom_action_review()
+        return
+    end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self:hide()
         self:reset_state()
@@ -1156,15 +1202,6 @@ function action_binder:go_back()
         self.new_set_name = nil
         self.state = states.ENTER_SET_NAME
         self:display_text_entry('Enter New Set Name', '<Type set name, press Enter>')
-    elseif (self.state == states.SELECT_ICON) then
-        -- Go back to alias entry
-        self.capturing_text = true
-        self.text_entry_buffer = self.new_set_alias or ''
-        self.state = states.ENTER_SET_ALIAS
-        self:display_text_entry('Enter Button Alias', '<Type alias, press Enter>')
-        if (self.new_set_alias and self.new_set_alias ~= '') then
-            self:update_text_entry_display()
-        end
     elseif (self.state == states.MOVE_CROSSBARS) then
         self.state = states.SELECT_ACTION_TYPE
         self.action_type = nil
@@ -1263,6 +1300,15 @@ function action_binder:go_back()
             if (frame.selection_state ~= nil) then
                 self.selector:import_selection_state(frame.selection_state)
             end
+        elseif (self.quick_custom_action) then
+            self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+            self:display_edit_custom_action_review()
+        elseif (self.action_type == action_types.CREATE_NEW_SET) then
+            self.capturing_text = true
+            self.text_entry_buffer = self.new_set_alias or ''
+            self.state = states.ENTER_SET_ALIAS
+            self:display_text_entry('Enter Button Alias', '<Type alias, press Enter>')
+            self:update_text_entry_display()
         elseif (self.action_type == action_types.CREATE_CUSTOM_ACTION) then
             self.icon_picker_path = ''
             self.icon_picker_stack = {}
@@ -1311,7 +1357,7 @@ function action_binder:go_back()
         self.state = states.ENTER_CUSTOM_ACTION_COMMAND
         self:display_custom_action_field_review('Command', 'c', self.custom_action_draft.command, '(raw command this action will fire)')
     elseif (self.state == states.SELECT_LINKED_TYPE) then
-        if (self.editing_custom_action) then
+        if (self.editing_custom_action or self.quick_custom_action) then
             self.state = states.EDIT_CUSTOM_ACTION_REVIEW
             self:display_edit_custom_action_review()
         else
@@ -1335,6 +1381,11 @@ function action_binder:go_back()
             self.selection_states[states.SELECT_ACTION_TYPE] = nil
         end
     elseif (self.state == states.EDIT_CUSTOM_ACTION_REVIEW) then
+        if self.quick_custom_action then
+            self:hide()
+            self:reset_state()
+            return
+        end
         self.custom_action_draft = nil
         self.custom_action_original_name = nil
         self.editing_custom_action = false
@@ -2569,6 +2620,7 @@ local function list_iconpack_dir(rel_path)
 end
 
 function action_binder:display_icon_selector(rel_path)
+    rel_path = rel_path or ''
     local title_text
     if (self.action_type == action_types.GLOBAL_ICON_SET) then
         title_text = 'Pick Icon for "' .. (self.global_icon_source_name or '?') .. '"'
@@ -2671,7 +2723,7 @@ function action_binder:on_custom_action_field_set(field, value)
     end
 
     -- Reject empty values (whitespace-only counts as empty).
-    if (value == nil or value:match('^%s*$') ~= nil) then
+    if (value == nil or (field ~= 'command' and value:match('^%s*$') ~= nil)) then
         windower.add_to_chat(123, '[XIVCrossbar] You must provide a value for "' .. field .. '".')
         return
     end
@@ -2738,7 +2790,42 @@ function action_binder:apply_custom_action_save()
         windower.add_to_chat(123, '[XIVCrossbar] Create Custom Action: incomplete draft.')
         return
     end
-    self.save_custom_action(self.custom_action_draft)
+    if player_data.custom_actions and player_data.custom_actions[self.custom_action_draft.name] then
+        windower.add_to_chat(123, '[XIVCrossbar] That name already exists; edit it or choose a new name.')
+        return false
+    end
+    return self.save_custom_action(self.custom_action_draft) ~= false
+end
+
+-- Start directly at the existing editable review, with optional icon/metadata.
+function action_binder:new_custom_action(alias, name)
+    local info = windower.ffxi.get_info()
+    if not self.title or not info or not info.logged_in then
+        windower.add_to_chat(123, '[XIVCrossbar] Log in before creating a custom action.')
+        return false
+    end
+    if type(alias) ~= 'string' or alias:match('^%s*$') then
+        windower.add_to_chat(123, '[XIVCrossbar] Usage: //xb ca new <alias> [name]')
+        return false
+    end
+    name = (name and name ~= '') and name or alias
+    if player_data.custom_actions and player_data.custom_actions[name] then
+        windower.add_to_chat(123, '[XIVCrossbar] A custom action named "' .. name .. '" already exists.')
+        return false
+    end
+    if self.custom_action_draft then
+        windower.add_to_chat(123, '[XIVCrossbar] Save or cancel the current custom action first.')
+        return false
+    end
+    self:hide()
+    self:reset_state()
+    self.quick_custom_action = true
+    self.action_type = action_types.CREATE_CUSTOM_ACTION
+    self.custom_action_draft = {alias = alias, name = name, command = ''}
+    self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+    self:show()
+    self:display_edit_custom_action_review()
+    return true
 end
 
 function action_binder:display_custom_actions_picker(title_text)
@@ -2781,7 +2868,7 @@ end
 function action_binder:display_edit_custom_action_review()
     local d = self.custom_action_draft or {}
     local original = self.custom_action_original_name or ''
-    self.title:text('Edit Custom Action: ' .. original)
+    self.title:text(self.quick_custom_action and 'New Custom Action: Review and Save' or ('Edit Custom Action: ' .. original))
     self.title:show()
     self.selector:hide()
     for i, image in ipairs(self.images) do image:hide() end
@@ -2816,6 +2903,9 @@ function action_binder:display_edit_custom_action_review()
     end
 
     local list = L{}
+    list:append({id = 'CHANGE_ALIAS', name = 'Edit Alias', icon = 'images/' .. pathbase .. '/custom_actions.png'})
+    list:append({id = 'CHANGE_NAME', name = 'Edit Name', icon = 'images/' .. pathbase .. '/custom_actions.png'})
+    list:append({id = 'CHANGE_COMMAND', name = 'Edit Command', icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_ICON',   name = 'Change Icon',          icon = change_icon_path, icon_offset = change_icon_offset})
     list:append({id = 'REMOVE_ICON',   name = 'Remove Icon',          icon = 'images/' .. pathbase .. '/ui/red-x.png'})
     list:append({id = 'CHANGE_LINKED', name = 'Change Linked Action', icon = 'images/' .. pathbase .. '/custom_actions.png'})
@@ -2887,16 +2977,7 @@ function action_binder:apply_custom_action_update()
         windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: incomplete draft.')
         return
     end
-    if (d.alias == nil or d.alias == '' or d.command == nil or d.command == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: alias and command must not be empty.')
-        return
-    end
-
-    if (d.name ~= original) then
-        windower.add_to_chat(123, '[XIVCrossbar] Custom action renamed from "' .. original .. '" to "' .. d.name .. '". Existing slot bindings referencing the old name will not be auto-updated.')
-    end
-
-    self.update_custom_action(original, d)
+    return self.update_custom_action(original, d) ~= false
 end
 
 function action_binder:apply_custom_action_delete()
@@ -2955,7 +3036,7 @@ function action_binder:capture_global_icon_source_name()
 
     local env = player_data.hotbar_settings.active_environment
     local action = lookup(env)
-    if (action == nil) then
+    if (action == nil and env ~= 'shared') then
         for _, d in ipairs({'default', 'job-default', 'all-jobs-default'}) do
             if (d ~= env) then
                 action = lookup(d)
@@ -2988,6 +3069,7 @@ function action_binder:check_slot_bound_in_active_env()
     if (lookup(env) ~= nil) then
         return true, nil
     end
+    if env == 'shared' then return false, 'No action bound at the selected Shared slot.' end
 
     local defaults = {'default', 'job-default', 'all-jobs-default'}
     for _, d in ipairs(defaults) do
