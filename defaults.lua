@@ -1,3 +1,4 @@
+-- Contributing author: A — UI settings.
 local defaults = {}
 
 defaults.buttonbackgroundalpha = 150

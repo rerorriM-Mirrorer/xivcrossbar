@@ -1,3 +1,4 @@
+-- Contributing author: A — input visibility and release grace.
 -- Input activity and release grace use elapsed wall time, not frame count.
 local visibility = {}
 visibility.__index = visibility

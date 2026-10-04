@@ -1,3 +1,4 @@
+-- Contributing author: A — custom-action editing.
 require("lists")
 require("strings")
 require("tables")

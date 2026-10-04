@@ -1,5 +1,13 @@
 # XIVCrossbar (Enhanced Fork)
 
+The `work/consolidate-2026-10-04` branch is our consolidation of the reported
+working October 4 installation and later Lua fixes, based on qEagleStrikerp's
+fork. Build `0.4.0-a.20261004.1` awaits the next live test; master is unchanged.
+See the [capture and comparison](docs/CONSOLIDATION-2026-10-04.md),
+[short test/rollback instructions](docs/TESTING-2026-10-04.md),
+[dependencies](docs/DEPENDENCIES.md) and [GitHub access](docs/GITHUB-ACCESS.md).
+Contributing author for our local changes: **A**. Original credits follow.
+
 A Windower 4 addon that emulates Final Fantasy XIV's controller crossbar UI for FFXI.
 
 This is an enhanced fork of [AliekberFFXI's xivcrossbar](https://github.com/AliekberFFXI/xivcrossbar) (originally based on SirEdeonX's xivhotbar) with several additions to the configuration UI, new combat indicators, custom action support, and many quality-of-life improvements.
@@ -336,11 +344,20 @@ The bulk of these can be done by editing the XMLs files manually as well, if you
 | Command | Purpose |
 |---|---|
 | `reload` | Reload the active hotbar |
+| `ui hide / show / auto` | Hide/show for this session, or resume the saved visibility mode |
+| `ui visibility Always / OnInput` | Save visibility mode; also clears a manual override |
+| `ui grace <seconds>` | Set OnInput release grace, 0–5 seconds |
+| `ui unlock / lock / togglelock` | Drag the labeled strip above the crossbar, then lock it |
 | `remap` | Rerun gamepad setup |
 | `regenerate` | Rebuild cached resource files |
 | `help` | Show full help menu (alias: `?`) |
 
 ### Identifiers
+
+Manual hiding affects the crossbar display, not action dispatch. Cutscenes still
+hide it, including after `ui show`. Unlocking resumes automatic visibility so
+the drag handle is available. None of these commands changes your hotbar XML.
+
 - **Hotbars**: `l`, `r`, `rl`, `lr`, `ll`, `rr` (or `1`–`6`) - order in which you hit the triggers
 - **Slots**: `ll`, `ld`, `lr`, `lu`, `rl`, `rd`, `rr`, `ru` (or `1`–`8`) - holding L/R trigger, then what direction dpad or face button you press
 

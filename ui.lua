@@ -729,7 +729,10 @@ function ui:show(player_hotbar, environment)
             local slot = i
             if slot == 10 then slot = 0 end
 
-            local action = player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]
+            -- Older/sparse XML may omit an entire bar. Treat that as an empty
+            -- slot and let the existing fallback resolver supply an action.
+            local bar = player_hotbar[environment] and player_hotbar[environment]['hotbar_' .. h]
+            local action = bar and bar['slot_' .. slot]
 
             if (action == nil or action.action == nil) then
                 action = maybe_get_default_action(player_hotbar, environment, h, slot)
@@ -1061,7 +1064,10 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
             local slot = i
             if slot == 10 then slot = 0 end
 
-            local action = player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]
+            -- MP/TP changes revisit the same sparse pages as initial drawing;
+            -- keep the lookup safe here too, without modifying saved bindings.
+            local bar = player_hotbar[environment] and player_hotbar[environment]['hotbar_' .. h]
+            local action = bar and bar['slot_' .. slot]
 
             -- use the default action if this slot is otherwise empty
             if (action == nil or action.action == nil) then

@@ -1,3 +1,4 @@
+-- Contributing author: A — icon and selector navigation.
 require("lists")
 require("tables")
 texts = require('texts')

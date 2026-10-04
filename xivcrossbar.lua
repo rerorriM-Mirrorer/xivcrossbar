@@ -1,8 +1,10 @@
+-- Contributing author: A — custom actions, UI movement/visibility, consolidation.
 -- Addon description
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0'
+-- Keep a distinct build ID so this test package can be identified in Lua lists.
+_addon.version = '0.4.0-a.20261004.1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -46,6 +48,7 @@ local function_key_bindings = require('function_key_bindings')
 local ui_drag = require('ui_drag')
 local ui_visibility = require('ui_visibility')
 local visibility = ui_visibility.new(require('socket').gettime)
+local manual_visibility = nil -- Session-only override; nil follows saved mode.
 
 -----------------------------
 -- Main
@@ -75,7 +78,7 @@ end
 
 local function can_drag_ui()
     return xivcrossbar.ready and ui.is_setup and not settings.UILocked and
-        not xivcrossbar.hide_hotbars and action_binder.is_hidden and
+        not ui.suspended and not xivcrossbar.hide_hotbars and action_binder.is_hidden and
         not gamepad_mapper.is_showing and not env_chooser:is_showing()
 end
 
@@ -94,7 +97,12 @@ local function refresh_ui_visibility()
         not action_binder.is_hidden or gamepad_mapper.is_showing or
         env_chooser:is_showing() or env_chooser.capturing or not settings.UILocked
     local grace = math.max(0, math.min(5, tonumber(settings.VisibilityGrace) or 0.25))
-    local show = visibility:visible(settings.VisibilityMode, grace, active) and not xivcrossbar.hide_hotbars
+    local show = visibility:visible(settings.VisibilityMode, grace, active)
+    -- A manual hide/show lasts only for this load. Saved OnInput/Always and
+    -- its release timer stay intact so `ui auto` can resume the usual behavior.
+    if manual_visibility ~= nil then show = manual_visibility end
+    -- Event/cutscene hiding wins even over a manual show request.
+    show = show and not xivcrossbar.hide_hotbars
     if show and ui.suspended then
         ui.suspended = false
         ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
@@ -116,10 +124,22 @@ local function ui_command(args)
         crossbar_drag:finish()
         if command == 'togglelock' then settings.UILocked = not settings.UILocked
         else settings.UILocked = command == 'lock' end
+        if not settings.UILocked then manual_visibility = nil end
         config.save(settings)
         refresh_ui_visibility()
         ui:show_drag_handle(can_drag_ui())
         windower.add_to_chat(207, '[XIVCrossbar] UI ' .. (settings.UILocked and 'locked.' or 'unlocked: drag the labeled strip above the crossbar.'))
+    elseif command == 'hide' or command == 'show' or command == 'auto' then
+        -- Finish a drag before hiding its handle; release persists its position.
+        crossbar_drag:finish()
+        if command == 'auto' then manual_visibility = nil
+        else manual_visibility = command == 'show' end
+        visibility:reset()
+        refresh_ui_visibility()
+        ui:show_drag_handle(can_drag_ui())
+        windower.add_to_chat(207, '[XIVCrossbar] UI ' ..
+            (command == 'auto' and ('following ' .. settings.VisibilityMode .. '.') or
+            (command == 'show' and 'shown for this session (outside cutscenes).' or 'hidden for this session.')))
     elseif command == 'visibility' then
         local mode = (args[2] or ''):lower()
         if mode ~= 'always' and mode ~= 'oninput' then
@@ -127,6 +147,7 @@ local function ui_command(args)
             return
         end
         settings.VisibilityMode = mode == 'always' and 'Always' or 'OnInput'
+        manual_visibility = nil
         visibility:reset()
         config.save(settings)
         refresh_ui_visibility()
@@ -140,7 +161,7 @@ local function ui_command(args)
         settings.VisibilityGrace = seconds
         config.save(settings)
     else
-        windower.add_to_chat(207, '[XIVCrossbar] //xb ui unlock | lock | togglelock | visibility Always/OnInput | grace <seconds>')
+        windower.add_to_chat(207, '[XIVCrossbar] //xb ui unlock | lock | togglelock | hide | show | auto | visibility Always/OnInput | grace <seconds>')
     end
 end
 
@@ -924,6 +945,9 @@ function display_help_menu()
     windower.send_command('echo remap                           Rerun the gamepad setup utility')
     windower.send_command('echo regenerate                      Regenerate cached resource files')
     windower.send_command('echo reload                          Reload the active hotbar')
+    windower.send_command('echo ui hide/show/auto               Session visibility override / resume saved mode')
+    windower.send_command('echo ui visibility Always/OnInput    Save crossbar visibility mode')
+    windower.send_command('echo ui unlock/lock/togglelock       Move or lock the crossbar')
     windower.send_command('echo help / ?                        Show this help')
     windower.send_command('echo ================ Identifiers ================')
     windower.send_command('echo Hotbar (<hb>):  l, r, rl, lr, ll, rr   (or 1-6)')

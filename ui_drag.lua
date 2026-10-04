@@ -1,3 +1,4 @@
+-- Contributing author: A — mouse capture and position persistence.
 -- Mouse capture is limited to the visible unlock strip. Positions remain
 -- Style.OffsetX/Y; this module owns only the transient drag gesture.
 local drag = {}

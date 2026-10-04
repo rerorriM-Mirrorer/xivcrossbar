@@ -1,3 +1,4 @@
+-- Contributing author: A — fallback layers and Quick Switch.
 local res = require('resources')
 local storage = require('storage')
 local action_manager = require('action_manager')
