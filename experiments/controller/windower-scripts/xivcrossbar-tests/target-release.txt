@@ -1,0 +1,2 @@
+setkey tab up
+setkey lshift up

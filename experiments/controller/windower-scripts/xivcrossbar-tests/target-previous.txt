@@ -1,0 +1,8 @@
+wait 2
+setkey lshift down
+wait 0.05
+setkey tab down
+wait 0.1
+setkey tab up
+wait 0.05
+setkey lshift up

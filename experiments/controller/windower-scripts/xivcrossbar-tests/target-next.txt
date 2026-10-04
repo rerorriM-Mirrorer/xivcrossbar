@@ -1,0 +1,4 @@
+wait 2
+setkey tab down
+wait 0.1
+setkey tab up
