@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0-a.20261005.4 — controller extras live test
+
+- Integrate L3 release-to-switch into automatically launched DirectInput and XInput wrappers.
+- Retry R1 Tab / L1 Shift+Tab with explicit SendEvent key-down/up and 40ms hold.
+- Keep R3 unassigned; add controller-extras.ini switches for independent rollback.
+- Shoulder targeting is experimental; Windows/FFXI acceptance is pending.
+
 ## 0.4.0-a.20261005.3 — scale preview and menu essentials
 
 - Preview a hidden crossbar for its grace period after scaling, then restore its visibility.

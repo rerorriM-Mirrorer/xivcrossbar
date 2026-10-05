@@ -715,7 +715,10 @@ function ui:get_layout_bounds()
             local label_y = sy + 40 + (self.alias_offset_y or 0)
             local width, height = 40, 14
             local label = self.hotbars[h] and self.hotbars[h].slot_text[slot]
-            if label then width, height = label:extents() end
+            if label then
+                width, height = label:extents()
+                label_x, label_y = label:pos()
+            end
             x, y = math.min(x, sx, label_x), math.min(y, sy, label_y)
             right, bottom = math.max(right, sx + 40, label_x + width), math.max(bottom, sy + 40, label_y + height)
         end

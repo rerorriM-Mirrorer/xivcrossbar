@@ -26,6 +26,7 @@ for _, name in ipairs({'hide','show','check_vitals','check_recasts','load_player
     ui[name] = function() counts[key]=counts[key]+1 end
 end
 ui.show_drag_handle=function() end
+ui.set_scale=function() end
 ui.trigger_feedback=function() end
 local chooser = {showing=false}
 chooser.is_showing=function(self) return self.showing end
@@ -108,6 +109,14 @@ now=now+2; stub.emit('prerender'); assert(ui.suspended)
 for _, invalid in ipairs({'-1','nan','inf','1e309','nope'}) do
     stub.emit('addon command','ui','grace',invalid); assert(settings.VisibilityGrace==30)
 end
+-- Scale preview temporarily overrides Hide, then restores it without changing
+-- the stored visibility preference; an explicit Hide cancels a pending preview.
+stub.emit('addon command','ui','hide'); assert(ui.suspended)
+stub.emit('addon command','ui','scale','.75'); assert(not ui.suspended)
+assert(settings.VisibilityMode=='OnInput')
+now=now+31; stub.emit('prerender'); assert(ui.suspended)
+stub.emit('addon command','ui','scale','1'); assert(not ui.suspended)
+stub.emit('addon command','ui','hide'); assert(ui.suspended)
 stub.emit('logout'); stub.emit('prerender')
 assert(not control.ready and ui.suspended)
 print('PASS: release grace, input/menu events, sequential triggers, hidden render work, manual overrides, cutscenes, unlock and logout')

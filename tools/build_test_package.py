@@ -14,7 +14,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 OVERLAY = (
     'action_binder.lua', 'ui/selectablelist.lua', 'defaults.lua', 'player.lua',
-    'ui.lua', 'xivcrossbar.lua', 'ui_drag.lua', 'ui_visibility.lua', 'ui_geometry.lua', 'theme.lua', 'README.md',
+    'ui.lua', 'xivcrossbar.lua', 'ui_drag.lua', 'ui_visibility.lua', 'ui_geometry.lua', 'theme.lua', 'environment_chooser.lua', 'ffxi_directinput.ahk', 'ffxi_xinput.ahk',
+    'controller_extras.ahk', 'controller-extras.ini', 'README.md',
 )
 EXPECTED_SNAPSHOT = 'd55bc5922c9ae82fd6c865dacf528bd8c04cfb408c2c33e00269dee9ef32b94d'
 
@@ -62,7 +63,7 @@ def build(snapshot: Path, output: Path) -> dict:
     preserved = len(original) - len(changed)
     manifest = {
         'captured_date': '2026-10-04', 'timezone': 'America/Chicago',
-        'build': '0.4.0-a.20261005.1', 'snapshot_sha256': EXPECTED_SNAPSHOT,
+        'build': '0.4.0-a.20261005.4', 'snapshot_sha256': EXPECTED_SNAPSHOT,
         'snapshot_files': len(original), 'preserved_snapshot_files': preserved,
         'changed_snapshot_files': changed,
         'files': [{'path': name, 'size': len(data), 'sha256': digest(data),

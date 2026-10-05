@@ -10,6 +10,12 @@ SetWinDelay -1
 #MaxHotkeysPerInterval 50000
 #HotkeyInterval, 1
 #WinActivateForce
+SetWorkingDir, %A_ScriptDir%
+AExtrasInit()
+IniRead, AL1Joy, controller-extras.ini, Controller, L1Joy, 5
+IniRead, AR1Joy, controller-extras.ini, Controller, R1Joy, 6
+IniRead, AL3Joy, controller-extras.ini, Controller, L3Joy, 11
+SetTimer, AExtrasTimer, 10
 
 IniRead, ButtonLayout, config.ini, ButtonMap, ButtonLayout
 IniRead, ConfirmButton, config.ini, ButtonMap, ConfirmButton
@@ -401,3 +407,7 @@ If WinActive("ahk_class FFXiClass") {
   SendInput {f8}
 }
 return
+AExtrasTimer:
+AExtrasPoll("direct", GetKeyState("Joy" . AL1Joy), GetKeyState("Joy" . AR1Joy), GetKeyState("Joy" . AL3Joy), isLeftTriggerDown or isRightTriggerDown or isEnvironmentDialogOpen or GetKeyState("Joy9"))
+return
+#Include %A_ScriptDir%\controller_extras.ahk

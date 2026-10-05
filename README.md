@@ -403,3 +403,21 @@ licensed under BSD 3-Clause. The required BSD attribution is preserved in
 - Original `xivhotbar` — [SirEdeonX](https://github.com/SirEdeonX)
 - `xivcrossbar` rewrite and gamepad layer — [Aliekber](https://github.com/AliekberFFXI)
 - Various modifications: Aeliya, [BlueSummersC](https://github.com/BluesummersC), [FionaBrightgrass](https://github.com/FionaBrightgrass), [grayfox2510](https://github.com/grayfox2510), Icydeath, [qEagleStrikerp](https://github.com/qEagleStrikerp), [Sylvebits](https://github.com/Sylvebits), [XerevNonori](https://github.com/XerevNonori)
+
+
+### Controller extras — October 5 live test
+
+The root DirectInput and XInput wrappers now include `controller_extras.ahk`.
+Keep that file and `controller-extras.ini` beside them. Existing launch settings
+choose the wrapper; exit older experiment wrappers before loading this build.
+L3 arms on press and cycles FFXI windows on release. Holding a trigger/menu,
+pressing a modifier or changing focus cancels the switch. R3 remains native Run.
+R1 sends Tab and L1 sends Shift+Tab once per press, with a 40ms explicit hold.
+This targeting retry needs live validation; set `ShouldersEnabled=0` to disable
+it. Set `L3Enabled=0` to disable switching, then restart the active wrapper.
+DirectInput uses configurable Joy numbers; XInput uses native button masks.
+
+Build .4 includes centered aliases, the right-side Drag tile, pixel-thick
+outlines, temporary scale preview, removed default-set notice and Save-first
+review with safe action-type paging. Start alias centering tests with
+`//xb ui aliasoffset 0 0`, then apply your preferred adjustments.

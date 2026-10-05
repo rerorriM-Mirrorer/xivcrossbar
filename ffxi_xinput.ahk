@@ -240,6 +240,8 @@ XInput_Term() {
 }
 
 #SingleInstance force
+SetWorkingDir, %A_ScriptDir%
+AExtrasInit()
 
 TRIGGER_DEAD_ZONE := 4
 
@@ -275,6 +277,8 @@ XInput_Init()
 Loop {
     Loop, 4 {
         If State := XInput_GetState(A_Index-1) {
+            ; Use the native shoulder/thumb masks, not DirectInput Joy numbers.
+            AExtrasPoll(A_Index, !!(State.wButtons & 0x100), !!(State.wButtons & 0x200), !!(State.wButtons & 0x40), State.bLeftTrigger > TRIGGER_DEAD_ZONE or State.bRightTrigger > TRIGGER_DEAD_ZONE or !!(State.wButtons & 0x30))
             If WinActive("ahk_class FFXiClass") {
                 if (State.bLeftTrigger > TRIGGER_DEAD_ZONE and !isLeftTriggerDown) {
                     isLeftTriggerDown := true
@@ -623,3 +627,5 @@ WinActivate, ahk_class FFXiClass
 SendInput {NumpadAdd}
 return
 
+
+#Include %A_ScriptDir%\controller_extras.ahk
