@@ -63,7 +63,7 @@ def build(snapshot: Path, output: Path) -> dict:
     preserved = len(original) - len(changed)
     manifest = {
         'captured_date': '2026-10-04', 'timezone': 'America/Chicago',
-        'build': '0.4.0-a.20261005.6', 'snapshot_sha256': EXPECTED_SNAPSHOT,
+        'build': '0.4.0-a.20261005.7', 'snapshot_sha256': EXPECTED_SNAPSHOT,
         'snapshot_files': len(original), 'preserved_snapshot_files': preserved,
         'changed_snapshot_files': changed,
         'files': [{'path': name, 'size': len(data), 'sha256': digest(data),

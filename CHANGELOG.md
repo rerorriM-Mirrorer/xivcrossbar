@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0-a.20261005.7 — save and bind custom actions
+
+- Quick custom-action review now offers Save & Bind first, taking the saved
+  command, icon, alias, and linked action straight to button assignment.
+- Save Only keeps catalog creation independent. Back after saving returns to
+  the action menu without reopening the saved draft.
+- Offline binder flow passes; live controller and screen checks remain pending.
+
 ## 0.4.0-a.20261005.6 — guarded server profile
 
 - Wait for a stable, in-world player/server pair before loading or creating

@@ -148,7 +148,7 @@ Each entry has:
 - **Icon** (optional) — pulled from the active iconpack
 - **Linked metadata** (optional) — borrow MP/TP cost, recast, and element from a real spell or job ability so the slot displays cost and recast indicators just like a native action, neat if you're using gearswap commands to act as specific spells/JAs/WSs for whatever reason
 
-Quick creation in this PartyControl copy: `//xb ca new <alias> [name]` jumps directly to editable review with a blank command and optional icon/linked metadata. If name is omitted it equals alias. Set the command with `//xb ca c <command>`, then select Save Changes. Empty saved commands do nothing.
+Quick creation: `//xb ca new <alias> [name]` jumps directly to editable review with a blank command and optional icon/linked metadata. If name is omitted it equals alias. Set the command with `//xb ca c <command>`, then choose **Save & Bind** to go straight to a button combo or **Save Only** to add it to the catalog. Empty saved commands do nothing.
 
 Manage custom actions through the in-game binder:
 - **Create Custom Action** — wizard that walks you through the process: alias → name → command → icon → linked action → save

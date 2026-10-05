@@ -69,6 +69,31 @@ stub.pick(binder, 'SAVE_EDIT')
 assert(stub.saved.command == '')
 assert(not binder:new_custom_action('Test'))
 print('PASS: quick creation, editable review, optional icon/metadata, single-word and duplicate names')
+-- Save & Bind carries the saved draft straight to the normal combo confirmer.
+local bound
+binder.save_binding = function(...) bound = {...} end
+binder.theme_options.hotbar_number = 6
+assert(binder:new_custom_action('BOW', 'Friendly Bow'))
+binder:on_custom_action_field_set('command', 'input /bow')
+binder.custom_action_draft.icon = 'ui/custom_actions'
+stub.pick(binder, 'SAVE_BIND')
+assert(stub.saved.name == 'Friendly Bow' and binder.state == 5)
+assert(binder.action_name == 'Friendly Bow' and binder.action_alias == 'BOW')
+assert(binder.action_command == 'input /bow' and binder.action_icon == 'ui/custom_actions')
+binder.active_crossbar, binder.hotkey = 2, 3
+binder:submit_selected_option()
+assert(binder.state == 6)
+binder:submit_selected_option()
+assert(bound[1] == 2 and bound[2] == 3 and bound[3] == 'ex')
+assert(bound[4] == 'Friendly Bow' and bound[6] == 'input /bow' and bound[10] == 'BOW')
+assert(binder.state == 0)
+-- Back after saving cannot reopen a draft or phantom action-picker page.
+assert(binder:new_custom_action('WAVE', 'Friendly Wave'))
+stub.pick(binder, 'SAVE_BIND')
+binder:go_back()
+assert(binder.state == 1 and binder.custom_action_draft == nil)
+assert(binder.action_command == nil and binder.action_alias == nil)
+binder:hide(); binder:reset_state()
 -- A quick create must not inherit page 2 from another selector.
 binder.selector:set_page(2)
 assert(binder:new_custom_action('page'))

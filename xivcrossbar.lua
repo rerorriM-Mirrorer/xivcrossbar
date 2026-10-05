@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261005.6'
+_addon.version = '0.4.0-a.20261005.7'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 

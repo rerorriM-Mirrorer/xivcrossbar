@@ -411,6 +411,7 @@ function action_binder:reset_state()
     self.global_icon_source_name = nil
     self.custom_action_draft = nil
     self.quick_custom_action = false
+    self.binding_new_custom_action = false
     self.custom_action_review_field = nil
     self.is_linking_for_custom_action = false
     self.editing_custom_action = false
@@ -1158,6 +1159,28 @@ function action_binder:submit_selected_option_internal()
             self.custom_action_draft.linked_action = nil
             self.custom_action_draft.linked_type = nil
             self:display_edit_custom_action_review()
+        elseif (option.id == 'SAVE_BIND' and self.quick_custom_action) then
+            if self:apply_custom_action_save() then
+                -- Catalog records are snapshots in bound slots. Carry the
+                -- exact saved draft into the existing button assignment path
+                -- so the player needn't find it again in a long picker.
+                local draft = self.custom_action_draft
+                self.quick_custom_action = false
+                self.custom_action_draft = nil
+                self.binding_new_custom_action = true
+                self.action_type = action_types.CUSTOM_ACTION
+                self.action_name = draft.name
+                self.action_alias = (draft.alias and draft.alias ~= '') and draft.alias or draft.name
+                self.action_command = draft.command
+                self.action_icon = draft.icon
+                self.action_linked_action = draft.linked_action
+                self.action_linked_type = draft.linked_type
+                self.action_target = nil
+                self.state = states.SELECT_BUTTON_ASSIGNMENT
+                self:display_button_assigner()
+            else
+                self:display_edit_custom_action_review()
+            end
         elseif (option.id == 'SAVE_EDIT') then
             local saved
             if self.quick_custom_action then saved = self:apply_custom_action_save()
@@ -1270,7 +1293,12 @@ function action_binder:go_back()
             self.selection_states[states.SELECT_ACTION] = nil
         end
     elseif (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
-        if (self.action_type == action_types.CREATE_NEW_SET) then
+        if self.binding_new_custom_action then
+            -- Saving already happened. Back returns to the main menu without
+            -- trying to reopen a draft or an absent action-picker selection.
+            self.binding_new_custom_action = false
+            self:return_to_action_type_menu()
+        elseif (self.action_type == action_types.CREATE_NEW_SET) then
             -- Go back to icon selection
             self.state = states.SELECT_ICON
             self.action_icon = nil
@@ -2928,7 +2956,11 @@ function action_binder:display_edit_custom_action_review()
     end
 
     local list = L{}
-    list:append({id = 'SAVE_EDIT',     name = 'Save Changes',         icon = 'images/' .. pathbase .. '/custom_actions.png'})
+    if self.quick_custom_action then
+        list:append({id = 'SAVE_BIND', name = 'Save & Bind', icon = 'images/' .. pathbase .. '/custom_actions.png'})
+    end
+    list:append({id = 'SAVE_EDIT', name = self.quick_custom_action and 'Save Only' or 'Save Changes',
+        icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_ALIAS', name = 'Edit Alias', icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_NAME', name = 'Edit Name', icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_COMMAND', name = 'Edit Command', icon = 'images/' .. pathbase .. '/custom_actions.png'})
@@ -3034,6 +3066,14 @@ function action_binder:return_to_action_type_menu()
     self:clear_button_entry_ui()
     self.state = states.SELECT_ACTION_TYPE
     self.action_type = nil
+    self.action_name = nil
+    self.action_alias = nil
+    self.action_command = nil
+    self.action_icon = nil
+    self.action_linked_action = nil
+    self.action_linked_type = nil
+    self.action_target = nil
+    self.target_type = nil
     self.active_crossbar = nil
     self.hotkey = nil
     self.icon_picker_path = ''
