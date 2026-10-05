@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261005.7'
+_addon.version = '0.4.0-a.20261005.8'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -465,12 +465,14 @@ end
 function start_controller_wrappers()
     if theme_options.use_directinput then
 		windower.send_command('run addons/xivcrossbar/ffxi_directinput.ahk')
+		windower.console.write('[XIVCrossbar] Controller wrapper: DirectInput (L1/R1/L3 in controller-extras.ini)')
 	end
 	
 	-- Prefer the selected DirectInput path if both flags are accidentally on.
 	-- Two wrappers would duplicate shoulder taps and L3 window switches.
 	if theme_options.use_xinput and not theme_options.use_directinput then
 		windower.send_command('run addons/xivcrossbar/ffxi_xinput.ahk')
+		windower.console.write('[XIVCrossbar] Controller wrapper: XInput (L1/R1/L3 native masks)')
 	end
 end
 

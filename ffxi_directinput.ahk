@@ -401,12 +401,9 @@ If WinActive("ahk_class FFXiClass") {
 }
 return
 
-; Replace rb with better target
-Joy6::
-If WinActive("ahk_class FFXiClass") {
-  SendInput {f8}
-}
-return
+; Joy6 (R1) is polled by controller_extras.ahk for one Tab on press.
+; Its old f8 hotkey also fired on the same press, undoing target cycling and
+; possibly invoking a crossbar slot. Leave it without a separate hotkey.
 AExtrasTimer:
 AExtrasPoll("direct", GetKeyState("Joy" . AL1Joy), GetKeyState("Joy" . AR1Joy), GetKeyState("Joy" . AL3Joy), isLeftTriggerDown or isRightTriggerDown or isEnvironmentDialogOpen or GetKeyState("Joy9"))
 return

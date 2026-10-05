@@ -415,7 +415,12 @@ pressing a modifier or changing focus cancels the switch. R3 remains native Run.
 R1 sends Tab and L1 sends Shift+Tab once per press, with a 40ms explicit hold.
 This targeting retry needs live validation; set `ShouldersEnabled=0` to disable
 it. Set `L3Enabled=0` to disable switching, then restart the active wrapper.
-DirectInput uses configurable Joy numbers; XInput uses native button masks.
+DirectInput uses configurable Joy numbers; XInput uses native button masks. The
+addon logs its selected wrapper at load. For a DualSense using DirectInput,
+check that it says **DirectInput**; an XInput wrapper will not read its raw Joy
+buttons. R1's old DirectInput F8 hotkey has been removed so it cannot fire
+alongside Tab. Test L1/R1 with the FFXI window focused, both triggers released,
+and no other wrapper running.
 
 Build .4 includes centered aliases, the right-side Drag tile, pixel-thick
 outlines, temporary scale preview, removed default-set notice and Save-first

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0-a.20261005.8 — DirectInput R1 conflict
+
+- Remove the old DirectInput R1-to-F8 hotkey, which fired alongside the new
+  R1-to-Tab target tap. L1/R1 now use the shared edge handler alone.
+- Log which controller wrapper the addon starts to help diagnose a DirectInput
+  controller accidentally using the XInput path, or vice versa.
+- Windows AHK and in-game target cycling still need live checks.
+
 ## 0.4.0-a.20261005.7 — save and bind custom actions
 
 - Quick custom-action review now offers Save & Bind first, taking the saved
