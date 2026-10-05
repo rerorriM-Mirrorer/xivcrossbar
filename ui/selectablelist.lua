@@ -1,8 +1,9 @@
--- Contributing author: A — icon and selector navigation.
+-- Contributing author: Awake — bounded selector resources and asset diagnostics.
 require("lists")
 require("tables")
 texts = require('texts')
 images = require('images')
+local files = require('files')
 
 local selectable_list = {}
 local list_geometry = require('ui_geometry').new()
@@ -36,6 +37,7 @@ function selectable_list:setup(theme_options, base_x, base_y, max_width, max_hei
     self.current_page = 1
     self.is_prev_button_showing = false
     self.is_next_button_showing = false
+    self.reported_bad_assets = {}
 
     list_prim.create('selectablelist_selection_highlight')
     list_prim.set_color('selectablelist_selection_highlight', 255, 171, 252, 252)
@@ -63,12 +65,15 @@ function selectable_list:reset_state()
     list_prim.set_visibility('prev_page_button', false)
     list_prim.set_visibility('next_page_button', false)
     for index, field in ipairs(self.fields) do
-        field:hide()
+        field:destroy()
     end
     for index, image in ipairs(self.images) do
-        image:hide()
+        image:destroy()
     end
     self.fields = L{}
+    -- A page owns these native objects. Hiding and retaining old pages kept
+    -- every texture alive indefinitely and made each reset progressively slower.
+    self.images = L{}
     self.field_coords = {}
     self.selected_row = 1
     self.selected_col = 1
@@ -81,7 +86,7 @@ end
 function selectable_list:import_selection_state(selection_state)
     if self.current_page ~= selection_state.page then
         self.current_page = selection_state.page
-        self:display_options(self.current_options)
+        self:display_options(self.current_options, self.texture_context)
     end
     if self.current_page == selection_state.page and self:is_valid_row_col(selection_state.row, selection_state.col) then
         self.selected_row = selection_state.row
@@ -96,7 +101,7 @@ end
 
 function selectable_list:increment_page()
     self.current_page = self.current_page + 1
-    self:display_options(self.current_options)
+    self:display_options(self.current_options, self.texture_context)
     if (self.is_next_button_showing) then
         self.selected_row = self.max_row + 1
         self.selected_col = self.max_col
@@ -110,7 +115,7 @@ end
 
 function selectable_list:decrement_page()
     self.current_page = self.current_page - 1
-    self:display_options(self.current_options)
+    self:display_options(self.current_options, self.texture_context)
     if (self.is_prev_button_showing) then
         self.selected_row = self.max_row + 1
         self.selected_col = 1
@@ -252,7 +257,32 @@ function selectable_list:get_row_col(index)
     return row, col
 end
 
-function selectable_list:display_options(options)
+function selectable_list:load_icon(icon, path)
+    if self.texture_context and self.texture_context.trace then
+        windower.console.write('[XIVCrossbar icons] load begin: ' .. path)
+    end
+    local exists = files.new(path):exists()
+    local ok, err = false, 'file missing'
+    if exists then ok, err = pcall(setup_image, icon, path) end
+    if not ok then
+        if not self.reported_bad_assets[path] then
+            self.reported_bad_assets[path] = true
+            windower.console.write('[XIVCrossbar icons] load failed: ' .. path .. ' (' .. tostring(err) .. ')')
+            windower.add_to_chat(123, '[XIVCrossbar] Missing or unreadable menu icon; see console diagnostics.')
+        end
+        -- Keep the row usable even if its image is absent. This fallback never
+        -- depends on the user's chosen icon pack or changes a saved binding.
+        local fallback = windower.addon_path .. 'images/icons/iconpacks/default/custom_actions.png'
+        local recovered = files.new(fallback):exists() and pcall(setup_image, icon, fallback)
+        if not recovered then icon:hide() end
+    end
+    if self.texture_context and self.texture_context.trace then
+        windower.console.write('[XIVCrossbar icons] load end: ' .. path .. ' (' .. (ok and 'ok' or 'fallback') .. ')')
+    end
+end
+
+function selectable_list:display_options(options, texture_context)
+    self.texture_context = texture_context
     -- A new list (e.g. review after picking an icon on page 3) may be shorter.
     local last_page = math.max(1, math.ceil(#options / (self.max_row * self.max_col)))
     local current_page = math.max(1, math.min(self.current_page, last_page))
@@ -294,7 +324,7 @@ function selectable_list:display_options(options)
                 local x, y = self:get_pos(row, col)
                 x = x + 5
                 y = y + 5
-                if icon_path then setup_image(icon, icon_path) end
+                if icon_path then self:load_icon(icon, icon_path) end
                 local icon_offset = value.icon_offset or 0
                 icon:size(40 - 2 * icon_offset, 40 - 2 * icon_offset)
                 icon:pos(x + icon_offset, y + icon_offset)

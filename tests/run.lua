@@ -4,6 +4,7 @@
 for _, path in ipairs({
     'tests/xivcrossbar_profile_gate.lua',
     'tests/xivcrossbar_custom_actions.lua',
+    'tests/xivcrossbar_menu.lua',
     'tests/xivcrossbar_layers.lua',
     'tests/xivcrossbar_pages.lua',
     'tests/xivcrossbar_drag.lua',

@@ -1,4 +1,4 @@
--- Contributing author: A — custom-action editing and centered menu presentation.
+-- Contributing author: Awake — custom-action editing, safe menus and diagnostics.
 require("lists")
 require("strings")
 require("tables")
@@ -806,11 +806,15 @@ function action_binder:submit_selected_option_internal()
     end
     if (self.state == states.SELECT_ACTION_TYPE) then
         -- Paging entries are navigation, never action types.
+        -- Submitting an ordinary row consumes the selector. Remember both
+        -- its position and its returned value before that happens.
+        local selection_state = self.selector:export_selection_state()
         local selected = self.selector:submit_selected_option()
+        if not selected then return end
         if selected.id == 'NEXT' then self.selector:increment_page(); return end
         if selected.id == 'PREV' then self.selector:decrement_page(); return end
-        self.selection_states[states.SELECT_ACTION_TYPE] = self.selector:export_selection_state()
-        self.action_type = self.selector:submit_selected_option().id
+        self.selection_states[states.SELECT_ACTION_TYPE] = selection_state
+        self.action_type = selected.id
 
         if (self.action_type == action_types.SHOW_CREDITS) then
             self.state = states.SHOW_CREDITS
@@ -1562,8 +1566,8 @@ function action_binder:display_action_type_selector()
     action_type_list:append({id = action_types.SWITCH_TARGET, name = 'Switch Target', icon = 'images/' ..get_icon_pathbase() .. '/targetnpc.png'})
     action_type_list:append({id = action_types.MAP, name = 'View Map', icon = 'images/' ..get_icon_pathbase() .. '/map.png'})
     action_type_list:append({id = action_types.LAST_SYNTH, name = 'Repeat Last Synth', icon = 'images/' ..get_icon_pathbase() .. '/synth.png'})
-    action_type_list:append({id = action_types.EXECUTE_COMMAND, name = 'Execute Command', icon = get_icon_pathbase() .. '/windower4.png'})
-	action_type_list:append({id = action_types.SUPERWARP, name = 'Superwarp', icon = 'credit_avatars/akadentk.png'})
+    action_type_list:append({id = action_types.EXECUTE_COMMAND, name = 'Execute Command', icon = 'images/' .. get_icon_pathbase() .. '/windower4.png'})
+	action_type_list:append({id = action_types.SUPERWARP, name = 'Superwarp', icon = 'images/credit_avatars/akadentk.png'})
     action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch Crossbars', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
     action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick XB Switch', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
     action_type_list:append({id = action_types.CREATE_NEW_SET, name = 'Create New Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_' .. self.button_layout .. '.png'})
@@ -2689,7 +2693,13 @@ function action_binder:display_icon_selector(rel_path)
     self.title:show()
 
     local pathbase = get_icon_pathbase()
+    if self.custom_action_debug then
+        windower.console.write('[XIVCrossbar icons] folder begin: ' .. (rel_path == '' and '<root>' or rel_path))
+    end
     local dirs, files = list_iconpack_dir(rel_path)
+    if self.custom_action_debug then
+        windower.console.write('[XIVCrossbar icons] folder listed: ' .. #dirs .. ' directories, ' .. #files .. ' PNGs')
+    end
 
     local list = L{}
 
@@ -2725,7 +2735,7 @@ function action_binder:display_icon_selector(rel_path)
         })
     end
 
-    self.selector:display_options(list)
+    self.selector:display_options(list, {trace=self.custom_action_debug, folder=rel_path})
     self:show_control_hints('Confirm', 'Go Back')
 end
 
@@ -3562,20 +3572,20 @@ function action_binder:display_credits()
     local NO_DATA = {target_type = {['None'] = true}}
 
     local credits = L{
-        {id = 0, name = 'Programming\nAliekber', icon = 'credit_avatars/aliekber.png', data = NO_DATA},
-        {id = 0, name = 'MS Paint Art\nAliekber', icon = 'credit_avatars/aliekber.png', data = NO_DATA},
+        {id = 0, name = 'Programming\nAliekber', icon = 'images/credit_avatars/aliekber.png', data = NO_DATA},
+        {id = 0, name = 'MS Paint Art\nAliekber', icon = 'images/credit_avatars/aliekber.png', data = NO_DATA},
         {id = 0, name = 'newline', icon = '', data = NO_DATA},
         {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'Based on XIVHotbar by\nSirEdeonX', icon = 'credit_avatars/edeon.png', data = NO_DATA},
+        {id = 0, name = 'Based on XIVHotbar by\nSirEdeonX', icon = 'images/credit_avatars/edeon.png', data = NO_DATA},
         {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'Skillchain library\nIvaar', icon = 'credit_avatars/ivaar.png', data = NO_DATA},
-        {id = 0, name = 'MountRoulette library\nXurion', icon = 'credit_avatars/xurion.png', data = NO_DATA},
-        {id = 0, name = 'IconExtractor library\nRubenator', icon = 'credit_avatars/rubenator.png', data = NO_DATA},
+        {id = 0, name = 'Skillchain library\nIvaar', icon = 'images/credit_avatars/ivaar.png', data = NO_DATA},
+        {id = 0, name = 'MountRoulette library\nXurion', icon = 'images/credit_avatars/xurion.png', data = NO_DATA},
+        {id = 0, name = 'IconExtractor library\nRubenator', icon = 'images/credit_avatars/rubenator.png', data = NO_DATA},
         {id = 0, name = 'newline', icon = '', data = NO_DATA},
         {id = 0, name = 'newline', icon = '', data = NO_DATA},
         {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'Beta Testing\nJinxs', icon = 'credit_avatars/jinxs.png', data = NO_DATA},
-        {id = 0, name = 'Beta Testing\nMartel', icon = 'credit_avatars/martel.png', data = NO_DATA},
+        {id = 0, name = 'Beta Testing\nJinxs', icon = 'images/credit_avatars/jinxs.png', data = NO_DATA},
+        {id = 0, name = 'Beta Testing\nMartel', icon = 'images/credit_avatars/martel.png', data = NO_DATA},
     }
 
     self.selector:display_options(credits)
@@ -4075,8 +4085,8 @@ function get_icons() -- Used for EXECUTE_COMMAND action type
 		for key,line in pairs(icon_list) do
 			if not tonumber(line) and line ~= nil and line ~= '' and not line:contains('home-point') and not line:contains('survival-guide') then
 				local icon_name = tostring(line):gsub('.png',''):gsub('\\','/')
-				local icon_path = get_icon_pathbase()..'/'..icon_name..'.png'
-				local icon_file = file.new('images/'..icon_path)
+				local icon_path = 'images/'..get_icon_pathbase()..'/'..icon_name..'.png'
+				local icon_file = file.new(icon_path)
 				if icon_file:exists() then
 					command_list:append({id = FAKE_ID, name = icon_name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
 				elseif not shownotice then
@@ -4085,7 +4095,12 @@ function get_icons() -- Used for EXECUTE_COMMAND action type
 			end
 		end
 	else
-		error('FILE NOT FOUND "icon_list.txt". Please run "images/'..get_icon_pathbase()..'/GENERATE_ICON_LIST.bat"')
+        -- The command itself does not require a generated icon catalogue.
+        -- Offer a usable entry rather than consuming the menu and then failing.
+        command_list:append({id=0, name='Custom command',
+            icon='images/' .. get_icon_pathbase() .. '/custom_actions.png',
+            data={target_type={None=true}}})
+        windower.console.write('[XIVCrossbar icons] icon_list.txt missing; command entry uses the default icon.')
 	end
 	
 	if lognotice then
