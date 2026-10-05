@@ -421,3 +421,5 @@ Build .4 includes centered aliases, the right-side Drag tile, pixel-thick
 outlines, temporary scale preview, removed default-set notice and Save-first
 review with safe action-type paging. Start alias centering tests with
 `//xb ui aliasoffset 0 0`, then apply your preferred adjustments.
+
+On build .5, L2 pages backward and R2 forward while browsing, including custom-action review. During button assignment, triggers still select crossbars. If both wrapper flags are on, DirectInput takes precedence to avoid duplicate inputs.

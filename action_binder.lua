@@ -677,6 +677,10 @@ function action_binder:is_in_selector_state()
         or self.state == states.SELECT_ACTION_TARGET
         or self.state == states.SELECT_PLAYER_BINDING
         or self.state == states.SELECT_ICON
+        or self.state == states.EDIT_CUSTOM_ACTION_REVIEW
+        or self.state == states.EDIT_CUSTOM_ACTION_PICK
+        or self.state == states.DELETE_CUSTOM_ACTION_PICK
+        or self.state == states.SELECT_LINKED_TYPE
 end
 
 function action_binder:trigger_left(pressed)
@@ -707,7 +711,7 @@ function action_binder:trigger_left(pressed)
         self:show_pressed_buttons()
     elseif (self:is_in_selector_state()) then
         local just_pressed = pressed and not self.trigger_left_pressed
-        if (just_pressed and self.trigger_right_pressed) then
+        if just_pressed then
             if (self.selector ~= nil and self.selector.is_prev_button_showing) then
                 self.selector:decrement_page()
             end
@@ -746,7 +750,7 @@ function action_binder:trigger_right(pressed)
         self:show_pressed_buttons()
     elseif (self:is_in_selector_state()) then
         local just_pressed = pressed and not self.trigger_right_pressed
-        if (just_pressed and self.trigger_left_pressed) then
+        if just_pressed then
             if (self.selector ~= nil and self.selector.is_next_button_showing) then
                 self.selector:increment_page()
             end

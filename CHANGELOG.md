@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0-a.20261005.5 — consistent browsing triggers
+
+- L2 pages backward and R2 forward on selector/review screens. Assignment
+  retains trigger combinations for choosing the destination crossbar.
+- Prevent automatic startup of both controller wrappers at once.
+- Offline regressions pass; live navigation/controller checks remain pending.
+
 ## 0.4.0-a.20261005.4 — controller extras live test
 
 - Integrate L3 release-to-switch into automatically launched DirectInput and XInput wrappers.
