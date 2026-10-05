@@ -2,6 +2,7 @@
 -- These regressions execute real addon code with Windower services stubbed;
 -- they do not establish controller comfort or live FFXI acceptance.
 for _, path in ipairs({
+    'tests/xivcrossbar_profile_gate.lua',
     'tests/xivcrossbar_custom_actions.lua',
     'tests/xivcrossbar_layers.lua',
     'tests/xivcrossbar_pages.lua',

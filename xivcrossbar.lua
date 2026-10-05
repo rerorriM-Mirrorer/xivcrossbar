@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261005.5'
+_addon.version = '0.4.0-a.20261005.6'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -48,6 +48,7 @@ local function_key_bindings = require('function_key_bindings')
 local ui_drag = require('ui_drag')
 local ui_visibility = require('ui_visibility')
 local visibility = ui_visibility.new(require('socket').gettime)
+local profile_gate = require('profile_gate').new(require('socket').gettime)
 local scale_preview_until = nil
 local manual_visibility = nil -- Session-only override; nil follows saved mode.
 
@@ -474,14 +475,16 @@ function start_controller_wrappers()
 end
 
 -- initialize addon
-function initialize()
+function initialize(server_id, expected_name)
     local windower_player = windower.ffxi.get_player()
-    local server = resources.servers[windower.ffxi.get_info().server].en
-    if (server == nil) then
-        server = 'UnknownServer'
-    end
-
-    if windower_player == nil then return end
+    local info = windower.ffxi.get_info()
+    -- A changed server during this very frame invalidates the candidate.
+    -- In particular, never construct storage paths from a stale login value.
+    if not windower_player or windower_player.name ~= expected_name or
+        not info or info.server ~= server_id then return false end
+    local server_record = resources.servers[server_id]
+    if not server_record or not server_record.en then return false end
+    local server = server_record.en
 
     if (settings.below1080) then
         y_adjust = 250
@@ -526,7 +529,37 @@ function initialize()
 
     xivcrossbar.ready = true
     xivcrossbar.initialized = true
+    windower.console.write('[XIVCrossbar] Profile: ' .. server .. '/' .. windower_player.name ..
+        ' (server id ' .. server_id .. ', character id ' .. windower_player.id .. ')')
     refresh_ui_visibility()
+    return true
+end
+
+-- During login the player entity and zone must exist before profile creation.
+-- Keep observing after setup: if the server value corrects later, reload the
+-- matching server profile without copying blank bindings between namespaces.
+local function check_profile_ready()
+    local info = windower.ffxi.get_info()
+    local current_player = windower.ffxi.get_player()
+    local entity = current_player and current_player.id and windower.ffxi.get_mob_by_id(current_player.id)
+    local server_record = info and info.server and resources.servers[info.server]
+    local server_id, name = profile_gate:observe(info, current_player, entity, server_record)
+    if not server_id then return end
+    if xivcrossbar.ready then
+        crossbar_drag:finish()
+        ui:hide()
+        xivcrossbar.ready = false
+        windower.console.write('[XIVCrossbar] Server changed after profile load; reloading for ' ..
+            server_record.en .. '/' .. name)
+        -- Recreate the UI from a clean Lua state rather than stacking text
+        -- objects and primitives on top of the previous character profile.
+        windower.send_command('lua r xivcrossbar')
+        return
+    end
+    if not initialize(server_id, name) then
+        -- The server may change again between observation and setup.
+        profile_gate.loaded = nil
+    end
 end
 
 -- trigger hotbar action
@@ -1054,9 +1087,7 @@ windower.register_event('load',function()
         start_controller_wrappers()
     end
 
-    if windower.ffxi.get_info().logged_in then
-        initialize()
-    end
+    profile_gate:reset()
     skillchains.load()
 
     -- Unbind Ctrl + <F1 through F12> because they're going proxy the gamepad's triggers and buttons
@@ -1089,12 +1120,13 @@ end)
 
 -- ON LOGIN
 windower.register_event('login',function()
-    initialize()
+    profile_gate:reset()
     skillchains.login()
 end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    profile_gate:reset()
     crossbar_drag:finish()
     xivcrossbar.ready = false
     ui.suspended = true
@@ -1503,6 +1535,7 @@ local frame = 0
 
 -- ON PRERENDER
 windower.register_event('prerender',function()
+    check_profile_ready()
     -- Refresh before frame skipping: a held trigger/menu reveals immediately.
     local visible = refresh_ui_visibility()
     -- allow settings to skip rendering frames

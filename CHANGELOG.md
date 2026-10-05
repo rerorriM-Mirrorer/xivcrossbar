@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0-a.20261005.6 — guarded server profile
+
+- Wait for a stable, in-world player/server pair before loading or creating
+  character hotbars. This targets Myrr's blank Asura folder on login.
+- If the client later corrects the server, reload the addon against the
+  corrected profile without copying bindings between server namespaces.
+- The live login timing remains to be checked on Myrr and another character.
+
 ## 0.4.0-a.20261005.5 — consistent browsing triggers
 
 - L2 pages backward and R2 forward on selector/review screens. Assignment
