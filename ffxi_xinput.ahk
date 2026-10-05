@@ -604,6 +604,10 @@ Loop {
                     isButtonYDown := false
                 }
             }
+        } else {
+            ; Awake: a disconnected controller must release any Shift owned
+            ; by its shoulder hold and cancel an armed L3 window switch.
+            AExtrasDisconnect(A_Index)
         }
     }
     Sleep, 10
