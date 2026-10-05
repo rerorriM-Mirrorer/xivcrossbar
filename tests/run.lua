@@ -11,6 +11,7 @@ for _, path in ipairs({
     'tests/xivcrossbar_sparse_ui.lua',
     'tests/xivcrossbar_visibility.lua',
     'tests/xivcrossbar_presentation.lua',
+    'tests/xivcrossbar_fades.lua',
 }) do
     dofile(path)
 end

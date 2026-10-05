@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261005.10'
+_addon.version = '0.4.0-a.20261005.11'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -51,6 +51,7 @@ local visibility = ui_visibility.new(require('socket').gettime)
 local profile_gate = require('profile_gate').new(require('socket').gettime)
 local scale_preview_until = nil
 local manual_visibility = nil -- Session-only override; nil follows saved mode.
+local lifecycle_stopping = false
 
 -----------------------------
 -- Main
@@ -93,6 +94,7 @@ local crossbar_drag = ui_drag.new({
 })
 
 local function refresh_ui_visibility()
+    if lifecycle_stopping then return false end
     if not xivcrossbar.ready or not ui.is_setup then return false end
     local active = gamepad_state.left_trigger or gamepad_state.right_trigger or
         gamepad_state.plus_button or gamepad_state.minus_button or
@@ -148,6 +150,25 @@ end
 local function finite_number(value)
     local number = tonumber(value)
     if number and number == number and number ~= math.huge and number ~= -math.huge then return number end
+end
+
+local function graceful_stop(restart)
+    if lifecycle_stopping then return end
+    lifecycle_stopping = true
+    crossbar_drag:finish()
+    ui.suspended = true
+    if ui.is_setup then ui:hide() end
+    if action_binder.menu_geometry then
+        action_binder:hide()
+        action_binder:reset_state()
+    end
+    if env_chooser.is_setup then env_chooser:hide_player_environments() end
+    -- The unload callback cannot animate after Lua is torn down. Ask for the
+    -- unload/restart only after a nonblocking, prerender-driven closing fade.
+    local delay = theme_options.fade_enabled and theme_options.fade_out or 0
+    coroutine.schedule(function()
+        windower.send_command(restart and 'lua r xivcrossbar' or 'lua u xivcrossbar')
+    end, delay)
 end
 
 local function ui_command(args)
@@ -531,6 +552,7 @@ function initialize(server_id, expected_name)
 
     xivcrossbar.ready = true
     xivcrossbar.initialized = true
+    if theme_options.fade_enabled then scale_preview_until = visibility.clock() + .6 end
     windower.console.write('[XIVCrossbar] Profile: ' .. server .. '/' .. windower_player.name ..
         ' (server id ' .. server_id .. ', character id ' .. windower_player.id .. ')')
     refresh_ui_visibility()
@@ -1149,6 +1171,8 @@ end)
 -- ON UNLOAD
 windower.register_event('unload',function()
     crossbar_drag:finish()
+    if ui.geometry then ui.geometry:set_opacity(0) end
+    if action_binder.menu_geometry then action_binder.menu_geometry:set_opacity(0) end
 	if theme_options.on_unload_killahk then
 		windower.send_command('run addons/xivcrossbar/killahk.bat')
 	end
@@ -1159,7 +1183,9 @@ windower.register_event('addon command', function(command, ...)
     command = command and command:lower() or 'help'
     local args = {...}
 
-    if command == 'reload' then
+    if command == 'unload' or command == 'restart' then
+        return graceful_stop(command == 'restart')
+    elseif command == 'reload' then
         return reload_hotbar()
     elseif command == 'ui' then
         return ui_command(args)
@@ -1261,6 +1287,7 @@ local keys = {
 
 -- ON KEY
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
+    if lifecycle_stopping then return false end
     local left_trigger_just_pressed = pressed and gamepad.is_left_trigger(dik) and not gamepad_state.left_trigger
     local right_trigger_just_pressed = pressed and gamepad.is_right_trigger(dik) and not gamepad_state.right_trigger
     local left_trigger_just_released = (not pressed) and gamepad.is_left_trigger(dik) and gamepad_state.left_trigger
@@ -1542,6 +1569,10 @@ local frame = 0
 
 -- ON PRERENDER
 windower.register_event('prerender',function()
+    -- Animation runs before FrameSkip and while logic is suspended. Hidden
+    -- bars still skip recast/content work, but their final fade can finish.
+    if ui.geometry then ui.geometry:tick() end
+    if action_binder.menu_geometry then action_binder.menu_geometry:tick() end
     check_profile_ready()
     -- Refresh before frame skipping: a held trigger/menu reveals immediately.
     local visible = refresh_ui_visibility()

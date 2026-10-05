@@ -22,6 +22,8 @@ defaults.UILocked = true
 defaults.VisibilityMode = 'OnInput'
 defaults.VisibilityGrace = 5
 defaults.Debug = {Enabled = true}
+-- Seconds, using elapsed time. Zero disables the corresponding transition.
+defaults.Animation = {Enabled=true, FadeIn=.12, FadeOut=.18}
 
 defaults.SkillchainIndicator = {}
 defaults.SkillchainIndicator.Opacity = 220

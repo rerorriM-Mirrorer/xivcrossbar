@@ -330,6 +330,8 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.selector = require('ui/selectablelist')
     self.theme_options = theme_options
     self.custom_action_debug = theme_options.debug_enabled == true
+    menu_geometry:configure_fade(theme_options.fade_enabled, theme_options.fade_in, theme_options.fade_out)
+    if theme_options.fade_enabled then menu_geometry:set_opacity(0) end
     -- One logical panel owns title, list, paging and footer. Crossbar offsets
     -- must never place the menu background independently of its contents.
     self.base_x, self.base_y, self.width, self.height = 0, 0, 1100, 700
@@ -405,6 +407,8 @@ function action_binder:reset_state()
     self.selection_states = {}
     self.selector:hide()
     self.selector:reset_state()
+    for _, image in ipairs(self.images) do image:destroy() end
+    for _, hint in ipairs(self.hints) do hint:destroy() end
     self.images = L{}
     self.hints = L{}
     self.icon_picker_stack = {}
@@ -1467,6 +1471,7 @@ end
 
 function action_binder:hide()
     self.is_hidden = true
+    menu_geometry:transition(false)
     menu_prim.set_visibility('dialog_bg', false)
     menu_prim.set_visibility('button_entry_bg', false)
     self.title:hide()
@@ -1483,6 +1488,7 @@ function action_binder:show()
     -- Recenter against the current resolution whenever the menu opens.
     self:update_menu_layout()
     self.is_hidden = false
+    menu_geometry:transition(true)
     if (self.state == states.HIDDEN) then
         self.state = states.SELECT_ACTION_TYPE
         self:display_action_type_selector()

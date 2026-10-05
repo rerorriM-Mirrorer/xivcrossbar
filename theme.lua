@@ -4,6 +4,15 @@ local theme = {}
 theme.apply = function (settings)
     local options = {}
     options.debug_enabled = not settings.Debug or settings.Debug.Enabled ~= false
+    local animation = settings.Animation or {}
+    options.fade_enabled = animation.Enabled == true
+    local function fade_seconds(value, fallback)
+        value = tonumber(value)
+        if not value or value ~= value or value == math.huge or value == -math.huge then return fallback end
+        return math.max(0, math.min(1, value))
+    end
+    options.fade_in = fade_seconds(animation.FadeIn, .12)
+    options.fade_out = fade_seconds(animation.FadeOut, .18)
 
     options.frame_skip = settings.FrameSkip or 0
     options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions or false

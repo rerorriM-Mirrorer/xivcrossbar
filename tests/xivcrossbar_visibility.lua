@@ -17,7 +17,7 @@ local settings = {Style={OffsetX=0,OffsetY=0}, UILocked=true,
     VisibilityMode='OnInput', VisibilityGrace=.25}
 package.loaded.defaults = settings
 package.loaded.socket = {gettime=function() return now end}
-package.loaded.theme = {apply=function() return {frame_skip=10,hotbar_number=6} end}
+package.loaded.theme = {apply=function() return {frame_skip=10,hotbar_number=6,fade_enabled=true,fade_out=.18} end}
 package.loaded.resource_generator = {generate_outdated_resources=function() end}
 local counts = {hide=0,show=0,load=0,vitals=0,recasts=0}
 local ui = {is_setup=true,feedback={is_active=false}}
@@ -119,4 +119,13 @@ stub.emit('addon command','ui','scale','1'); assert(not ui.suspended)
 stub.emit('addon command','ui','hide'); assert(ui.suspended)
 stub.emit('logout'); stub.emit('prerender')
 assert(not control.ready and ui.suspended)
+local scheduled = {}
+coroutine.schedule = function(fn, delay) scheduled[#scheduled+1]={fn=fn,delay=delay} end
+local command_count = #stub.commands
+stub.emit('addon command','restart')
+stub.emit('addon command','restart')
+assert(#scheduled==1 and scheduled[1].delay==.18 and #stub.commands==command_count)
+local recasts_before = counts.recasts
+stub.emit('prerender'); assert(counts.recasts==recasts_before)
+scheduled[1].fn(); assert(stub.commands[#stub.commands]=='lua r xivcrossbar')
 print('PASS: release grace, input/menu events, sequential triggers, hidden render work, manual overrides, cutscenes, unlock and logout')

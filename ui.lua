@@ -1,4 +1,4 @@
--- Contributing author: A — scaled presentation, alias placement and drag feedback.
+-- Contributing author: Awake — scaled presentation, drag feedback and fades.
 local icon_extractor = require('ui/icon_extractor')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
@@ -357,6 +357,8 @@ end
 
 -- setup ui
 function ui:setup(theme_options, enchanted_items)
+    geometry:configure_fade(theme_options.fade_enabled, theme_options.fade_in, theme_options.fade_out)
+    if theme_options.fade_enabled then geometry:set_opacity(0) end
     register_active_buffs()
 
     self.enchanted_items = enchanted_items
@@ -783,6 +785,7 @@ end
 
 -- hide all ui components
 function ui:hide()
+    geometry:transition(false)
     self:show_drag_handle(false)
     for _, name in ipairs({'skillchain_indicator', 'skillchain_indicator_bg',
         'gcd_indicator', 'gcd_indicator_bg', 'aa_indicator_red', 'aa_indicator_green', 'aa_indicator_bg'}) do
@@ -827,6 +830,7 @@ end
 -- show ui components
 function ui:show(player_hotbar, environment)
     if self.suspended then return end
+    geometry:transition(true)
     if self.theme.hide_battle_notice == false and environment == 'battle' then self.battle_notice:show() end
 
     self:maybe_show_button_hints()

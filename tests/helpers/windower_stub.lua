@@ -35,7 +35,9 @@ function M.surface()
     return setmetatable({}, {__index = function(t, k)
         if k:sub(1, 1) == '_' then return nil end
         return function(self, value, second)
-            if k == 'show' or k == 'hide' then
+            if k == 'destroy' then
+                self._destroyed, self._visible, self._show = true, false, false
+            elseif k == 'show' or k == 'hide' then
                 self._visible, self._show = k == 'show', k == 'show'
             elseif k == 'visible' then
                 if value == nil then return self._visible == true end

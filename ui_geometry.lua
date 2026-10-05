@@ -1,4 +1,4 @@
--- Contributing author: A — uniform drawing scale and stable texture reuse.
+-- Contributing author: Awake — geometry, texture reuse and whole-panel opacity.
 -- Keep layout calculations in the original 40-pixel units. Only the final
 -- drawing calls change scale, so recast crops, controller hints and labels
 -- follow exactly the same transform. Other addons' Windower objects are untouched.
@@ -7,7 +7,7 @@ geometry.__index = geometry
 
 function geometry.new()
     return setmetatable({scale = 1, x = 0, y = 0, screen_x = 0, screen_y = 0,
-        surfaces = setmetatable({}, {__mode = 'k'}), primitives = {}}, geometry)
+        opacity=1, retired={}, surfaces = setmetatable({}, {__mode = 'k'}), primitives = {}}, geometry)
 end
 
 function geometry:point(x, y, right)
@@ -47,6 +47,69 @@ function geometry:set_scale(scale)
     self:refresh()
 end
 
+local function rounded_alpha(alpha, opacity)
+    return math.floor((alpha or 255)*opacity + .5)
+end
+
+local function draw_opacity(g, m)
+    m.object:alpha(rounded_alpha(m.alpha, g.opacity))
+    if m.bg_alpha then m.object:bg_alpha(rounded_alpha(m.bg_alpha, g.opacity)) end
+    if m.stroke_alpha then m.object:stroke_transparency(rounded_alpha(m.stroke_alpha, g.opacity)) end
+    if g.opacity == 0 and m.defer_visible then
+        m.object:hide(); m.defer_visible = nil
+    end
+end
+
+function geometry:set_opacity(opacity)
+    self.opacity = math.max(0, math.min(1, opacity))
+    if self.fade and not self.fade.active then
+        self.fade.value, self.fade.target = self.opacity, self.opacity
+    end
+    for _, m in pairs(self.surfaces) do draw_opacity(self, m) end
+    for _, m in ipairs(self.retired) do draw_opacity(self, m) end
+    for name, p in pairs(self.primitives) do
+        if p.color then
+            windower.prim.set_color(name, rounded_alpha(p.color[1], self.opacity),
+                p.color[2], p.color[3], p.color[4])
+        end
+        if self.opacity == 0 and p.defer_visible then
+            windower.prim.set_visibility(name, false); p.defer_visible = nil
+        end
+    end
+    if self.opacity == 0 then
+        for _, m in ipairs(self.retired) do m.object:destroy() end
+        self.retired, self.deferring_hide = {}, false
+    end
+end
+
+function geometry:configure_fade(enabled, fade_in, fade_out)
+    self.fade_enabled = enabled == true
+    self.fade_in, self.fade_out = fade_in or .12, fade_out or .18
+    self.fade = require('ui_fade').new(require('socket').gettime, self.opacity)
+end
+
+function geometry:transition(show)
+    if not self.fade_enabled then return end
+    self.fade:to(show and 1 or 0, show and self.fade_in or self.fade_out)
+    self.deferring_hide = not show and self.fade.active
+    if show then
+        -- A reversed close must not resurrect rows destroyed by a menu reset.
+        for _, m in ipairs(self.retired) do m.object:destroy() end
+        self.retired = {}
+        for _, m in pairs(self.surfaces) do
+            if m.defer_visible then m.object:hide(); m.defer_visible = nil end
+        end
+        for name, p in pairs(self.primitives) do
+            if p.defer_visible then windower.prim.set_visibility(name, false); p.defer_visible = nil end
+        end
+    end
+    self:set_opacity(self.fade.value)
+end
+
+function geometry:tick()
+    if self.fade and self.fade.active then self:set_opacity(self.fade:step()) end
+end
+
 function geometry:set_origin(x, y, screen_x, screen_y, move_contents)
     if move_contents then
         local dx, dy = x - self.x, y - self.y
@@ -64,9 +127,36 @@ end
 
 function geometry:surface(object, kind, options)
     local g = self
-    local m = {object = object, right = options and options.flags and options.flags.right}
+    local m = {object = object, visible=false, alpha=255,
+        right = options and options.flags and options.flags.right}
     local proxy = {}
     local methods = {}
+    function methods:alpha(value)
+        if value == nil then return m.alpha end
+        m.alpha = value; object:alpha(rounded_alpha(value, g.opacity))
+    end
+    function methods:bg_alpha(value)
+        if value == nil then return m.bg_alpha end
+        m.bg_alpha = value; object:bg_alpha(rounded_alpha(value, g.opacity))
+    end
+    function methods:stroke_transparency(value)
+        if value == nil then return m.stroke_alpha end
+        m.stroke_alpha = value; object:stroke_transparency(rounded_alpha(value, g.opacity))
+    end
+    function methods:show()
+        m.visible, m.defer_visible = true, nil
+        object:show()
+    end
+    function methods:hide()
+        local was_visible = m.visible or m.defer_visible
+        m.visible = false
+        if g.deferring_hide and was_visible then m.defer_visible = true
+        else m.defer_visible = nil; object:hide() end
+    end
+    function methods:visible(value)
+        if value == nil then return m.visible end
+        if value then self:show() else self:hide() end
+    end
     function methods:pos(x, y)
         if x == nil then return m.x, m.y end
         m.x, m.y = x, y
@@ -116,7 +206,11 @@ function geometry:surface(object, kind, options)
     end
     function methods:destroy()
         g.surfaces[proxy] = nil
-        object:destroy()
+        if g.deferring_hide and (m.visible or m.defer_visible) then
+            -- Keep a closing menu's visible rows alive just through the fade.
+            -- Ordinary page changes still release their objects immediately.
+            g.retired[#g.retired+1] = m
+        else object:destroy() end
     end
     setmetatable(proxy, {__index = function(_, key)
         if methods[key] then return methods[key] end
@@ -127,6 +221,7 @@ function geometry:surface(object, kind, options)
         return method
     end})
     self.surfaces[proxy] = m
+    draw_opacity(self, m)
     if kind == 'image' then proxy:fit(false); proxy:size(40, 40) end
     return proxy
 end
@@ -134,6 +229,18 @@ end
 function geometry:prim()
     local g = self
     return setmetatable({
+        set_color = function(name, alpha, red, green, blue)
+            local p = g.primitives[name] or {}; g.primitives[name] = p
+            p.color = {alpha, red, green, blue}
+            windower.prim.set_color(name, rounded_alpha(alpha, g.opacity), red, green, blue)
+        end,
+        set_visibility = function(name, visible)
+            local p = g.primitives[name] or {}; g.primitives[name] = p
+            local was_visible = p.visible or p.defer_visible
+            p.visible = visible
+            if not visible and g.deferring_hide and was_visible then p.defer_visible = true
+            else p.defer_visible = nil; windower.prim.set_visibility(name, visible) end
+        end,
         set_position = function(name, x, y)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             p.x, p.y = x, y
