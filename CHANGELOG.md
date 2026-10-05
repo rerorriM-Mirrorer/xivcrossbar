@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0-a.20261005.3 — scale preview and menu essentials
+
+- Preview a hidden crossbar for its grace period after scaling, then restore its visibility.
+- Remove the persistent default-set explanation; inheritance remains unchanged.
+- Handle action-type paging before choosing an action and show Save Changes first.
+- Live acceptance remains pending.
+
 ## 0.4.0-a.20261005.2 — centered aliases and drag polish
 
 - Center each alias by its rendered width, retaining dedicated X/Y offsets.

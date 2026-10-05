@@ -800,6 +800,10 @@ function action_binder:submit_selected_option_internal()
         return
     end
     if (self.state == states.SELECT_ACTION_TYPE) then
+        -- Paging entries are navigation, never action types.
+        local selected = self.selector:submit_selected_option()
+        if selected.id == 'NEXT' then self.selector:increment_page(); return end
+        if selected.id == 'PREV' then self.selector:decrement_page(); return end
         self.selection_states[states.SELECT_ACTION_TYPE] = self.selector:export_selection_state()
         self.action_type = self.selector:submit_selected_option().id
 
@@ -2920,6 +2924,7 @@ function action_binder:display_edit_custom_action_review()
     end
 
     local list = L{}
+    list:append({id = 'SAVE_EDIT',     name = 'Save Changes',         icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_ALIAS', name = 'Edit Alias', icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_NAME', name = 'Edit Name', icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'CHANGE_COMMAND', name = 'Edit Command', icon = 'images/' .. pathbase .. '/custom_actions.png'})
@@ -2927,7 +2932,6 @@ function action_binder:display_edit_custom_action_review()
     list:append({id = 'REMOVE_ICON',   name = 'Remove Icon',          icon = 'images/' .. pathbase .. '/ui/red-x.png'})
     list:append({id = 'CHANGE_LINKED', name = 'Change Linked Action', icon = 'images/' .. pathbase .. '/custom_actions.png'})
     list:append({id = 'REMOVE_LINKED', name = 'Remove Linked Action', icon = 'images/' .. pathbase .. '/ui/red-x.png'})
-    list:append({id = 'SAVE_EDIT',     name = 'Save Changes',         icon = 'images/' .. pathbase .. '/custom_actions.png'})
 
     self.selector:display_options(list)
 

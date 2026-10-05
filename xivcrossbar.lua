@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261005.2'
+_addon.version = '0.4.0-a.20261005.3'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -48,6 +48,7 @@ local function_key_bindings = require('function_key_bindings')
 local ui_drag = require('ui_drag')
 local ui_visibility = require('ui_visibility')
 local visibility = ui_visibility.new(require('socket').gettime)
+local scale_preview_until = nil
 local manual_visibility = nil -- Session-only override; nil follows saved mode.
 
 -----------------------------
@@ -105,6 +106,9 @@ local function refresh_ui_visibility()
     -- event hiding, and an explicit Hide continues to win over input/unlocking.
     if manual_visibility ~= nil then show = manual_visibility
     else show = show and not xivcrossbar.hide_hotbars end
+    -- A scale preview temporarily reveals even an explicitly hidden bar,
+    -- without replacing the saved mode or session override.
+    if scale_preview_until and visibility.clock() < scale_preview_until then show = true end
     if show and ui.suspended then
         ui.suspended = false
         ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
@@ -159,6 +163,7 @@ local function ui_command(args)
     elseif command == 'hide' or command == 'show' or command == 'auto' then
         -- Finish a drag before hiding its handle; release persists its position.
         crossbar_drag:finish()
+        scale_preview_until = nil
         if command == 'auto' then manual_visibility = nil
         else manual_visibility = command == 'show' end
         visibility:reset()
@@ -193,8 +198,10 @@ local function ui_command(args)
         end
         crossbar_drag:finish()
         if command == 'scale' then
+            if ui.suspended then scale_preview_until = visibility.clock() + math.max(0, tonumber(settings.VisibilityGrace) or 5) end
             settings.Style.Scale, theme_options.crossbar_scale = scale, scale
             if ui.is_setup then ui:set_scale(scale) end
+            refresh_ui_visibility()
         else
             settings.Menu = settings.Menu or {}
             settings.Menu.Scale, theme_options.menu_scale = scale, scale

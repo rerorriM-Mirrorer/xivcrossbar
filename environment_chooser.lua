@@ -211,34 +211,10 @@ end
 local HIDDEN_SPACE = "​" -- Invisible character for color formatting
 local HAIRLINE = " "
 
+-- Defaults remain fully playable fallback layers. Keep their explanation in
+-- documentation rather than covering gameplay with a persistent fixed panel.
 function env_chooser:maybe_show_default_sets_tooltip(name, env_count)
-    if (default_hotbars[kebab_casify(name)] and kebab_casify(name) ~= 'shared') then
-        windower.prim.set_position('tooltip_background', self:get_name_x(index) + 200, self.pos_y - 295)
-        windower.prim.set_size('tooltip_background', 400, 218)
-        windower.prim.set_visibility('tooltip_background', true)
-        local paragraph_1 = 'When an empty space is encountered, we check the same slot\nin the default sets and use the first non-empty action we find.\nWe search in the following order:'
-        local paragraph_2 = '                  Default → Job Default → All Jobs Default'
-        local paragraph_3 = ''
-        local paragraph_4 = 'Defaults are useful for adding actions to multiple crossbar sets,\nbut you shouldn\'t use them directly in gameplay--only to add\nbindings.\\cs(0,255,128)' .. HIDDEN_SPACE .. ' This tip will hide when you change to a different set.'
-        if (kebab_casify(name) == 'all-jobs-default') then
-            paragraph_2 = '                  Default → Job Default → \\cs(0,128,255)' .. HIDDEN_SPACE .. 'All Jobs Default\\cs(255,255,255)' .. HIDDEN_SPACE
-            paragraph_3 = '\\cs(0,128,255)' .. HIDDEN_SPACE .. 'All Jobs Default\\cs(255,255,255)' .. HIDDEN_SPACE .. ' applies to all jobs, and is mainly useful to call\nTrusts or Mounts, send commands to 2-boxed alts, and so\nforth.'
-        elseif (kebab_casify(name) == 'job-default') then
-            paragraph_2 = '                  Default → \\cs(0,128,255)' .. HIDDEN_SPACE .. 'Job Default\\cs(255,255,255)' .. HIDDEN_SPACE .. ' → All Jobs Default'
-            paragraph_3 = '\\cs(0,128,255)' .. HIDDEN_SPACE .. 'Job Default\\cs(255,255,255)' .. HIDDEN_SPACE .. ' applies to your current job, regardless of subjob,\nand is useful for main job abilities you always want on that\njob\'s crossbars.'
-        elseif (kebab_casify(name) == 'default') then
-            paragraph_2 = '                  \\cs(0,128,255)' .. HIDDEN_SPACE .. 'Default\\cs(255,255,255)' .. HIDDEN_SPACE .. ' → Job Default → All Jobs Default'
-            paragraph_3 = '\\cs(0,128,255)' .. HIDDEN_SPACE .. 'Default\\cs(255,255,255)' .. HIDDEN_SPACE .. ' only applies to your current job + subjob combination\nand is mainly useful if you want to have the same abilities in\nseveral crossbar sets for that job + subjob combination.'
-        end
-
-        self.tooltip:text(paragraph_1 .. '\n\n' .. paragraph_2 .. '\n\n' .. paragraph_3 .. '\n\n' .. paragraph_4)
-        self.tooltip:size(10)
-        self.tooltip:pos(self:get_name_x(index) + 210, self.pos_y - 290)
-        self.tooltip:show()
-    else
-        windower.prim.set_visibility('tooltip_background', false)
-        self.tooltip:hide()
-    end
+    self:temp_hide_default_sets_tooltip()
 end
 
 function env_chooser:temp_hide_default_sets_tooltip()
@@ -247,10 +223,7 @@ function env_chooser:temp_hide_default_sets_tooltip()
 end
 
 function env_chooser:maybe_unhide_default_sets_tooltip()
-    if (default_hotbars[kebab_casify(self.current_environment)] and kebab_casify(self.current_environment) ~= 'shared') then
-        windower.prim.set_visibility('tooltip_background', true)
-        self.tooltip:show()
-    end
+    self:temp_hide_default_sets_tooltip()
 end
 
 function env_chooser:show_player_environments(player_hotbar, current_environment)
