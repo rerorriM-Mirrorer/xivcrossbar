@@ -1,3 +1,4 @@
+-- Contributing author: A — crossbar scale and dedicated alias placement.
 local theme = {}
 
 theme.apply = function (settings)
@@ -87,6 +88,8 @@ theme.apply = function (settings)
     options.hotbar_spacing = settings.Style.HotbarSpacing
     options.offset_x = settings.Style.OffsetX
     options.offset_y = settings.Style.OffsetY
+    options.crossbar_scale = settings.Style.Scale or 1
+    options.menu_scale = settings.Menu and settings.Menu.Scale or 1
 
     -- Per-hotbar offsets (alternate-press and double-press pairs)
     options.alternate_press_offset_x = settings.HotbarOffsets.AlternatePress.X
@@ -117,6 +120,9 @@ theme.apply = function (settings)
     options.tp_cost_color_blue = settings.Color.TpCost.Blue
     options.text_offset_x = settings.Texts.OffsetX
     options.text_offset_y = settings.Texts.OffsetY
+    local alias = settings.Texts.SlotAlias or {}
+    options.alias_offset_x = alias.OffsetX or 0
+    options.alias_offset_y = alias.OffsetY or 0
 
     options.controls_battle_mode = settings.Controls.ToggleBattleMode
 

@@ -33,11 +33,28 @@ string.xml_escape = function(s)
 end
 function M.surface()
     return setmetatable({}, {__index = function(t, k)
-        return function(self, value) self['_' .. k] = value; return self end
+        if k:sub(1, 1) == '_' then return nil end
+        return function(self, value, second)
+            if k == 'show' or k == 'hide' then
+                self._visible, self._show = k == 'show', k == 'show'
+            elseif k == 'visible' then
+                if value == nil then return self._visible == true end
+                self._visible = value
+            elseif k == 'extents' then
+                return #(self._text or '') * (self._size or 12) * .6, (self._size or 12) * 1.4
+            elseif k == 'path' and value ~= nil then
+                self._path_calls = (self._path_calls or 0) + 1; self._path = value
+            elseif value == nil then
+                if k == 'pos' then return self._pos or 0, self._pos_y or 0 end
+                if k == 'size' then return self._size or 40, self._size_y or 40 end
+                return self['_' .. k]
+            else self['_' .. k], self['_' .. k .. '_y'] = value, second end
+            return self
+        end
     end})
 end
 function M.reset()
-    M.events, M.commands, M.messages, M.logs, M.files = {}, {}, {}, {}, {}
+    M.events, M.commands, M.messages, M.logs, M.files, M.primitives = {}, {}, {}, {}, {}, {}
     _addon = {}
     windower = {
         addon_path = './',
@@ -47,7 +64,10 @@ function M.reset()
         send_command = function(cmd) table.insert(M.commands, cmd) end,
         add_to_chat = function(_, msg) table.insert(M.messages, msg) end,
         console = {write = function(msg) table.insert(M.logs, msg) end},
-        prim = setmetatable({}, {__index = function() return function() end end}),
+        prim = setmetatable({}, {__index = function(_, method) return function(name, ...)
+            local p = M.primitives[name] or {}; M.primitives[name] = p
+            p[method] = {...}
+        end end}),
         get_windower_settings = function() return {ui_x_res = 1920, ui_y_res = 1080} end,
         ffxi = {
             get_player = function() return {name = 'Myrr', main_job = 'THF', sub_job = nil, status = 0} end,

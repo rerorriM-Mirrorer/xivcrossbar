@@ -5,22 +5,29 @@ texts = require('texts')
 images = require('images')
 
 local selectable_list = {}
+local list_geometry = require('ui_geometry').new()
+local list_prim = list_geometry:prim()
 
 local BORDER_PADDING = 10
 local COLUMN_WIDTH = 170
 local ROW_HEIGHT = 50
 
-function selectable_list:setup(theme_options, base_x, base_y, max_width, max_height)
+function selectable_list:setup(theme_options, base_x, base_y, max_width, max_height, geometry)
+    list_geometry = geometry or require('ui_geometry').new()
+    list_prim = list_geometry:prim()
+    self.geometry = list_geometry
     self.theme_options = theme_options
     self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
     self.base_x = base_x or 150
     self.base_y = base_y or 150
     local temp_width = max_width or (windower.get_windower_settings().ui_x_res - 300)
     local temp_height = max_height or (windower.get_windower_settings().ui_y_res - 300)
-    self.max_row = math.max(1, math.floor((temp_height - 2 * BORDER_PADDING) / ROW_HEIGHT))
+    -- Reserve the navigation row inside the panel, rather than drawing it
+    -- below the background. Selection/navigation still use logical rows.
+    self.max_row = math.max(1, math.floor((temp_height - 2 * BORDER_PADDING - ROW_HEIGHT) / ROW_HEIGHT))
     self.max_col = math.max(1, math.floor((temp_width - 2 * BORDER_PADDING) / COLUMN_WIDTH))
     self.width = 2 * BORDER_PADDING + self.max_col * COLUMN_WIDTH
-    self.height = 2 * BORDER_PADDING + self.max_row * ROW_HEIGHT
+    self.height = 2 * BORDER_PADDING + (self.max_row + 1) * ROW_HEIGHT
     self.fields = L{}
     self.field_coords = {}
     self.selected_row = 1
@@ -30,31 +37,31 @@ function selectable_list:setup(theme_options, base_x, base_y, max_width, max_hei
     self.is_prev_button_showing = false
     self.is_next_button_showing = false
 
-    windower.prim.create('selectablelist_selection_highlight')
-    windower.prim.set_color('selectablelist_selection_highlight', 255, 171, 252, 252)
-    windower.prim.set_position('selectablelist_selection_highlight', 0, 0)
-    windower.prim.set_size('selectablelist_selection_highlight', COLUMN_WIDTH, ROW_HEIGHT)
-    windower.prim.set_visibility('selectablelist_selection_highlight', false)
+    list_prim.create('selectablelist_selection_highlight')
+    list_prim.set_color('selectablelist_selection_highlight', 255, 171, 252, 252)
+    list_prim.set_position('selectablelist_selection_highlight', 0, 0)
+    list_prim.set_size('selectablelist_selection_highlight', COLUMN_WIDTH, ROW_HEIGHT)
+    list_prim.set_visibility('selectablelist_selection_highlight', false)
 
-    windower.prim.create('prev_page_button')
-    windower.prim.set_color('prev_page_button', 200, 0, 0, 0)
-    windower.prim.set_position('prev_page_button', 0, 0)
-    windower.prim.set_size('prev_page_button', COLUMN_WIDTH, ROW_HEIGHT)
-    windower.prim.set_visibility('prev_page_button', false)
+    list_prim.create('prev_page_button')
+    list_prim.set_color('prev_page_button', 200, 0, 0, 0)
+    list_prim.set_position('prev_page_button', 0, 0)
+    list_prim.set_size('prev_page_button', COLUMN_WIDTH, ROW_HEIGHT)
+    list_prim.set_visibility('prev_page_button', false)
 
-    windower.prim.create('next_page_button')
-    windower.prim.set_color('next_page_button', 200, 0, 0, 0)
-    windower.prim.set_position('next_page_button', 0, 0)
-    windower.prim.set_size('next_page_button', COLUMN_WIDTH, ROW_HEIGHT)
-    windower.prim.set_visibility('next_page_button', false)
+    list_prim.create('next_page_button')
+    list_prim.set_color('next_page_button', 200, 0, 0, 0)
+    list_prim.set_position('next_page_button', 0, 0)
+    list_prim.set_size('next_page_button', COLUMN_WIDTH, ROW_HEIGHT)
+    list_prim.set_visibility('next_page_button', false)
 end
 
 function selectable_list:reset_state()
     self.is_showing = false
     self.current_page = 1
     self.current_options = L{}
-    windower.prim.set_visibility('prev_page_button', false)
-    windower.prim.set_visibility('next_page_button', false)
+    list_prim.set_visibility('prev_page_button', false)
+    list_prim.set_visibility('next_page_button', false)
     for index, field in ipairs(self.fields) do
         field:hide()
     end
@@ -174,9 +181,9 @@ end
 
 function selectable_list:hide()
     self.is_showing = false
-    windower.prim.set_visibility('selectablelist_selection_highlight', false)
-    windower.prim.set_visibility('prev_page_button', false)
-    windower.prim.set_visibility('next_page_button', false)
+    list_prim.set_visibility('selectablelist_selection_highlight', false)
+    list_prim.set_visibility('prev_page_button', false)
+    list_prim.set_visibility('next_page_button', false)
     for index, field in ipairs(self.fields) do
         field:hide()
     end
@@ -189,7 +196,7 @@ function selectable_list:show()
 end
 
 function selectable_list:create_text(text_string, row, col)
-    local text = texts.new({flags = {draggable = false}})
+    local text = list_geometry:surface(texts.new({flags = {draggable = false}}), 'text')
     text:bg_alpha(0)
     text:bg_visible(false)
     text:font(self.theme_options.font)
@@ -208,20 +215,20 @@ end
 
 function selectable_list:highlight_selection()
     local x, y = self:get_pos(self.selected_row, self.selected_col)
-    windower.prim.set_position('selectablelist_selection_highlight', x, y)
-    windower.prim.set_visibility('selectablelist_selection_highlight', true)
+    list_prim.set_position('selectablelist_selection_highlight', x, y)
+    list_prim.set_visibility('selectablelist_selection_highlight', true)
 end
 
 function selectable_list:draw_prev_page_button(row, col)
     local x, y = self:get_pos(row, col)
-    windower.prim.set_position('prev_page_button', x, y)
-    windower.prim.set_visibility('prev_page_button', true)
+    list_prim.set_position('prev_page_button', x, y)
+    list_prim.set_visibility('prev_page_button', true)
 end
 
 function selectable_list:draw_next_page_button(row, col)
     local x, y = self:get_pos(row, col)
-    windower.prim.set_position('next_page_button', x, y)
-    windower.prim.set_visibility('next_page_button', true)
+    list_prim.set_position('next_page_button', x, y)
+    list_prim.set_visibility('next_page_button', true)
 end
 
 function selectable_list:get_pos(row, col)
@@ -231,6 +238,9 @@ function selectable_list:get_pos(row, col)
 end
 
 function selectable_list:get_row_col_from_pos(x, y)
+    -- Mouse coordinates arrive in screen pixels, unlike logical D-pad rows.
+    local g = list_geometry
+    x, y = g.x + (x - g.screen_x) / g.scale, g.y + (y - g.screen_y) / g.scale
     local row = math.floor((y - (self.base_y + BORDER_PADDING)) / ROW_HEIGHT) + 1
     local col = math.floor((x - (self.base_x + BORDER_PADDING)) / COLUMN_WIDTH) + 1
     return row, col
@@ -279,17 +289,18 @@ function selectable_list:display_options(options)
                 end
                 self.fields:append(self:create_text(option_caption, row, col))
 
-                local icon = images.new({draggable = false})
+                local icon = list_geometry:surface(images.new({draggable = false}), 'image')
                 local icon_path = type(value.icon) == 'string' and (windower.addon_path .. value.icon) or nil
                 local x, y = self:get_pos(row, col)
                 x = x + 5
                 y = y + 5
                 if icon_path then setup_image(icon, icon_path) end
                 local icon_offset = value.icon_offset or 0
+                icon:size(40 - 2 * icon_offset, 40 - 2 * icon_offset)
                 icon:pos(x + icon_offset, y + icon_offset)
                 self.images:append(icon)
 
-                local frame = images.new({draggable = false})
+                local frame = list_geometry:surface(images.new({draggable = false}), 'image')
                 setup_image(frame, self.frame_image_path)
                 frame:pos(x, y)
                 self.images:append(frame)
@@ -323,7 +334,7 @@ function selectable_list:display_options(options)
         -- display "next" button
         self.fields:append(self:create_text('Next Page', row, col))
         if (row == self.selected_row and col == self.selected_col) then
-            windower.prim.set_visibility('next_page_button', false)
+            list_prim.set_visibility('next_page_button', false)
             self:highlight_selection()
         else
             self:draw_next_page_button(row, col)
@@ -345,7 +356,7 @@ function selectable_list:display_options(options)
         -- display "prev" button
         self.fields:append(self:create_text('Previous Page', row, col))
         if (row == self.selected_row and col == self.selected_col) then
-            windower.prim.set_visibility('prev_page_button', false)
+            list_prim.set_visibility('prev_page_button', false)
             self:highlight_selection()
         else
             self:draw_prev_page_button(row, col)

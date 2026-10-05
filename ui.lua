@@ -1,3 +1,4 @@
+-- Contributing author: A — scaled presentation, alias placement and drag feedback.
 local icon_extractor = require('ui/icon_extractor')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
@@ -7,6 +8,15 @@ settings = config.load(defaults)
 local player = require('player')
 
 local ui = {}
+local geometry = require('ui_geometry').new()
+local prim = geometry:prim()
+ui.geometry = geometry
+local function new_image(options)
+    return geometry:surface(images.new(options), 'image', options)
+end
+local function new_text(options)
+    return geometry:surface(texts.new(options), 'text', options)
+end
 
 local text_setup = {
     flags = {
@@ -39,7 +49,7 @@ ui.aa_offset_y = 120
 ui.aa_offset_x = 0
 
 -- ui variables
-ui.battle_notice = images.new(images_setup)
+ui.battle_notice = new_image(images_setup)
 ui.feedback_icon = nil
 ui.hotbars = {}
 
@@ -420,6 +430,11 @@ function ui:setup(theme_options, enchanted_items)
     self.theme.button_layout = theme_options.button_layout
     self.is_compact = theme_options.is_compact
     self.button_bg_alpha = theme_options.button_background_alpha
+    self.alias_offset_x = theme_options.alias_offset_x or 0
+    self.alias_offset_y = theme_options.alias_offset_y or 0
+    local scale = tonumber(theme_options.crossbar_scale) or 1
+    if scale ~= scale or scale == math.huge or scale == -math.huge then scale = 1 end
+    geometry:set_scale(math.max(.25, math.min(2, scale)))
 
     -- Per-hotbar position offsets. Applied as pure additive overrides in
     -- get_slot_x / get_slot_y. See defaults.lua for the sign convention.
@@ -438,52 +453,53 @@ end
 function ui:load(theme_options)
     -- load battle notice
     setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
+    self.battle_notice:size(103, 21)
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
     self.battle_notice:hide()
     self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
 
-    windower.prim.create('skillchain_indicator_bg')
-    windower.prim.set_color('skillchain_indicator_bg', 150, 0, 0, 0)
-    windower.prim.set_position('skillchain_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 32)
-    windower.prim.set_size('skillchain_indicator_bg', 604, 14)
-    windower.prim.set_visibility('skillchain_indicator_bg', false)
+    prim.create('skillchain_indicator_bg')
+    prim.set_color('skillchain_indicator_bg', 150, 0, 0, 0)
+    prim.set_position('skillchain_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 32)
+    prim.set_size('skillchain_indicator_bg', 604, 14)
+    prim.set_visibility('skillchain_indicator_bg', false)
 
-    windower.prim.create('skillchain_indicator')
-    windower.prim.set_color('skillchain_indicator', 220, 15, 205, 5)
-    windower.prim.set_position('skillchain_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 30)
-    windower.prim.set_size('skillchain_indicator', 600, 10)
-    windower.prim.set_visibility('skillchain_indicator', false)
+    prim.create('skillchain_indicator')
+    prim.set_color('skillchain_indicator', 220, 15, 205, 5)
+    prim.set_position('skillchain_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 30)
+    prim.set_size('skillchain_indicator', 600, 10)
+    prim.set_visibility('skillchain_indicator', false)
 
-    windower.prim.create('gcd_indicator_bg')
-    windower.prim.set_color('gcd_indicator_bg', 150, 0, 0, 0)
-    windower.prim.set_position('gcd_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) + 10)
-    windower.prim.set_size('gcd_indicator_bg', 604, 10)
-    windower.prim.set_visibility('gcd_indicator_bg', false)
+    prim.create('gcd_indicator_bg')
+    prim.set_color('gcd_indicator_bg', 150, 0, 0, 0)
+    prim.set_position('gcd_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) + 10)
+    prim.set_size('gcd_indicator_bg', 604, 10)
+    prim.set_visibility('gcd_indicator_bg', false)
 
-    windower.prim.create('gcd_indicator')
-    windower.prim.set_color('gcd_indicator', 220, 200, 200, 255) -- bluish/white
-    windower.prim.set_position('gcd_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) + 12)
-    windower.prim.set_size('gcd_indicator', 600, 6)
-    windower.prim.set_visibility('gcd_indicator', false)
+    prim.create('gcd_indicator')
+    prim.set_color('gcd_indicator', 220, 200, 200, 255) -- bluish/white
+    prim.set_position('gcd_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) + 12)
+    prim.set_size('gcd_indicator', 600, 6)
+    prim.set_visibility('gcd_indicator', false)
 
-    windower.prim.create('aa_indicator_bg')
-    windower.prim.set_color('aa_indicator_bg', 150, 0, 0, 0)
-    windower.prim.set_size('aa_indicator_bg', 604, 10)
-    windower.prim.set_visibility('aa_indicator_bg', false)
+    prim.create('aa_indicator_bg')
+    prim.set_color('aa_indicator_bg', 150, 0, 0, 0)
+    prim.set_size('aa_indicator_bg', 604, 10)
+    prim.set_visibility('aa_indicator_bg', false)
 
-    windower.prim.create('aa_indicator_red')
-    windower.prim.set_color('aa_indicator_red', 220, 220, 30, 30)
-    windower.prim.set_size('aa_indicator_red', 300, 6)
-    windower.prim.set_visibility('aa_indicator_red', false)
+    prim.create('aa_indicator_red')
+    prim.set_color('aa_indicator_red', 220, 220, 30, 30)
+    prim.set_size('aa_indicator_red', 300, 6)
+    prim.set_visibility('aa_indicator_red', false)
 
-    windower.prim.create('aa_indicator_green')
-    windower.prim.set_color('aa_indicator_green', 220, 15, 205, 5)
-    windower.prim.set_size('aa_indicator_green', 300, 6)
-    windower.prim.set_visibility('aa_indicator_green', false)
+    prim.create('aa_indicator_green')
+    prim.set_color('aa_indicator_green', 220, 15, 205, 5)
+    prim.set_size('aa_indicator_green', 300, 6)
+    prim.set_visibility('aa_indicator_green', false)
 
-    self.bar_background = images.new(images_setup)
-    self.bar_background_left = images.new(images_setup)
-    self.bar_background_right = images.new(images_setup)
+    self.bar_background = new_image(images_setup)
+    self.bar_background_left = new_image(images_setup)
+    self.bar_background_right = new_image(images_setup)
     if (self.is_compact) then
             self.bar_background:size(330, 180)
             self.bar_background:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_compact.png')
@@ -498,27 +514,29 @@ function ui:load(theme_options)
         self.bar_background:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg.png')
         self.bar_background_left:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_alt.png')
         self.bar_background_right:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_alt.png')
+        self.bar_background_left:size(204, 218)
+        self.bar_background_right:size(204, 218)
     end
     self.bar_background:alpha(self.button_bg_alpha)
     self.bar_background_left:alpha(self.button_bg_alpha)
     self.bar_background_right:alpha(self.button_bg_alpha)
 
     -- setup button ui hints
-    self.action_binder_icon = images.new(images_setup)
+    self.action_binder_icon = new_image(images_setup)
     self.action_binder_icon:size(40, 40)
     self.action_binder_icon:pos(self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 27)
     self.action_binder_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/minus_'..self.theme.button_layout..'.png')
     self.action_binder_icon:alpha(255)
-    self.action_binder_text = texts.new(text_setup)
+    self.action_binder_text = new_text(text_setup)
     setup_text(self.action_binder_text, theme_options)
     self.action_binder_text:pos(self:get_slot_x(1, 1) + 35, self:get_slot_y(1, 4) - 15)
     self.action_binder_text:text('Bind an action')
-    self.environment_selector_icon = images.new(images_setup)
+    self.environment_selector_icon = new_image(images_setup)
     self.environment_selector_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/plus_'..self.theme.button_layout..'.png')
     self.environment_selector_icon:size(40, 40)
     self.environment_selector_icon:pos(self:get_slot_x(2, 5) - 5, self:get_slot_y(1, 4) - 27)
     self.environment_selector_icon:alpha(255)
-    self.environment_selector_text = texts.new(text_setup)
+    self.environment_selector_text = new_text(text_setup)
     setup_text(self.environment_selector_text, theme_options)
     self.environment_selector_text:pos(self:get_slot_x(2, 5) + 40, self:get_slot_y(1, 4) - 15)
     self.environment_selector_text:text('Change crossbar sets')
@@ -547,21 +565,22 @@ function ui:load(theme_options)
             local slot_pos_y = self:get_slot_y(h, i)
             local right_slot_pos_x = slot_pos_x - windower.get_windower_settings().ui_x_res + 16
 
-            self.hotbars[h].slot_background[i] = images.new(images_setup)
-            self.hotbars[h].slot_warmup[i] = images.new(images_setup)
-            self.hotbars[h].slot_icon[i] = images.new(images_setup)
-            self.hotbars[h].slot_recast[i] = images.new(images_setup)
-            self.hotbars[h].slot_frame[i] = images.new(images_setup)
-            self.hotbars[h].slot_element[i] = images.new(images_setup)
-            self.hotbars[h].slot_text[i] = texts.new(text_setup)
-            self.hotbars[h].slot_cost[i] = texts.new(right_text_setup)
-            self.hotbars[h].slot_recast_text[i] = texts.new(right_text_setup)
+            self.hotbars[h].slot_background[i] = new_image(images_setup)
+            self.hotbars[h].slot_warmup[i] = new_image(images_setup)
+            self.hotbars[h].slot_icon[i] = new_image(images_setup)
+            self.hotbars[h].slot_recast[i] = new_image(images_setup)
+            self.hotbars[h].slot_frame[i] = new_image(images_setup)
+            self.hotbars[h].slot_element[i] = new_image(images_setup)
+            self.hotbars[h].slot_text[i] = new_text(text_setup)
+            self.hotbars[h].slot_cost[i] = new_text(right_text_setup)
+            self.hotbars[h].slot_recast_text[i] = new_text(right_text_setup)
             self.hotbars[h].slot_icon[i]:size(40, 40)
 
             setup_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
             setup_image(self.hotbars[h].slot_icon[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
             setup_image(self.hotbars[h].slot_frame[i], self.frame_image_path)
             setup_image(self.hotbars[h].slot_element[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
+            self.hotbars[h].slot_element[i]:size(16, 16)
             setup_text(self.hotbars[h].slot_text[i], theme_options)
             setup_text(self.hotbars[h].slot_cost[i], theme_options)
             setup_text(self.hotbars[h].slot_recast_text[i], theme_options)
@@ -574,51 +593,83 @@ function ui:load(theme_options)
             self.hotbars[h].slot_frame[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
-            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2, slot_pos_y + 40)
+            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2 + self.alias_offset_x, slot_pos_y + 40 + self.alias_offset_y)
             self.hotbars[h].slot_cost[i]:pos(right_slot_pos_x + 30, slot_pos_y + 28)
             self.hotbars[h].slot_recast_text[i]:pos(right_slot_pos_x + 20, slot_pos_y + 14)
             self.hotbars[h].slot_recast_text[i]:size(9)
         end
 
         -- special stuff for dpad and face buttons icons
-        self.hotbars[h].slot_recast[9] = images.new(images_setup)
-        self.hotbars[h].slot_recast[10] = images.new(images_setup)
+        self.hotbars[h].slot_recast[9] = new_image(images_setup)
+        self.hotbars[h].slot_recast[10] = new_image(images_setup)
     end
 
     -- load feedback icon last so it stays above everything else
-    self.feedback_icon = images.new(images_setup)
+    self.feedback_icon = new_image(images_setup)
     setup_image(self.feedback_icon, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
     self.feedback.max_opacity = theme_options.feedback_max_opacity
     self.feedback.speed = theme_options.feedback_speed
     self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback_icon:hide()
-    if self.drag_handle then self.drag_handle:destroy() end
-    self.drag_handle = texts.new({flags = {draggable = false}, bg = {visible = true, alpha = 190},
-        padding = 4, text = {size = 10, font = 'Arial'}})
-    self.drag_handle:text('Drag crossbar  |  //xb ui lock')
-    self.drag_handle:hide()
+    -- A real slot-shaped handle and a four-edge outline make edit mode visible
+    -- without taking mouse input anywhere except this dedicated tile.
+    for _, name in ipairs({'drag_handle', 'drag_alias', 'drag_tile', 'drag_frame', 'drag_glow'}) do
+        if self[name] then self[name]:destroy() end
+    end
+    self.drag_tile, self.drag_frame, self.drag_glow = new_image(images_setup), new_image(images_setup), new_image(images_setup)
+    setup_image(self.drag_tile, windower.addon_path .. '/themes/' .. theme_options.slot_theme:lower() .. '/slot.png')
+    setup_image(self.drag_frame, self.frame_image_path)
+    setup_image(self.drag_glow, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
+    self.drag_handle, self.drag_alias = new_text(text_setup), new_text(text_setup)
+    setup_text(self.drag_handle, theme_options)
+    setup_text(self.drag_alias, theme_options)
+    self.drag_handle:text('Drag')
+    self.drag_alias:text('//xb ui lock')
+    for _, edge in ipairs({'top', 'bottom', 'left', 'right'}) do
+        prim.create('xivcrossbar_edit_' .. edge)
+    end
+    self:show_drag_handle(false)
     ui:update_offsets(theme_options.offset_x, theme_options.offset_y)
 end
 
 -- setup positions and dimensions for ui
 function ui:setup_metrics(theme_options)
     self.hotbar_width = (400 + theme_options.slot_spacing * 9)
-    self.pos_x = (windower.get_windower_settings().ui_x_res / 2) - (self.hotbar_width / 2)
-    self.pos_y = (windower.get_windower_settings().ui_y_res - 120)
+    self.pos_x = windower.get_windower_settings().ui_x_res / 2 - 240 + (theme_options.offset_x or 0)
+    self.pos_y = windower.get_windower_settings().ui_y_res - 120 + (theme_options.offset_y or 0)
+    self:update_geometry_origin(false)
 
     self.slot_spacing = theme_options.slot_spacing
 
     if theme_options.hide_action_names == true then
-        theme_options.hotbar_spacing = theme_options.hotbar_spacing - 10
-        self.pos_y = self.pos_y + 10
+        self.hotbar_spacing = theme_options.hotbar_spacing - 10
+    else
+        self.hotbar_spacing = theme_options.hotbar_spacing
     end
+end
 
-    self.hotbar_spacing = theme_options.hotbar_spacing
+function ui:update_geometry_origin(move_contents)
+    local screen = windower.get_windower_settings()
+    local x = screen.ui_x_res / 2 - 240 * geometry.scale + (self.pos_x - (screen.ui_x_res / 2 - 240))
+    local y = screen.ui_y_res - 120 * geometry.scale + (self.pos_y - (screen.ui_y_res - 120))
+    geometry:set_origin(self.pos_x, self.pos_y, x, y, move_contents)
+end
+
+function ui:set_scale(scale)
+    geometry:set_scale(scale)
+    self:update_geometry_origin(false)
+    self:show_drag_handle(self.drag_showing)
+end
+
+function ui:set_alias_offsets(x, y)
+    self.alias_offset_x, self.alias_offset_y = x, y
+    self:update_offsets(settings.Style.OffsetX, settings.Style.OffsetY)
 end
 
 function ui:update_offsets(offset_x, offset_y)
     self.pos_x = (windower.get_windower_settings().ui_x_res / 2 - 240) + (offset_x or 0)
     self.pos_y = (windower.get_windower_settings().ui_y_res - 120) + (offset_y or 0)
+    self:update_geometry_origin(true)
 
     for h=1,self.theme.hotbar_number,1 do
         for i=1,8,1 do
@@ -627,13 +678,15 @@ function ui:update_offsets(offset_x, offset_y)
             local right_slot_pos_x = slot_pos_x - windower.get_windower_settings().ui_x_res + 16
 
             self.hotbars[h].slot_background[i]:pos(slot_pos_x, slot_pos_y)
-            self.hotbars[h].slot_icon[i]:pos(slot_pos_x, slot_pos_y)
+            local width = self.hotbars[h].slot_icon[i]:size()
+            local inset = type(width) == 'number' and (40 - width) / 2 or 0
+            self.hotbars[h].slot_icon[i]:pos(slot_pos_x + inset, slot_pos_y + inset)
             self.hotbars[h].slot_frame[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_recast[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_warmup[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
-            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2, slot_pos_y + 40)
+            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2 + (self.alias_offset_x or 0), slot_pos_y + 40 + (self.alias_offset_y or 0))
             self.hotbars[h].slot_cost[i]:pos(right_slot_pos_x + 30, slot_pos_y + 28)
             self.hotbars[h].slot_recast_text[i]:pos(right_slot_pos_x + 20, slot_pos_y + 14)
         end
@@ -653,24 +706,74 @@ function ui:update_offsets(offset_x, offset_y)
     end
 end
 
-function ui:get_drag_bounds()
-    -- A separate background strip above the buttons avoids action/binder hits.
-    local x, y = self:get_slot_x(1, 1), self:get_slot_y(1, 4)
-    for h = 2, self.theme.hotbar_number do
-        x = math.min(x, self:get_slot_x(h, 1))
-        y = math.min(y, self:get_slot_y(h, 4))
+function ui:get_layout_bounds()
+    local x, y, right, bottom = math.huge, math.huge, -math.huge, -math.huge
+    for h = 1, self.theme.hotbar_number do
+        for slot = 1, 8 do
+            local sx, sy = self:get_slot_x(h, slot), self:get_slot_y(h, slot)
+            local label_x = sx - 2 + (self.alias_offset_x or 0)
+            local label_y = sy + 40 + (self.alias_offset_y or 0)
+            local width, height = 40, 14
+            local label = self.hotbars[h] and self.hotbars[h].slot_text[slot]
+            if label then width, height = label:extents() end
+            x, y = math.min(x, sx, label_x), math.min(y, sy, label_y)
+            right, bottom = math.max(right, sx + 40, label_x + width), math.max(bottom, sy + 40, label_y + height)
+        end
     end
-    return {x = x, y = y - 62, width = 230, height = 24}
+    return {x = x - 6, y = y - 6, width = right - x + 12, height = bottom - y + 12}
+end
+
+function ui:get_drag_bounds()
+    local b = self:get_layout_bounds()
+    return geometry:rect(b.x, b.y - 64, 40, 40)
+end
+
+function ui:update_drag_feedback(x, y, held, enabled)
+    if not self.drag_handle then return end
+    local b = self:get_drag_bounds()
+    self.drag_hover = enabled and x >= b.x and x <= b.x + b.width and y >= b.y and y <= b.y + b.height
+    self.drag_held = enabled and held
+    self:show_drag_handle(enabled)
 end
 
 function ui:show_drag_handle(show)
     if not self.drag_handle then return end
+    show = show and not self.suspended
+    self.drag_showing = show
     if show then
-        local b = self:get_drag_bounds()
-        self.drag_handle:pos(b.x, b.y)
+        local b = self:get_layout_bounds()
+        local x, y = b.x, b.y - 64
+        local r, g, blue = 255, 255, 255
+        if self.drag_held then r, g, blue = 255, 190, 220 end
+        for _, surface in ipairs({self.drag_tile, self.drag_frame, self.drag_glow}) do surface:pos(x, y) end
+        self.drag_tile:color(255, self.drag_held and 190 or 255, self.drag_held and 220 or 255)
+        self.drag_tile:alpha(self.drag_held and 180 or 150)
+        self.drag_frame:color(self.drag_hover and 255 or r, self.drag_hover and 190 or g, self.drag_hover and 220 or blue)
+        self.drag_glow:color(255, 190, 220)
+        self.drag_glow:alpha(120)
+        self.drag_handle:color(r, g, blue)
+        self.drag_alias:color(r, g, blue)
+        local width, height = self.drag_handle:extents()
+        self.drag_handle:pos(x + (40 - width) / 2, y + (40 - height) / 2)
+        local alias_width = self.drag_alias:extents()
+        self.drag_alias:pos(x + (40 - alias_width) / 2, y + 42)
+        self.drag_tile:show(); self.drag_frame:show()
+        if self.drag_hover and not self.drag_held then self.drag_glow:show() else self.drag_glow:hide() end
         self.drag_handle:show()
+        self.drag_alias:show()
+        local edges = {
+            top = {b.x, b.y, b.width, 1}, bottom = {b.x, b.y + b.height, b.width, 1},
+            left = {b.x, b.y, 1, b.height}, right = {b.x + b.width, b.y, 1, b.height},
+        }
+        for edge, coords in pairs(edges) do
+            local name = 'xivcrossbar_edit_' .. edge
+            prim.set_position(name, coords[1], coords[2]); prim.set_size(name, coords[3], coords[4])
+            prim.set_color(name, 230, r, g, blue); prim.set_visibility(name, true)
+        end
     else
-        self.drag_handle:hide()
+        self.drag_hover, self.drag_held = false, false
+        for _, surface in ipairs({self.drag_handle, self.drag_alias, self.drag_tile, self.drag_frame, self.drag_glow}) do surface:hide() end
+        for _, edge in ipairs({'top', 'bottom', 'left', 'right'}) do prim.set_visibility('xivcrossbar_edit_' .. edge, false) end
     end
 end
 
@@ -679,7 +782,7 @@ function ui:hide()
     self:show_drag_handle(false)
     for _, name in ipairs({'skillchain_indicator', 'skillchain_indicator_bg',
         'gcd_indicator', 'gcd_indicator_bg', 'aa_indicator_red', 'aa_indicator_green', 'aa_indicator_bg'}) do
-        windower.prim.set_visibility(name, false)
+        prim.set_visibility(name, false)
     end
     self.battle_notice:hide()
     self.feedback_icon:hide()
@@ -842,8 +945,6 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
     local LV_1_SP_ABILITY_RECAST_ID = 0
     local LV_96_SP_ABILITY_RECAST_ID = 254
 
-    self:clear_slot(hotbar, slot)
-
     local icon_overridden = false
 
     -- if slot is empty, check if there is an entry in the default crossbar
@@ -852,6 +953,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
 
         -- if default crossbar slot is empty, then hide the slot
         if (action == nil) then
+            self:clear_slot(hotbar, slot)
             if self.theme.hide_empty_slots == true then
                 self.hotbars[hotbar].slot_background[slot]:hide()
             else
@@ -861,6 +963,10 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
             return
         end
     end
+
+    -- Clear text/status every load, but retain an occupied slot's texture.
+    -- Previously every reveal assigned blank then reassigned the same icon.
+    self:clear_slot(hotbar, slot, true)
 
     local icon_path = nil
 
@@ -991,16 +1097,22 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
         self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. icon_path)
     else
         self.hotbars[hotbar].slot_icon[slot]:hide()
+        if action.icon == nil then
+            self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
+        end
     end
     if (icon_overridden) then
+        self.hotbars[hotbar].slot_icon[slot]:size(40, 40)
         self.hotbars[hotbar].slot_icon[slot]:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
     else
+        self.hotbars[hotbar].slot_icon[slot]:size(32, 32)
         self.hotbars[hotbar].slot_icon[slot]:pos(self:get_slot_x(hotbar, slot) + 4, self:get_slot_y(hotbar, slot) + 4) -- "temporary" (lol) fix for 32 x 32 icons
     end
 
     -- if action is custom
     if (not icon_overridden and action.icon ~= nil) then
         self.hotbars[hotbar].slot_background[slot]:alpha(200)
+        self.hotbars[hotbar].slot_icon[slot]:size(40, 40)
         self.hotbars[hotbar].slot_icon[slot]:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
         self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/' .. action.icon .. '.png')
         if (show_when_ready) then
@@ -1037,10 +1149,10 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
 end
 
 -- reset slot
-function ui:clear_slot(hotbar, slot)
+function ui:clear_slot(hotbar, slot, keep_icon)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
     self.hotbars[hotbar].slot_frame[slot]:hide()
-    self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
+    if not keep_icon then self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png') end
     self.hotbars[hotbar].slot_icon[slot]:hide()
     self.hotbars[hotbar].slot_icon[slot]:alpha(255)
     self.hotbars[hotbar].slot_icon[slot]:color(255, 255, 255)
@@ -1207,19 +1319,19 @@ function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillc
 
             if (skillchain_indicator_state ~= 'waiting') then
                 skillchain_indicator_state = 'waiting'
-                windower.prim.set_color('skillchain_indicator',
+                prim.set_color('skillchain_indicator',
                     self.theme.skillchain_window_opacity,
                     self.theme.skillchain_waiting_color_red,
                     self.theme.skillchain_waiting_color_green,
                     self.theme.skillchain_waiting_color_blue)
             end
-            windower.prim.set_size('skillchain_indicator', base_width, 4)
-            windower.prim.set_position('skillchain_indicator', left_spacer + self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 27)
-            windower.prim.set_visibility('skillchain_indicator', true)
+            prim.set_size('skillchain_indicator', base_width, 4)
+            prim.set_position('skillchain_indicator', left_spacer + self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 27)
+            prim.set_visibility('skillchain_indicator', true)
 
-            windower.prim.set_size('skillchain_indicator_bg', base_width + 4, 8)
-            windower.prim.set_position('skillchain_indicator_bg', left_spacer + self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 29)
-            windower.prim.set_visibility('skillchain_indicator_bg', true)
+            prim.set_size('skillchain_indicator_bg', base_width + 4, 8)
+            prim.set_position('skillchain_indicator_bg', left_spacer + self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 29)
+            prim.set_visibility('skillchain_indicator_bg', true)
         elseif (skillchain_window > 0) then
             local fraction = skillchain_window / 7.0
             local base_width = math.round(600 * fraction)
@@ -1227,26 +1339,26 @@ function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillc
 
             if (skillchain_indicator_state ~= 'open') then
                 skillchain_indicator_state = 'open'
-                windower.prim.set_color('skillchain_indicator',
+                prim.set_color('skillchain_indicator',
                     self.theme.skillchain_window_opacity,
                     self.theme.skillchain_open_color_red,
                     self.theme.skillchain_open_color_green,
                     self.theme.skillchain_open_color_blue)
             end
-            windower.prim.set_size('skillchain_indicator', base_width, 10)
-            windower.prim.set_position('skillchain_indicator', left_spacer + self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 30)
-            windower.prim.set_visibility('skillchain_indicator', true)
+            prim.set_size('skillchain_indicator', base_width, 10)
+            prim.set_position('skillchain_indicator', left_spacer + self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 30)
+            prim.set_visibility('skillchain_indicator', true)
 
-            windower.prim.set_size('skillchain_indicator_bg', base_width + 4, 14)
-            windower.prim.set_position('skillchain_indicator_bg', left_spacer + self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 32)
-            windower.prim.set_visibility('skillchain_indicator_bg', true)
+            prim.set_size('skillchain_indicator_bg', base_width + 4, 14)
+            prim.set_position('skillchain_indicator_bg', left_spacer + self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 32)
+            prim.set_visibility('skillchain_indicator_bg', true)
         else
-            windower.prim.set_visibility('skillchain_indicator', false)
-            windower.prim.set_visibility('skillchain_indicator_bg', false)
+            prim.set_visibility('skillchain_indicator', false)
+            prim.set_visibility('skillchain_indicator_bg', false)
         end
     else
-        windower.prim.set_visibility('skillchain_indicator', false)
-        windower.prim.set_visibility('skillchain_indicator_bg', false)
+        prim.set_visibility('skillchain_indicator', false)
+        prim.set_visibility('skillchain_indicator_bg', false)
     end
 end
 
@@ -1292,49 +1404,49 @@ function ui:display_gcd_indicator()
 
             if alpha == 0 then
                 -- Per-mode opacity 0 = hide this mode's bar entirely.
-                windower.prim.set_visibility('gcd_indicator', false)
-                windower.prim.set_visibility('gcd_indicator_bg', false)
+                prim.set_visibility('gcd_indicator', false)
+                prim.set_visibility('gcd_indicator_bg', false)
                 return
             end
 
-            windower.prim.set_color('gcd_indicator', alpha, cr, cg, cb)
+            prim.set_color('gcd_indicator', alpha, cr, cg, cb)
 
             local effective_y_offset = self.gcd_offset_y
             if not self.is_compact then
                 effective_y_offset = effective_y_offset + self.hotbar_spacing
             end
 
-            windower.prim.set_size('gcd_indicator', base_width, 6)
-            windower.prim.set_position(
+            prim.set_size('gcd_indicator', base_width, 6)
+            prim.set_position(
                 'gcd_indicator',
                 left_spacer + self:get_slot_x(1, 1) - 10 + self.gcd_offset_x,
                 self:get_slot_y(1, 4) + effective_y_offset
             )
-            windower.prim.set_visibility('gcd_indicator', true)
+            prim.set_visibility('gcd_indicator', true)
 
-            windower.prim.set_size('gcd_indicator_bg', base_width + 4, 10)
-            windower.prim.set_position(
+            prim.set_size('gcd_indicator_bg', base_width + 4, 10)
+            prim.set_position(
                 'gcd_indicator_bg',
                 left_spacer + self:get_slot_x(1, 1) - 12 + self.gcd_offset_x,
                 self:get_slot_y(1, 4) + effective_y_offset - 2
             )
-            windower.prim.set_visibility('gcd_indicator_bg', true)
+            prim.set_visibility('gcd_indicator_bg', true)
         else
             gcd_active = false
-            windower.prim.set_visibility('gcd_indicator', false)
-            windower.prim.set_visibility('gcd_indicator_bg', false)
+            prim.set_visibility('gcd_indicator', false)
+            prim.set_visibility('gcd_indicator_bg', false)
         end
     else
-        windower.prim.set_visibility('gcd_indicator', false)
-        windower.prim.set_visibility('gcd_indicator_bg', false)
+        prim.set_visibility('gcd_indicator', false)
+        prim.set_visibility('gcd_indicator_bg', false)
     end
 end
 
 -- Hide all three auto-attack bar primitives.
 function ui:hide_aa_indicator()
-    windower.prim.set_visibility('aa_indicator_red', false)
-    windower.prim.set_visibility('aa_indicator_green', false)
-    windower.prim.set_visibility('aa_indicator_bg', false)
+    prim.set_visibility('aa_indicator_red', false)
+    prim.set_visibility('aa_indicator_green', false)
+    prim.set_visibility('aa_indicator_bg', false)
 end
 
 function ui:display_aa_indicator()
@@ -1410,31 +1522,31 @@ function ui:display_aa_indicator()
     -- user can tell at a glance that the bar is frozen).
     local alpha = aa_is_paused() and self.theme.aa_paused_opacity or self.theme.aa_opacity
     local bg_alpha = aa_is_paused() and self.theme.aa_paused_background_opacity or self.theme.aa_background_opacity
-    windower.prim.set_color('aa_indicator_red', alpha,
+    prim.set_color('aa_indicator_red', alpha,
         self.theme.aa_before_red, self.theme.aa_before_green, self.theme.aa_before_blue)
-    windower.prim.set_color('aa_indicator_green', alpha,
+    prim.set_color('aa_indicator_green', alpha,
         self.theme.aa_past_red, self.theme.aa_past_green, self.theme.aa_past_blue)
-    windower.prim.set_color('aa_indicator_bg', bg_alpha, 0, 0, 0)
+    prim.set_color('aa_indicator_bg', bg_alpha, 0, 0, 0)
 
     if (red_px > 0) then
-        windower.prim.set_size('aa_indicator_red', red_px, 6)
-        windower.prim.set_position('aa_indicator_red', red_x, base_y)
-        windower.prim.set_visibility('aa_indicator_red', true)
+        prim.set_size('aa_indicator_red', red_px, 6)
+        prim.set_position('aa_indicator_red', red_x, base_y)
+        prim.set_visibility('aa_indicator_red', true)
     else
-        windower.prim.set_visibility('aa_indicator_red', false)
+        prim.set_visibility('aa_indicator_red', false)
     end
 
     if (green_px > 0) then
-        windower.prim.set_size('aa_indicator_green', green_px, 6)
-        windower.prim.set_position('aa_indicator_green', green_x, base_y)
-        windower.prim.set_visibility('aa_indicator_green', true)
+        prim.set_size('aa_indicator_green', green_px, 6)
+        prim.set_position('aa_indicator_green', green_x, base_y)
+        prim.set_visibility('aa_indicator_green', true)
     else
-        windower.prim.set_visibility('aa_indicator_green', false)
+        prim.set_visibility('aa_indicator_green', false)
     end
 
-    windower.prim.set_size('aa_indicator_bg', visible_px + 4, 10)
-    windower.prim.set_position('aa_indicator_bg', red_x - 2, base_y - 2)
-    windower.prim.set_visibility('aa_indicator_bg', true)
+    prim.set_size('aa_indicator_bg', visible_px + 4, 10)
+    prim.set_position('aa_indicator_bg', red_x - 2, base_y - 2)
+    prim.set_visibility('aa_indicator_bg', true)
 end
 
 local last_log = os.clock()

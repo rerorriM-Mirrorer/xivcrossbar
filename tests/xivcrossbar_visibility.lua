@@ -82,15 +82,32 @@ assert(ui.suspended and settings.VisibilityMode=='Always')
 stub.emit('keyboard',87,true,0,false)
 assert(ui.suspended) -- manual hide wins over input
 stub.emit('addon command','ui','show'); assert(not ui.suspended)
-stub.emit('status change',4); assert(ui.suspended) -- cutscene wins over manual show
+stub.emit('status change',4); assert(not ui.suspended) -- explicit show wins in cutscenes
+stub.emit('addon command','ui','auto'); assert(ui.suspended) -- automatic mode still follows cutscene hiding
+stub.emit('addon command','ui','show'); assert(not ui.suspended)
 stub.emit('status change',0); assert(not ui.suspended)
 stub.emit('keyboard',87,false,0,false)
 stub.emit('addon command','ui','visibility','OnInput'); assert(ui.suspended)
 stub.emit('addon command','ui','show'); assert(not ui.suspended)
 stub.emit('addon command','ui','auto'); assert(ui.suspended and settings.VisibilityMode=='OnInput')
 stub.emit('addon command','ui','hide')
-stub.emit('addon command','ui','unlock'); assert(not ui.suspended)
+stub.emit('addon command','ui','unlock'); assert(ui.suspended) -- unlocking respects explicit Hide
+stub.emit('addon command','ui'); assert(not ui.suspended) -- bare UI toggles actual drawing
+stub.emit('addon command','ui'); assert(ui.suspended)
+stub.emit('addon command','ui','show'); assert(not ui.suspended)
 stub.emit('addon command','ui','lock')
+stub.emit('addon command','autohide','off'); assert(settings.VisibilityMode=='Always' and not ui.suspended)
+stub.emit('addon command','autohide'); assert(settings.VisibilityMode=='OnInput' and ui.suspended)
+stub.emit('addon command','ui','visibility'); assert(settings.VisibilityMode=='Always' and not ui.suspended)
+stub.emit('addon command','autohide','on'); assert(settings.VisibilityMode=='OnInput')
+stub.emit('addon command','ui','grace','30'); assert(settings.VisibilityGrace==30)
+stub.emit('keyboard',87,true,0,false); assert(not ui.suspended)
+stub.emit('keyboard',87,false,0,false)
+now=now+29; stub.emit('prerender'); assert(not ui.suspended)
+now=now+2; stub.emit('prerender'); assert(ui.suspended)
+for _, invalid in ipairs({'-1','nan','inf','1e309','nope'}) do
+    stub.emit('addon command','ui','grace',invalid); assert(settings.VisibilityGrace==30)
+end
 stub.emit('logout'); stub.emit('prerender')
 assert(not control.ready and ui.suspended)
 print('PASS: release grace, input/menu events, sequential triggers, hidden render work, manual overrides, cutscenes, unlock and logout')

@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261004.1'
+_addon.version = '0.4.0-a.20261005.1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -78,7 +78,7 @@ end
 
 local function can_drag_ui()
     return xivcrossbar.ready and ui.is_setup and not settings.UILocked and
-        not ui.suspended and not xivcrossbar.hide_hotbars and action_binder.is_hidden and
+        not ui.suspended and action_binder.is_hidden and
         not gamepad_mapper.is_showing and not env_chooser:is_showing()
 end
 
@@ -96,13 +96,15 @@ local function refresh_ui_visibility()
         gamepad_state.plus_button or gamepad_state.minus_button or
         not action_binder.is_hidden or gamepad_mapper.is_showing or
         env_chooser:is_showing() or env_chooser.capturing or not settings.UILocked
-    local grace = math.max(0, math.min(5, tonumber(settings.VisibilityGrace) or 0.25))
+    local grace = tonumber(settings.VisibilityGrace) or 5
+    if grace ~= grace or grace == math.huge or grace < 0 then grace = 5 end
     local show = visibility:visible(settings.VisibilityMode, grace, active)
     -- A manual hide/show lasts only for this load. Saved OnInput/Always and
     -- its release timer stay intact so `ui auto` can resume the usual behavior.
-    if manual_visibility ~= nil then show = manual_visibility end
-    -- Event/cutscene hiding wins even over a manual show request.
-    show = show and not xivcrossbar.hide_hotbars
+    -- Explicit Show also works in cutscenes. Automatic visibility still follows
+    -- event hiding, and an explicit Hide continues to win over input/unlocking.
+    if manual_visibility ~= nil then show = manual_visibility
+    else show = show and not xivcrossbar.hide_hotbars end
     if show and ui.suspended then
         ui.suspended = false
         ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
@@ -118,17 +120,42 @@ local function refresh_ui_visibility()
     return show
 end
 
+local function set_visibility_mode(mode)
+    crossbar_drag:finish()
+    settings.VisibilityMode = mode
+    manual_visibility = nil
+    visibility:reset()
+    config.save(settings)
+    refresh_ui_visibility()
+    ui:show_drag_handle(can_drag_ui())
+    windower.add_to_chat(207, '[XIVCrossbar] Autohide ' .. (mode == 'OnInput' and 'on.' or 'off.'))
+end
+
+local function autohide_command(args)
+    local mode = (args[1] or 'toggle'):lower()
+    if mode == 'on' then set_visibility_mode('OnInput')
+    elseif mode == 'off' then set_visibility_mode('Always')
+    elseif mode == 'toggle' then
+        set_visibility_mode(settings.VisibilityMode == 'OnInput' and 'Always' or 'OnInput')
+    else windower.add_to_chat(123, '[XIVCrossbar] //xb autohide [on | off | toggle]') end
+end
+
+local function finite_number(value)
+    local number = tonumber(value)
+    if number and number == number and number ~= math.huge and number ~= -math.huge then return number end
+end
+
 local function ui_command(args)
     local command = (args[1] or ''):lower()
+    if command == '' then command = ui.suspended and 'show' or 'hide' end
     if command == 'unlock' or command == 'lock' or command == 'togglelock' then
         crossbar_drag:finish()
         if command == 'togglelock' then settings.UILocked = not settings.UILocked
         else settings.UILocked = command == 'lock' end
-        if not settings.UILocked then manual_visibility = nil end
         config.save(settings)
         refresh_ui_visibility()
         ui:show_drag_handle(can_drag_ui())
-        windower.add_to_chat(207, '[XIVCrossbar] UI ' .. (settings.UILocked and 'locked.' or 'unlocked: drag the labeled strip above the crossbar.'))
+        windower.add_to_chat(207, '[XIVCrossbar] UI ' .. (settings.UILocked and 'locked.' or 'unlocked: use the Drag tile above the crossbar.'))
     elseif command == 'hide' or command == 'show' or command == 'auto' then
         -- Finish a drag before hiding its handle; release persists its position.
         crossbar_drag:finish()
@@ -139,34 +166,76 @@ local function ui_command(args)
         ui:show_drag_handle(can_drag_ui())
         windower.add_to_chat(207, '[XIVCrossbar] UI ' ..
             (command == 'auto' and ('following ' .. settings.VisibilityMode .. '.') or
-            (command == 'show' and 'shown for this session (outside cutscenes).' or 'hidden for this session.')))
+            (command == 'show' and 'shown for this session.' or 'hidden for this session.')))
     elseif command == 'visibility' then
         local mode = (args[2] or ''):lower()
+        if mode == '' or mode == 'toggle' then return autohide_command({}) end
         if mode ~= 'always' and mode ~= 'oninput' then
-            windower.add_to_chat(123, '[XIVCrossbar] //xb ui visibility Always | OnInput')
+            windower.add_to_chat(123, '[XIVCrossbar] //xb ui visibility [Always | OnInput]')
             return
         end
-        settings.VisibilityMode = mode == 'always' and 'Always' or 'OnInput'
-        manual_visibility = nil
-        visibility:reset()
-        config.save(settings)
-        refresh_ui_visibility()
-        windower.add_to_chat(207, '[XIVCrossbar] Visibility: ' .. settings.VisibilityMode)
+        set_visibility_mode(mode == 'always' and 'Always' or 'OnInput')
     elseif command == 'grace' then
-        local seconds = tonumber(args[2])
-        if not seconds or seconds ~= seconds or seconds < 0 or seconds > 5 then
-            windower.add_to_chat(123, '[XIVCrossbar] //xb ui grace <seconds, 0 to 5>')
+        local seconds = finite_number(args[2])
+        if not seconds or seconds < 0 then
+            windower.add_to_chat(123, '[XIVCrossbar] //xb ui grace <seconds, 0 or greater>')
             return
         end
         settings.VisibilityGrace = seconds
         config.save(settings)
+        refresh_ui_visibility()
+        windower.add_to_chat(207, '[XIVCrossbar] Release grace: ' .. seconds .. ' seconds.')
+    elseif command == 'scale' or command == 'menuscale' then
+        local scale = finite_number(args[2])
+        if not scale or scale < .25 or scale > 2 then
+            windower.add_to_chat(123, '[XIVCrossbar] //xb ui ' .. command .. ' <factor, 0.25 to 2>')
+            return
+        end
+        crossbar_drag:finish()
+        if command == 'scale' then
+            settings.Style.Scale, theme_options.crossbar_scale = scale, scale
+            if ui.is_setup then ui:set_scale(scale) end
+        else
+            settings.Menu = settings.Menu or {}
+            settings.Menu.Scale, theme_options.menu_scale = scale, scale
+            if action_binder.title then
+                -- The binder loads its own theme options, so update that copy
+                -- as well before applying a live menu-scale change.
+                action_binder.theme_options.menu_scale = scale
+                action_binder:update_menu_layout()
+            end
+        end
+        config.save(settings)
+        windower.add_to_chat(207, '[XIVCrossbar] ' .. command .. ': ' .. scale)
+    elseif command == 'aliasoffset' then
+        local x, y = finite_number(args[2]), finite_number(args[3])
+        if not x or not y then
+            windower.add_to_chat(123, '[XIVCrossbar] //xb ui aliasoffset <x> <y>')
+            return
+        end
+        settings.Texts = settings.Texts or {}
+        settings.Texts.SlotAlias = {OffsetX=x, OffsetY=y}
+        theme_options.alias_offset_x, theme_options.alias_offset_y = x, y
+        if ui.is_setup then ui:set_alias_offsets(x, y) end
+        config.save(settings)
+        windower.add_to_chat(207, '[XIVCrossbar] Slot alias offset: ' .. x .. ', ' .. y)
+    elseif command == 'status' then
+        windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version .. ' | ' .. settings.VisibilityMode ..
+            ' | grace ' .. settings.VisibilityGrace .. 's | scale ' .. (settings.Style.Scale or 1) ..
+            ' | ' .. (settings.UILocked and 'locked' or 'unlocked') ..
+            ' | position ' .. settings.Style.OffsetX .. ', ' .. settings.Style.OffsetY ..
+            ' | override ' .. (manual_visibility == nil and 'auto' or (manual_visibility and 'show' or 'hide')))
     else
-        windower.add_to_chat(207, '[XIVCrossbar] //xb ui unlock | lock | togglelock | hide | show | auto | visibility Always/OnInput | grace <seconds>')
+        windower.add_to_chat(207, '[XIVCrossbar] //xb ui [hide | show | auto | unlock | lock | togglelock | status]')
+        windower.add_to_chat(207, '[XIVCrossbar] //xb ui scale <factor> | menuscale <factor> | aliasoffset <x> <y> | grace <seconds>')
+        windower.add_to_chat(207, '[XIVCrossbar] //xb autohide [on | off | toggle] | ui visibility [Always | OnInput]')
     end
 end
 
 windower.register_event('mouse', function(kind, x, y, delta, blocked)
-    return crossbar_drag:mouse(kind, x, y, blocked)
+    local captured = crossbar_drag:mouse(kind, x, y, blocked)
+    if ui.update_drag_feedback then ui:update_drag_feedback(x, y, crossbar_drag.gesture ~= nil, can_drag_ui() and not blocked) end
+    return captured
 end)
 
 local function close_left_doublepress_window()
@@ -946,8 +1015,14 @@ function display_help_menu()
     windower.send_command('echo regenerate                      Regenerate cached resource files')
     windower.send_command('echo reload                          Reload the active hotbar')
     windower.send_command('echo ui hide/show/auto               Session visibility override / resume saved mode')
-    windower.send_command('echo ui visibility Always/OnInput    Save crossbar visibility mode')
+    windower.send_command('echo ui                              Toggle session visibility')
+    windower.send_command('echo autohide [on/off/toggle]        Save input-only / always-visible mode')
+    windower.send_command('echo ui visibility [Always/OnInput]  Save or toggle crossbar visibility mode')
     windower.send_command('echo ui unlock/lock/togglelock       Move or lock the crossbar')
+    windower.send_command('echo ui scale <0.25-2>               Scale the complete crossbar')
+    windower.send_command('echo ui menuscale <0.25-2>           Scale the centered binder')
+    windower.send_command('echo ui aliasoffset <x> <y>          Move slot aliases independently')
+    windower.send_command('echo ui grace <seconds> / status     Release delay / current UI state')
     windower.send_command('echo help / ?                        Show this help')
     windower.send_command('echo ================ Identifiers ================')
     windower.send_command('echo Hotbar (<hb>):  l, r, rl, lr, ll, rr   (or 1-6)')
@@ -1040,6 +1115,8 @@ windower.register_event('addon command', function(command, ...)
         return reload_hotbar()
     elseif command == 'ui' then
         return ui_command(args)
+    elseif command == 'autohide' then
+        return autohide_command(args)
     elseif command == 'bar' or command == 'crossbar' or command == 'hotbar' then
         switch_crossbars_command(args)
     elseif command == 'set' then

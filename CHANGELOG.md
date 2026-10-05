@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0-a.20261005.1 — visibility and presentation
+
+- Add saved autohide commands, session visibility toggle, manual Show during
+  cutscenes, and finite nonnegative grace periods without the five-second cap.
+- Default new configurations to OnInput with five seconds of release grace;
+  preserve existing character overrides and profile loading behavior.
+- Scale crossbar images, labels, indicators and drag regions together. Add
+  dedicated alias offsets, bounded icon sizes, white unlocked outlines and
+  pink Drag tile feedback. Keep saved movement offsets in screen pixels.
+- Center binder contents/background together independently of crossbar offsets,
+  with separate scaling and automatic screen fitting.
+- Remove the unconditional self-target diagnostic. Reuse unchanged texture
+  paths on reveal; a reduction in live reveal hitch is not yet established.
+- Leave bindings, controller scripts and menu navigation for separate work.
+
+Offline LuaJIT regression and Lua 5.1 syntax checks pass. Live testing is pending.
+
 ## 0.4.0-a.20261004.1 — working branch, 2026-10-04
 
 - Consolidate the player-reported working installation into the qEagleStrikerp

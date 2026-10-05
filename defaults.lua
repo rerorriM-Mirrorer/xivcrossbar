@@ -19,8 +19,8 @@ defaults.UseAltLayout = false
 defaults.AutoHideExtraBars = false
 defaults.UseSharedSet = true
 defaults.UILocked = true
-defaults.VisibilityMode = 'Always'
-defaults.VisibilityGrace = 0.25
+defaults.VisibilityMode = 'OnInput'
+defaults.VisibilityGrace = 5
 
 defaults.SkillchainIndicator = {}
 defaults.SkillchainIndicator.Opacity = 220
@@ -101,6 +101,11 @@ defaults.Style.SlotSpacing = 6
 defaults.Style.HotbarSpacing = 56
 defaults.Style.OffsetX = 0
 defaults.Style.OffsetY = 0
+-- Scale the whole crossbar. Saved drag offsets remain actual screen pixels.
+defaults.Style.Scale = 1
+
+-- Binder scale is independent; it also shrinks automatically to fit the screen.
+defaults.Menu = {Scale = 1}
 
 defaults.HotbarOffsets = {}
 defaults.HotbarOffsets.AlternatePress = {}
@@ -130,6 +135,9 @@ defaults.Texts.Font = 'sans-serif'
 defaults.Texts.Size = 7
 defaults.Texts.OffsetX = 0
 defaults.Texts.OffsetY = 0
+-- Move only the alias below each slot, in unscaled layout pixels. Legacy
+-- Texts.OffsetX/Y stay readable for compatibility but no longer imply all text moves.
+defaults.Texts.SlotAlias = {OffsetX = 0, OffsetY = 0}
 defaults.Texts.Color = {}
 defaults.Texts.Color.Alpha = 255
 defaults.Texts.Color.Red = 255

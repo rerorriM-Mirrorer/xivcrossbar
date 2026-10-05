@@ -345,18 +345,29 @@ The bulk of these can be done by editing the XMLs files manually as well, if you
 |---|---|
 | `reload` | Reload the active hotbar |
 | `ui hide / show / auto` | Hide/show for this session, or resume the saved visibility mode |
+| `ui` | Toggle session visibility |
+| `autohide [on / off / toggle]` | Save OnInput / Always mode; no argument toggles |
 | `ui visibility Always / OnInput` | Save visibility mode; also clears a manual override |
-| `ui grace <seconds>` | Set OnInput release grace, 0–5 seconds |
-| `ui unlock / lock / togglelock` | Drag the labeled strip above the crossbar, then lock it |
+| `ui grace <seconds>` | Set release grace to any finite nonnegative duration; default 5 seconds |
+| `ui scale <factor>` | Uniform crossbar scale, 0.25–2; default 1 |
+| `ui menuscale <factor>` | Independent centered menu scale, 0.25–2; automatically fits the screen |
+| `ui aliasoffset <x> <y>` | Move only slot aliases; layout pixels scale with the crossbar |
+| `ui unlock / lock / togglelock` | Use the Drag tile above the outlined crossbar, then lock it |
+| `ui status` | Show build, visibility, scale, lock and position |
 | `remap` | Rerun gamepad setup |
 | `regenerate` | Rebuild cached resource files |
 | `help` | Show full help menu (alias: `?`) |
 
 ### Identifiers
 
-Manual hiding affects the crossbar display, not action dispatch. Cutscenes still
-hide it, including after `ui show`. Unlocking resumes automatic visibility so
-the drag handle is available. None of these commands changes your hotbar XML.
+Manual hiding affects the crossbar display, not action dispatch. Explicit
+`ui show` overrides cutscene hiding; `ui auto` restores automatic cutscene hiding.
+Unlocking reveals an automatic OnInput crossbar but respects an explicit Hide.
+Hidden crossbars cannot be dragged. None of these commands changes hotbar XML.
+Saved scaling uses `Style.Scale` and `Menu.Scale`; aliases use
+`Texts.SlotAlias.OffsetX/OffsetY`, independently of cost and recast text.
+Drag offsets remain screen pixels at every scale. Existing character settings
+continue to override defaults. Menu navigation workflows are unchanged in this batch.
 
 - **Hotbars**: `l`, `r`, `rl`, `lr`, `ll`, `rr` (or `1`–`6`) - order in which you hit the triggers
 - **Slots**: `ll`, `ld`, `lr`, `lu`, `rl`, `rd`, `rr`, `ru` (or `1`–`8`) - holding L/R trigger, then what direction dpad or face button you press

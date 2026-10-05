@@ -104,6 +104,9 @@ assert(binder:new_custom_action('paged'))
 stub.pick(binder, 'CHANGE_ICON')
 binder.selector:increment_page()
 binder.selector:increment_page()
+while binder.selector.current_page < math.ceil(#binder.selector.current_options / (binder.selector.max_row * binder.selector.max_col)) do
+    binder.selector:increment_page()
+end
 stub.pick(binder, 'FILE_icon160')
 assert(binder.state == 17 and binder.selector.current_page == 1 and binder.selector:has_selection())
 stub.pick(binder, 'SAVE_EDIT')

@@ -1,4 +1,4 @@
--- Contributing author: A — custom-action editing.
+-- Contributing author: A — custom-action editing and centered menu presentation.
 require("lists")
 require("strings")
 require("tables")
@@ -13,6 +13,8 @@ texts = require('texts')
 local defaults = require('defaults')
 settings = config.load(defaults)
 local action_binder = {}
+local menu_geometry = require('ui_geometry').new()
+local menu_prim = menu_geometry:prim()
 local theme = require('theme')
 local theme_options = theme.apply(settings)
 local icon_pack = nil
@@ -326,15 +328,15 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.new_set_name = nil
     self.new_set_alias = nil
     self.selector = require('ui/selectablelist')
-    self.selector:setup(theme_options, base_x + 50, base_y + 75, max_width - 100, max_height - 175)
     self.theme_options = theme_options
-    self.title = self:create_text('Select Action Type', base_x + 50, base_y + 30)
+    -- One logical panel owns title, list, paging and footer. Crossbar offsets
+    -- must never place the menu background independently of its contents.
+    self.base_x, self.base_y, self.width, self.height = 0, 0, 1100, 700
+    self:update_menu_layout()
+    self.selector:setup(theme_options, 50, 75, self.width - 100, self.height - 180, menu_geometry)
+    self.title = self:create_text('Select Action Type', 50, 30)
     self.title:size(18)
     self.title:hide()
-    self.base_x = settings.Style.OffsetX or offset_x or base_x or 150
-    self.base_y = settings.Style.OffsetY or  offset_y or base_y or 150
-    self.width =  max_width or (windower.get_windower_settings().ui_x_res - 300)
-    self.height = max_height or (windower.get_windower_settings().ui_y_res - 300)
     self.state = states.HIDDEN
     self.action_type = nil
     self.action_name = nil
@@ -360,18 +362,30 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
 
     icon_pack = theme_options.iconpack
 
-    windower.prim.create('dialog_bg')
-    windower.prim.set_color('dialog_bg', 150, 0, 0, 0)
-    windower.prim.set_position('dialog_bg', self.base_x, self.base_y)
-    windower.prim.set_size('dialog_bg', self.width, self.height)
-    windower.prim.set_visibility('dialog_bg', false)
+    menu_prim.create('dialog_bg')
+    menu_prim.set_color('dialog_bg', 150, 0, 0, 0)
+    menu_prim.set_position('dialog_bg', self.base_x, self.base_y)
+    menu_prim.set_size('dialog_bg', self.width, self.height)
+    menu_prim.set_visibility('dialog_bg', false)
 
-    windower.prim.create('button_entry_bg')
-    windower.prim.set_color('button_entry_bg', 150, 0, 0, 0)
-    windower.prim.set_position('button_entry_bg', self.base_x + 150, self.base_y + 150)
-    windower.prim.set_size('button_entry_bg', self.width - 300, self.height - 300)
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.create('button_entry_bg')
+    menu_prim.set_color('button_entry_bg', 150, 0, 0, 0)
+    menu_prim.set_position('button_entry_bg', self.base_x + 150, self.base_y + 150)
+    menu_prim.set_size('button_entry_bg', self.width - 300, self.height - 300)
+    menu_prim.set_visibility('button_entry_bg', false)
     self:reload()
+end
+
+function action_binder:update_menu_layout()
+    local screen = windower.get_windower_settings()
+    local requested = tonumber(self.theme_options.menu_scale) or 1
+    if requested ~= requested or requested == math.huge or requested == -math.huge then requested = 1 end
+    local scale = math.min(math.max(.25, math.min(2, requested)),
+        math.max(1, screen.ui_x_res - 32) / self.width, math.max(1, screen.ui_y_res - 32) / self.height)
+    menu_geometry:set_scale(scale)
+    menu_geometry:set_origin(0, 0, (screen.ui_x_res - self.width * scale) / 2,
+        (screen.ui_y_res - self.height * scale) / 2)
+    self.menu_geometry = menu_geometry
 end
 
 function action_binder:reset_state()
@@ -436,7 +450,7 @@ function action_binder:reset_gamepad_triggers()
 end
 
 function action_binder:create_text(caption, x, y)
-    local text_field = texts.new({flags = {draggable = false}})
+    local text_field = menu_geometry:surface(texts.new({flags = {draggable = false}}), 'text')
     text_field:bg_alpha(0)
     text_field:bg_visible(false)
     text_field:font(self.theme_options.font)
@@ -898,8 +912,8 @@ function action_binder:submit_selected_option_internal()
                 self.action_alias = option.data.alias
             end
 
-            -- TODO: Didn't know there was a print() function. It's much more readable, so switch all other uses of windower.add_to_chat()?
-            print("Allow stpc for self: " .. tostring(self.theme_options.allow_stpc_for_self_targeted_actions))
+            -- Self-only actions can skip the target picker. This is ordinary
+            -- selection behavior; keep it quiet unless explicit CA debug is on.
             if (self.target_type['Self'] and not (self.theme_options.allow_stpc_for_self_targeted_actions or
                     self.target_type['NPC'] or
                     self.target_type['Enemy'] or
@@ -1412,8 +1426,8 @@ end
 
 function action_binder:hide()
     self.is_hidden = true
-    windower.prim.set_visibility('dialog_bg', false)
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.set_visibility('dialog_bg', false)
+    menu_prim.set_visibility('button_entry_bg', false)
     self.title:hide()
     self.selector:hide()
     for i, image in ipairs(self.images) do
@@ -1425,12 +1439,14 @@ function action_binder:hide()
 end
 
 function action_binder:show()
+    -- Recenter against the current resolution whenever the menu opens.
+    self:update_menu_layout()
     self.is_hidden = false
     if (self.state == states.HIDDEN) then
         self.state = states.SELECT_ACTION_TYPE
         self:display_action_type_selector()
     end
-    windower.prim.set_visibility('dialog_bg', true)
+    menu_prim.set_visibility('dialog_bg', true)
     self.title:show()
     self.selector:show()
 end
@@ -1637,7 +1653,7 @@ function action_binder:display_button_assigner()
 
     self.selector:hide()
 
-    windower.prim.set_visibility('button_entry_bg', true)
+    menu_prim.set_visibility('button_entry_bg', true)
 
     for i, image in ipairs(self.images) do
         image:hide()
@@ -1717,7 +1733,7 @@ function action_binder:delete_action()
 end
 
 function action_binder:show_icon(path, x, y)
-    local icon = images.new({draggable = false})
+    local icon = menu_geometry:surface(images.new({draggable = false}), 'image')
     local icon_path = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/' .. path
     icon:path(icon_path)
     icon:repeat_xy(1, 1)
@@ -2695,7 +2711,7 @@ function action_binder:display_custom_action_field_review(field_label, field_let
     self.images = L{}
     self.hints = L{}
 
-    windower.prim.set_visibility('button_entry_bg', true)
+    menu_prim.set_visibility('button_entry_bg', true)
 
     self:show_control_hints('Confirm', 'Go Back')
 
@@ -2837,7 +2853,7 @@ function action_binder:display_custom_actions_picker(title_text)
     for i, hint in ipairs(self.hints) do hint:hide() end
     self.images = L{}
     self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.set_visibility('button_entry_bg', false)
 
     local pathbase = get_icon_pathbase()
     local default_icon = 'images/' .. pathbase .. '/custom_actions.png'
@@ -2876,7 +2892,7 @@ function action_binder:display_edit_custom_action_review()
     for i, hint in ipairs(self.hints) do hint:hide() end
     self.images = L{}
     self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.set_visibility('button_entry_bg', false)
 
     local linked_type_label = ''
     if (d.linked_type ~= nil and d.linked_type ~= '') then
@@ -2945,7 +2961,7 @@ function action_binder:display_delete_custom_action_confirm()
     for i, hint in ipairs(self.hints) do hint:hide() end
     self.images = L{}
     self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', true)
+    menu_prim.set_visibility('button_entry_bg', true)
 
     self:show_control_hints('Confirm', 'Go Back')
 
@@ -2995,7 +3011,7 @@ function action_binder:apply_custom_action_delete()
 end
 
 function action_binder:clear_button_entry_ui()
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.set_visibility('button_entry_bg', false)
     for i, image in ipairs(self.images) do
         image:hide()
     end
@@ -3090,7 +3106,7 @@ function action_binder:display_icon_choice_selector()
     for i, hint in ipairs(self.hints) do hint:hide() end
     self.images = L{}
     self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.set_visibility('button_entry_bg', false)
 
     local pathbase = get_icon_pathbase()
     local list = L{}
@@ -3109,7 +3125,7 @@ function action_binder:display_linked_type_selector()
     for i, hint in ipairs(self.hints) do hint:hide() end
     self.images = L{}
     self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', false)
+    menu_prim.set_visibility('button_entry_bg', false)
 
     local p = windower.ffxi.get_player()
     local main_job, sub_job = p.main_job, p.sub_job
@@ -3179,7 +3195,7 @@ function action_binder:display_custom_action_confirm()
     for i, hint in ipairs(self.hints) do hint:hide() end
     self.images = L{}
     self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', true)
+    menu_prim.set_visibility('button_entry_bg', true)
 
     self:show_control_hints('Confirm', 'Go Back')
 
@@ -3377,7 +3393,7 @@ function action_binder:display_text_entry(title_text, placeholder)
         hint:hide()
     end
 
-    windower.prim.set_visibility('button_entry_bg', true)
+    menu_prim.set_visibility('button_entry_bg', true)
 
     local caption_x = self.base_x + self.width / 2 - 200
     local caption_y = self.base_y + self.height / 2 - 40
