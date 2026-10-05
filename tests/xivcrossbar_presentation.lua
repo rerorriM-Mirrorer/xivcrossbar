@@ -16,7 +16,7 @@ local ui = require('ui')
 ui:setup(options, {})
 local x, y = ui:get_slot_x(1, 1), ui:get_slot_y(1, 1)
 local slot = ui.hotbars[1]
-local expected_x, expected_y = ui.geometry:point(x - 7, y + 30)
+local expected_x, expected_y = ui.geometry:point(x + 15 - select(1, slot.slot_text[1]:extents()) / 2, y + 30)
 assert(slot.slot_text[1]._pos == expected_x and slot.slot_text[1]._pos_y == expected_y)
 assert(slot.slot_frame[1]._size == 30 and slot.slot_frame[1]._size_y == 30)
 assert(slot.slot_element[1]._size == 12)
@@ -25,7 +25,7 @@ assert(slot.slot_cost[1]._size == 6 and slot.slot_recast_text[1]._size == 7)
 local cost_x, cost_y = slot.slot_cost[1]:pos()
 ui:set_alias_offsets(10, -5)
 assert(slot.slot_cost[1]:pos() == cost_x) -- dedicated offsets do not disturb costs
-expected_x, expected_y = ui.geometry:point(x + 8, y + 35)
+expected_x, expected_y = ui.geometry:point(x + 30 - select(1, slot.slot_text[1]:extents()) / 2, y + 35)
 assert(slot.slot_text[1]._pos == expected_x and slot.slot_text[1]._pos_y == expected_y)
 
 local action = {type='ex', action='input /check', alias='Check', icon='weaponskills/sword/Goring_Blade'}

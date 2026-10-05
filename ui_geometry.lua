@@ -22,11 +22,16 @@ function geometry:rect(x, y, width, height)
 end
 
 local function draw_surface(g, object, m)
-    if m.x then object:pos(g:point(m.x, m.y, m.right)) end
+    if m.x and not m.center_x then object:pos(g:point(m.x, m.y, m.right)) end
     if m.width then object:size(m.width * g.scale, m.height * g.scale)
     elseif m.font_size then object:size(math.max(1, math.floor(m.font_size * g.scale + .5))) end
     if m.stroke then object:stroke_width(m.stroke * g.scale) end
     if m.padding then object:pad(m.padding * g.scale) end
+    if m.center_x then
+        local width = object:extents()
+        m.x, m.y = m.center_x - width / g.scale / 2, m.center_y
+        object:pos(g:point(m.x, m.y))
+    end
 end
 
 function geometry:refresh()
@@ -47,6 +52,7 @@ function geometry:set_origin(x, y, screen_x, screen_y, move_contents)
         local dx, dy = x - self.x, y - self.y
         for _, m in pairs(self.surfaces) do
             if m.x then m.x, m.y = m.x + dx, m.y + dy end
+            if m.center_x then m.center_x, m.center_y = m.center_x + dx, m.center_y + dy end
         end
         for _, p in pairs(self.primitives) do
             if p.x then p.x, p.y = p.x + dx, p.y + dy end
@@ -65,6 +71,17 @@ function geometry:surface(object, kind, options)
         if x == nil then return m.x, m.y end
         m.x, m.y = x, y
         object:pos(g:point(x, y, m.right))
+    end
+    -- Store the tile center, not a fixed left edge. Recalculate after font or
+    -- caption changes so short and long aliases share the same visual center.
+    function methods:center(x, y)
+        m.center_x, m.center_y = x, y
+        draw_surface(g, object, m)
+    end
+    function methods:text(value)
+        if value == nil then return object:text() end
+        object:text(value)
+        draw_surface(g, object, m)
     end
     function methods:size(width, height)
         if width == nil then return m.width or m.font_size, m.height end

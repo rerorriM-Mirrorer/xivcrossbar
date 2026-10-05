@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0-a.20261005.2 — centered aliases and drag polish
+
+- Center each alias by its rendered width, retaining dedicated X/Y offsets.
+- Put Drag above the right edge, with the full lock hint below the outline.
+- Keep outline edges at least one physical pixel at smaller scales.
+- Offline regression checks pass; live acceptance remains pending.
+
 ## 0.4.0-a.20261005.1 — visibility and presentation
 
 - Add saved autohide commands, session visibility toggle, manual Show during

@@ -593,7 +593,7 @@ function ui:load(theme_options)
             self.hotbars[h].slot_frame[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
-            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2 + self.alias_offset_x, slot_pos_y + 40 + self.alias_offset_y)
+            self.hotbars[h].slot_text[i]:center(slot_pos_x + 20 + self.alias_offset_x, slot_pos_y + 40 + self.alias_offset_y)
             self.hotbars[h].slot_cost[i]:pos(right_slot_pos_x + 30, slot_pos_y + 28)
             self.hotbars[h].slot_recast_text[i]:pos(right_slot_pos_x + 20, slot_pos_y + 14)
             self.hotbars[h].slot_recast_text[i]:size(9)
@@ -624,7 +624,7 @@ function ui:load(theme_options)
     setup_text(self.drag_handle, theme_options)
     setup_text(self.drag_alias, theme_options)
     self.drag_handle:text('Drag')
-    self.drag_alias:text('//xb ui lock')
+    self.drag_alias:text('Lock crossbar with //xb ui lock')
     for _, edge in ipairs({'top', 'bottom', 'left', 'right'}) do
         prim.create('xivcrossbar_edit_' .. edge)
     end
@@ -686,7 +686,7 @@ function ui:update_offsets(offset_x, offset_y)
             self.hotbars[h].slot_warmup[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
-            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2 + (self.alias_offset_x or 0), slot_pos_y + 40 + (self.alias_offset_y or 0))
+            self.hotbars[h].slot_text[i]:center(slot_pos_x + 20 + (self.alias_offset_x or 0), slot_pos_y + 40 + (self.alias_offset_y or 0))
             self.hotbars[h].slot_cost[i]:pos(right_slot_pos_x + 30, slot_pos_y + 28)
             self.hotbars[h].slot_recast_text[i]:pos(right_slot_pos_x + 20, slot_pos_y + 14)
         end
@@ -725,7 +725,7 @@ end
 
 function ui:get_drag_bounds()
     local b = self:get_layout_bounds()
-    return geometry:rect(b.x, b.y - 64, 40, 40)
+    return geometry:rect(b.x + b.width - 40, b.y - 42, 40, 40)
 end
 
 function ui:update_drag_feedback(x, y, held, enabled)
@@ -742,7 +742,7 @@ function ui:show_drag_handle(show)
     self.drag_showing = show
     if show then
         local b = self:get_layout_bounds()
-        local x, y = b.x, b.y - 64
+        local x, y = b.x + b.width - 40, b.y - 42
         local r, g, blue = 255, 255, 255
         if self.drag_held then r, g, blue = 255, 190, 220 end
         for _, surface in ipairs({self.drag_tile, self.drag_frame, self.drag_glow}) do surface:pos(x, y) end
@@ -756,14 +756,15 @@ function ui:show_drag_handle(show)
         local width, height = self.drag_handle:extents()
         self.drag_handle:pos(x + (40 - width) / 2, y + (40 - height) / 2)
         local alias_width = self.drag_alias:extents()
-        self.drag_alias:pos(x + (40 - alias_width) / 2, y + 42)
+        self.drag_alias:pos(b.x + b.width - alias_width, b.y + b.height + 4)
         self.drag_tile:show(); self.drag_frame:show()
         if self.drag_hover and not self.drag_held then self.drag_glow:show() else self.drag_glow:hide() end
         self.drag_handle:show()
         self.drag_alias:show()
         local edges = {
-            top = {b.x, b.y, b.width, 1}, bottom = {b.x, b.y + b.height, b.width, 1},
-            left = {b.x, b.y, 1, b.height}, right = {b.x + b.width, b.y, 1, b.height},
+            -- Minimum one physical pixel avoids disappearing fractional edges.
+            top = {b.x, b.y, b.width, 1 / geometry.scale}, bottom = {b.x, b.y + b.height, b.width, 1 / geometry.scale},
+            left = {b.x, b.y, 1 / geometry.scale, b.height}, right = {b.x + b.width, b.y, 1 / geometry.scale, b.height},
         }
         for edge, coords in pairs(edges) do
             local name = 'xivcrossbar_edit_' .. edge
