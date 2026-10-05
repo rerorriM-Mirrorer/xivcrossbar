@@ -6,6 +6,7 @@ local defaults = require('defaults')
 local theme = require('theme')
 defaults.Hotbar.Number, defaults.iscompact = 4, true
 defaults.Style.Scale = .75
+defaults.Texts.Size = 7 -- This scenario deliberately tests legacy 7pt scaling.
 defaults.Texts.SlotAlias = {OffsetX=-5, OffsetY=-10}
 defaults.Texts.OffsetX, defaults.Texts.OffsetY = 900, 900 -- legacy offsets must not move costs/aliases
 local options = theme.apply(defaults)

@@ -1,8 +1,9 @@
--- Contributing author: A — crossbar scale and dedicated alias placement.
+-- Contributing author: Awake — global defaults and presentation settings.
 local theme = {}
 
 theme.apply = function (settings)
     local options = {}
+    options.debug_enabled = not settings.Debug or settings.Debug.Enabled ~= false
 
     options.frame_skip = settings.FrameSkip or 0
     options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions or false

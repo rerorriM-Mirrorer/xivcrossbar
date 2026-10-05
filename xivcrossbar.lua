@@ -4,7 +4,7 @@ _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
 -- Keep a distinct build ID so this test package can be identified in Lua lists.
-_addon.version = '0.4.0-a.20261005.9'
+_addon.version = '0.4.0-a.20261005.10'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -790,6 +790,11 @@ end
 function custom_action_field_command(args)
     if args[1] and args[1]:lower() == 'debug' then
         action_binder.custom_action_debug = args[2] and args[2]:lower() == 'on' or false
+        -- Save the diagnostic choice alongside other settings so reload
+        -- retains it; clean global defaults still start with diagnostics on.
+        settings.Debug = settings.Debug or {}
+        settings.Debug.Enabled = action_binder.custom_action_debug
+        config.save(settings)
         windower.add_to_chat(207, '[XIVCrossbar] Custom-action diagnostics ' .. (action_binder.custom_action_debug and 'ON' or 'OFF'))
         return
     end

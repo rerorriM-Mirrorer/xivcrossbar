@@ -329,6 +329,7 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.new_set_alias = nil
     self.selector = require('ui/selectablelist')
     self.theme_options = theme_options
+    self.custom_action_debug = theme_options.debug_enabled == true
     -- One logical panel owns title, list, paging and footer. Crossbar offsets
     -- must never place the menu background independently of its contents.
     self.base_x, self.base_y, self.width, self.height = 0, 0, 1100, 700

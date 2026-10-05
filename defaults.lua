@@ -1,12 +1,12 @@
--- Contributing author: A — UI settings.
+-- Contributing author: Awake — clean global preferences and diagnostics.
 local defaults = {}
 
 defaults.buttonbackgroundalpha = 150
-defaults.iscompact = false
+defaults.iscompact = true
 
 defaults.iconpack = 'default'
-defaults.use_directinput = false
-defaults.use_xinput = true
+defaults.use_directinput = true
+defaults.use_xinput = false
 defaults.on_logout_unload_addon = false
 defaults.on_unload_killahk = false
 defaults.enable_superwarp_all = false
@@ -17,10 +17,11 @@ defaults.AllowSTPCForSelfTargetedActions = false
 defaults.AutoCreateXML = true
 defaults.UseAltLayout = false
 defaults.AutoHideExtraBars = false
-defaults.UseSharedSet = true
+defaults.UseSharedSet = false
 defaults.UILocked = true
 defaults.VisibilityMode = 'OnInput'
 defaults.VisibilityGrace = 5
+defaults.Debug = {Enabled = true}
 
 defaults.SkillchainIndicator = {}
 defaults.SkillchainIndicator.Opacity = 220
@@ -78,7 +79,7 @@ defaults.AutoAttackIndicator.PastEstimateColor.Green = 205
 defaults.AutoAttackIndicator.PastEstimateColor.Blue = 5
 
 defaults.Hotbar = {}
-defaults.Hotbar.Number = 3
+defaults.Hotbar.Number = 4
 defaults.Hotbar.HideEmptySlots = false
 defaults.Hotbar.HideActionName = false
 defaults.Hotbar.HideActionCost = false
@@ -131,8 +132,8 @@ defaults.Color.Disabled = {}
 defaults.Color.Disabled.Opacity = 100
 
 defaults.Texts = {}
-defaults.Texts.Font = 'sans-serif'
-defaults.Texts.Size = 7
+defaults.Texts.Font = 'Meiryo'
+defaults.Texts.Size = 8
 defaults.Texts.OffsetX = 0
 defaults.Texts.OffsetY = 0
 -- Move only the alias below each slot, in unscaled layout pixels. Legacy
