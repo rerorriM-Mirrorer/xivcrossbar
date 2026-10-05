@@ -19,8 +19,8 @@ AExtrasInit() {
         ARepeatDelayMs := 3000
     if ARepeatIntervalMs is not integer
         ARepeatIntervalMs := 500
-    ARepeatDelayMs := Max(0, ARepeatDelayMs)
-    ARepeatIntervalMs := Max(100, ARepeatIntervalMs)
+    ARepeatDelayMs := ARepeatDelayMs < 0 ? 0 : ARepeatDelayMs
+    ARepeatIntervalMs := ARepeatIntervalMs < 100 ? 100 : ARepeatIntervalMs
     AExtrasStates := {}, AShoulderOwner := "", AShiftOwned := false, ATabOwned := false
     OnExit("AExtrasShutdown")
 }
@@ -70,7 +70,7 @@ AExtrasPoll(key, l1, r1, l3, busy) {
         if (direction != "" and AShoulderOwner = "") {
             AShoulderOwner := key
             old.shoulder := direction, old.shoulderWindow := hwnd
-            old.nextRepeat := now + Max(ARepeatDelayMs, ARepeatIntervalMs)
+            old.nextRepeat := now + (ARepeatDelayMs > ARepeatIntervalMs ? ARepeatDelayMs : ARepeatIntervalMs)
             if (direction = "l1")
                 AExtrasHoldShift()
             if (!ATargetTap(hwnd))
