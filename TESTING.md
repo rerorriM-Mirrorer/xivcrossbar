@@ -12,6 +12,9 @@ Read this first when preparing or evaluating a development/testing batch. This i
 - **Verification:** Inspect that the two files are at repository root, internal section links resolve, historical documents are preserved in Git, and only Markdown files change.
 - **In-game testing:** Not performed for documentation-only adoption. Do not interpret this as validation of addon behavior.
 
+- **Recorded migration commit:** [`9a6fc11`](https://github.com/rerorriM-Mirrorer/xivcrossbar/commit/9a6fc1186ff061232a18fbfc4ca9375c6a4c73e9).
+- **Verified result:** Git comparison against the recorded starting commit lists Markdown changes only; `WORKFLOW.md` and `TESTING.md` exist at the repository root. No Lua source paths changed.
+
 ## Tests for the next functional batch
 
 Document the requested change, step-by-step in-game checks with expected outcomes, regression checks, and observed results before delivering the next testing package. For UI or multibox behavior, identify character/client and screen resolution when relevant.
@@ -28,7 +31,7 @@ Existing historical tests have **not** been reconstructed or verified during thi
 
 | Date | Batch | Item | Type | Commit/reference | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-13 | Documentation adoption | WORKFLOW.md; TESTING.md | Repository documents | Migration commit in Git history | No test package; no Lua files changed |
+| 2026-10-13 | Documentation adoption | WORKFLOW.md; TESTING.md | Repository documents | [`9a6fc11`](https://github.com/rerorriM-Mirrorer/xivcrossbar/commit/9a6fc1186ff061232a18fbfc4ca9375c6a4c73e9) | No test package; no Lua files changed |
 
 ## User-provided materials, observations, and requests
 
