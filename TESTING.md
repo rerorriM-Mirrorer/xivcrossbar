@@ -25,6 +25,8 @@ Existing historical tests have **not** been reconstructed or verified during thi
 
 ## Cumulative changelog
 
+- **2026-10-13 — Navigation refinement:** Corrected the heading levels for the Testing Packages and Shared Development Conventions sections in `WORKFLOW.md` ([`a22eb87`](https://github.com/rerorriM-Mirrorer/xivcrossbar/commit/a22eb87a768b9a6271b3658c1b123079026b5ba4)). Documentation only; no addon code changed.
+
 - **2026-10-13:** Adopted the shared two-document development convention (`WORKFLOW.md` and `TESTING.md`), without changing executable addon behavior.
 
 ## Delivered packages and documents
