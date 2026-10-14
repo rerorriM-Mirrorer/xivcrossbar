@@ -91,6 +91,8 @@ function storage:setup(player)
     self.shared_file = file.new('data/hotbar/' .. self.directory .. '/Shared.xml')
     self.shared_icons_file = file.new('data/hotbar/' .. self.directory .. '/SharedIcons.xml')
     self.custom_actions_file = file.new('data/hotbar/' .. self.directory .. '/CustomActions.xml')
+    self.global_catalog_path = windower.addon_path .. 'data/CustomActions.xml'
+    self.character_catalog_path = windower.addon_path .. 'data/hotbar/' .. self.directory .. '/CustomActions.xml'
 end
 
 function split_hotbar(hotbar_to_split)
@@ -164,6 +166,8 @@ function storage:update_filename(main, sub)
     self.shared_file = file.new('data/hotbar/' .. self.directory .. '/Shared.xml')
     self.shared_icons_file = file.new('data/hotbar/' .. self.directory .. '/SharedIcons.xml')
     self.custom_actions_file = file.new('data/hotbar/' .. self.directory .. '/CustomActions.xml')
+    self.global_catalog_path = windower.addon_path .. 'data/CustomActions.xml'
+    self.character_catalog_path = windower.addon_path .. 'data/hotbar/' .. self.directory .. '/CustomActions.xml'
 end
 
 -- update file with hotbar

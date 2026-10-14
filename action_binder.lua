@@ -947,7 +947,7 @@ function action_binder:submit_selected_option()
                 self:display_edit_custom_action_review()
             end
         else
-            self.action_name = option.text
+            self.action_name = option.data.catalog_name or option.text
             self.target_type = option.data.target_type
 
             if (option.data.command ~= nil) then
@@ -1174,7 +1174,10 @@ function action_binder:submit_selected_option()
             end
             self.custom_action_draft = {
                 alias         = record.alias,
-                name          = name,
+                name          = record.name,
+                _scope        = record._scope,
+                _expected     = require('custom_catalog').copy(record),
+                id            = record.id,
                 command       = record.command,
                 icon          = record.icon,
                 linked_action = record.linked_action,
@@ -1223,7 +1226,7 @@ function action_binder:submit_selected_option()
             if option.id == 'SAVE_BIND' then
                 local d = self.custom_action_draft
                 self.editing_custom_action = true
-                self.custom_action_original_name = d.name
+                self.custom_action_original_name = d._key or d.name
                 self.binding_custom_action_review = true
                 self.action_type = action_types.CUSTOM_ACTION
                 self.action_name,self.action_alias = d.name,review.alias(d)
@@ -2691,6 +2694,7 @@ function action_binder:custom_action_icon(record)
 end
 
 function action_binder:display_custom_actions_selector()
+    if player_data.refresh_custom_catalogs then player_data:refresh_custom_catalogs() end
     self.title:text('Select Custom Action')
     self.title:show()
 
@@ -2699,7 +2703,7 @@ function action_binder:display_custom_actions_selector()
         for name, record in pairs(player_data.custom_actions) do
             local icon_path,icon_offset = self:custom_action_icon(record)
 
-            local resolved_alias = name
+            local resolved_alias = record.name or name
             if (record.alias ~= nil and record.alias ~= '') then
                 resolved_alias = record.alias
             end
@@ -2720,6 +2724,9 @@ function action_binder:display_custom_actions_selector()
                 icon = icon_path,
                 icon_offset = icon_offset,
                 data = {
+                    catalog_name = record.name,
+                    catalog_scope = record._scope,
+                    catalog_id = record.id,
                     command = record.command,
                     icon_path = record.icon,
                     alias = resolved_alias,
@@ -2934,7 +2941,7 @@ function action_binder:on_custom_action_field_set(field, value)
 
     if (field == 'name') then
         local is_original = (self.editing_custom_action and value == self.custom_action_original_name)
-        if (not is_original and player_data.custom_actions ~= nil and player_data.custom_actions[value] ~= nil) then
+        if (not is_original and not player_data:custom_name_available(value,self.custom_action_original_name)) then
             windower.add_to_chat(123, '[XIVCrossbar] A custom action named "' .. value .. '" already exists. Pick a different name.')
             return false
         end
@@ -2976,7 +2983,7 @@ end
 
 function action_binder:apply_custom_action_save()
     local d=self.custom_action_draft
-    if not d or not review.valid_name(d.name,player_data.custom_actions,nil) or not self.save_custom_action then
+    if not d or not player_data:custom_name_available(d.name,nil) or not self.save_custom_action then
         windower.add_to_chat(123, '[XIVCrossbar] Enter a unique catalog name before saving.'); return false
     end
     return self.save_custom_action(d) ~= false
@@ -2986,12 +2993,14 @@ function action_binder:new_custom_action(name, origin)
     if not self.title then windower.add_to_chat(123,'[XIVCrossbar] Log in before editing.'); return false end
     if self.custom_action_draft then windower.add_to_chat(123,'[XIVCrossbar] Save or cancel the current draft first.'); return false end
     name=name or ''
-    local record=player_data.custom_actions and player_data.custom_actions[name]
+    if player_data.refresh_custom_catalogs then player_data:refresh_custom_catalogs() end
+    local record,key=player_data:find_custom_action(name)
     self.custom_action_entry_origin=origin
     self.editing_custom_action=record ~= nil
-    self.custom_action_original_name=record and name or nil
+    self.custom_action_original_name=record and key or nil
     self.action_type=record and action_types.EDIT_CUSTOM_ACTION or action_types.CREATE_CUSTOM_ACTION
-    self.custom_action_draft={name=name,alias=record and record.alias or nil,command=record and record.command or nil,
+    self.custom_action_draft={name=record and record.name or name,_scope=record and record._scope or player_data:catalog_save_scope(),
+        _expected=require('custom_catalog').copy(record),id=record and record.id or nil,alias=record and record.alias or nil,command=record and record.command or nil,
         icon=record and record.icon or nil,linked_action=record and record.linked_action or nil,linked_type=record and record.linked_type or nil}
     self.state=states.EDIT_CUSTOM_ACTION_REVIEW
     self.custom_action_name_required = not review.nonempty(name)
@@ -3006,6 +3015,7 @@ function action_binder:new_custom_action(name, origin)
 end
 
 function action_binder:display_custom_actions_picker(title_text)
+    if player_data.refresh_custom_catalogs then player_data:refresh_custom_catalogs() end
     self.title:text(title_text)
     self.title:show()
     self.selector:hide()
@@ -3038,6 +3048,7 @@ end
 function action_binder:display_edit_custom_action_review()
     local d=self.custom_action_draft or {}
     self:show_set_title(self.editing_custom_action and 'Custom Action: Review and Edit' or 'New Custom Action: Review and Save')
+    self.title:text(self.title:text()..' ['..(d._scope or player_data:catalog_save_scope())..' catalog]')
     self.title:show(); self.selector:hide()
     for _,image in ipairs(self.images) do image:hide() end
     for _,hint in ipairs(self.hints) do hint:hide() end
@@ -3149,7 +3160,7 @@ end
 
 function action_binder:apply_custom_action_update()
     local d=self.custom_action_draft
-    if not d or not review.valid_name(d.name,player_data.custom_actions,self.custom_action_original_name) or not self.update_custom_action then
+    if not d or not player_data:custom_name_available(d.name,self.custom_action_original_name) or not self.update_custom_action then
         windower.add_to_chat(123,'[XIVCrossbar] Enter a unique catalog name before saving.'); return false
     end
     return self.update_custom_action(self.custom_action_original_name,d) ~= false

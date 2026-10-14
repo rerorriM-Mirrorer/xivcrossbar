@@ -1,3 +1,22 @@
+# Personal 6 — checkpoint 4: combined catalogs and coordinated saves
+
+Runtime: `0.4.0-a.20261014.personal6-4`. Apply after checkpoint 3. Catalog/slot XML is never supplied in packages. Existing per-character catalogs are retained in place.
+
+- Global catalog: `data/CustomActions.xml`; character catalog: `data/hotbar/<server>/<character>/CustomActions.xml`.
+- Both appear in Custom Actions/Edit/Delete regardless of the save option. Duplicate names show [Global]/[Character]; the command shortcut prefers the chosen save scope when names collide.
+- `//xb catalog global` (new default), `//xb catalog character` (`personal` also accepted), `//xb catalog status`.
+- This setting affects new actions; editing an existing entry saves to its original source. Review title shows the scope. Blank commands remain blank in XML.
+
+1. Confirm existing private actions remain listed. Create a new global action on Franklet; open Custom Actions on Lionstag and verify it appears there.
+2. Select character saves; create a private action and verify it is listed along with global actions, but is private to that character. Return to global saves.
+3. Create equal names in both scopes; check both labeled entries and their distinct outputs. Editing either must affect only its own catalog.
+4. On two clients, add different global actions without reloading the older client. Both must survive. Edit the same action on both: the second stale save should retain its draft and report a conflict.
+5. Check blank-name/blank-command creation, rename, delete, Save & Bind, and existing bindings. Confirm malformed catalogs are not replaced.
+
+Available verification: combined views/source choice, stale snapshots with independent additions, same-entry conflict, rename, blank commands, simulated lock contention, and failed-write preservation passed. Profile/default compatibility passed. Native Windows exclusive locking/replacement and live multiclient saves remain pending.
+
+---
+
 # Personal 6 — checkpoint 3: cutscene access and target order
 
 Runtime: `0.4.0-a.20261014.personal6-3`. Apply after checkpoint 2.

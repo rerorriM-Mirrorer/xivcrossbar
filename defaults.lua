@@ -1,4 +1,5 @@
 local defaults = {}
+defaults.CustomActionSaveScope = 'global'
 
 defaults.buttonbackgroundalpha = 150
 defaults.iscompact = true

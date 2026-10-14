@@ -34,7 +34,7 @@ local function copy(t)
 end
 local current=copy(require('defaults'));current.CrossbarScale=.6;current.Style.OffsetX=37
 _G.current_settings=current
-windower.ffxi={get_player=function() return {name='Test'} end,get_info=function() return {server=1} end}
+windower.ffxi={get_player=function() return {name='Test',main_job='BST'} end,get_info=function() return {logged_in=true,server=1} end}
 windower.get_windower_settings=function() return {ui_x_res=1280,ui_y_res=720} end
 resources={servers={[1]={en='Fenrir'}}}
 buttonmapping={validate=function() return true end,button_layout='playstation'}
@@ -44,7 +44,7 @@ player={initialize=function() end,load_hotbar=function() return false end}
 xivcrossbar={}
 local first=assert(source:find('function initialize()',1,true))
 local last=assert(source:find('-- trigger hotbar action',first,true))
-local init=assert(load("local settings=current_settings;local theme=require('theme');local theme_options={crossbar_scale=1};local y_adjust=450;\n"..
+local init=assert(load("local character_identity=require('character_identity');local storage={};local settings=current_settings;local theme=require('theme');local theme_options={crossbar_scale=1};local y_adjust=450;\n"..
     source:sub(first,last-1)..'\nreturn initialize'))()
 init()
 assert(seen.crossbar_scale==.6 and seen.offset_x==37,'pre-login cached theme replaced character appearance')

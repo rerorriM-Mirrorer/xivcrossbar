@@ -2,11 +2,12 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-3'
+_addon.version = '0.4.0-a.20261014.personal6-4'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
 -- Libs
+require('chat')
 res = require 'resources'
 config = require('config')
 file = require('files')
@@ -129,7 +130,8 @@ local function set_compact_mode(mode)
     if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
     ui_dirty = true
     config.save(settings)
-    windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
+    windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..tostring(storage.directory))
+        windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
 end
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
     return crossbar_drag:mouse(kind,x,y,blocked)
@@ -283,103 +285,21 @@ function save_global_icon(name, icon)
     windower.add_to_chat(123, '[XIVCrossbar] Global icon set: "' .. name .. '" -> ' .. icon)
 end
 
--- Create Custom Action callback: persists a CustomActions.xml entry from a
--- record built up during the binder's create-flow. The record is the same
--- shape we read back via load_custom_actions: {name, alias, command, icon,
--- linked_action, linked_type}.
-function save_custom_action(record)
-    if player.hotbar_load_ok == false then
-        windower.add_to_chat(123, '[XIVCrossbar] Reload successfully before saving custom actions.')
+-- A: one entry per locked save; never replace a catalog from a stale client.
+local function save_catalog_change(original,record,verb)
+    local ok,saved,detail=pcall(player.save_catalog_edit,player,original,record)
+    if not ok or not saved then
+        windower.add_to_chat(123,'[XIVCrossbar] Custom action was not '..verb..'. '..tostring(ok and detail or saved))
         return false
     end
-    if (record == nil or record.name == nil or record.name == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Create Custom Action: missing name.')
-        return false
-    end
-    -- A: a failed write must not leave a phantom saved catalog entry.
-    local previous = player.custom_actions[record.name]
-    player.custom_actions[record.name] = {
-        command       = record.command,
-        alias         = record.alias,
-        icon          = record.icon,
-        linked_action = record.linked_action,
-        linked_type   = record.linked_type,
-    }
-    local ok, result = pcall(player.save_custom_actions_file, player)
-    if not ok or result == false then
-        player.custom_actions[record.name] = previous
-        windower.add_to_chat(123, '[XIVCrossbar] Custom action was not saved. ' .. (not ok and tostring(result) or 'Reload and retry.'))
-        return false
-    end
-    -- No reload needed for the catalog itself — the binder's existing
-    -- "Custom Action" selector pulls from player.custom_actions in real time.
-    windower.add_to_chat(207, '[XIVCrossbar] Custom action saved: "' .. record.name .. '"')
+    local name=record and record.name or original
+    windower.add_to_chat(207,'[XIVCrossbar] Custom action '..verb..': "'..tostring(name)..'"'..
+        (record and ' ['..record._scope..']' or '. Existing bound copies remain usable.'))
     return true
 end
-
--- Edit Custom Action callback: persists changes to an existing entry,
--- handling rename by removing the old key before writing the new one. The
--- binder has already chat-warned the user about orphaned slot bindings if
--- the name changed.
-function update_custom_action(original_name, record)
-    if player.hotbar_load_ok == false then
-        windower.add_to_chat(123, '[XIVCrossbar] Reload successfully before editing custom actions.')
-        return false
-    end
-    if (record == nil or record.name == nil or record.name == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: missing name.')
-        return false
-    end
-    local previous = player.custom_actions[original_name]
-    local destination_previous = player.custom_actions[record.name]
-    if (original_name ~= nil and original_name ~= record.name) then
-        player.custom_actions[original_name] = nil
-    end
-    player.custom_actions[record.name] = {
-        command       = record.command,
-        alias         = record.alias,
-        icon          = record.icon,
-        linked_action = record.linked_action,
-        linked_type   = record.linked_type,
-    }
-    local ok, result = pcall(player.save_custom_actions_file, player)
-    if not ok or result == false then
-        player.custom_actions[record.name] = destination_previous
-        if original_name then player.custom_actions[original_name] = previous end
-        windower.add_to_chat(123, '[XIVCrossbar] Custom action was not updated. ' .. (not ok and tostring(result) or 'Reload and retry.'))
-        return false
-    end
-    windower.add_to_chat(207, '[XIVCrossbar] Custom action updated: "' .. record.name .. '"')
-    return true
-end
-
--- Delete Custom Action callback: removes an entry from the catalog and
--- rewrites CustomActions.xml. Slots that reference the deleted name are
--- left as-is; user is responsible for cleaning those up.
-function delete_custom_action(name)
-    if player.hotbar_load_ok == false then
-        windower.add_to_chat(123, '[XIVCrossbar] Reload successfully before deleting custom actions.')
-        return false
-    end
-    if (name == nil or name == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Delete Custom Action: missing name.')
-        return false
-    end
-    if (player.custom_actions == nil or player.custom_actions[name] == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Delete Custom Action: entry "' .. name .. '" not found.')
-        return
-    end
-    local previous = player.custom_actions[name]
-    player.custom_actions[name] = nil
-    local ok, result = pcall(player.save_custom_actions_file, player)
-    if not ok or result == false then
-        player.custom_actions[name] = previous
-        windower.add_to_chat(123, '[XIVCrossbar] Custom action was not deleted. ' .. (not ok and tostring(result) or 'Reload and retry.'))
-        return false
-    end
-    windower.add_to_chat(207, '[XIVCrossbar] Custom action deleted: "' .. name .. '". Existing slot bindings referencing it will not be auto-removed.')
-    return true
-end
+function save_custom_action(record) return save_catalog_change(nil,record,'saved') end
+function update_custom_action(original,record) return save_catalog_change(original,record,'updated') end
+function delete_custom_action(name) return save_catalog_change(name,nil,'deleted') end
 
 -- A: the saved selection is per client; the running wrapper is shared.
 local controller_switcher
@@ -497,6 +417,7 @@ function initialize()
         return false
     end
     player.identity_confirmed = true
+    player.custom_action_save_scope = settings.CustomActionSaveScope
 
     -- A: config has refreshed character overrides by login. Build the layout
     -- from that table instead of the global theme cached before character load.
@@ -1021,6 +942,7 @@ end
 
 -- command to display help for the user
 function display_help_menu()
+    windower.add_to_chat(0,('//xb'):color(200)..(' catalog [global|character|status]'):color(207)..(' -> '):color(200)..('Choose new-action save destination; both catalogs remain listed.'):color(0))
     local layout = theme_options.button_layout:lower()
     local minus_button = 'Minus'
     if (layout == 'playstation') then
@@ -1269,6 +1191,19 @@ windower.register_event('addon command', function(command, ...)
         command = 'ui'
     end
 
+    if command == 'catalog' then
+        local mode=args[1] and args[1]:lower() or 'status'
+        if mode=='global' or mode=='character' or mode=='personal' then
+            settings.CustomActionSaveScope=mode=='personal' and 'character' or mode
+            player.custom_action_save_scope=settings.CustomActionSaveScope
+            config.save(settings)
+        elseif mode~='status' then
+            windower.add_to_chat(0,('//xb'):color(200)..(' catalog [global|character|status]'):color(207)..(' -> '):color(200)..('Choose where new custom actions save; both catalogs are listed.'):color(0))
+            return
+        end
+        windower.add_to_chat(0,'[XIVCrossbar] New custom actions save to '..player:catalog_save_scope()..'; global and character catalogs remain readable.')
+        return
+    end
     if command == 'status' then
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
         report_controller_status()

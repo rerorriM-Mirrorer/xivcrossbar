@@ -2,6 +2,7 @@ local res = require('resources')
 -- Windower's logger exports a non-raising error(). Guards need Lua's exception.
 local error = (_raw and _raw.error) or error
 local storage = require('storage')
+local catalog = require('custom_catalog')
 local action_manager = require('action_manager')
 local mount_roulette = require('libs/mountroulette/mountroulette')
 
@@ -131,15 +132,9 @@ function player:load_hotbar()
             self:create_shared_icons()
         end
 
-        -- Load CustomActions catalog.
-        self.custom_actions = {}
-        if storage.custom_actions_file:exists() then
-            if self:load_custom_actions(storage.custom_actions_file) == false then
-                error('Could not read CustomActions.xml; existing files were retained.')
-            end
-        elseif self.auto_create_xml then
-            self:create_custom_actions()
-        end
+        -- Both catalogs are readable; the setting affects only new saves.
+        local catalog_ok,catalog_error=self:refresh_custom_catalogs()
+        if not catalog_ok then error(catalog_error) end
 
         -- if normal hotbar file exists, load it. If not, create a default hotbar
         if storage.file:exists() then
@@ -457,87 +452,71 @@ function player:create_shared_icons()
     storage:write_file(storage.shared_icons_file, table.to_xml(template))
 end
 
-function player:load_custom_actions(storage_file)
-    self.custom_actions = {}
-    local contents = xml.read(storage_file)
-    if (contents == nil or contents.name ~= 'custom_actions') then
-        windower.add_to_chat(123, '[XIVCrossbar] CustomActions.xml is malformed; reload after correcting it.')
-        return false
+local function read_catalog_file(path)
+    local f,err=io.open(path,'rb')
+    if not f then
+        -- Missing catalog is an empty source, never an empty replacement file.
+        local relative=path:sub(#windower.addon_path+1)
+        if not file.new(relative):exists() then return nil end
+        return nil,err or ('Could not read '..path)
     end
-
-    for _, action_node in ipairs(contents.children) do
-        if (action_node.name == 'action') then
-            local record = {}
-            for _, tag in ipairs(action_node.children) do
-                if (tag.children[1] ~= nil) then
-                    record[tag.name] = tag.children[1].value
-                end
-            end
-            if (record.name ~= nil and record.name ~= '') then
-                self.custom_actions[record.name] = record
-            end
-        end
-    end
+    local raw=f:read('*a');f:close();return raw
 end
 
-function player:save_custom_actions_file()
-    if storage.hotbar_read_error then error('Reload successfully before saving custom actions.') end
-    if (storage.custom_actions_file == nil) then return end
-
-    local keys = {}
-    for name in pairs(self.custom_actions) do
-        if (name ~= nil and name ~= '') then
-            table.insert(keys, name)
-        end
-    end
-    table.sort(keys)
-
-    local lines = L{}
-    lines:append('<custom_actions>')
-    for _, name in ipairs(keys) do
-        local rec = self.custom_actions[name]
-        if (rec ~= nil) then
-            lines:append('    <action>')
-            lines:append('        <name>' .. name:xml_escape() .. '</name>')
-            if (rec.alias ~= nil and rec.alias ~= '') then
-                lines:append('        <alias>' .. rec.alias:xml_escape() .. '</alias>')
-            end
-            if (rec.command ~= nil and rec.command ~= '') then
-                lines:append('        <command>' .. rec.command:xml_escape() .. '</command>')
-            end
-            if (rec.icon ~= nil and rec.icon ~= '') then
-                lines:append('        <icon>' .. rec.icon:xml_escape() .. '</icon>')
-            end
-            if (rec.linked_action ~= nil and rec.linked_action ~= '') then
-                lines:append('        <linked_action>' .. rec.linked_action:xml_escape() .. '</linked_action>')
-            end
-            if (rec.linked_type ~= nil and rec.linked_type ~= '') then
-                lines:append('        <linked_type>' .. rec.linked_type:xml_escape() .. '</linked_type>')
-            end
-            lines:append('    </action>')
-        end
-    end
-    lines:append('</custom_actions>')
-    lines:append('')
-
-    storage:write_file(storage.custom_actions_file, table.concat(lines, '\n'))
+function player:catalog_save_scope()
+    return self.custom_action_save_scope=='character' and 'character' or 'global'
 end
 
-function player:create_custom_actions()
-    self.custom_actions = {}
-    local template = {
-        custom_actions = {
-            action = {
-                name = '',
-                command = '',
-                alias = '',
-                icon = '',
-                linked_action = '',
-                linked_type = '',
-            }
-        }
-    }
-    storage:write_file(storage.custom_actions_file, table.to_xml(template))
+function player:refresh_custom_catalogs()
+    if not self.identity_confirmed or not storage.identity_valid then return false,'Log in before reading character catalogs.' end
+    local sources={}
+    for _,scope in ipairs({'global','character'}) do
+        local path=scope=='global' and storage.global_catalog_path or storage.character_catalog_path
+        local raw,read_error=read_catalog_file(path)
+        if read_error then return false,read_error end
+        local records,parse_error=catalog.decode(raw,xml.parse)
+        if not records then return false,path..': '..tostring(parse_error) end
+        sources[scope]=records
+    end
+    self.catalog_sources=sources
+    self.custom_actions=catalog.view(sources.global,sources.character,self:catalog_save_scope())
+    return true
+end
+
+function player:find_custom_action(name)
+    return catalog.find(self.custom_actions or {},name,self:catalog_save_scope())
+end
+
+function player:custom_name_available(name,original_key)
+    if type(name)~='string' or not name:match('%S') then return false end
+    local original=original_key and self.custom_actions[original_key]
+    local scope=original and original._scope or self:catalog_save_scope()
+    local found=self.catalog_sources and self.catalog_sources[scope][name]
+    return not found or (original and original.name==name)
+end
+
+function player:save_catalog_edit(original_key,record)
+    if storage.hotbar_read_error or not storage.identity_valid then return false,'Reload successfully after login before saving.' end
+    local original=original_key and self.custom_actions[original_key]
+    if original_key and not original then return false,'Catalog entry no longer exists; reopen the action.' end
+    local expected=record and record._expected or original
+    local scope=original and original._scope or (record and record._scope) or self:catalog_save_scope()
+    local path=scope=='global' and storage.global_catalog_path or storage.character_catalog_path
+    windower.create_dir(path:match('^(.*)[/\\]'))
+    local backend=require('windows_file').new()
+    local next_record=catalog.copy(record)
+    if next_record then
+        next_record.id=original and original.id or next_record.id or (self.name..':'..backend.pid..':'..tostring(require('socket').gettime()))
+    end
+    local ok,err=catalog.save({lock=backend.lock,replace=backend.replace,read=read_catalog_file,parse=xml.parse},path,expected,next_record)
+    if not ok then return false,err end
+    self:refresh_custom_catalogs()
+    if record then
+        local saved,key=catalog.find(self.custom_actions,record.name,scope)
+        record._scope,record._key,record.id=scope,key,saved and saved.id
+        record._expected=catalog.copy(saved)
+    end
+    return true
 end
 
 function player:store_new_hotbars()
