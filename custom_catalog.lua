@@ -1,7 +1,7 @@
 -- A: catalogs merge for display, but edits retain ownership. Saves merge one
 -- intended entry under a lock rather than writing an old whole-catalog snapshot.
 local M={}
-local fields={'name','id','alias','command','icon','linked_action','linked_type'}
+local fields={'name','id','alias','command','icon','linked_action','linked_type','deleted'}
 local function escape(s)
     return s:gsub('&','&amp;'):gsub('<','&lt;'):gsub('>','&gt;'):gsub('"','&quot;'):gsub("'",'&apos;')
 end
@@ -32,7 +32,7 @@ function M.decode(raw,parse)
     if raw==nil then return {} end
     local dom,err=parse(raw)
     if not dom or dom.name~='custom_actions' then return nil,err or 'Expected a custom_actions XML document.' end
-    local records={}
+    local records,ids={},{}
     for _,node in ipairs(dom.children or {}) do
         if node.name=='action' then
             local rec={}
@@ -40,9 +40,12 @@ function M.decode(raw,parse)
                 if tag.children and tag.children[1] then rec[tag.name]=tag.children[1].value end
             end
             if rec.name and rec.name:match('%S') then
-                if records[rec.name] then return nil,'Duplicate catalog name: '..rec.name end
                 rec.id=rec.id or ('legacy:'..rec.name)
-                records[rec.name]=rec
+                if ids[rec.id] then return nil,'Duplicate catalog identity: '..rec.id end
+                ids[rec.id]=true
+                local key=rec.deleted=='true' and ('@retired:'..rec.id) or rec.name
+                if records[key] then return nil,'Duplicate catalog entry: '..rec.name end
+                records[key]=rec
             end
         end
     end
@@ -52,11 +55,13 @@ function M.view(global,character,save_scope)
     local out={}
     for _,scope in ipairs({'global','character'}) do
         for name,record in pairs(scope=='global' and global or character) do
+            if record.deleted~='true' then
             local copy=M.copy(record);copy._scope=scope
             local key=name
             if global[name] and character[name] then key=name..' ['..(scope=='global' and 'Global' or 'Character')..']' end
             while out[key] do key=key..' ['..scope..']' end
             copy._key=key;out[key]=copy
+            end
         end
     end
     return out
@@ -82,6 +87,10 @@ function M.save(options,path,expected,record)
         if expected then
             if not M.same(latest[expected.name],expected) then return false,'This action changed in another client; draft retained. Reopen it before saving.' end
             if record and record.name~=expected.name and latest[record.name] then return false,'That name already exists in this catalog.' end
+            if not record then
+                local retired=M.copy(expected);retired.deleted='true'
+                latest['@retired:'..retired.id]=retired
+            end
             latest[expected.name]=nil
         elseif record and latest[record.name] then return false,'That name already exists in this catalog.' end
         if record then latest[record.name]=M.copy(record) end

@@ -3,6 +3,7 @@ local res = require('resources')
 local error = (_raw and _raw.error) or error
 local storage = require('storage')
 local catalog = require('custom_catalog')
+local catalog_bindings = require('catalog_bindings')
 local action_manager = require('action_manager')
 local mount_roulette = require('libs/mountroulette/mountroulette')
 
@@ -133,7 +134,7 @@ function player:load_hotbar()
         end
 
         -- Both catalogs are readable; the setting affects only new saves.
-        local catalog_ok,catalog_error=self:refresh_custom_catalogs()
+        local catalog_ok,catalog_error=self:refresh_custom_catalogs(false)
         if not catalog_ok then error(catalog_error) end
 
         -- if normal hotbar file exists, load it. If not, create a default hotbar
@@ -183,6 +184,7 @@ function player:load_hotbar()
         windower.add_to_chat(123, '[XIVCrossbar] Crossbar load failed; the previous bars were retained. ' .. tostring(err))
         return false
     end
+    self:sync_catalog_bindings(true)
     self.hotbar_load_ok = true
     self.last_created_files = storage.created_files
     return true
@@ -307,6 +309,8 @@ function player:load_from_file(storage_file)
                             end
                         elseif tag.name == 'icon' then
                             new_action.icon = value
+                        elseif tag.name:match('^catalog_') then
+                            new_action[tag.name] = value
                         elseif tag.name == 'equip_slot' then
                             new_action.equip_slot = value
                         elseif tag.name == 'warmup' then
@@ -467,20 +471,50 @@ function player:catalog_save_scope()
     return self.custom_action_save_scope=='character' and 'character' or 'global'
 end
 
-function player:refresh_custom_catalogs()
+function player:refresh_custom_catalogs(sync)
     if not self.identity_confirmed or not storage.identity_valid then return false,'Log in before reading character catalogs.' end
     local sources={}
+    local raw_sources={}
     for _,scope in ipairs({'global','character'}) do
         local path=scope=='global' and storage.global_catalog_path or storage.character_catalog_path
         local raw,read_error=read_catalog_file(path)
         if read_error then return false,read_error end
-        local records,parse_error=catalog.decode(raw,xml.parse)
+        local records,parse_error
+        if self.catalog_raw and self.catalog_raw[scope]==raw and self.catalog_sources then
+            records=self.catalog_sources[scope]
+        else records,parse_error=catalog.decode(raw,xml.parse) end
+        raw_sources[scope]=raw
         if not records then return false,path..': '..tostring(parse_error) end
         sources[scope]=records
     end
-    self.catalog_sources=sources
+    self.catalog_sources,self.catalog_raw=sources,raw_sources
     self.custom_actions=catalog.view(sources.global,sources.character,self:catalog_save_scope())
-    return true
+    return true,sync~=false and self:sync_catalog_bindings(false) or false
+end
+
+function player:sync_catalog_bindings(adopt_legacy)
+    local changed=false
+    for _,environment in pairs(self.hotbar or {}) do
+        if type(environment)=='table' then
+            for key,bar in pairs(environment) do
+                if type(bar)=='table' and key:match('^hotbar_') then
+                    for _,slot in pairs(bar) do
+                        if type(slot)=='table' and slot.action then
+                            if adopt_legacy and not slot.catalog_id then
+                                local record,scope=catalog_bindings.legacy_match(slot,self.catalog_sources)
+                                if record then catalog_bindings.attach(slot,record,scope) end
+                            end
+                            if slot.catalog_id then
+                                local record=catalog_bindings.find(self.catalog_sources[slot.catalog_scope],slot.catalog_id)
+                                if record and catalog_bindings.apply(slot,record) then changed=true end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return changed
 end
 
 function player:find_custom_action(name)
@@ -630,6 +664,7 @@ function player:create_use_item_coroutine(item_name)
 end
 
 function player:execute_action(slot)
+    self:refresh_custom_catalogs()
     local h = self.hotbar_settings.active_hotbar
     local env = self.hotbar_settings.active_environment
 

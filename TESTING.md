@@ -1,3 +1,20 @@
+# Personal 6 — checkpoint 5: catalog edits update associated bindings
+
+Runtime: `0.4.0-a.20261014.personal6-5`. Apply after checkpoint 4.
+
+1. Bind a global custom action on two characters, edit its command/name on one, then execute it on both. Both should use the updated command; rename retains identity.
+2. Give one bound slot its own alias/icon. Later catalog edits should preserve these slot overrides while updating catalog-owned values.
+3. Delete the catalog entry. It disappears from selection, while existing bindings (including another character/job loaded later) retain the last command through a retired snapshot.
+4. Re-create the same name with another command. Existing bindings should retain the deleted action's identity; new bindings use the new entry.
+5. Existing bindings with an exact, unique catalog match are adopted on load; ambiguous/modified old copies remain independent until rebound.
+6. Check duplicate-scope entries, command fallback, reload and saved XML. Blank catalog command fields remain blank. No unrelated hotbar files are rewritten automatically.
+
+Catalog refresh reads both sources about once per second while menus are closed and before execution; unchanged XML reuses parsed records. Associated values resolve in memory and provenance/snapshots persist on ordinary hotbar saves. Deleted snapshots are retained as hidden `deleted` entries in the originating catalog.
+
+Simulated catalog identity/rename propagation, overrides, ambiguous legacy adoption, blank fallback, hidden deletion snapshots and coordinated saves passed. Live multi-character updates remain pending.
+
+---
+
 # Personal 6 — checkpoint 4: combined catalogs and coordinated saves
 
 Runtime: `0.4.0-a.20261014.personal6-4`. Apply after checkpoint 3. Catalog/slot XML is never supplied in packages. Existing per-character catalogs are retained in place.

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-4'
+_addon.version = '0.4.0-a.20261014.personal6-5'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -148,7 +148,7 @@ local function close_right_doublepress_window()
 end
 
 -- command to set a crossbar action in action_binder
-function set_hotkey(hotbar, slot, action_type, action, target, command, icon, linked_action, linked_type, explicit_alias)
+function set_hotkey(hotbar, slot, action_type, action, target, command, icon, linked_action, linked_type, explicit_alias, catalog_origin)
     if player.hotbar_load_ok == false then
         windower.add_to_chat(123, '[XIVCrossbar] Reload successfully before binding. Existing files were not changed.')
         return false
@@ -210,6 +210,11 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     end
 
     local new_action = action_manager:build(action_type, action, target, alias, icon, nil, nil, nil, nil, linked_action, linked_type)
+    if catalog_origin then
+        local bindings=require('catalog_bindings')
+        local record=bindings.find(player.catalog_sources[catalog_origin.scope],catalog_origin.id)
+        if record then bindings.attach(new_action,record,catalog_origin.scope) end
+    end
     player:add_action(new_action, environment, hotbar, slot)
     player:save_hotbar()
     reload_hotbar()
@@ -1859,9 +1864,19 @@ end
 windower.register_event('lose focus', function() clear_controller_input(false) end)
 windower.register_event('gain focus', function() clear_controller_input(true) end)
 
+local catalog_clock=require('socket').gettime
+local next_catalog_refresh=0
 -- ON PRERENDER
 windower.register_event('prerender',function()
     publish_personal_context()
+    if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then
+        next_catalog_refresh=catalog_clock()+1
+        local ok,changed=player:refresh_custom_catalogs()
+        if ok and changed and ui.is_setup then
+            ui:load_player_hotbar(player.hotbar,player.vitals,player.hotbar_settings.active_environment,gamepad_state)
+            ui_dirty=true
+        end
+    end
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.

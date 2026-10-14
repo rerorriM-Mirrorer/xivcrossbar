@@ -401,6 +401,7 @@ function action_binder:reset_state()
     self.action_linked_action = nil
     self.action_linked_type = nil
     self.action_alias = nil
+    self.action_catalog = nil
     self.hotkey = nil
     self.selection_states = {}
     self.selector:hide()
@@ -947,6 +948,7 @@ function action_binder:submit_selected_option()
                 self:display_edit_custom_action_review()
             end
         else
+            self.action_catalog = option.data.catalog_id and {scope=option.data.catalog_scope,id=option.data.catalog_id} or nil
             self.action_name = option.data.catalog_name or option.text
             self.target_type = option.data.target_type
 
@@ -1229,6 +1231,7 @@ function action_binder:submit_selected_option()
                 self.custom_action_original_name = d._key or d.name
                 self.binding_custom_action_review = true
                 self.action_type = action_types.CUSTOM_ACTION
+                self.action_catalog = {scope=d._scope,id=d.id}
                 self.action_name,self.action_alias = d.name,review.alias(d)
                 self.action_command,self.action_icon = d.command,d.icon
                 self.action_linked_action,self.action_linked_type = d.linked_action,d.linked_type
@@ -1871,7 +1874,7 @@ function action_binder:display_button_confirmer()
 end
 
 function action_binder:assign_action()
-    self.save_binding(self.active_crossbar, self.hotkey, prefix_lookup[self.action_type], self.action_name, self.action_target, self.action_command, self.action_icon, self.action_linked_action, self.action_linked_type, self.action_alias)
+    self.save_binding(self.active_crossbar, self.hotkey, prefix_lookup[self.action_type], self.action_name, self.action_target, self.action_command, self.action_icon, self.action_linked_action, self.action_linked_type, self.action_alias, self.action_catalog)
     self:hide()
     self:reset_state()
 end
