@@ -1,3 +1,16 @@
+# Personal 6 — checkpoint 3: cutscene access and target order
+
+Runtime: `0.4.0-a.20261014.personal6-3`. Apply after checkpoint 2.
+
+1. In Auto/OnInput visibility, open NPC dialogue or a cutscene. Hold a trigger: the crossbar should appear and a slowenter binding remain accessible. Release: normal autohide resumes.
+2. Explicit Hide remains hidden. Always-visible mode retains its existing cutscene hiding.
+3. Bind an enemy action and a friendly spell: Current Target (<t>) should be the first valid choice. Self-only actions retain Self; no unsupported targets are added.
+4. Check paging, binding and target execution normally. Independent trigger-field fade remains dormant.
+
+Simulated visibility/target combinations passed. Live dialogue/cutscene execution is pending.
+
+---
+
 # Personal 6 — checkpoint 2: slot dimming and feedback
 
 Runtime: `0.4.0-a.20261014.personal6-2`. Apply after checkpoint 1; final complete package will include both. No user data/configuration is supplied.

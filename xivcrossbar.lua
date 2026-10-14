@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-2'
+_addon.version = '0.4.0-a.20261014.personal6-3'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1942,7 +1942,7 @@ windower.register_event('prerender',function()
         return
     end
 
-    if ui.is_setup and settings.VisibilityMode ~= 'hidden' and not xivcrossbar.hide_hotbars
+    if ui.is_setup and settings.VisibilityMode ~= 'hidden' and (not xivcrossbar.hide_hotbars or settings.VisibilityMode == 'oninput')
         and (gamepad_state.left_trigger or gamepad_state.right_trigger) then
         ui.geometry:interrupt_startup_reveal()
     end

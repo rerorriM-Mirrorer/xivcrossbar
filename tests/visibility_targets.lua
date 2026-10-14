@@ -1,0 +1,16 @@
+local v=require('visibility')
+assert(v.should_show('oninput',true,true,false))
+assert(not v.should_show('oninput',false,true,true))
+assert(not v.should_show('hidden',true,true,true))
+assert(not v.should_show('always',false,true,false))
+assert(v.should_show('always',false,false,false))
+local t=require('target_choices')
+for _,kind in ipairs({'Party','Ally','Player','NPC','Enemy','Corpse'}) do
+    local choices=t.build({Self=true,[kind]=true},true,'icon')
+    assert(choices[1].id=='CURRENT_TARGET' and choices[2].id=='SELF')
+end
+local self=t.build({Self=true},false,'icon')
+assert(#self==1 and self[1].id=='SELF')
+assert(#t.build({},false,'icon')==0)
+assert(t.build({Enemy=true},false,'icon')[4].id=='BATTLE_TARGET')
+print('Cutscene trigger access, explicit Hide, and current-target ordering/support passed.')

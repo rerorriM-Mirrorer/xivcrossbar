@@ -251,3 +251,7 @@ Controller transport may start before login. Character hotbar storage now requir
 ### Personal 6 checkpoint 2
 
 Affordability/recast dimming is tracked per slot so duplicate and linked actions update independently. Feedback animation clamps its opacity and completes even when its decrement does not divide the starting opacity.
+
+### Personal 6 checkpoint 3
+
+OnInput trigger visibility works during dialogue/cutscenes; explicit Hide remains authoritative. Target selection prefers `<t>` when the action supports another target, including friendly spells.

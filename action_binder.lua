@@ -1756,33 +1756,9 @@ function action_binder:display_target_selector()
     self.title:text('Select Action Target')
     self.title:show()
 
-    local target_options = L{}
-
-    if (self.target_type['Self']) then
-        target_options:append({id = 'SELF', name = 'Self (<me>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Party'] or self.target_type['Corpse']) then
-        target_options:append({id = 'SELECT_PARTY', name = 'Select Party (<stpt>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Ally'] or self.target_type['Corpse']) then
-        target_options:append({id = 'SELECT_ALLIANCE', name = 'Select Ally (<stal>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Player'] or self.target_type['Corpse']) then
-        target_options:append({id = 'SELECT_PLAYER', name = 'Select Player (<stpc>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['NPC'] or self.target_type['Enemy']) then
-        target_options:append({id = 'SELECT_NPC', name = 'Select NPC (<stnpc>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-        target_options:append({id = 'CURRENT_TARGET', name = 'Current Target (<t>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Enemy']) then
-        target_options:append({id = 'SELECT_TARGET', name = 'Select Target (<st>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-        target_options:append({id = 'BATTLE_TARGET', name = 'Battle Target (<bt>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-
-    local is_only_self_targeted = self.target_type['Self'] and not (self.target_type['Party'] or self.target_type['Ally'] or self.target_type['Player'] or self.target_type['NPC'])
-    if (is_only_self_targeted and self.theme_options.allow_stpc_for_self_targeted_actions) then
-        target_options:append({id = 'SELECT_PLAYER', name = 'Select Player (<stpc>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
+    local target_options = L(require('target_choices').build(self.target_type,
+        self.theme_options.allow_stpc_for_self_targeted_actions,
+        'images/' .. get_icon_pathbase() .. '/mappoint.png'))
 
     self.selector:display_options(target_options)
 end
