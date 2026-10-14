@@ -2,11 +2,12 @@
 -- Simulate old character overrides being reloaded after addon initialization.
 local fixture={ControllerProfile='ps5-directinput',ControllerDevice=1,
     CrossbarScale=.6,iscompact=false,VisibilityMode='hidden',
-    Color={MpCost={Red=12,Green=34,Blue=56}}}
+    Hotbar={Number=4},Color={MpCost={Red=12,Green=34,Blue=56}}}
 local saved,refresh=0,nil
 config={load=function() return fixture end,save=function(t)
     assert(t==fixture);saved=saved+1
     assert(t.CrossbarScale==.6 and t.iscompact==false and t.VisibilityMode=='hidden')
+    assert(t.Hotbar.Number==4,'saved bar count was overwritten by new defaults')
     assert(t.Color.MpCost.Red==12 and t.Color.MpCost.Green==34 and t.Color.MpCost.Blue==56)
 end,register=function(t,fn) assert(t==fixture);refresh=fn end}
 windower={add_to_chat=function() end}

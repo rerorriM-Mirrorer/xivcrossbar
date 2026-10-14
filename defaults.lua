@@ -11,8 +11,7 @@ defaults.ControllerDevice = 1
 -- A: migrate older base-PS5 selections once; later explicit choices persist.
 defaults.PersonalProfileMigrated = false
 defaults.on_logout_unload_addon = false
--- A: requested preference, retained in XML. Last-client shutdown is not wired
--- yet; unloading still leaves the shared wrapper available to other clients.
+-- A: the shared wrapper honors the last departing client's preference.
 defaults.on_unload_killahk = true
 defaults.enable_superwarp_all = true
 
@@ -82,7 +81,7 @@ defaults.AutoAttackIndicator.PastEstimateColor.Green = 205
 defaults.AutoAttackIndicator.PastEstimateColor.Blue = 5
 
 defaults.Hotbar = {}
-defaults.Hotbar.Number = 3
+defaults.Hotbar.Number = 6
 defaults.Hotbar.HideEmptySlots = false
 defaults.Hotbar.HideActionName = false
 defaults.Hotbar.HideActionCost = false

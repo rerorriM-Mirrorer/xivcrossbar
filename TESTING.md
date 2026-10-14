@@ -1,3 +1,33 @@
+# Personal 6 Fix2 — six-bar fresh defaults
+
+New settings now default to `Hotbar.Number=6`, with `AutoHideExtraBars=true`.
+Existing saved bar-count choices stay intact. To enable six on an existing
+character, set its `Hotbar/Number` to 6 in settings.xml, then load the addon.
+The package does not contain settings, hotbars, catalogs or controller INIs.
+
+Apply the cumulative Fix2 update over Personal 6/Fix1. Stop the wrapper and
+unload the addon before copying its matching runtime files. A game restart is
+not an installation requirement. Status now works and displays pending-login
+storage clearly. The code rollback is Personal 5, not the known-broken initial
+Personal 6 helpers. Images are unchanged and omitted from the update.
+
+Available checks: actual root status/login/logout paths, fresh six-bar defaults,
+preserved saved bar count, identity/catalog regressions and the existing 108
+layout scenarios covering 2/4/6 bars, six resolutions and three scales passed.
+These are simulated/static checks; FFXI native crash behavior is unverified.
+
+1. After login, `//xb status`: Fix2, Fenrir/Cioara, registration true.
+2. Confirm the new bindings made before the crash still exist in their XMLs.
+   Do not restore backups automatically or replace a nonempty catalog.
+3. With six configured and extra-bar autohide on, test ordinary L/R, ordered
+   L+R/R+L, and double-tap L/R actions. Icons/menu placement stay coherent.
+4. Record the exact reload command and current console.log if the FFXI process
+   crashes again. Check Windows' crash record for faulting module/exception.
+   The report in the next section describes a distinct, proven Lua scope bug;
+   no causal link to the native crash has been established.
+
+---
+
 # Personal 6 Fix2 — status/storage scope
 
 Runtime: `0.4.0-a.20261014.personal6-fix2`. User reported `//xb status`

@@ -2,6 +2,8 @@ local defaults=require('defaults')
 assert(defaults.ControllerProfile=='ps5-extended')
 assert(defaults.GameplayDPad=='ijkl' and defaults.VisibilityMode=='oninput')
 assert(defaults.iscompact and defaults.enable_superwarp_all and defaults.on_unload_killahk)
+assert(defaults.Hotbar.Number==6 and defaults.AutoHideExtraBars==true)
+assert(require('theme').apply(defaults).hotbar_number==6)
 local profiles=require('controller_profiles')
 assert(profiles.validate(defaults.ControllerProfile,defaults.ControllerDevice)=='ps5-extended')
 for _,id in ipairs(profiles.order) do assert(id~='ps5-extended') end

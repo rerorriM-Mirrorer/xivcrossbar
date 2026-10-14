@@ -283,3 +283,7 @@ Cioara’s native startup report exposed an AHK v1 Files-loop syntax error and a
 ### Personal 6 Fix2: storage scope
 
 Import storage in the main addon so status, pending-login and logout guards access the same module as player. Status describes uninitialized storage clearly. The reported native reload crash remains under investigation; this fixes the proven Lua error.
+
+### Personal 6 Fix2: six bars by default
+
+Fresh personal settings default to six hotbars and hide inactive extra bars. Existing saved bar counts remain in force; set Hotbar.Number to 6 in the character settings to opt an existing installation in. No user XML or controller INI is shipped.
