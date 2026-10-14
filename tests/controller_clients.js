@@ -1,0 +1,20 @@
+// Actual AHK decision function, with native process/file observations simulated.
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+let s=fs.readFileSync('controller_clients.ahk','utf8');
+s=s.slice(s.indexOf('WrapperClientsDecision(state,'),s.indexOf('\nWrapperProcessToken(',s.indexOf('WrapperClientsDecision(state,')));
+s=s.replace(/;[^\n]*/g,'').replace(/:=/g,'=').replace(/\bor\b/g,'||').replace(/\band\b/g,'&&');
+s=s.replace(/^WrapperClientsDecision\(/,'function decision(');
+const ctx={};vm.createContext(ctx);vm.runInContext(s,ctx);
+const state={seen:false,emptySince:0,lastClose:0};
+assert.equal(ctx.decision(state,0,0,true,1000),false,'manual pre-login wrapper stopped');
+state.seen=true;
+assert.equal(ctx.decision(state,1,10,true,1000),false,'another client was stopped');
+assert.equal(ctx.decision(state,0,10,true,1100),false);
+assert.equal(ctx.decision(state,0,10,true,3099),false);
+assert.equal(ctx.decision(state,0,10,true,3100),true);
+assert.equal(ctx.decision(state,1,0,false,3200),false,'reload did not reset grace');
+assert.equal(ctx.decision(state,0,11,false,3300),false);
+assert.equal(ctx.decision(state,0,11,false,10000),false,'false setting ignored');
+assert.equal(ctx.decision(state,0,12,true,10100),false,'new departure did not get grace');
+assert.equal(ctx.decision(state,0,12,true,12100),true);
+console.log('AHK lifecycle policy: manual startup, remaining clients, grace, reload and last-client preference passed.');

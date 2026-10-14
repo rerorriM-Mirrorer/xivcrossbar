@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-5'
+_addon.version = '0.4.0-a.20261014.personal6-6'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -20,6 +20,7 @@ xml = require('libs/xml2')   -- TODO: REMOVE
 -- User settings
 local defaults = require('defaults')
 local settings = config.load(defaults)
+local client_registry
 -- A: profile selection replaces the independent legacy backend flags. Existing
 -- unused XML fields remain harmless; only one shared reader can be active.
 local controller_profiles = require('controller_profiles')
@@ -28,13 +29,14 @@ local function normalize_controller_settings()
     local changed,notice = personal_profile.normalize(settings,defaults,controller_profiles)
     if notice then windower.add_to_chat(123,'[XIVCrossbar] '..notice) end
     if changed then config.save(settings) end
+    if client_registry then client_registry:register(settings.on_unload_killahk) end
 end
 normalize_controller_settings()
 -- Windower reparses per-character settings on load/login/logout. Run the same
 -- migration after each parse so an older character section cannot revert it.
 config.register(settings,normalize_controller_settings)
--- A: retain the preference for future last-client shutdown. Unload does not
--- consume this flag yet; //xb controller stop remains the explicit shared stop.
+-- A: last-client shutdown uses process registrations; explicit controller stop
+-- still stops the shared transport regardless of other registered clients.
 
 -- A: immutable for this load; changing one client cannot safely reconfigure
 -- the wrapper shared by every client. Reload all clients after stopping it.
@@ -947,74 +949,46 @@ end
 
 -- command to display help for the user
 function display_help_menu()
-    windower.add_to_chat(0,('//xb'):color(200)..(' catalog [global|character|status]'):color(207)..(' -> '):color(200)..('Choose new-action save destination; both catalogs remain listed.'):color(0))
-    local layout = theme_options.button_layout:lower()
-    local minus_button = 'Minus'
-    if (layout == 'playstation') then
-        minus_button = 'Share'
-    elseif (layout == 'xbox') then
-        minus_button = 'Back'
-    end
-    local plus_button = 'Plus'
-    if (layout == 'playstation') then
-        plus_button = 'Options'
-    elseif (layout == 'xbox') then
-        plus_button = 'Start'
-    end
-    local left_trigger = 'L'
-    if (layout == 'playstation') then
-        left_trigger = 'L2'
-    end
-    local right_trigger = 'R'
-    if (layout == 'playstation') then
-        right_trigger = 'R2'
-    end
-    local buttons = 'A/B/X/Y'
-    if (layout == 'playstation') then
-        buttons = 'Face'
-    end
-
-    windower.add_to_chat(207, '================ XIVCrossbar Help ================')
-    windower.add_to_chat(207, 'Command prefix: //xivcrossbar  -or-  //xb  -or-  //xcb')
-    windower.add_to_chat(207, '--- Crossbar set management ---')
-    windower.add_to_chat(207, 'new <name>                      Create a new crossbar set')
-    windower.add_to_chat(207, 'rename <old> <new>              Rename an existing set (rn)')
-    windower.add_to_chat(207, 'deleteset <name>                Delete a set and all its bindings')
-    windower.add_to_chat(207, '--- Slot binding management ---')
-    windower.add_to_chat(207, 'set <env> <hb> <slot> ...       Bind an action to a slot')
-    windower.add_to_chat(207, 'clear <env> <hb> <slot>         Clear (remove) a slot binding')
-    windower.add_to_chat(207, 'cp/copy <env> <hb> <slot> <dest hb> <dest slot>')
-    windower.add_to_chat(207, 'mv/move <env> <hb> <slot> <dest hb> <dest slot>')
-    windower.add_to_chat(207, 'icon/ic <env> <hb> <slot> <icon>')
-    windower.add_to_chat(207, 'alias/al/caption <env> <hb> <slot> <text>   Set slot caption')
-    windower.add_to_chat(207, 'controller status|start|stop|profiles')
-    windower.add_to_chat(207, 'controller profile <name> [device]  Save controller reader selection')
-    windower.add_to_chat(207, '--- Custom Actions ---')
-    windower.add_to_chat(207, 'ca <name>                       Create/edit one custom-action review')
-    windower.add_to_chat(207, 'ca name/alias/command <value>    Edit the current draft')
-    windower.add_to_chat(207, '--- Other ---')
-    windower.add_to_chat(207, 'status                          Version and current display/input settings')
-    windower.add_to_chat(207, 'scale <0.25-2>              Scale crossbar independently of menus')
-    windower.add_to_chat(207, 'compact [on/off]                Switch layout immediately; bare toggles')
-    windower.add_to_chat(207, 'hide/show/auto                  Visibility; bound actions remain active')
-    windower.add_to_chat(207, 'fade [on/off]                   Toggle fades (also ui fade)')
-    windower.add_to_chat(207, 'textfade [on/off/status]         Fade text with the bar; OFF uses endpoint visibility')
-    windower.add_to_chat(207, 'autoattack [on/off/status]       Enable/stop the optional swing estimate')
-    windower.add_to_chat(207, 'autohide [on/off]               Trigger-only visibility; bare toggles')
-    windower.add_to_chat(207, 'remap                           Rerun the gamepad setup utility')
-    windower.add_to_chat(207, 'regenerate                      Regenerate cached resource files')
-    windower.add_to_chat(207, 'reload                          Reload the active hotbar')
-    windower.add_to_chat(207, 'restart                         Fade out, then reload the addon')
-    windower.add_to_chat(207, 'help / ?                        Show this help')
-    windower.add_to_chat(207, '================ Identifiers ================')
-    windower.add_to_chat(207, 'Hotbar (<hb>):  l, r, rl, lr, ll, rr   (or 1-6)')
-    windower.add_to_chat(207, 'Slot   (<slot>): ll, ld, lr, lu, rl, rd, rr, ru   (or 1-8)')
-    windower.add_to_chat(207, '================ Gamepad (' .. theme_options.button_layout .. ') ================')
-    windower.add_to_chat(207, '' .. plus_button .. ' + D-Pad (up/down): Switch between crossbar sets')
-    windower.add_to_chat(207, '' .. minus_button .. ': Open/close button bind utility')
-    windower.add_to_chat(207, '' .. left_trigger .. '/' .. right_trigger .. ' + D-Pad: Navigate button bind utility (when open)')
-    windower.add_to_chat(207, '' .. left_trigger .. '/' .. right_trigger .. ' + D-Pad or ' .. buttons .. ' Button: Execute bound action')
-    windower.add_to_chat(207, '===============================================')
+    local help=require('chat_help')
+    help.heading('XIVCrossbar commands')
+    help.command('help','Show this command list.')
+    help.command('status','Show version, storage, controller and display state.')
+    help.command('reload','Re-read crossbar files without unloading the addon.')
+    help.command('restart','Fade out, clean up, then reload the addon.')
+    help.command('unload','Fade out and unload; shared wrapper follows last-client policy.')
+    help.command('new <name>','Create a crossbar set.')
+    help.command('rename <old> <new>','Rename a crossbar set (rn).')
+    help.command('deleteset <name>','Delete a set and its bindings.')
+    help.command('set <env> <hb> <slot> <type> <action> [target] [alias] [icon]','Bind an action.')
+    help.command('clear <env> <hb> <slot>','Remove a binding.')
+    help.command('copy <env> <hb> <slot> <dest env> <dest hb> <dest slot>','Copy a binding (cp).')
+    help.command('move <env> <hb> <slot> <dest env> <dest hb> <dest slot>','Move a binding (mv).')
+    help.command('icon <env> <hb> <slot> <icon>','Change a slot icon (ic).')
+    help.command('alias <env> <hb> <slot> <text>','Change a slot label (al/caption).')
+    help.command('ca [name]','Create or edit one custom-action review.')
+    help.command('ca name <name>','Set the name in the active draft (n).')
+    help.command('ca alias <label>','Set the alias in the active draft (a).')
+    help.command('ca command <command>','Set the command in the active draft (c).')
+    help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
+    help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
+    help.command('controller profile <name> [device]','Select a controller reader and optional device.')
+    help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
+    help.command('scale <0.25-2>','Scale crossbars independently of menus.')
+    help.command('compact [on|off]','Switch layout immediately; bare toggles.')
+    help.command('show','Show crossbars.')
+    help.command('hide','Hide crossbars; bindings remain active.')
+    help.command('auto','Show crossbars on trigger input.')
+    help.command('autohide [on|off]','Set trigger visibility; bare toggles.')
+    help.command('fade [on|off]','Enable/disable gameplay fades; bare toggles.')
+    help.command('textfade [on|off|status]','Fade labels with bars or show them at fade endpoints.')
+    help.command('autoattack [on|off|status]','Enable/stop swing estimation independently of opacity.')
+    help.command('inputtest [on|off]','Enable input test messages; bare toggles.')
+    help.command('inputtrace [on|off]','Enable input diagnostics; bare toggles.')
+    help.command('inputstatus','Report input settings.')
+    help.command('remap','Open controller setup.')
+    help.command('regenerate','Rebuild generated resources.')
+    help.heading('Identifiers')
+    windower.add_to_chat(0,'Hotbars: l/r/rl/lr/ll/rr (1–6). Slots: ll/ld/lr/lu/rl/rd/rr/ru (1–8).')
 end
 
 -----------------------------
@@ -1062,7 +1036,7 @@ end
 
 -- A: Lua teardown cannot finish an animation. Close first, then ask Windower
 -- for the same full reload as lua r; the shared controller process stays alive.
-local function graceful_restart()
+local function graceful_restart(unload)
     if restart_pending then return end
     restart_pending = true
     xivcrossbar.ready = false
@@ -1078,11 +1052,18 @@ local function graceful_restart()
     if release_gameplay_keys then release_gameplay_keys() end
     if ui.is_setup then ui:hide() end
     local delay = theme_options.fade_enabled and math.max(0, tonumber(theme_options.fade_out) or 0) or 0
-    coroutine.schedule(function() windower.send_command('lua r xivcrossbar') end, delay)
+    windower.add_to_chat(0,'[XIVCrossbar] '..(unload and 'Unloading.' or 'Restarting.'))
+    coroutine.schedule(function() windower.send_command(unload and 'lua u xivcrossbar' or 'lua r xivcrossbar') end, delay)
 end
 
 -- ON LOAD
 windower.register_event('load',function()
+    local ok,registry=pcall(require('controller_clients').new,{directory=windower.addon_path..'data/controller-clients/'})
+    if ok then
+        client_registry=registry
+        local registered,err=registry:register(settings.on_unload_killahk)
+        if not registered then windower.add_to_chat(123,'[XIVCrossbar] Client registration failed: '..tostring(err)) end
+    else windower.add_to_chat(123,'[XIVCrossbar] Last-client shutdown unavailable: '..tostring(registry)) end
     if (buttonmapping.validate()) then
         start_controller_wrappers()
     end
@@ -1124,6 +1105,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    if client_registry then client_registry:close(settings.on_unload_killahk) end
     ui.autoattack:set_enabled(false)
     personal_controls:close()
     controller_switcher:cancel()
@@ -1209,6 +1191,7 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(0,'[XIVCrossbar] New custom actions save to '..player:catalog_save_scope()..'; global and character catalogs remain readable.')
         return
     end
+    if command == 'unload' then return graceful_restart(true) end
     if command == 'status' then
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
         report_controller_status()
@@ -1320,6 +1303,9 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'regenerate' then
         regenerate_resources()
     elseif command == '?' or command == 'help' then
+        display_help_menu()
+    else
+        windower.add_to_chat(0,'[XIVCrossbar] Unknown command: '..tostring(command))
         display_help_menu()
     end
 end)

@@ -9,8 +9,7 @@ the public profile list is unchanged. See [PERSONAL.md](PERSONAL.md) for
 the mapping and preferences, and the package's `TESTING.md` for installation and
 live checks. `//xb compact [on|off]` switches immediately; bare toggles and saves.
 See [COLOR-SETTINGS.md](COLOR-SETTINGS.md) for what each color/opacity setting
-affects. The true `on_unload_killahk` preference is retained as preparation;
-last-client shutdown remains pending and normal unload leaves the wrapper running.
+affects. `on_unload_killahk=true` now stops the shared wrapper only when the last registered client unloads, after a two-second reload grace period. Other clients and pre-login/minimized clients keep it running.
 Personal 5 adds `//xb textfade [on|off|status]` for comparing continuous text
 fading with the current endpoint behavior, and `//xb autoattack [on|off|status]`
 to independently stop or enable the optional swing estimator. Neither command
@@ -263,3 +262,7 @@ Custom Actions lists both global (`data/CustomActions.xml`) and character catalo
 ### Personal 6 checkpoint 5
 
 Catalog-linked bindings follow edits and renames by stable identity. Explicit slot alias/icon overrides remain independent. Deleting an entry hides it from the catalog while retaining a command snapshot for existing bindings; re-creating its name creates a separate identity. Unique exact legacy copies can be adopted automatically; ambiguous copies require rebinding. Catalog updates resolve without bulk rewriting another character's crossbar XML.
+
+### Personal 6 checkpoint 6
+
+The installation-scoped mutex still prevents duplicate wrappers. A process registry now supports optional last-client shutdown: `on_unload_killahk=true` on the last departing client stops the shared wrapper after a two-second reload grace; false keeps it running. Registration begins before character login and uses process creation time to reject stale PID reuse. `//xb unload` performs graceful teardown; `//xb restart` reloads the addon and `//xb reload` only re-reads hotbars. Help now uses the shared chat-only formatting, and unknown commands display help. Apply matching Lua and wrapper files to every participating client, then restart the shared wrapper once for the new policy.

@@ -1,3 +1,19 @@
+# Personal 6 — checkpoint 6: last-client wrapper shutdown
+
+Runtime: `0.4.0-a.20261014.personal6-6`. Apply after checkpoint 5. Update every participating client/install; stop the old wrapper once with `//xb controller stop`, then start the updated wrapper with `//xb controller start`. Lua reload alone leaves an already-running old wrapper unchanged.
+
+1. Load before character login: wrapper and login controls should remain available; character XML must not be created early.
+2. Load on Franklet and Lionstag. Unload Lionstag (`//xb unload` or `lua u xivcrossbar`): Franklet's controller must keep working.
+3. Unload the last client with `on_unload_killahk=true`: wrapper should exit after about two seconds, releasing held input. With the last client's flag false, it should stay running.
+4. Reload (`lua r xivcrossbar`) and `//xb restart` on one of two clients: controls should remain available on the other. Repeat a sole-client reload: fresh registration should cancel shutdown; setup/defaults/bindings must remain intact.
+5. Keep another client minimized or at character selection; unloading the visible client must not stop its wrapper.
+6. Launch a manual duplicate wrapper: the existing mutex should reject it. Explicit `//xb controller stop` still stops the shared wrapper irrespective of registered clients.
+7. `//xb`, invalid commands and `//xb help` should show chat-only color-fragment help. `reload` re-reads bars; `restart` reloads the addon; `unload` fades/cleans up once.
+
+Available verification: real Lua registration with simulated file APIs; actual AHK lifecycle decision function with simulated observations; lexical AHK/include checks. Native process enumeration, mutex concurrency, Windows replacements and live multi-client shutdown still require Windows/FFXI testing.
+
+---
+
 # Personal 6 — checkpoint 5: catalog edits update associated bindings
 
 Runtime: `0.4.0-a.20261014.personal6-5`. Apply after checkpoint 4.

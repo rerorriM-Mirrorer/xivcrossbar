@@ -1,6 +1,7 @@
 -- A: short exclusive file handles coordinate clients; same-directory replacement
 -- publishes a complete catalog. Closing a handle releases the lock, even on crash.
 local M = {}
+local error = (_raw and _raw.error) or error
 function M.new()
     local ffi = require('ffi')
     ffi.cdef[[
@@ -10,6 +11,9 @@ function M.new()
         int __stdcall MultiByteToWideChar(unsigned int, unsigned long, const char*, int, unsigned short*, int);
         unsigned long __stdcall GetCurrentProcessId(void);
         unsigned long __stdcall GetLastError(void);
+        unsigned long long __stdcall GetTickCount64(void);
+        void* __stdcall GetCurrentProcess(void);
+        int __stdcall GetProcessTimes(void*, void*, void*, void*, void*);
     ]]
     local api = ffi.load('kernel32')
     local function wide(path)
@@ -20,8 +24,15 @@ function M.new()
         return out
     end
     local counter=0
+    local created,exited,kernel,user=ffi.new('unsigned long[2]'),ffi.new('unsigned long[2]'),ffi.new('unsigned long[2]'),ffi.new('unsigned long[2]')
+    if api.GetProcessTimes(api.GetCurrentProcess(),created,exited,kernel,user)==0 then
+        error('Could not identify this client process.')
+    end
+    local token=tonumber(created[1])..':'..tonumber(created[0])
     return {
         pid=tonumber(api.GetCurrentProcessId()),
+        token=token,
+        clock=function() return tonumber(api.GetTickCount64())/1000 end,
         lock=function(path)
             local p=wide(path..'.lock');if not p then return nil,'Invalid catalog path.' end
             local h=api.CreateFileW(p,0x80000000+0x40000000,0,nil,4,128,nil)

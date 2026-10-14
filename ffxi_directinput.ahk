@@ -59,11 +59,14 @@ appsOwned := false
 Loop, 12
     previous[A_Index] := false
 PersonalInit(profile, joystickPrefix)
+WrapperClientsInit()
 WriteTransportStatus(true)
 SetTimer, TransportPoll, 10
 return
 
 TransportPoll:
+if (WrapperClientsShouldExit())
+    ExitApp
 if FileExist(A_ScriptDir . "\data\input-stop.request") {
     FileDelete, %A_ScriptDir%\data\input-stop.request
     ExitApp
@@ -262,3 +265,5 @@ WriteTransportStatus(force := false) {
 
 #Include %A_ScriptDir%\personal_controls.ahk
 #Include %A_ScriptDir%\personal_gestures.ahk
+
+#Include %A_ScriptDir%\controller_clients.ahk

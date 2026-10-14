@@ -1,3 +1,15 @@
+# Personal 6 current lifecycle and catalog behavior
+
+- The wrapper may run before login; only confirmed character/server identity permits hotbar writes.
+- Global and character custom-action catalogs are both visible. `//xb catalog global|character|status` chooses where new actions save; global defaults. Edits remain source-owned and associated bindings update by identity. Deletion keeps executable snapshots.
+- The wrapper mutex still prevents duplicates. Last-client shutdown now honors `on_unload_killahk` after a two-second reload grace. Minimized and pre-login registered clients count; another client unloading does not stop your wrapper.
+- `//xb unload` gracefully unloads; `//xb restart` fully reloads; `//xb reload` re-reads hotbars. Settings/data are not included in testing packages.
+- Icon organization, personal menu ordering, mute probe, further target choices and L1 companion remain future work. Independent trigger-field fade stays dormant.
+
+The development notes below are historical; their earlier “pending” shutdown statements describe the preceding deliveries.
+
+---
+
 # Personal controls and future work
 
 ## Current: Personal 5

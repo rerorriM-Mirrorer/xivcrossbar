@@ -664,7 +664,6 @@ function player:create_use_item_coroutine(item_name)
 end
 
 function player:execute_action(slot)
-    self:refresh_custom_catalogs()
     local h = self.hotbar_settings.active_hotbar
     local env = self.hotbar_settings.active_environment
 
@@ -682,6 +681,7 @@ function player:execute_action(slot)
         action = self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]
     end
 
+    if action and action.catalog_id then self:refresh_custom_catalogs() end
     local is_still_missing = action == nil or action.action == nil
     if (is_still_missing) then return end
 
