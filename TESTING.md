@@ -1,3 +1,16 @@
+# Personal 6 — checkpoint 2: slot dimming and feedback
+
+Runtime: `0.4.0-a.20261014.personal6-2`. Apply after checkpoint 1; final complete package will include both. No user data/configuration is supplied.
+
+1. Put the same MP spell on two slots, including another bar. With insufficient MP, both should dim; MP recovery should restore both when recast allows it.
+2. Repeat with linked custom-action spell metadata and a TP action. Affordability, warmup and cooldown remain per slot.
+3. Execute slots repeatedly; feedback should restart at the latest slot and always finish.
+4. Check normal text fading and compact/scale behavior.
+
+Simulated verification: duplicate dim/recovery, slot-independent cooldown, feedback overshoot/retrigger, MP colors, text fade, identity guards, and 108 rendering layouts passed. Native gameplay remains pending.
+
+---
+
 # Personal 6 — checkpoint 1: confirmed character storage
 
 Runtime: `0.4.0-a.20261014.personal6-1`. Apply this overlay to Personal 5 (or the complete package later in this batch). No data, catalog, binding XML, settings XML, or controller INIs are supplied. Preserve your installed data. Rollback files restore the preceding committed code.

@@ -20,12 +20,12 @@ ui.hotbars[1].slot_cost[3]:color(254,222,0)
 ui:check_vitals(hotbar,{mp=10,tp=1000},'test')
 color(1,255,149,151);color(2,255,149,151);color(3,254,222,0)
 assert(ui.hotbars[1].slot_icon[1]:alpha()==100 and ui.hotbars[1].slot_icon[2]:alpha()==100)
-ui.disabled_slots.on_cooldown.Cure=true
+ui.disabled_slots.on_cooldown["1:1"]=true
 ui:check_vitals(hotbar,{mp=50,tp=1000},'test')
 color(1,194,253,195);color(2,194,253,195)
 assert(ui.hotbars[1].slot_icon[1]:alpha()==100,'MP recovery incorrectly ended recast dimming')
 assert(ui.hotbars[1].slot_icon[2]:alpha()==255,'linked spell did not recover')
-ui.disabled_slots.on_cooldown.Cure=nil
+ui.disabled_slots.on_cooldown["1:1"]=nil
 ui:check_vitals(hotbar,{mp=50,tp=0},'test')
 assert(ui.hotbars[1].slot_icon[1]:alpha()==255)
 color(3,254,222,0)

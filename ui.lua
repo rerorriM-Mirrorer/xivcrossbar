@@ -907,6 +907,7 @@ end
 
 -- load action into a hotbar slot
 function ui:load_action(player_hotbar, environment, hotbar, slot, action, player_vitals, show_when_ready)
+    local disable_key = hotbar .. ":" .. slot
     local is_disabled = false
 
     local player = windower.ffxi.get_player()
@@ -983,7 +984,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
                     end
 
                     if player_vitals.mp < crossbar_action.mp_cost then
-                        self.disabled_slots.no_vitals[action.action] = true
+                        self.disabled_slots.no_vitals[disable_key] = true
                         is_disabled = true
                     end
                 -- display tp cost
@@ -997,7 +998,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
                     end
 
                     if player_vitals.tp < crossbar_action.tp_cost then
-                        self.disabled_slots.no_vitals[action.action] = true
+                        self.disabled_slots.no_vitals[disable_key] = true
                         is_disabled = true
                     end
                 end
@@ -1088,8 +1089,8 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
     end
 
     -- check if action is on cooldown
-    if self.disabled_slots.on_cooldown[action.action] ~= nil then is_disabled = true end
-    if self.disabled_slots.on_warmup[action.action] ~= nil then is_disabled = true end
+    if self.disabled_slots.on_cooldown[disable_key] ~= nil then is_disabled = true end
+    if self.disabled_slots.on_warmup[disable_key] ~= nil then is_disabled = true end
 
     if (show_when_ready) then
         self.hotbars[hotbar].slot_frame[slot]:show()
@@ -1111,7 +1112,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
     -- if slot is disabled, disable it
     if is_disabled == true then
         self:toggle_slot(hotbar, slot, false)
-        self.disabled_slots.actions[action.action] = true
+        self.disabled_slots.actions[disable_key] = true
     end
 end
 
@@ -1147,6 +1148,7 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
     if not selected then return end
     for h=1,self.theme.hotbar_number,1 do
         for i=1,8,1 do
+            local disable_key = h .. ":" .. i
             local slot = i
             if slot == 10 then slot = 0 end
 
@@ -1184,21 +1186,21 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                         self:set_mp_cost_color(h,i,can_afford_mp)
                     end
                     if (can_afford_mp or can_afford_tp) then
-                        self.disabled_slots.no_vitals[action.action] = true
+                        self.disabled_slots.no_vitals[disable_key] = true
                         is_disabled = true
                     else
-                        self.disabled_slots.no_vitals[action.action] = nil
+                        self.disabled_slots.no_vitals[disable_key] = nil
                     end
 
                     -- if it's not disabled by vitals nor cooldown, enable slot
-                    if is_disabled == false and self.disabled_slots.actions[action.action] == true and self.disabled_slots.on_cooldown[action.action] == nil and self.disabled_slots.on_warmup[action.action] == nil then
-                        self.disabled_slots.actions[action.action] = nil
+                    if is_disabled == false and self.disabled_slots.actions[disable_key] == true and self.disabled_slots.on_cooldown[disable_key] == nil and self.disabled_slots.on_warmup[disable_key] == nil then
+                        self.disabled_slots.actions[disable_key] = nil
                         self:toggle_slot(h, i, true)
                     end
 
                     -- if its disabled, disable slot
-                    if is_disabled == true and self.disabled_slots.actions[action.action] == nil then
-                        self.disabled_slots.actions[action.action] = true
+                    if is_disabled == true and self.disabled_slots.actions[disable_key] == nil then
+                        self.disabled_slots.actions[disable_key] = true
                         self:toggle_slot(h, i, false)
                     end
                 end
@@ -1525,6 +1527,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self.hotbars[h].slot_text[i]:show()
                 self.hotbars[h].slot_cost[i]:show()
 
+                local disable_key = h .. ":" .. i
                 local action = nil
                 if (player_hotbar[environment] and player_hotbar[environment]['hotbar_' .. h]) then
                     action = player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]
@@ -1776,12 +1779,12 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         is_in_seconds = true
                     elseif (action.type == 'enchanteditem') then
                         local warmup_fraction = self.enchanted_items:get_warmup_fraction(action.action)
-                        in_warmup = warmup_fraction < 1 or self.disabled_slots.on_warmup[action.action]
+                        in_warmup = warmup_fraction < 1 or self.disabled_slots.on_warmup[disable_key]
 
                         if in_warmup then
                             -- register first cooldown to calculate percentage
-                            if self.disabled_slots.on_warmup[action.action] == nil then
-                                self.disabled_slots.on_warmup[action.action] = self.enchanted_items:get_warmup_time(action.action)
+                            if self.disabled_slots.on_warmup[disable_key] == nil then
+                                self.disabled_slots.on_warmup[disable_key] = self.enchanted_items:get_warmup_time(action.action)
 
                                 -- setup recast elements
                                 self.hotbars[h].slot_warmup[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blue-square.png')
@@ -1793,12 +1796,12 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
                         if in_cooldown then
                             -- remove the warmup backdrop
-                            self.disabled_slots.on_warmup[action.action] = nil
+                            self.disabled_slots.on_warmup[disable_key] = nil
                             self.hotbars[h].slot_warmup[i]:hide()
 
                             -- register first cooldown to calculate percentage
-                            if self.disabled_slots.on_cooldown[action.action] == nil then
-                                self.disabled_slots.on_cooldown[action.action] = self.enchanted_items:get_cooldown_time(action.action)
+                            if self.disabled_slots.on_cooldown[disable_key] == nil then
+                                self.disabled_slots.on_cooldown[disable_key] = self.enchanted_items:get_cooldown_time(action.action)
 
                                 -- setup recast elements
                                 self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
@@ -1811,8 +1814,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     -- check if skill is in cooldown
                     if (has_spell and crossbar_action ~= nil and skill_recasts[crossbar_action.recast_id] ~= nil and skill_recasts[crossbar_action.recast_id] > 0) then
                         -- register first cooldown to calculate percentage
-                        if self.disabled_slots.on_cooldown[action.action] == nil then
-                            self.disabled_slots.on_cooldown[action.action] = skill_recasts[crossbar_action.recast_id]
+                        if self.disabled_slots.on_cooldown[disable_key] == nil then
+                            self.disabled_slots.on_cooldown[disable_key] = skill_recasts[crossbar_action.recast_id]
 
                             -- setup recast elements
                             self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
@@ -1824,8 +1827,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     -- if skill is in cooldown
                     if in_cooldown then
                         -- disable slot if it's not disabled
-                        if self.disabled_slots.actions[action.action] == nil then
-                            self.disabled_slots.actions[action.action] = true
+                        if self.disabled_slots.actions[disable_key] == nil then
+                            self.disabled_slots.actions[disable_key] = true
                             self:toggle_slot(h, i, false)
                         end
 
@@ -1839,7 +1842,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                                 new_height = 40 * self.enchanted_items:get_cooldown_fraction(action.action)
                             else
                                 time_remaining = skill_recasts[crossbar_action.recast_id]
-                                local full_recast = tonumber(self.disabled_slots.on_cooldown[action.action])
+                                local full_recast = tonumber(self.disabled_slots.on_cooldown[disable_key])
                                 new_height = 40 * (time_remaining / full_recast)
                             end
                             if new_height > 40 then new_height = 40 end -- temporary bug fix
@@ -1861,6 +1864,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                             end
                         end
                     elseif in_warmup then
+                        self.disabled_slots.actions[disable_key] = true
+                        self:toggle_slot(h, i, false)
                         -- show recast animation
                         if self.theme.hide_recast_animation == false then
                             local new_height = 40 * self.enchanted_items:get_warmup_fraction(action.action)
@@ -1893,13 +1898,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         -- clear recast animation
                         self:clear_recast(h, i)
 
-                        if self.disabled_slots.on_cooldown[action.action] == true then
-                            self.disabled_slots.on_cooldown[action.action] = nil
+                        if self.disabled_slots.on_cooldown[disable_key] ~= nil then
+                            self.disabled_slots.on_cooldown[disable_key] = nil
                         end
 
                         -- if it's not disabled by vitals nor cooldown, enable slot
-                        if self.disabled_slots.actions[action.action] == true and self.disabled_slots.no_vitals[action.action] == nil then
-                            self.disabled_slots.actions[action.action] = nil
+                        if self.disabled_slots.actions[disable_key] == true and self.disabled_slots.no_vitals[disable_key] == nil then
+                            self.disabled_slots.actions[disable_key] = nil
                             self:toggle_slot(h, i, true)
                         end
                     end
@@ -2139,19 +2144,23 @@ function ui:trigger_feedback(hotbar, slot)
     if slot == 0 then slot = 10 end    
     self.feedback.hotbar, self.feedback.slot = hotbar, slot
     self.feedback_icon:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
+    self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback.is_active = true
 end
 
 -- show feedback
 function ui:show_feedback()
-    if self.feedback.current_opacity ~= 0 then
-        self.feedback.current_opacity = self.feedback.current_opacity - self.feedback.speed
-        self.feedback_icon:alpha(self.feedback.current_opacity)
+    if not self.feedback.is_active then return end
+    local step = math.max(1, tonumber(self.feedback.speed) or 1)
+    local opacity = math.max(0, math.min(255, self.feedback.current_opacity - step))
+    self.feedback.current_opacity = opacity
+    self.feedback_icon:alpha(opacity)
+    if opacity > 0 then
         self.feedback_icon:show()
-    elseif self.feedback.current_opacity < 1 then
+    else
         self.feedback_icon:hide()
         self.feedback.current_opacity = self.feedback.max_opacity
-        self.feedback.is_active= false
+        self.feedback.is_active = false
     end
 end
 

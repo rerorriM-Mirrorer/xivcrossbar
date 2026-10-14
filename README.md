@@ -247,3 +247,7 @@ are retained under `images/assets/menu/`. Original game artwork belongs to its r
 ### Personal 6 checkpoint 1
 
 Controller transport may start before login. Character hotbar storage now requires a confirmed logged-in character and known server; logout disables character writes until a valid login. Packages omit all user data and configuration.
+
+### Personal 6 checkpoint 2
+
+Affordability/recast dimming is tracked per slot so duplicate and linked actions update independently. Feedback animation clamps its opacity and completes even when its decrement does not divide the starting opacity.
