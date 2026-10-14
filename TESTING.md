@@ -3029,3 +3029,15 @@ and unmapped logging. Unchanged upstream uses Windower Lua syntax extensions
 
 Sources: https://github.com/qEagleStrikerp/xivcrossbar/tree/15d8381dfad0f9efdb84fe2d24655afc150faec4
 and https://docs.windower.net/commands/keymapping/.
+
+## Personal 6 compatibility delivery and command template
+
+The correction is split into an AHK parser checkpoint and a stock-Lua catalog/
+client-registration checkpoint. Both are included in `personal6-fix1`.
+Packages use Personal 5 as the code rollback rather than restoring the known
+broken original Personal 6 startup helpers. No installed XML/INI is included.
+The separate `examples/CustomActions-template.xml` has 34 commands, including
+six implemented NPCMirror verbs. It is not copied into runtime `data/` by the
+package builder. Decoder/binding-value, uniqueness, escaping and icon-path
+checks passed. Merge it into an existing catalog instead of replacing one;
+see `examples/CUSTOM-COMMANDS.md` for dependencies and installation.
