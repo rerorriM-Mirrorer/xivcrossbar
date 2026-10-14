@@ -456,6 +456,7 @@ end
 
 -- load the images and text
 function ui:load(theme_options)
+    geometry:dispose_surfaces({[self.battle_notice]=true})
     -- load battle notice
     setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)

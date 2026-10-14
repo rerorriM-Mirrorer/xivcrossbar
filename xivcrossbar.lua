@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal7-cleanup1'
+_addon.version = '0.4.0-a.20261014.personal7-cleanup2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1127,6 +1127,8 @@ windower.register_event('unload',function()
     end
     -- No broad killahk.bat: the wrapper is shared across FFXI clients.
     if release_gameplay_keys then release_gameplay_keys() end
+    if ui.geometry then ui.geometry:shutdown() end
+    require('ui/resources').destroy_all()
 
 end)
 

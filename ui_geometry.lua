@@ -344,6 +344,8 @@ function geometry:surface(object, kind, options)
         return width / g.scale, height / g.scale
     end
     function methods:destroy()
+        if m.disposed then return end
+        m.disposed = true
         g.surfaces[proxy] = nil
         if g.deferring_hide and (m.visible or m.defer_visible) then
             -- Keep a closing menu's visible rows alive just through the fade.
@@ -363,6 +365,28 @@ function geometry:surface(object, kind, options)
     draw_opacity(self, m)
     if kind == 'image' then proxy:fit(false); proxy:size(40, 40) end
     return proxy
+end
+
+-- Dispose a rebuilt layer immediately. Deferred objects belong to the old
+-- layer too; do not let a later fade tick delete them a second time.
+function geometry:dispose_surfaces(preserve)
+    self.deferring_hide = false
+    for _, m in ipairs(self.retired) do m.object:destroy() end
+    self.retired = {}
+    local objects = {}
+    for object in pairs(self.surfaces) do
+        if not preserve or not preserve[object] then objects[#objects+1] = object end
+    end
+    for _, object in ipairs(objects) do object:destroy() end
+end
+
+function geometry:shutdown()
+    if self.fade then self.fade.active = false end
+    self:dispose_surfaces()
+    for name, p in pairs(self.primitives) do
+        if p.rounded then p.rounded:destroy() else windower.prim.delete(name) end
+    end
+    self.primitives = {}
 end
 
 function geometry:prim()

@@ -1,3 +1,31 @@
+# Personal 7 cleanup checkpoint 2
+
+Runtime: `0.4.0-a.20261014.personal7-cleanup2`. Includes checkpoint 1.
+Crossbar and set-chooser reinitialization no longer discard their previous
+text/image layers. Deferred geometry objects can be retired only once;
+layer replacement flushes old deferred objects, and unload releases remaining
+owned resources without touching any other addon's objects.
+
+Additional simulated checks: 30 complete crossbar rebuilds and 20 chooser
+rebuilds retain constant counts. Double destruction during a fade queues/deletes
+once. Layer replacement, repeated shutdown and the subsequent fade tick do not
+repeat deletion. Existing layout/fade tests remain applicable.
+
+Live acceptance: compare `//xb resources` with menus closed before/after repeated
+editing, browsing and Options; test job change and relogging in the same process;
+check the fade, cursor, binding hints, draft overlay, compact toggle, and a normal
+`lua r xivcrossbar`. A newly started client gives a clean baseline after an
+existing shared-text failure. These patches cannot promise to restore an already
+failing graphics/text renderer. Do not make several addon changes at once while
+trying to establish which operation triggers another failure.
+
+Other pending requests are unchanged: login identity/Asura folder selection,
+default switch destinations, Save Changes returning to catalog, icon sorting,
+personal menu ordering and asset consolidation. The current PS5 extended
+controller mapping is documented at the top of PERSONAL.md.
+
+---
+
 # Personal 7 cleanup checkpoint 1
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup1`. Temporary native text/image

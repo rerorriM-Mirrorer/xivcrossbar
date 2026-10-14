@@ -305,3 +305,12 @@ creation/deletion totals, without touching other addons. Compare the same closed
 menu state before and after repeated editing. Counts differ between screens;
 cumulative creation totals naturally increase. This fixes demonstrated object
 retention, not a proven native d3d8 crash cause.
+
+
+### Personal 7 cleanup checkpoint 2
+
+Crossbar and set-chooser rebuilds dispose the previous drawing layer before
+replacing it. Geometry destruction is idempotent, including objects queued for
+a closing fade. Unload stops geometry animation, releases its surfaces and
+rounded primitives, then releases any remaining tracked text/image objects.
+Personal controller outputs are unchanged.
