@@ -1,4 +1,9 @@
 local env_chooser = {}
+local geometry = require('ui_geometry').new()
+local prim = geometry:prim()
+local function new_text(options)
+    return geometry:surface(texts.new(options), 'text', options)
+end
 local defaults = require('defaults')
 settings = config.load(defaults)
 
@@ -60,7 +65,7 @@ function setup_text(text, theme_options)
     text:font(theme_options.font)
     text:size(theme_options.font_size)
     text:color(theme_options.font_color_red, theme_options.font_color_green, theme_options.font_color_blue)
-    text:stroke_transparency(theme_options.font_stroke_alpha)
+    text:stroke_alpha(theme_options.font_stroke_alpha)
     text:stroke_color(theme_options.font_stroke_color_red, theme_options.font_stroke_color_green, theme_options.font_stroke_color_blue)
     text:stroke_width(theme_options.font_stroke_width)
     text:show()
@@ -97,36 +102,54 @@ end
 
 -- load the ui
 function env_chooser:load(theme_options)
-    windower.prim.create('menu_background')
-    windower.prim.set_color('menu_background', 150, 0, 0, 0)
-    windower.prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(4) - 10)
-    windower.prim.set_size('menu_background', 290, 180)
-    windower.prim.set_visibility('menu_background', false)
+    self.layer_theme = theme_options
+    prim.create('menu_background')
+    prim.set_color('menu_background', 235, 0, 0, 0)
+    prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(4) - 10)
+    prim.set_size('menu_background', 290, 180)
+    prim.set_visibility('menu_background', false)
 
-    windower.prim.create('menu_highlight')
-    windower.prim.set_color('menu_highlight', 150, 171, 252, 252)
-    windower.prim.set_position('menu_highlight', self:get_name_x(1) - 10, self:get_name_y(4) - 10)
-    windower.prim.set_size('menu_highlight', 290, 15)
-    windower.prim.set_visibility('menu_highlight', false)
+    prim.create('menu_highlight')
+    prim.set_color('menu_highlight', 170, 101, 70, 41)
+    prim.set_position('menu_highlight', self:get_name_x(1) - 10, self:get_name_y(4) - 10)
+    prim.set_size('menu_highlight', 290, 15)
+    prim.set_visibility('menu_highlight', false)
 
-    windower.prim.create('tooltip_background')
-    windower.prim.set_color('tooltip_background', 150, 0, 0, 0)
-    windower.prim.set_position('tooltip_background', self:get_name_x(1) - 10, self:get_name_y(4) - 10)
-    windower.prim.set_size('tooltip_background', 290, 15)
-    windower.prim.set_visibility('tooltip_background', false)
+    prim.create('tooltip_background')
+    prim.set_color('tooltip_background', 150, 0, 0, 0)
+    prim.set_position('tooltip_background', self:get_name_x(1) - 10, self:get_name_y(4) - 10)
+    prim.set_size('tooltip_background', 290, 15)
+    prim.set_visibility('tooltip_background', false)
+
+    self.heading = new_text(text_setup)
+    setup_text(self.heading,theme_options)
+    self.heading:text('Choose Crossbar')
+    self.heading:color(255,216,112)
+    self.heading:hide()
 
     self.environments = {}
     for i=1,30,1 do
         self.environments[i] = {}
-        self.environments[i].name_text = texts.new(text_setup)
+        self.environments[i].name_text = new_text(text_setup)
         setup_text(self.environments[i].name_text, theme_options)
         self.environments[i].name_text:hide()
     end
 
     self.tooltip = {}
-    self.tooltip = texts.new(text_setup)
+    self.tooltip = new_text(text_setup)
     setup_text(self.tooltip, theme_options)
     self.tooltip:hide()
+end
+
+-- Recreate only the chooser layer when opening, after current menu objects.
+-- Dispose every prior object first; geometry's destroy unregisters its proxy.
+function env_chooser:raise_layer()
+    if not self.is_setup then return end
+    for _,entry in pairs(self.environments or {}) do entry.name_text:destroy() end
+    if self.tooltip then self.tooltip:destroy() end
+    if self.heading then self.heading:destroy() end
+    for _,name in ipairs({'menu_background','menu_highlight','tooltip_background'}) do prim.delete(name) end
+    self:load(self.layer_theme)
 end
 
 -- setup positions and dimensions for env_chooser
@@ -143,6 +166,40 @@ function env_chooser:setup_metrics(theme_options)
     end
 
     self.hotbar_spacing = theme_options.hotbar_spacing
+    geometry:set_origin(self.pos_x,self.pos_y,self.pos_x,self.pos_y)
+end
+
+-- The chooser and its tooltip move as one, including when already visible.
+function env_chooser:move_by(dx,dy)
+    if not self.is_setup then return end
+    self.pos_x,self.pos_y=self.pos_x+dx,self.pos_y+dy
+    geometry:set_origin(self.pos_x,self.pos_y,self.pos_x,self.pos_y,true)
+end
+
+function env_chooser:set_anchor(x,bottom)
+    if not self.is_setup then return end
+    local screen=windower.get_windower_settings()
+    local height=39+(self.environment_count or 0)*15
+    x=math.max(0,math.min(x,screen.ui_x_res-170))
+    bottom=math.max(math.min(height,screen.ui_y_res),math.min(bottom,screen.ui_y_res))
+    local next_x=x-150
+    local next_y=bottom+2.5*self.hotbar_spacing-5
+    self:move_by(next_x-self.pos_x,next_y-self.pos_y)
+    self.anchor_x,self.anchor_bottom=x,bottom
+    if self.tooltip_name then self:position_tooltip() end
+end
+
+function env_chooser:position_tooltip()
+    local screen=windower.get_windower_settings()
+    local left=self:get_name_x(1)-10
+    local bottom=self:get_name_y(0)+5
+    local x=left+170+12
+    if x+400>screen.ui_x_res then x=left-400-12 end
+    x=math.max(0,math.min(x,screen.ui_x_res-400))
+    local y=math.max(0,math.min(bottom-218,screen.ui_y_res-218))
+    prim.set_position('tooltip_background',x,y)
+    prim.set_size('tooltip_background',400,218)
+    self.tooltip:pos(x+10,y+5)
 end
 
 function env_chooser:get_default_active_environment(player_hotbar)
@@ -155,6 +212,11 @@ function env_chooser:get_default_active_environment(player_hotbar)
         if (not default_hotbars[kebab_casify(name)]) then
             return name
         end
+    end
+    -- A valid file can contain only fallback sets, without Basic or another
+    -- named set. Those are usable too; never hand a nonexistent name to the UI.
+    for _, name in ipairs({'default','job-default','all-jobs-default','shared'}) do
+        if player_hotbar[name] then return name end
     end
 end
 
@@ -213,9 +275,9 @@ local HAIRLINE = " "
 
 function env_chooser:maybe_show_default_sets_tooltip(name, env_count)
     if (default_hotbars[kebab_casify(name)] and kebab_casify(name) ~= 'shared') then
-        windower.prim.set_position('tooltip_background', self:get_name_x(index) + 200, self.pos_y - 295)
-        windower.prim.set_size('tooltip_background', 400, 218)
-        windower.prim.set_visibility('tooltip_background', true)
+        self.tooltip_name=name
+        self:position_tooltip()
+        prim.set_visibility('tooltip_background', true)
         local paragraph_1 = 'When an empty space is encountered, we check the same slot\nin the default sets and use the first non-empty action we find.\nWe search in the following order:'
         local paragraph_2 = '                  Default → Job Default → All Jobs Default'
         local paragraph_3 = ''
@@ -233,32 +295,34 @@ function env_chooser:maybe_show_default_sets_tooltip(name, env_count)
 
         self.tooltip:text(paragraph_1 .. '\n\n' .. paragraph_2 .. '\n\n' .. paragraph_3 .. '\n\n' .. paragraph_4)
         self.tooltip:size(10)
-        self.tooltip:pos(self:get_name_x(index) + 210, self.pos_y - 290)
         self.tooltip:show()
     else
-        windower.prim.set_visibility('tooltip_background', false)
+        self.tooltip_name=nil
+        prim.set_visibility('tooltip_background', false)
         self.tooltip:hide()
     end
 end
 
 function env_chooser:temp_hide_default_sets_tooltip()
-    windower.prim.set_visibility('tooltip_background', false)
+    prim.set_visibility('tooltip_background', false)
     self.tooltip:hide()
 end
 
 function env_chooser:maybe_unhide_default_sets_tooltip()
-    if (default_hotbars[kebab_casify(self.current_environment)] and kebab_casify(self.current_environment) ~= 'shared') then
-        windower.prim.set_visibility('tooltip_background', true)
+    if (self.is_shown and default_hotbars[kebab_casify(self.current_environment)] and kebab_casify(self.current_environment) ~= 'shared') then
+        prim.set_visibility('tooltip_background', true)
         self.tooltip:show()
     end
 end
 
-function env_chooser:show_player_environments(player_hotbar, current_environment)
+function env_chooser:show_player_environments(player_hotbar, current_environment, anchor_x, anchor_bottom)
     self.current_environment = current_environment
     self.is_shown = true
     self.should_close_at = os.time()
 
     local environments = self:get_player_environments(player_hotbar)
+    self.environment_count=#environments
+    if anchor_x then self:set_anchor(anchor_x,anchor_bottom) end
 
     for i, environment in ipairs(environments) do
         local index = (#environments - i) + 1 -- put first environment at the top instead of bottom
@@ -274,20 +338,25 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
         self.environments[index].name_text:show()
         if (kebab_casify(environment.name) == current_environment) then
             self:maybe_show_default_sets_tooltip(environment.name, #environments)
-            windower.prim.set_position('menu_highlight', self:get_name_x(index) - 10, self:get_name_y(index) - 2)
+            prim.set_position('menu_highlight', self:get_name_x(index) - 10, self:get_name_y(index) - 2)
         end
     end
 
     local count = #environments
-    windower.prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(count) - 10)
-    windower.prim.set_size('menu_background', 170, 15 + self:get_name_y(0) - self:get_name_y(count))
-    windower.prim.set_visibility('menu_background', true)
+    prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(count) - 34)
+    prim.set_size('menu_background', 170, 39 + self:get_name_y(0) - self:get_name_y(count))
+    if self.heading then
+        self.heading:pos(self:get_name_x(1),self:get_name_y(count)-29)
+        self.heading:show()
+    end
+    prim.set_visibility('menu_background', true)
 
-    windower.prim.set_size('menu_highlight', 170, 16)
-    windower.prim.set_visibility('menu_highlight', true)
+    prim.set_size('menu_highlight', 170, 16)
+    prim.set_visibility('menu_highlight', true)
 end
 
 function env_chooser:hide_player_environments()
+    if not self.is_shown then return end
     if (self.current_environment == kebab_casify(ADD_NEW_SET)) then
         self:accept_text_entry()
     else
@@ -295,8 +364,20 @@ function env_chooser:hide_player_environments()
     end
 end
 
+function env_chooser:cancel_name_entry()
+    self.capturing=false
+    self.new_set_name=nil
+    require('text_input_guard'):release(windower.send_command)
+end
+
+function env_chooser:close()
+    hide_me()
+end
+
 function env_chooser:accept_text_entry()
+    if not self.capturing then self.new_set_name='' end
     self.capturing = true
+    require('text_input_guard'):update(true, windower.send_command)
     local index = self.indexof_add_new_set
     local label = HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. ADD_NEW_SET
     local text_prompt = HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. '<Enter Set Name>'
@@ -376,15 +457,19 @@ function maybe_hide_me()
 end
 
 function hide_me()
-    env_chooser.capturing = false
+    env_chooser:cancel_name_entry()
     env_chooser.is_shown = false
+    env_chooser.tooltip_name=nil
 
     for i, environment in pairs(env_chooser.environments) do
         env_chooser.environments[i].name_text:hide()
     end
 
-    windower.prim.set_visibility('menu_background', false)
-    windower.prim.set_visibility('menu_highlight', false)
+    prim.set_visibility('menu_background', false)
+    prim.set_visibility('menu_highlight', false)
+    prim.set_visibility('tooltip_background', false)
+    env_chooser.tooltip:hide()
+    if env_chooser.heading then env_chooser.heading:hide() end
 end
 
 function env_chooser:is_showing()

@@ -24,7 +24,6 @@ fish.png
 follow.png
 GA.png
 geo.png
-Goring_Blade.png
 GS.png
 GSDD.png
 GSDT.png
@@ -284,7 +283,6 @@ elements\water.png
 elements\wind.png
 extra\barstatusclock.png
 extra\barstatuscounter.png
-extra\elementalWheel.psd
 extra\elewheelclock.png
 extra\elewheelclocksch.png
 extra\elewheelcounter.png

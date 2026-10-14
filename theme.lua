@@ -2,9 +2,15 @@ local theme = {}
 
 theme.apply = function (settings)
     local options = {}
+    options.crossbar_scale = settings.CrossbarScale
+    options.fade_enabled = settings.Animation.Enabled
+    options.text_fade = settings.Animation.TextFade == true
+    options.fade_in = settings.Animation.FadeIn
+    options.fade_out = settings.Animation.FadeOut
+    options.load_fade_in = settings.Animation.LoadFadeIn
 
     options.frame_skip = settings.FrameSkip or 0
-    options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions or false
+    options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions ~= false
 
     options.AutoCreateXML = settings.AutoCreateXML
     options.UseAltLayout = settings.UseAltLayout
@@ -23,8 +29,6 @@ theme.apply = function (settings)
     options.skillchain_open_color_green = settings.SkillchainIndicator.WindowOpenColor.Green
     options.skillchain_open_color_blue = settings.SkillchainIndicator.WindowOpenColor.Blue
 
-    options.use_directinput = settings.use_directinput
-	options.use_xinput = settings.use_xinput
     options.on_logout_unload_addon = settings.on_logout_unload_addon
 	options.on_unload_killahk = settings.on_unload_killahk
 	options.enable_superwarp_all = settings.enable_superwarp_all
@@ -55,6 +59,7 @@ theme.apply = function (settings)
     options.ja_lockout_partial_blue = settings.JobAbilityLockoutIndicator.PartialLockoutColor.Blue
 
     -- Auto-attack swing timer
+    options.aa_enabled = settings.AutoAttackIndicator.Enabled ~= false
     options.aa_opacity = settings.AutoAttackIndicator.Opacity
     options.aa_paused_opacity = settings.AutoAttackIndicator.PausedOpacity
     options.aa_background_opacity = settings.AutoAttackIndicator.BackgroundOpacity
@@ -112,13 +117,15 @@ theme.apply = function (settings)
     options.mp_cost_color_red = settings.Color.MpCost.Red
     options.mp_cost_color_green = settings.Color.MpCost.Green
     options.mp_cost_color_blue = settings.Color.MpCost.Blue
+    options.mp_cost_insufficient_red = settings.Color.MpCostInsufficient.Red
+    options.mp_cost_insufficient_green = settings.Color.MpCostInsufficient.Green
+    options.mp_cost_insufficient_blue = settings.Color.MpCostInsufficient.Blue
     options.tp_cost_color_red = settings.Color.TpCost.Red
     options.tp_cost_color_green = settings.Color.TpCost.Green
     options.tp_cost_color_blue = settings.Color.TpCost.Blue
     options.text_offset_x = settings.Texts.OffsetX
     options.text_offset_y = settings.Texts.OffsetY
 
-    options.controls_battle_mode = settings.Controls.ToggleBattleMode
 
     return options
 end

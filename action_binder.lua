@@ -3,7 +3,7 @@ require("strings")
 require("tables")
 
 local mount_roulette = require('libs/mountroulette/mountroulette')
-local icon_extractor = require('ui/icon_extractor')
+local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
 local crossbar_spells = require('resources/crossbar_spells')
@@ -12,6 +12,8 @@ texts = require('texts')
 local defaults = require('defaults')
 settings = config.load(defaults)
 local action_binder = {}
+local review = require('custom_action_review')
+local caption_layout = require('ui/text_layout').new()
 local theme = require('theme')
 local theme_options = theme.apply(settings)
 local icon_pack = nil
@@ -215,6 +217,7 @@ local action_types = {
     ['CREATE_NEW_SET'] = 42,
 	['EXECUTE_COMMAND'] = 43,
 	['SUPERWARP'] = 44,
+    ['CHECK'] = 45,
 }
 
 local prefix_lookup = {
@@ -245,6 +248,7 @@ local prefix_lookup = {
     [action_types.TRADABLE_ITEM] = 'item',
     [action_types.RANGED_ATTACK] = 'ct',
     [action_types.ATTACK] = 'a',
+    [action_types.CHECK] = 'ct',
     [action_types.ASSIST] = 'assist',
     [action_types.MAP] = 'map',
     [action_types.LAST_SYNTH] = 'ct',
@@ -305,6 +309,10 @@ local SPELL_TYPE_LOOKUP = {
 
 function action_binder:setup(buttonmapping, save_binding_func, delete_binding_func, theme_options, get_crossbar_sets_func, base_x, base_y, max_width, max_height,
 change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_custom_action_func, delete_custom_action_func, create_new_set_func)
+    -- A single centered panel owns the background, title and selector. Style
+    -- offsets move the crossbar only; applying them here displaced the backdrop.
+    local screen = windower.get_windower_settings()
+    base_x, base_y, max_width, max_height = require('menu_layout').fit(screen.ui_x_res, screen.ui_y_res)
     self.button_layout = buttonmapping.button_layout
     self.confirm_button = buttonmapping.confirm_button
     self.cancel_button = buttonmapping.cancel_button
@@ -320,18 +328,17 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.delete_custom_action = delete_custom_action_func
     self.create_new_set_binding = create_new_set_func
     self.is_hidden = true
-    self.capturing_text = false
+    self:set_capturing_text(false)
     self.text_entry_buffer = ''
     self.new_set_name = nil
     self.new_set_alias = nil
     self.selector = require('ui/selectablelist')
-    self.selector:setup(theme_options, base_x + 50, base_y + 75, max_width - 100, max_height - 175)
     self.theme_options = theme_options
     self.title = self:create_text('Select Action Type', base_x + 50, base_y + 30)
     self.title:size(18)
     self.title:hide()
-    self.base_x = settings.Style.OffsetX or offset_x or base_x or 150
-    self.base_y = settings.Style.OffsetY or  offset_y or base_y or 150
+    self.base_x = base_x
+    self.base_y = base_y
     self.width =  max_width or (windower.get_windower_settings().ui_x_res - 300)
     self.height = max_height or (windower.get_windower_settings().ui_y_res - 300)
     self.state = states.HIDDEN
@@ -359,21 +366,29 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
 
     icon_pack = theme_options.iconpack
 
-    windower.prim.create('dialog_bg')
-    windower.prim.set_color('dialog_bg', 150, 0, 0, 0)
-    windower.prim.set_position('dialog_bg', self.base_x, self.base_y)
-    windower.prim.set_size('dialog_bg', self.width, self.height)
-    windower.prim.set_visibility('dialog_bg', false)
+    require('ui/menu_background').create(windower.prim, 'dialog_bg')
+    require('ui/menu_background').set_color(windower.prim, 'dialog_bg', 150, 0, 0, 0)
+    require('ui/menu_background').set_position(windower.prim, 'dialog_bg', self.base_x, self.base_y)
+    require('ui/menu_background').set_size(windower.prim, 'dialog_bg', self.width, self.height)
+    require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg', false)
 
     windower.prim.create('button_entry_bg')
     windower.prim.set_color('button_entry_bg', 150, 0, 0, 0)
     windower.prim.set_position('button_entry_bg', self.base_x + 150, self.base_y + 150)
     windower.prim.set_size('button_entry_bg', self.width - 300, self.height - 300)
     windower.prim.set_visibility('button_entry_bg', false)
+    -- Create selection primitives/cursor after the backdrop so review's more
+    -- opaque background cannot cover them.
+    self.selector:setup(theme_options, base_x + 50, base_y + 75, max_width - 100, max_height - 175)
+    self.selector.normal_base_x = base_x + (max_width - self.selector.width) / 2
+    self.selector.base_x = self.selector.normal_base_x
     self:reload()
 end
 
 function action_binder:reset_state()
+    self.custom_action_name_required = false
+    self.page_gesture = nil
+    self.menu_buttons_down = {}
     self.state = states.HIDDEN
     self.action_type = nil
     self.action_name = nil
@@ -382,6 +397,7 @@ function action_binder:reset_state()
     self.active_crossbar = nil
     self.action_command = nil
     self.action_icon = nil
+    self.icon_picker_return = nil
     self.action_linked_action = nil
     self.action_linked_type = nil
     self.action_alias = nil
@@ -394,11 +410,14 @@ function action_binder:reset_state()
     self.icon_picker_path = ''
     self.global_icon_source_name = nil
     self.custom_action_draft = nil
+    self.custom_action_review_field = nil
+    self.binding_custom_action_review = false
+    self.custom_action_entry_origin = nil
     self.is_linking_for_custom_action = false
     self.editing_custom_action = false
     self.custom_action_original_name = nil
     self.custom_action_delete_target = nil
-    self.capturing_text = false
+    self:set_capturing_text(false)
     self.text_entry_buffer = ''
     self.new_set_name = nil
     self.new_set_alias = nil
@@ -431,6 +450,15 @@ function action_binder:reset_gamepad_triggers()
     self.trigger_right_doublepressed = false
 end
 
+function action_binder:clear_controller_input()
+    self:reset_gamepad()
+    close_left_doublepress_window()
+    close_right_doublepress_window()
+    -- Cancel a pending turn without treating focus changes as button presses.
+    self.page_gesture = nil
+    if self.selector then self.selector:page_highlight(nil) end
+end
+
 function action_binder:create_text(caption, x, y)
     local text_field = texts.new({flags = {draggable = false}})
     text_field:bg_alpha(0)
@@ -438,7 +466,7 @@ function action_binder:create_text(caption, x, y)
     text_field:font(self.theme_options.font)
     text_field:size(self.theme_options.font_size)
     text_field:color(self.theme_options.font_color_red, self.theme_options.font_color_green, self.theme_options.font_color_blue)
-    text_field:stroke_transparency(self.theme_options.font_stroke_alpha)
+    text_field:stroke_alpha(self.theme_options.font_stroke_alpha)
     text_field:stroke_color(self.theme_options.font_stroke_color_red, self.theme_options.font_stroke_color_green, self.theme_options.font_stroke_color_blue)
     text_field:stroke_width(self.theme_options.font_stroke_width)
     text_field:text(caption)
@@ -482,6 +510,8 @@ function action_binder:update_active_crossbar(left_trigger_just_pressed, right_t
 end
 
 function action_binder:dpad_left(pressed)
+    self:menu_input('left',pressed)
+    if self.capturing_text then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -500,6 +530,8 @@ function action_binder:dpad_left(pressed)
 end
 
 function action_binder:dpad_right(pressed)
+    self:menu_input('right',pressed)
+    if self.capturing_text then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -518,6 +550,8 @@ function action_binder:dpad_right(pressed)
 end
 
 function action_binder:dpad_down(pressed)
+    self:menu_input('down',pressed)
+    if self.capturing_text then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -536,6 +570,8 @@ function action_binder:dpad_down(pressed)
 end
 
 function action_binder:dpad_up(pressed)
+    self:menu_input('up',pressed)
+    if self.capturing_text then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -554,6 +590,12 @@ function action_binder:dpad_up(pressed)
 end
 
 function action_binder:button_a(pressed)
+    self:menu_input('a',pressed)
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'a' or
+            self.button_layout == 'playstation' and self.cancel_button == 'cross' or
+            self.button_layout == 'xbox' and self.cancel_button == 'a' or
+            self.button_layout == 'nintendo' and self.cancel_button == 'b') then self:go_back(); return end
+
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -579,6 +621,12 @@ function action_binder:button_a(pressed)
 end
 
 function action_binder:button_b(pressed)
+    self:menu_input('b',pressed)
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'b' or
+            self.button_layout == 'playstation' and self.cancel_button == 'square' or
+            self.button_layout == 'xbox' and self.cancel_button == 'x' or
+            self.button_layout == 'nintendo' and self.cancel_button == 'y') then self:go_back(); return end
+
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -604,6 +652,12 @@ function action_binder:button_b(pressed)
 end
 
 function action_binder:button_x(pressed)
+    self:menu_input('x',pressed)
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'x' or
+            self.button_layout == 'playstation' and self.cancel_button == 'circle' or
+            self.button_layout == 'xbox' and self.cancel_button == 'b' or
+            self.button_layout == 'nintendo' and self.cancel_button == 'a') then self:go_back(); return end
+
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -629,6 +683,12 @@ function action_binder:button_x(pressed)
 end
 
 function action_binder:button_y(pressed)
+    self:menu_input('y',pressed)
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'y' or
+            self.button_layout == 'playstation' and self.cancel_button == 'triangle' or
+            self.button_layout == 'xbox' and self.cancel_button == 'y' or
+            self.button_layout == 'nintendo' and self.cancel_button == 'x') then self:go_back(); return end
+
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -654,11 +714,46 @@ function action_binder:button_y(pressed)
 end
 
 function action_binder:is_in_selector_state()
-    return self.state == states.SELECT_ACTION_TYPE
+    return not self.capturing_text and self.selector and self.selector.is_showing and (self.state == states.SELECT_ACTION_TYPE
         or self.state == states.SELECT_ACTION
         or self.state == states.SELECT_ACTION_TARGET
         or self.state == states.SELECT_PLAYER_BINDING
         or self.state == states.SELECT_ICON
+        or self.state == states.SELECT_LINKED_TYPE
+        or self.state == states.EDIT_CUSTOM_ACTION_PICK
+        or self.state == states.DELETE_CUSTOM_ACTION_PICK
+        or self.state == states.EDIT_CUSTOM_ACTION_REVIEW)
+end
+
+-- A held trigger previews a page turn; another menu press consumes it.
+function action_binder:menu_input(key,pressed)
+    if pressed and self.page_gesture then
+        self.page_gesture.used=true
+        self.selector:page_highlight(nil)
+    end
+end
+
+function action_binder:menu_trigger(side,pressed)
+    local field='trigger_' .. side .. '_pressed'
+    local other=side=='left' and 'trigger_right_pressed' or 'trigger_left_pressed'
+    local just_pressed=pressed and not self[field]
+    local just_released=not pressed and self[field]
+    self[field]=pressed
+    if just_pressed then
+        if self[other] and self.page_gesture then
+            self.page_gesture.next_page=side=='right'
+        else self.page_gesture={state=self.state,next_page=side=='right',used=self[other]} end
+    elseif just_released and self.page_gesture then
+        local gesture=self.page_gesture
+        if not gesture.used and gesture.state==self.state and self:is_in_selector_state() then
+            gesture.used=true
+            if gesture.next_page and self.selector.is_next_button_showing then self.selector:increment_page()
+            elseif not gesture.next_page and self.selector.is_prev_button_showing then self.selector:decrement_page() end
+        end
+    end
+    if self.page_gesture and not self.page_gesture.used then self.selector:page_highlight(self.page_gesture.next_page)
+    else self.selector:page_highlight(nil) end
+    if not self.trigger_left_pressed and not self.trigger_right_pressed then self.page_gesture=nil end
 end
 
 function action_binder:trigger_left(pressed)
@@ -688,13 +783,7 @@ function action_binder:trigger_left(pressed)
         self:update_active_crossbar(just_pressed, false)
         self:show_pressed_buttons()
     elseif (self:is_in_selector_state()) then
-        local just_pressed = pressed and not self.trigger_left_pressed
-        if (just_pressed and self.trigger_right_pressed) then
-            if (self.selector ~= nil and self.selector.is_prev_button_showing) then
-                self.selector:decrement_page()
-            end
-        end
-        self.trigger_left_pressed = pressed
+        self:menu_trigger('left',pressed)
     else
         self.trigger_left_pressed = pressed
     end
@@ -727,13 +816,7 @@ function action_binder:trigger_right(pressed)
         self:update_active_crossbar(false, just_pressed)
         self:show_pressed_buttons()
     elseif (self:is_in_selector_state()) then
-        local just_pressed = pressed and not self.trigger_right_pressed
-        if (just_pressed and self.trigger_left_pressed) then
-            if (self.selector ~= nil and self.selector.is_next_button_showing) then
-                self.selector:increment_page()
-            end
-        end
-        self.trigger_right_pressed = pressed
+        self:menu_trigger('right',pressed)
     else
         self.trigger_right_pressed = pressed
     end
@@ -756,6 +839,17 @@ function action_binder:decrement_col()
 end
 
 function action_binder:submit_selected_option()
+    if self.custom_action_review_field then self:send_enter(); return end
+    if self.selector.is_showing and self.selector.get_selected_option then
+        local selected = self.selector:get_selected_option()
+        if not selected then return end
+        if selected.disabled then
+            if selected.disabled_focusable then
+                windower.add_to_chat(207, '[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.')
+            end
+            return
+        end
+    end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self.selection_states[states.SELECT_ACTION_TYPE] = self.selector:export_selection_state()
         self.action_type = self.selector:submit_selected_option().id
@@ -765,7 +859,7 @@ function action_binder:submit_selected_option()
             self:display_credits()
         elseif (self.action_type == action_types.CREATE_NEW_SET) then
             self.state = states.ENTER_SET_NAME
-            self.capturing_text = true
+            self:set_capturing_text(true)
             self.text_entry_buffer = ''
             self:display_text_entry('Enter New Set Name', '<Type set name, press Enter>')
         elseif (self.action_type == action_types.MOVE_CROSSBARS) then
@@ -777,6 +871,10 @@ function action_binder:submit_selected_option()
         elseif (self.action_type == action_types.ASSIST) then
             self.state = states.SELECT_PLAYER_BINDING
             self:display_player_selector(false)
+        elseif self.action_type == action_types.CHECK then
+            self.action_name, self.action_target = 'Check', 't'
+            self.state = states.SELECT_BUTTON_ASSIGNMENT
+            self:display_button_assigner()
         elseif (self.action_type == action_types.ATTACK or self.action_type == action_types.RANGED_ATTACK) then
             if (self.action_type == action_types.ATTACK) then
                 self.action_name = 'Attack'
@@ -801,15 +899,14 @@ function action_binder:submit_selected_option()
             self.state = states.SELECT_BUTTON_ASSIGNMENT
             self:display_button_assigner()
         elseif (self.action_type == action_types.CHANGE_ICON) then
-            self.state = states.SELECT_BUTTON_ASSIGNMENT
-            self:display_button_assigner()
+            self.state = states.SELECT_ICON
+            self.icon_picker_stack, self.icon_picker_path = {}, ''
+            self:display_icon_selector('')
         elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
             self.state = states.SELECT_BUTTON_ASSIGNMENT
             self:display_button_assigner()
         elseif (self.action_type == action_types.CREATE_CUSTOM_ACTION) then
-            self.custom_action_draft = {alias = nil, name = nil, command = nil, icon = nil, linked_action = nil, linked_type = nil}
-            self.state = states.ENTER_CUSTOM_ACTION_ALIAS
-            self:display_custom_action_field_review('Alias', 'a', self.custom_action_draft.alias, '(display label shown on the slot)')
+            self:new_custom_action('', 'menu')
         elseif (self.action_type == action_types.EDIT_CUSTOM_ACTION) then
             self.state = states.EDIT_CUSTOM_ACTION_PICK
             self:display_custom_actions_picker('Edit Custom Action: Pick Entry')
@@ -846,8 +943,8 @@ function action_binder:submit_selected_option()
                 self.state = states.EDIT_CUSTOM_ACTION_REVIEW
                 self:display_edit_custom_action_review()
             else
-                self.state = states.CONFIRM_CUSTOM_ACTION
-                self:display_custom_action_confirm()
+                self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+                self:display_edit_custom_action_review()
             end
         else
             self.action_name = option.text
@@ -869,8 +966,6 @@ function action_binder:submit_selected_option()
                 self.action_alias = option.data.alias
             end
 
-            -- TODO: Didn't know there was a print() function. It's much more readable, so switch all other uses of windower.add_to_chat()?
-            print("Allow stpc for self: " .. tostring(self.theme_options.allow_stpc_for_self_targeted_actions))
             if (self.target_type['Self'] and not (self.theme_options.allow_stpc_for_self_targeted_actions or
                     self.target_type['NPC'] or
                     self.target_type['Enemy'] or
@@ -898,7 +993,7 @@ function action_binder:submit_selected_option()
         self.action_target = action_targets[self.selector:submit_selected_option().id]
         self.state = states.SELECT_BUTTON_ASSIGNMENT
         self:display_button_assigner()
-    elseif (self.state == states.SELECT_ICON) then
+    elseif (self.state == states.SELECT_ICON and self.action_type == action_types.CREATE_NEW_SET) then
         self.selection_states[states.SELECT_ICON] = self.selector:export_selection_state()
         local option = self.selector:submit_selected_option()
         if (option.id == 'PREV') then
@@ -918,17 +1013,15 @@ function action_binder:submit_selected_option()
             self:delete_action()
         elseif (self.action_type == action_types.CHANGE_ICON) then
             local valid, warning = self:check_slot_bound_in_active_env()
-            if (not valid) then
+            if not valid then
                 windower.add_to_chat(123, '[XIVCrossbar] ' .. warning)
-                self:return_to_action_type_menu()
+                self.state=states.SELECT_BUTTON_ASSIGNMENT
+                self:display_button_assigner()
                 return
             end
-
-            self:clear_button_entry_ui()
-            self.state = states.SELECT_ICON
-            self.icon_picker_stack = {}
-            self.icon_picker_path = ''  -- '' = iconpack root
-            self:display_icon_selector('')
+            self:apply_icon_change()
+            self:hide()
+            self:reset_state()
         elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
             local name = self:capture_global_icon_source_name()
             if (name == nil) then
@@ -953,6 +1046,11 @@ function action_binder:submit_selected_option()
             self.selector:decrement_page()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
+        elseif option.id == 'CLEAR_ICON' then
+            self.custom_action_draft.icon = nil
+            self.icon_picker_return = nil
+            self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+            self:display_edit_custom_action_review()
         elseif (option.data ~= nil and option.data.is_dir) then
             table.insert(self.icon_picker_stack, {
                 path = self.icon_picker_path,
@@ -963,7 +1061,17 @@ function action_binder:submit_selected_option()
             self:display_icon_selector(self.icon_picker_path)
         elseif (option.data ~= nil and option.data.icon_path ~= nil) then
             self.action_icon = option.data.icon_path
-            if (self.action_type == action_types.GLOBAL_ICON_SET) then
+            if self.icon_picker_return == 'custom_review' then
+                self.custom_action_draft.icon = option.data.icon_path
+                self.icon_picker_return = nil
+                self.icon_picker_path, self.icon_picker_stack = '', {}
+                self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+                self:display_edit_custom_action_review()
+            elseif self.action_type == action_types.CHANGE_ICON then
+                self.icon_picker_path, self.icon_picker_stack = '', {}
+                self.state=states.SELECT_BUTTON_ASSIGNMENT
+                self:display_button_assigner()
+            elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
                 self:apply_global_icon()
                 self:hide()
                 self:reset_state()
@@ -971,8 +1079,8 @@ function action_binder:submit_selected_option()
                 self.custom_action_draft.icon = option.data.icon_path
                 self.icon_picker_path = ''
                 self.icon_picker_stack = {}
-                self.state = states.SELECT_LINKED_TYPE
-                self:display_linked_type_selector()
+                self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+                self:display_edit_custom_action_review()
             elseif (self.action_type == action_types.EDIT_CUSTOM_ACTION) then
                 self.custom_action_draft.icon = option.data.icon_path
                 self.icon_picker_path = ''
@@ -1037,8 +1145,8 @@ function action_binder:submit_selected_option()
                 self.state = states.EDIT_CUSTOM_ACTION_REVIEW
                 self:display_edit_custom_action_review()
             else
-                self.state = states.CONFIRM_CUSTOM_ACTION
-                self:display_custom_action_confirm()
+                self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+                self:display_edit_custom_action_review()
             end
         else
             self.custom_action_draft.linked_type = prefix_lookup[option.id]
@@ -1084,8 +1192,14 @@ function action_binder:submit_selected_option()
             self.selector:decrement_page()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
+        elseif option.id == 'CHANGE_NAME' or option.id == 'CHANGE_ALIAS' or option.id == 'CHANGE_COMMAND' then
+            self.custom_action_review_field = ({CHANGE_NAME='name',CHANGE_ALIAS='alias',CHANGE_COMMAND='command'})[option.id]
+            self.text_entry_buffer = self.custom_action_draft[self.custom_action_review_field] or ''
+            self:set_capturing_text(true)
+            self:display_inline_custom_action_entry()
         elseif (option.id == 'CHANGE_ICON') then
-            self.action_type = action_types.EDIT_CUSTOM_ACTION
+            self.icon_picker_return = 'custom_review'
+            self.action_type = self.editing_custom_action and action_types.EDIT_CUSTOM_ACTION or action_types.CREATE_CUSTOM_ACTION
             self.state = states.SELECT_ICON
             self.icon_picker_stack = {}
             self.icon_picker_path = ''
@@ -1101,10 +1215,24 @@ function action_binder:submit_selected_option()
             self.custom_action_draft.linked_action = nil
             self.custom_action_draft.linked_type = nil
             self:display_edit_custom_action_review()
-        elseif (option.id == 'SAVE_EDIT') then
-            self:apply_custom_action_update()
-            self:hide()
-            self:reset_state()
+        elseif option.id == 'SAVE_EDIT' or option.id == 'SAVE_BIND' then
+            local saved
+            if self.editing_custom_action then saved = self:apply_custom_action_update()
+            else saved = self:apply_custom_action_save() end
+            if not saved then return end
+            if option.id == 'SAVE_BIND' then
+                local d = self.custom_action_draft
+                self.editing_custom_action = true
+                self.custom_action_original_name = d.name
+                self.binding_custom_action_review = true
+                self.action_type = action_types.CUSTOM_ACTION
+                self.action_name,self.action_alias = d.name,review.alias(d)
+                self.action_command,self.action_icon = d.command,d.icon
+                self.action_linked_action,self.action_linked_type = d.linked_action,d.linked_type
+                self.action_target = nil
+                self.state = states.SELECT_BUTTON_ASSIGNMENT
+                self:display_button_assigner()
+            else self:hide(); self:reset_state() end
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_PICK) then
         local option = self.selector:submit_selected_option()
@@ -1130,6 +1258,27 @@ function action_binder:submit_selected_option()
 end
 
 function action_binder:go_back()
+    if self.custom_action_review_field then
+        self.custom_action_review_field=nil; self:set_capturing_text(false)
+        if self.custom_action_name_required then
+            self.custom_action_name_required=false
+            self:go_back()
+        else self:display_edit_custom_action_review() end
+        return
+    end
+    if self.binding_custom_action_review and self.state == states.SELECT_BUTTON_ASSIGNMENT then
+        self.binding_custom_action_review=false
+        self.state=states.EDIT_CUSTOM_ACTION_REVIEW
+        self:clear_button_entry_ui()
+        self:display_edit_custom_action_review(); return
+    end
+    if self.custom_action_draft and (self.state == states.SELECT_LINKED_TYPE or
+        (self.state == states.SELECT_ICON and (not self.icon_picker_stack or #self.icon_picker_stack == 0))) then
+        self.is_linking_for_custom_action=false
+        self.icon_picker_return=nil
+        self.state=states.EDIT_CUSTOM_ACTION_REVIEW
+        self:display_edit_custom_action_review(); return
+    end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self:hide()
         self:reset_state()
@@ -1142,7 +1291,7 @@ function action_binder:go_back()
         self.selector:import_selection_state(self.selection_states[states.SELECT_ACTION_TYPE])
         self.selection_states[states.SELECT_ACTION_TYPE] = nil
     elseif (self.state == states.ENTER_SET_NAME) then
-        self.capturing_text = false
+        self:set_capturing_text(false)
         self.text_entry_buffer = ''
         self.state = states.SELECT_ACTION_TYPE
         self.action_type = nil
@@ -1151,14 +1300,14 @@ function action_binder:go_back()
         self.selector:import_selection_state(self.selection_states[states.SELECT_ACTION_TYPE])
         self.selection_states[states.SELECT_ACTION_TYPE] = nil
     elseif (self.state == states.ENTER_SET_ALIAS) then
-        self.capturing_text = true
+        self:set_capturing_text(true)
         self.text_entry_buffer = ''
         self.new_set_name = nil
         self.state = states.ENTER_SET_NAME
         self:display_text_entry('Enter New Set Name', '<Type set name, press Enter>')
-    elseif (self.state == states.SELECT_ICON) then
+    elseif (self.state == states.SELECT_ICON and self.action_type == action_types.CREATE_NEW_SET) then
         -- Go back to alias entry
-        self.capturing_text = true
+        self:set_capturing_text(true)
         self.text_entry_buffer = self.new_set_alias or ''
         self.state = states.ENTER_SET_ALIAS
         self:display_text_entry('Enter Button Alias', '<Type alias, press Enter>')
@@ -1222,7 +1371,12 @@ function action_binder:go_back()
             else
                 self:display_icon_selector_sylvebits()
             end
-        elseif (self.action_type == action_types.CHANGE_ICON or self.action_type == action_types.GLOBAL_ICON_SET) then
+        elseif self.action_type == action_types.CHANGE_ICON then
+            self:clear_button_entry_ui()
+            self.state=states.SELECT_ICON
+            self.icon_picker_path, self.icon_picker_stack = '', {}
+            self:display_icon_selector('')
+        elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
             self.state = states.SELECT_ACTION_TYPE
             self.action_type = nil
             if (self.selection_states[states.SELECT_ACTION_TYPE] ~= nil) then
@@ -1233,6 +1387,13 @@ function action_binder:go_back()
                 self.selector:import_selection_state(self.selection_states[states.SELECT_ACTION_TYPE])
                 self.selection_states[states.SELECT_ACTION_TYPE] = nil
             end
+        elseif (self.selection_states[states.SELECT_ACTION_TARGET] == nil and
+            self.selection_states[states.SELECT_ACTION] == nil) then
+            -- A: direct actions never opened an action or target list.
+            -- Switch Target, View Map, Last Synth and Remove Binding return home.
+            self.action_name = nil
+            self.action_target = nil
+            self:return_to_action_type_menu()
         -- check if we skipped target selection due to "Self" being the only option
         elseif (self.selection_states[states.SELECT_ACTION_TARGET] == nil) then
             self.state = states.SELECT_ACTION
@@ -1263,11 +1424,11 @@ function action_binder:go_back()
             if (frame.selection_state ~= nil) then
                 self.selector:import_selection_state(frame.selection_state)
             end
-        elseif (self.action_type == action_types.CREATE_CUSTOM_ACTION) then
-            self.icon_picker_path = ''
-            self.icon_picker_stack = {}
-            self.state = states.SELECT_CUSTOM_ACTION_ICON_CHOICE
-            self:display_icon_choice_selector()
+        elseif self.icon_picker_return == 'custom_review' or self.action_type == action_types.CREATE_CUSTOM_ACTION then
+            self.icon_picker_return = nil
+            self.icon_picker_path, self.icon_picker_stack = '', {}
+            self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+            self:display_edit_custom_action_review()
         elseif (self.action_type == action_types.EDIT_CUSTOM_ACTION) then
             self.icon_picker_path = ''
             self.icon_picker_stack = {}
@@ -1311,13 +1472,9 @@ function action_binder:go_back()
         self.state = states.ENTER_CUSTOM_ACTION_COMMAND
         self:display_custom_action_field_review('Command', 'c', self.custom_action_draft.command, '(raw command this action will fire)')
     elseif (self.state == states.SELECT_LINKED_TYPE) then
-        if (self.editing_custom_action) then
-            self.state = states.EDIT_CUSTOM_ACTION_REVIEW
-            self:display_edit_custom_action_review()
-        else
-            self.state = states.SELECT_CUSTOM_ACTION_ICON_CHOICE
-            self:display_icon_choice_selector()
-        end
+        self.is_linking_for_custom_action = false
+        self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+        self:display_edit_custom_action_review()
     elseif (self.state == states.CONFIRM_CUSTOM_ACTION) then
         self.custom_action_draft.linked_action = nil
         self.custom_action_draft.linked_type = nil
@@ -1335,11 +1492,12 @@ function action_binder:go_back()
             self.selection_states[states.SELECT_ACTION_TYPE] = nil
         end
     elseif (self.state == states.EDIT_CUSTOM_ACTION_REVIEW) then
-        self.custom_action_draft = nil
-        self.custom_action_original_name = nil
-        self.editing_custom_action = false
-        self.state = states.EDIT_CUSTOM_ACTION_PICK
-        self:display_custom_actions_picker('Edit Custom Action: Pick Entry')
+        local origin=self.custom_action_entry_origin
+        self.custom_action_draft=nil; self.custom_action_original_name=nil
+        self.editing_custom_action=false
+        if origin == 'command' then self:hide(); self:reset_state()
+        elseif origin == 'menu' then self:return_to_action_type_menu()
+        else self.state=states.EDIT_CUSTOM_ACTION_PICK; self:display_custom_actions_picker('Edit Custom Action: Pick Entry') end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_PICK) then
         self.state = states.SELECT_ACTION_TYPE
         self.action_type = nil
@@ -1358,9 +1516,63 @@ function action_binder:go_back()
     end
 end
 
+-- Preserve live objects/page/draft while the set chooser owns drawing/input.
+-- Keep the inactive menu readable underneath; snapshot exact opacity for return.
+function action_binder:set_chooser_active(active, gamepad_state)
+    if self.chooser_active == active then return end
+    self.chooser_active = active
+    self.selector.suspended = active
+    if active then
+        self.chooser_visibility = {}
+        local seen = {}
+        local function suspend(object)
+            if not object or seen[object] then return end
+            seen[object] = true
+            local alpha = object:alpha()
+            self.chooser_visibility[#self.chooser_visibility+1] = {object=object, visible=object:visible(), alpha=alpha}
+            if object == self.title then self.chooser_title_alpha=alpha end
+            object:alpha(math.floor(alpha*0.45))
+        end
+        suspend(self.title)
+        suspend(self.inline_entry_text)
+        for _,objects in ipairs({self.images,self.hints,self.selector.images,self.selector.fields}) do
+            for _,object in ipairs(objects or {}) do suspend(object) end
+        end
+        for _,objects in ipairs({self.selector.page_backgrounds or {},self.selector.page_trigger_icons or {}}) do
+            for _,object in pairs(objects) do suspend(object) end
+        end
+        if self.selector.cursor then self.selector.cursor:hide() end
+        for _,id in ipairs({'selectablelist_selection_highlight','prev_page_button','next_page_button'}) do
+            windower.prim.set_visibility(id,false)
+        end
+        self:reset_gamepad()
+        self.page_gesture = nil
+    else
+        for _,entry in ipairs(self.chooser_visibility or {}) do
+            entry.object:alpha(entry.alpha)
+            if entry.visible then entry.object:show() else entry.object:hide() end
+        end
+        self.chooser_visibility = nil
+        self.chooser_title_alpha = nil
+        if not self.is_hidden then
+            require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg',true)
+            local entry = self.state==states.SELECT_BUTTON_ASSIGNMENT or self.state==states.CONFIRM_BUTTON_ASSIGNMENT or
+                self.state==states.ENTER_SET_NAME or self.state==states.ENTER_SET_ALIAS
+            windower.prim.set_visibility('button_entry_bg',entry)
+            if self.selector.is_showing then self.selector:highlight_selection() end
+            if gamepad_state then
+                if gamepad_state.left_trigger then self:trigger_left(true) end
+                if gamepad_state.right_trigger then self:trigger_right(true) end
+                if self.page_gesture then self.page_gesture.used=true end
+            end
+            self:refresh_set_title()
+        end
+    end
+end
+
 function action_binder:hide()
     self.is_hidden = true
-    windower.prim.set_visibility('dialog_bg', false)
+    require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg', false)
     windower.prim.set_visibility('button_entry_bg', false)
     self.title:hide()
     self.selector:hide()
@@ -1378,12 +1590,13 @@ function action_binder:show()
         self.state = states.SELECT_ACTION_TYPE
         self:display_action_type_selector()
     end
-    windower.prim.set_visibility('dialog_bg', true)
+    require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg', true)
     self.title:show()
     self.selector:show()
 end
 
 function action_binder:display_action_type_selector()
+    require('ui/menu_background').set_color(windower.prim, 'dialog_bg',150,0,0,0)
     self.title:text('Select Action Type')
     self.title:show()
 
@@ -1396,12 +1609,14 @@ function action_binder:display_action_type_selector()
     local black_magic_jobs = {BLM = true, RDM = true, DRK = true, SCH = true, GEO = true, RUN = true}
 
     local action_type_list = L{}
-    action_type_list:append({id = action_types.DELETE, name = 'Remove a Binding', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
+    local empty_catalog = player_data.custom_actions == nil or next(player_data.custom_actions) == nil
+    local custom_icon = 'images/' .. get_icon_pathbase() .. '/custom_actions.png'
+    action_type_list:append({id = action_types.CREATE_CUSTOM_ACTION, name = 'Create Custom Action', icon = custom_icon})
+    action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon, disabled = empty_catalog, disabled_focusable = true})
+    action_type_list:append({id = action_types.EDIT_CUSTOM_ACTION, name = 'Edit Custom Action', icon = custom_icon, disabled = empty_catalog, disabled_focusable = true})
+    action_type_list:append({id = action_types.DELETE_CUSTOM_ACTION, name = 'Delete Custom Action', icon = 'images/' .. get_icon_pathbase() .. '/ui/red-x.png', disabled = empty_catalog, disabled_focusable = true})
     action_type_list:append({id = action_types.JOB_ABILITY, name = 'Job Ability', icon = 'images/icons/abilities/00001.png', icon_offset = 4})
     action_type_list:append({id = action_types.WEAPONSKILL, name = 'Weaponskill', icon = 'images/icons/weapons/sword.png', icon_offset = 4})
-    if (player_data.custom_actions ~= nil and next(player_data.custom_actions) ~= nil) then
-        action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = 'images/' ..get_icon_pathbase() .. '/custom_actions.png'})
-    end
 
     if (pet_jobs[main_job] or pet_jobs[sub_job]) then
         action_type_list:append({id = action_types.PET_COMMAND, name = 'Pet Command', icon = 'images/' ..get_icon_pathbase() .. '/mounts/crab.png'})
@@ -1454,24 +1669,19 @@ function action_binder:display_action_type_selector()
     action_type_list:append({id = action_types.TRADABLE_ITEM, name = 'Trade Item', icon = 'images/' ..get_icon_pathbase() .. '/item.png'})
     action_type_list:append({id = action_types.RANGED_ATTACK, name = 'Ranged Attack', icon = 'images/' ..get_icon_pathbase() .. '/ranged.png'})
     action_type_list:append({id = action_types.ATTACK, name = 'Attack', icon = 'images/' ..get_icon_pathbase() .. '/attack.png'})
+    action_type_list:append({id = action_types.CHECK, name = 'Check', icon = 'images/' ..get_icon_pathbase() .. '/check.png'})
     action_type_list:append({id = action_types.ASSIST, name = 'Assist', icon = 'images/' ..get_icon_pathbase() .. '/assist.png'})
     action_type_list:append({id = action_types.SWITCH_TARGET, name = 'Switch Target', icon = 'images/' ..get_icon_pathbase() .. '/targetnpc.png'})
     action_type_list:append({id = action_types.MAP, name = 'View Map', icon = 'images/' ..get_icon_pathbase() .. '/map.png'})
     action_type_list:append({id = action_types.LAST_SYNTH, name = 'Repeat Last Synth', icon = 'images/' ..get_icon_pathbase() .. '/synth.png'})
-    action_type_list:append({id = action_types.EXECUTE_COMMAND, name = 'Execute Command', icon = get_icon_pathbase() .. '/windower4.png'})
-	action_type_list:append({id = action_types.SUPERWARP, name = 'Superwarp', icon = 'credit_avatars/akadentk.png'})
+	action_type_list:append({id = action_types.SUPERWARP, name = 'Superwarp', icon = 'images/' .. get_icon_pathbase() .. '/home-point.png'})
     action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch Crossbars', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
     action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick XB Switch', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
     action_type_list:append({id = action_types.CREATE_NEW_SET, name = 'Create New Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_' .. self.button_layout .. '.png'})
     action_type_list:append({id = action_types.MOVE_CROSSBARS, name = 'Move Crossbar', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_ps.png'})
-	action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
-    action_type_list:append({id = action_types.GLOBAL_ICON_SET, name = 'Global Icon Set', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
-    action_type_list:append({id = action_types.CREATE_CUSTOM_ACTION, name = 'Create Custom Action', icon = 'images/' ..get_icon_pathbase() .. '/custom_actions.png'})
-
-    if (player_data.custom_actions ~= nil and next(player_data.custom_actions) ~= nil) then
-        action_type_list:append({id = action_types.EDIT_CUSTOM_ACTION, name = 'Edit Custom Action', icon = 'images/' ..get_icon_pathbase() .. '/custom_actions.png'})
-        action_type_list:append({id = action_types.DELETE_CUSTOM_ACTION, name = 'Delete Custom Action', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
-    end
+	action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Slot Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
+    action_type_list:append({id = action_types.GLOBAL_ICON_SET, name = 'Change Action Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
+    action_type_list:append({id = action_types.DELETE, name = 'Remove a Binding', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
 
     action_type_list:append({id = action_types.SHOW_CREDITS, name = 'XIVCrossbar Credits', icon = 'images/credit_avatars/xiv.png'})
     self.selector:display_options(action_type_list)
@@ -1577,14 +1787,43 @@ function action_binder:display_target_selector()
     self.selector:display_options(target_options)
 end
 
-function action_binder:display_button_assigner()
-    self.title:text('Enter Button Combo')
+-- Center captions using measured glyph widths rather than character counts.
+function action_binder:center_caption(caption, y)
+    caption_layout:center(caption, self.base_x + self.width / 2, y, self.width - 80)
+end
+
+-- A: the destination is the current set, even when a draft spans switches.
+function action_binder:show_set_title(label)
+    self.set_title_base = label
+    local key = player_data.hotbar_settings.active_environment
+    local bar = player_data.hotbar[key]
+    local name = bar and (bar.name or key) or key or ''
+    local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
+    local color = defaults[key] and '\\cs(0,128,255)' or '\\cs(255,255,255)'
+    self.title:text(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
+    self:center_caption(self.title, self.base_y + 30)
     self.title:show()
+    if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end
+end
+
+function action_binder:refresh_set_title()
+    if not self.title or self.is_hidden then return end
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT or self.state == states.CONFIRM_BUTTON_ASSIGNMENT or
+        self.state == states.EDIT_CUSTOM_ACTION_REVIEW then
+        if self.set_title_base then self:show_set_title(self.set_title_base) end
+    end
+end
+
+function action_binder:display_button_assigner()
+    self:show_set_title('Enter Button Combo')
 
     self:reset_gamepad()
 
     self.selector:hide()
 
+    windower.prim.set_position('button_entry_bg', self.base_x+30, self.base_y+self.height/2-60)
+    windower.prim.set_size('button_entry_bg',self.width-60,120)
+    windower.prim.set_color('button_entry_bg',150,0,0,0)
     windower.prim.set_visibility('button_entry_bg', true)
 
     for i, image in ipairs(self.images) do
@@ -1594,35 +1833,36 @@ function action_binder:display_button_assigner()
         hint:hide()
     end
 
-    local caption_x = self.base_x + self.width / 2 - 200
+    local caption_x = self.base_x + self.width / 2
     local caption_y = self.base_y + self.height / 2 - 40
     local caption_text = ''
     local secondary_text = nil
     if (self.action_type == action_types.DELETE) then
         caption_text = 'Press a button combo to remove its bound action'
     elseif (self.action_type == action_types.CHANGE_ICON) then
-        caption_text = 'Press a button combo for the slot whose icon you want to change'
+        caption_text = 'Press the button combo for the slot to change icon.'
     elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
-        caption_text = 'Press a button combo for an action to globally re-icon'
-        secondary_text = 'The chosen icon will apply to every slot whose action name matches, across all jobs.'
+        caption_text = 'Press the button combo for the action to change icon.'
+        secondary_text = 'Matches action names or aliases across your sets; slot icons take precedence.'
     else
         caption_text = 'Press a button combo to bind it to this action'
     end
 
+    self:show_control_hints('Confirm', 'Go Back')
     local caption = self:create_text(caption_text, caption_x, caption_y)
     caption:size(14)
+    self:center_caption(caption, caption_y)
     self.hints:append(caption)
     if (secondary_text ~= nil) then
         local secondary = self:create_text(secondary_text, caption_x, caption_y + 25)
         secondary:size(11)
+        self:center_caption(secondary, caption_y + 25)
         self.hints:append(secondary)
     end
-    self:show_exit_hint()
 end
 
 function action_binder:display_button_confirmer()
-    self.title:text('Enter Button Combo')
-    self.title:show()
+    self:show_set_title('Enter Button Combo')
 
     self.selector:hide()
 
@@ -1638,17 +1878,16 @@ function action_binder:display_button_confirmer()
     elseif (self.action_type == action_types.CHANGE_ICON) then
         caption_text = 'Change icon for this slot?'
     elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
-        caption_text = 'Use this action name as the global icon key?'
+        caption_text = 'Change icon for matching actions across your sets?'
     else
         caption_text = 'Bind ' .. self.action_name .. '?'
     end
-    caption_x = caption_x - (caption_text:len() * 5)
-
     self:confirm_buttons()
     self:show_control_hints('Confirm', 'Go Back')
 
     local caption = self:create_text(caption_text, caption_x, caption_y)
     caption:size(14)
+    self:center_caption(caption, caption_y)
     self.hints:append(caption)
 end
 
@@ -1754,7 +1993,7 @@ function action_binder:show_pressed_buttons()
         self:show_icon(icons[i], start_x + (i - 1) * 40, start_y)
     end
 
-    self:show_exit_hint()
+    self:show_control_hints('Confirm', 'Go Back')
 end
 
 function action_binder:confirm_buttons()
@@ -1840,6 +2079,14 @@ function action_binder:show_hint(hint_text, path, x, y)
     local caption = self:create_text(hint_text, x + 45, y + 10)
     caption:size(14)
     self.hints:append(caption)
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT then
+        local disabled = hint_text == 'Confirm' or (hint_text == 'Go Back' and
+            (self.trigger_left_pressed or self.trigger_right_pressed))
+        if disabled then
+            caption:alpha(80)
+            self.images[#self.images]:alpha(80)
+        end
+    end
 end
 
 function action_binder:show_exit_hint()
@@ -2450,6 +2697,23 @@ function action_binder:display_crossbar_sets_selector()
     self:show_control_hints('Confirm', 'Go Back')
 end
 
+-- Explicit artwork wins; valid linked metadata can supply a catalog icon.
+-- Only unlinked/unresolved entries use the full-size gear catalog default.
+function action_binder:custom_action_icon(record)
+    local base = 'images/' .. get_icon_pathbase() .. '/'
+    if record.icon and record.icon ~= '' then return base .. record.icon .. '.png',0 end
+    local name,kind = record.linked_action,record.linked_type
+    if name and name ~= '' and (kind=='ma' or kind=='ja' or kind=='ws' or kind=='pet') then
+        local resources = kind=='ma' and crossbar_spells or crossbar_abilities
+        local metadata = resources[kebab_casify(name)]
+        if metadata then
+            local path,overridden = maybe_get_custom_icon(metadata.default_icon,metadata.custom_icon)
+            if path then return path,overridden and 0 or 4 end
+        end
+    end
+    return base .. 'custom_actions.png',0
+end
+
 function action_binder:display_custom_actions_selector()
     self.title:text('Select Custom Action')
     self.title:show()
@@ -2457,14 +2721,7 @@ function action_binder:display_custom_actions_selector()
     local action_list = L{}
     if (player_data.custom_actions ~= nil) then
         for name, record in pairs(player_data.custom_actions) do
-            local icon_path = nil
-            local icon_offset = 4
-            if (record.icon ~= nil and record.icon ~= '') then
-                icon_path = 'images/' .. get_icon_pathbase() .. '/' .. record.icon .. '.png'
-                icon_offset = 0
-            else
-                icon_path = 'images/' .. get_icon_pathbase() .. '/custom_actions.png'
-            end
+            local icon_path,icon_offset = self:custom_action_icon(record)
 
             local resolved_alias = name
             if (record.alias ~= nil and record.alias ~= '') then
@@ -2504,6 +2761,7 @@ function action_binder:display_custom_actions_selector()
 end
 
 local icon_picker_excluded_files = {
+    ['goring_blade'] = true, -- duplicate top-level sample, not the weaponskill icon
     ['bar_bg'] = true,
     ['bar_bg_compact'] = true,
     ['bar_bg_compact_alt'] = true,
@@ -2569,6 +2827,8 @@ local function list_iconpack_dir(rel_path)
 end
 
 function action_binder:display_icon_selector(rel_path)
+    rel_path = rel_path or self.icon_picker_path or ''
+    self.icon_picker_path = rel_path
     local title_text
     if (self.action_type == action_types.GLOBAL_ICON_SET) then
         title_text = 'Pick Icon for "' .. (self.global_icon_source_name or '?') .. '"'
@@ -2587,6 +2847,9 @@ function action_binder:display_icon_selector(rel_path)
     local dirs, files = list_iconpack_dir(rel_path)
 
     local list = L{}
+    if self.icon_picker_return == 'custom_review' then
+        list:append({id='CLEAR_ICON', name='Clear Icon', icon='images/' .. pathbase .. '/ui/red-x.png'})
+    end
 
     table.sort(dirs, function(a, b) return a:lower() < b:lower() end)
     for _, dirname in ipairs(dirs) do
@@ -2667,13 +2930,13 @@ end
 function action_binder:on_custom_action_field_set(field, value)
     if (self.custom_action_draft == nil) then
         windower.add_to_chat(123, '[XIVCrossbar] No Custom Action in progress. Open the binder and choose Create Custom Action first.')
-        return
+        return false
     end
 
     -- Reject empty values (whitespace-only counts as empty).
-    if (value == nil or value:match('^%s*$') ~= nil) then
+    if field == 'name' and not review.nonempty(value) then
         windower.add_to_chat(123, '[XIVCrossbar] You must provide a value for "' .. field .. '".')
-        return
+        return false
     end
 
     local on_alias_screen   = (self.state == states.ENTER_CUSTOM_ACTION_ALIAS)
@@ -2690,18 +2953,23 @@ function action_binder:on_custom_action_field_set(field, value)
 
     if (not accepted) then
         windower.add_to_chat(123, '[XIVCrossbar] Field "' .. field .. '" can only be set on its own review screen or the final review/confirm screen.')
-        return
+        return false
     end
 
     if (field == 'name') then
         local is_original = (self.editing_custom_action and value == self.custom_action_original_name)
         if (not is_original and player_data.custom_actions ~= nil and player_data.custom_actions[value] ~= nil) then
             windower.add_to_chat(123, '[XIVCrossbar] A custom action named "' .. value .. '" already exists. Pick a different name.')
-            return
+            return false
         end
     end
 
-    self.custom_action_draft[field] = value
+    self.custom_action_draft[field] = value or ''
+    if field == 'name' and self.custom_action_name_required then
+        self.custom_action_name_required = false
+        self.custom_action_review_field = nil
+        self:set_capturing_text(false)
+    end
     windower.add_to_chat(207, '[XIVCrossbar] ' .. field .. ' set to: ' .. value)
 
     if (on_alias_screen) then
@@ -2715,6 +2983,7 @@ function action_binder:on_custom_action_field_set(field, value)
     elseif (on_edit_screen) then
         self:display_edit_custom_action_review()
     end
+    return true
 end
 
 function action_binder:apply_global_icon()
@@ -2730,15 +2999,34 @@ function action_binder:apply_global_icon()
 end
 
 function action_binder:apply_custom_action_save()
-    if (self.save_custom_action == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Create Custom Action: callback not wired (please reload addon).')
-        return
+    local d=self.custom_action_draft
+    if not d or not review.valid_name(d.name,player_data.custom_actions,nil) or not self.save_custom_action then
+        windower.add_to_chat(123, '[XIVCrossbar] Enter a unique catalog name before saving.'); return false
     end
-    if (self.custom_action_draft == nil or self.custom_action_draft.name == nil or self.custom_action_draft.name == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Create Custom Action: incomplete draft.')
-        return
-    end
-    self.save_custom_action(self.custom_action_draft)
+    return self.save_custom_action(d) ~= false
+end
+
+function action_binder:new_custom_action(name, origin)
+    if not self.title then windower.add_to_chat(123,'[XIVCrossbar] Log in before editing.'); return false end
+    if self.custom_action_draft then windower.add_to_chat(123,'[XIVCrossbar] Save or cancel the current draft first.'); return false end
+    name=name or ''
+    local record=player_data.custom_actions and player_data.custom_actions[name]
+    self.custom_action_entry_origin=origin
+    self.editing_custom_action=record ~= nil
+    self.custom_action_original_name=record and name or nil
+    self.action_type=record and action_types.EDIT_CUSTOM_ACTION or action_types.CREATE_CUSTOM_ACTION
+    self.custom_action_draft={name=name,alias=record and record.alias or nil,command=record and record.command or nil,
+        icon=record and record.icon or nil,linked_action=record and record.linked_action or nil,linked_type=record and record.linked_type or nil}
+    self.state=states.EDIT_CUSTOM_ACTION_REVIEW
+    self.custom_action_name_required = not review.nonempty(name)
+    self:show()
+    if self.custom_action_name_required then
+        self.custom_action_review_field = 'name'
+        self.text_entry_buffer = ''
+        self:set_capturing_text(true)
+        self:display_inline_custom_action_entry()
+    else self:display_edit_custom_action_review() end
+    return true
 end
 
 function action_binder:display_custom_actions_picker(title_text)
@@ -2751,9 +3039,6 @@ function action_binder:display_custom_actions_picker(title_text)
     self.hints = L{}
     windower.prim.set_visibility('button_entry_bg', false)
 
-    local pathbase = get_icon_pathbase()
-    local default_icon = 'images/' .. pathbase .. '/custom_actions.png'
-
     local names = {}
     if (player_data.custom_actions ~= nil) then
         for name in pairs(player_data.custom_actions) do
@@ -2765,12 +3050,7 @@ function action_binder:display_custom_actions_picker(title_text)
     local list = L{}
     for _, name in ipairs(names) do
         local record = player_data.custom_actions[name]
-        local icon_path = default_icon
-        local icon_offset = 4
-        if (record.icon ~= nil and record.icon ~= '') then
-            icon_path = 'images/' .. pathbase .. '/' .. record.icon .. '.png'
-            icon_offset = 0
-        end
+        local icon_path,icon_offset = self:custom_action_icon(record)
         list:append({id = 'CA_' .. name, name = name, icon = icon_path, icon_offset = icon_offset})
     end
 
@@ -2778,71 +3058,86 @@ function action_binder:display_custom_actions_picker(title_text)
     self:show_control_hints('Confirm', 'Go Back')
 end
 
+-- A: actions above, aligned values below; optional metadata is secondary.
 function action_binder:display_edit_custom_action_review()
-    local d = self.custom_action_draft or {}
-    local original = self.custom_action_original_name or ''
-    self.title:text('Edit Custom Action: ' .. original)
-    self.title:show()
-    self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', false)
-
-    local linked_type_label = ''
-    if (d.linked_type ~= nil and d.linked_type ~= '') then
-        linked_type_label = linked_type_display[d.linked_type] or d.linked_type
+    local d=self.custom_action_draft or {}
+    self:show_set_title(self.editing_custom_action and 'Custom Action: Review and Edit' or 'New Custom Action: Review and Save')
+    self.title:show(); self.selector:hide()
+    for _,image in ipairs(self.images) do image:hide() end
+    for _,hint in ipairs(self.hints) do hint:hide() end
+    self.images,self.hints=L{},L{}
+    require('ui/menu_background').set_color(windower.prim, 'dialog_bg',215,0,0,0)
+    windower.prim.set_visibility('button_entry_bg',false)
+    local path='images/'..get_icon_pathbase()..'/'
+    local list=L{}
+    for _,option in ipairs({
+        {'SAVE_BIND','Save & Bind','custom_actions'},
+        {'SAVE_EDIT',self.editing_custom_action and 'Save Changes' or 'Save Only','custom_actions'},
+        {'CHANGE_NAME','Edit Name','custom_actions'},
+        {'CHANGE_ALIAS','Edit Alias','custom_actions'},
+        {'CHANGE_COMMAND','Edit Command','custom_actions'},
+        {'CHANGE_ICON','Choose Icon','icon-set'},
+        {'CHANGE_LINKED','Link Action','custom_actions'},
+    }) do
+        local saving = option[1]=='SAVE_BIND' or option[1]=='SAVE_EDIT'
+        list:append({id=option[1],name=option[2],icon=path..option[3]..'.png',
+            disabled=saving and not review.nonempty(d.name)})
     end
-    local linked_summary
-    if (d.linked_action ~= nil and d.linked_action ~= '') then
-        if (linked_type_label ~= '') then
-            linked_summary = d.linked_action .. ' [' .. linked_type_label .. ']'
-        else
-            linked_summary = d.linked_action
-        end
+    self.selector.review_base_x=self.base_x+(self.width-560)/2
+    if review.nonempty(d.name) then
+        self.selector:set_page(1); self.selector:display_options(list,'review')
     else
-        linked_summary = '(none)'
+        local prompt = self:create_text('Type Custom Action Name and confirm.', self.base_x+70, self.base_y+90)
+        self.hints:append(prompt)
     end
-
-    local pathbase = get_icon_pathbase()
-    local change_icon_path
-    local change_icon_offset = 4
-    if (d.icon ~= nil and d.icon ~= '') then
-        change_icon_path = 'images/' .. pathbase .. '/' .. d.icon .. '.png'
-        change_icon_offset = 0
-    else
-        change_icon_path = 'images/' .. pathbase .. '/icon-set.png'
-    end
-
-    local list = L{}
-    list:append({id = 'CHANGE_ICON',   name = 'Change Icon',          icon = change_icon_path, icon_offset = change_icon_offset})
-    list:append({id = 'REMOVE_ICON',   name = 'Remove Icon',          icon = 'images/' .. pathbase .. '/ui/red-x.png'})
-    list:append({id = 'CHANGE_LINKED', name = 'Change Linked Action', icon = 'images/' .. pathbase .. '/custom_actions.png'})
-    list:append({id = 'REMOVE_LINKED', name = 'Remove Linked Action', icon = 'images/' .. pathbase .. '/ui/red-x.png'})
-    list:append({id = 'SAVE_EDIT',     name = 'Save Changes',         icon = 'images/' .. pathbase .. '/custom_actions.png'})
-
-    self.selector:display_options(list)
-
-    self:show_control_hints('Confirm', 'Go Back')
-
-    local lines = {
-        'Alias:    ' .. (d.alias or ''),
-        'Name:     ' .. (d.name or ''),
-        'Command:  ' .. (d.command or ''),
-        'Icon:     ' .. (d.icon or '(none)'),
-        'Linked:   ' .. linked_summary,
-        '',
-        'Edit text fields with chat:',
-        '  //xivcrossbar ca a <alias>    //xivcrossbar ca n <name>    //xivcrossbar ca c <command>',
+    self:show_control_hints('Confirm','Go Back')
+    self.custom_action_value_texts={}
+    self.review_value_x=self.base_x+self.width*.40
+    self.review_rows_y=self.base_y+(review.nonempty(d.name) and 250 or 150)
+    local rows={
+        {'Custom Action Name',d.name or '',false,'name'},
+        {'Alias',review.alias(d),not review.nonempty(d.alias),'alias'},
+        {'Command',review.command(d),not review.nonempty(d.command),'command'},
+        {'Icon',review.nonempty(d.icon) and d.icon or 'none',not review.nonempty(d.icon)},
+        {'Linked',review.nonempty(d.linked_action) and d.linked_action or 'none',not review.nonempty(d.linked_action)},
     }
-    local x = self.base_x + self.width / 2 - 260
-    local y = self.base_y + self.height - 50 - (#lines * 20) - 120
-    for i, line in ipairs(lines) do
-        local t = self:create_text(line, x, y + (i - 1) * 20)
-        t:size(13)
-        self.hints:append(t)
+    for i,row in ipairs(rows) do
+        local y=self.review_rows_y+(i-1)*29
+        local label=self:create_text(row[1]..':',self.base_x+self.width*.17,y)
+        local value=row[3] and ('('..(row[2]~='' and row[2] or 'none')..')') or row[2]
+        local text=self:create_text(value:len()>48 and value:sub(1,45)..'...' or value,self.review_value_x,y)
+        label:size(i==1 and 14 or 12); text:size(i==1 and 14 or 12)
+        if not review.nonempty(d.name) then
+            if i==1 then label:color(255,255,255) else label:color(255,149,151) end
+            text:color(255,149,151)
+        elseif row[3] then label:color(194,253,195); text:color(194,253,195) end
+        self.hints:append(label);self.hints:append(text)
+        if row[4] then self.custom_action_value_texts[row[4]]=text end
     end
+    for i,line in ipairs({
+        'Select Edit Name, Edit Alias or Edit Command to type.',
+        'Or use: //xb ca name <name of action> | //xb ca alias <label for action> | //xb ca command <console command to fire>',
+    }) do
+        local y=self.base_y+self.height-95+(i-1)*18
+        local help=self:create_text(line,self.base_x+30,y)
+        help:size(10);self:center_caption(help,y);self.hints:append(help)
+    end
+end
+
+function action_binder:display_inline_custom_action_entry()
+    self:display_edit_custom_action_review()
+    self.selector:hide()
+    local field=self.custom_action_review_field
+    self.custom_action_value_texts[field]:hide()
+    local row=({name=0,alias=1,command=2})[field]
+    local x,y=self.review_value_x-5,self.review_rows_y+row*29-3
+    windower.prim.set_position('button_entry_bg',x,y)
+    windower.prim.set_size('button_entry_bg',self.width*.52,27)
+    windower.prim.set_color('button_entry_bg',240,16,26,48)
+    windower.prim.set_visibility('button_entry_bg',true)
+    self.inline_entry_text=self:create_text('',x+5,y+3)
+    self.inline_entry_text:size(12);self.hints:append(self.inline_entry_text)
+    self:update_text_entry_display()
 end
 
 function action_binder:display_delete_custom_action_confirm()
@@ -2877,26 +3172,11 @@ function action_binder:display_delete_custom_action_confirm()
 end
 
 function action_binder:apply_custom_action_update()
-    if (self.update_custom_action == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: callback not wired (please reload addon).')
-        return
+    local d=self.custom_action_draft
+    if not d or not review.valid_name(d.name,player_data.custom_actions,self.custom_action_original_name) or not self.update_custom_action then
+        windower.add_to_chat(123,'[XIVCrossbar] Enter a unique catalog name before saving.'); return false
     end
-    local d = self.custom_action_draft
-    local original = self.custom_action_original_name
-    if (d == nil or d.name == nil or d.name == '' or original == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: incomplete draft.')
-        return
-    end
-    if (d.alias == nil or d.alias == '' or d.command == nil or d.command == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: alias and command must not be empty.')
-        return
-    end
-
-    if (d.name ~= original) then
-        windower.add_to_chat(123, '[XIVCrossbar] Custom action renamed from "' .. original .. '" to "' .. d.name .. '". Existing slot bindings referencing the old name will not be auto-updated.')
-    end
-
-    self.update_custom_action(original, d)
+    return self.update_custom_action(self.custom_action_original_name,d) ~= false
 end
 
 function action_binder:apply_custom_action_delete()
@@ -3036,6 +3316,7 @@ function action_binder:display_linked_type_selector()
     local black_magic_jobs = {BLM = true, RDM = true, DRK = true, SCH = true, GEO = true, RUN = true}
 
     local list = L{}
+    list:append({id = 'SKIP_LINKED', name = 'Skip (no linked metadata)', icon = 'images/' .. pathbase .. '/ui/red-x.png'})
     list:append({id = action_types.JOB_ABILITY, name = 'Job Ability', icon = 'images/icons/abilities/00001.png', icon_offset = 4})
     list:append({id = action_types.WEAPONSKILL, name = 'Weaponskill', icon = 'images/icons/weapons/sword.png', icon_offset = 4})
     if (pet_jobs[main_job] or pet_jobs[sub_job]) then
@@ -3082,7 +3363,6 @@ function action_binder:display_linked_type_selector()
     if (main_job == 'GEO' or sub_job == 'GEO') then
         list:append({id = action_types.GEOMANCY, name = 'Geomancy', icon = 'images/' .. pathbase .. '/jobs/GEO.png'})
     end
-    list:append({id = 'SKIP_LINKED', name = 'Skip (no linked metadata)', icon = 'images/' .. pathbase .. '/ui/red-x.png'})
 
     self.selector:display_options(list)
     self:show_control_hints('Confirm', 'Go Back')
@@ -3294,23 +3574,30 @@ function action_binder:display_text_entry(title_text, placeholder)
         hint:hide()
     end
 
+    windower.prim.set_position('button_entry_bg', self.base_x+30, self.base_y+self.height/2-60)
+    windower.prim.set_size('button_entry_bg', self.width-60,120)
+    windower.prim.set_color('button_entry_bg',150,0,0,0)
     windower.prim.set_visibility('button_entry_bg', true)
 
-    local caption_x = self.base_x + self.width / 2 - 200
+    local caption_x = self.base_x + self.width / 2
     local caption_y = self.base_y + self.height / 2 - 40
 
     local caption = self:create_text(placeholder, caption_x, caption_y)
     caption:size(14)
+    self:center_caption(caption, caption_y)
     self.hints:append(caption)
     self:show_exit_hint()
 end
 
 function action_binder:update_text_entry_display()
+    if self.custom_action_review_field and self.inline_entry_text then
+        self.inline_entry_text:text(self.text_entry_buffer:sub(-48) .. '|'); self.inline_entry_text:show(); return
+    end
     for i, hint in ipairs(self.hints) do
         hint:hide()
     end
 
-    local caption_x = self.base_x + self.width / 2 - 200
+    local caption_x = self.base_x + self.width / 2
     local caption_y = self.base_y + self.height / 2 - 40
 
     local display_text = self.text_entry_buffer
@@ -3324,8 +3611,14 @@ function action_binder:update_text_entry_display()
 
     local caption = self:create_text(display_text, caption_x, caption_y)
     caption:size(14)
+    self:center_caption(caption, caption_y)
     self.hints:append(caption)
     self:show_exit_hint()
+end
+
+function action_binder:set_capturing_text(enabled)
+    self.capturing_text = enabled
+    require('text_input_guard'):update(enabled, windower.send_command)
 end
 
 function action_binder:send_key(char)
@@ -3343,62 +3636,28 @@ function action_binder:send_backspace()
 end
 
 function action_binder:send_enter()
+    if self.custom_action_review_field then
+        local field,value=self.custom_action_review_field,self.text_entry_buffer
+        if self:on_custom_action_field_set(field,value) == false then return end
+        self.custom_action_review_field=nil; self:set_capturing_text(false)
+        self:display_edit_custom_action_review(); return
+    end
     if (not self.capturing_text) then return end
 
-    if (self.state == states.ENTER_SET_NAME) then
+    if self.state == states.ENTER_SET_NAME then
         local name = self.text_entry_buffer
-        if (name == nil or name == '') then
-            return
-        end
-
-        -- Validate: no reserved names
-        local name_lower = name:lower():gsub(' ', '-'):gsub('\'', '')
-        if (name_lower == 'default' or name_lower == 'job-default' or name_lower == 'all-jobs-default') then
-            self:update_text_entry_display()
-            return
-        end
-
-        -- Check for duplicate set names
-        local existing_sets = self.get_crossbar_sets_binding()
-        for i, set_name in ipairs(existing_sets) do
-            local existing_lower = set_name:lower():gsub(' ', '-'):gsub('\'', '')
-            if (existing_lower == name_lower) then
-                self:update_text_entry_display()
-                return
-            end
-        end
-
-        self.new_set_name = name
+        if not review.nonempty(name) then return end
+        if self.create_new_set_binding(name) == false then return end
+        self:set_capturing_text(false)
         self.text_entry_buffer = ''
-        self.state = states.ENTER_SET_ALIAS
-        self:display_text_entry('Enter Button Alias', '<Type alias, press Enter>')
-    elseif (self.state == states.ENTER_SET_ALIAS) then
-        local alias = self.text_entry_buffer
-        if (alias == nil or alias == '') then
-            -- If no alias given, default to the set name
-            alias = self.new_set_name
-        end
-
-        self.new_set_alias = alias
-        self.capturing_text = false
-
-        -- Create the new set
-        self.create_new_set_binding(self.new_set_name)
-
-        -- Set up the action basics
-        self.action_name = self.new_set_alias
-        self.action_command = 'xb bar ' .. self.new_set_name
-        self.action_target = nil
-
-        -- Proceed to icon selection
-        self.state = states.SELECT_ICON
-        self:display_icon_selector()
+        self:return_to_action_type_menu()
     end
+
 end
 
 function action_binder:send_escape_text()
     if (self.capturing_text) then
-        self.capturing_text = false
+        self:set_capturing_text(false)
         self.text_entry_buffer = ''
         self:go_back()
     end
@@ -3415,29 +3674,32 @@ function action_binder:display_credits()
     local NO_DATA = {target_type = {['None'] = true}}
 
     local credits = L{
-        {id = 0, name = 'Programming\nAliekber', icon = 'credit_avatars/aliekber.png', data = NO_DATA},
-        {id = 0, name = 'MS Paint Art\nAliekber', icon = 'credit_avatars/aliekber.png', data = NO_DATA},
-        {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'Based on XIVHotbar by\nSirEdeonX', icon = 'credit_avatars/edeon.png', data = NO_DATA},
-        {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'Skillchain library\nIvaar', icon = 'credit_avatars/ivaar.png', data = NO_DATA},
-        {id = 0, name = 'MountRoulette library\nXurion', icon = 'credit_avatars/xurion.png', data = NO_DATA},
-        {id = 0, name = 'IconExtractor library\nRubenator', icon = 'credit_avatars/rubenator.png', data = NO_DATA},
-        {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'newline', icon = '', data = NO_DATA},
-        {id = 0, name = 'Beta Testing\nJinxs', icon = 'credit_avatars/jinxs.png', data = NO_DATA},
-        {id = 0, name = 'Beta Testing\nMartel', icon = 'credit_avatars/martel.png', data = NO_DATA},
+        {id = 0, name = 'Programming\nAliekber', icon = 'images/credit_avatars/aliekber.png', data = NO_DATA},
+        {id = 0, name = 'MS Paint Art\nAliekber', icon = 'images/credit_avatars/aliekber.png', data = NO_DATA},
+        {id = 0, name = 'Based on XIVHotbar by\nSirEdeonX', icon = 'images/credit_avatars/edeon.png', data = NO_DATA},
+        {id = 0, name = 'Skillchain library\nIvaar', icon = 'images/credit_avatars/ivaar.png', data = NO_DATA},
+        {id = 0, name = 'MountRoulette library\nXurion', icon = 'images/credit_avatars/xurion.png', data = NO_DATA},
+        {id = 0, name = 'IconExtractor library\nRubenator', icon = 'images/credit_avatars/rubenator.png', data = NO_DATA},
+        {id = 0, name = 'Beta Testing\nJinxs', icon = 'images/credit_avatars/jinxs.png', data = NO_DATA},
+        {id = 0, name = 'Beta Testing\nMartel', icon = 'images/credit_avatars/martel.png', data = NO_DATA},
     }
 
+    -- The main menu's saved selection remains available for Go Back, but
+    -- this shorter responsive list always starts on its own first page.
+    self.selector:set_page(1)
     self.selector:display_options(credits)
     self:show_control_hints('Confirm', 'Go Back')
 end
 
+function action_binder:is_moving_crossbars()
+    return not self.is_hidden and self.state == states.MOVE_CROSSBARS
+end
+
 function action_binder:display_crossbar_mover()
-    self.title:text('Move Crossbars with D-Pad')
+    self.title:text('Move Crossbars')
     self.title:show()
+    local help = self:create_text('Move with the D-pad, or click and drag.', self.base_x + self.width/2 - 155, self.base_y + self.height/2)
+    self.hints:append(help)
     self:show_control_hints('Confirm', 'Go Back')
 end
 
@@ -3823,8 +4085,6 @@ local INVENTORY_BAG = 0
 local TEMP_ITEMS_BAG = 3
 
 function get_items(category)
-    local usable_icon_path = 'images/' .. get_icon_pathbase() .. '/usable-item.png'
-    local tradable_icon_path = 'images/' .. get_icon_pathbase() .. '/item.png'
     local inventory = windower.ffxi.get_items(INVENTORY_BAG)
     local temp_items = windower.ffxi.get_items(TEMP_ITEMS_BAG)
 
@@ -3845,38 +4105,20 @@ end
 
 function append_items(items_list, already_included_ids, category, inventory)
     local ignore_indices = {max = true, count = true, enabled = true}
+    local usable_icon_path = 'images/' .. get_icon_pathbase() .. '/usable-item.png'
+    local tradable_icon_path = 'images/' .. get_icon_pathbase() .. '/item.png'
 
-    for i, inv_item in pairs(inventory) do
-        if ((not ignore_indices[i]) and inv_item.id ~= 0) then
+    for i, inv_item in pairs(inventory or {}) do
+        if ((not ignore_indices[i]) and type(inv_item) == 'table' and inv_item.id ~= 0) then
             local item = res.items[inv_item.id]
-            if (not already_included_ids[item.id]) then
+            if (item and not already_included_ids[item.id]) then
                 already_included_ids[item.id] = true
                 local custom_icon = 'items/' .. kebab_casify(item.en) .. '.png'
                 local icon_path = maybe_get_custom_icon(nil, custom_icon)
                 local is_32_by_32 = false
                 if (icon_path == nil) then
-                    local icon_dir = string.format('%simages/extracted_icons', windower.addon_path)
-                    local full_icon_path = string.format('%simages/extracted_icons/%s.bmp', windower.addon_path, kebab_casify(item.en))
-
-                    if not windower.dir_exists(icon_dir) then
-                        windower.create_dir(icon_dir)
-                    end
-                    if not windower.file_exists(full_icon_path) then
-                        local item_id = nil
-                        for id, resource_item in pairs(res.items) do
-                            if (resource_item.en == item.name) then
-                                item_id = id
-                                break;
-                            end
-                        end
-                        if (item_id ~= nil) then
-                            icon_extractor.item_by_id(item_id, full_icon_path)
-                        end
-                    end
-                    if windower.file_exists(full_icon_path) then
-                        is_32_by_32 = true
-                        icon_path = 'images/extracted_icons/' .. kebab_casify(item.name) .. '.bmp'
-                    end
+                    icon_path = item_icons.resolve(inv_item.id)
+                    is_32_by_32 = icon_path ~= nil
                 end
                 local target_type = nil
 
@@ -3927,12 +4169,12 @@ function get_icons() -- Used for EXECUTE_COMMAND action type
 		local icon_list = txt_file:readlines()
 		for key,line in pairs(icon_list) do
 			if not tonumber(line) and line ~= nil and line ~= '' and not line:contains('home-point') and not line:contains('survival-guide') then
-				local icon_name = tostring(line):gsub('.png',''):gsub('\\','/')
+				local icon_name = tostring(line):gsub('\r$', ''):gsub('%.[pP][nN][gG]$',''):gsub('\\','/')
 				local icon_path = get_icon_pathbase()..'/'..icon_name..'.png'
 				local icon_file = file.new('images/'..icon_path)
 				if icon_file:exists() then
-					command_list:append({id = FAKE_ID, name = icon_name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
-				elseif not shownotice then
+					command_list:append({id = FAKE_ID, name = icon_name, icon = 'images/' .. icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
+				else
 					lognotice = true
 				end
 			end
@@ -3950,30 +4192,25 @@ function get_icons() -- Used for EXECUTE_COMMAND action type
 	return command_list
 end
 
-function get_warp_zones() -- For creating superwarp macros
-	local command_list = L{}
-	local FAKE_ID = 0
-	local icon_offset = 0
-	local target_type = {['None'] = true}
-	
-	for key,entry in pairs(res.zones) do
-		if entry and entry.en ~= 'unknown' then
-			local name = entry.en
-			local icon_path
-			if sw_zones.hp[name] then
-				icon_path = maybe_get_custom_icon('', 'home point') --..'/home-point.png'
-				command_list:append({id = FAKE_ID, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
-			end
-			if sw_zones.sg[name] then
-				icon_path = maybe_get_custom_icon('', 'survival guide') --..'/survival-guide.png'
-				command_list:append({id = FAKE_ID, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
-			end
-		end
-	end
-	
-	command_list:sort(sortByName)
-	
-	return command_list
+function get_warp_zones()
+    local commands = L{}
+    local all = action_binder.theme_options.enable_superwarp_all and ' all' or ''
+    for _, entry in pairs(res.zones) do
+        if entry and entry.en ~= 'unknown' then
+            for _, transport in ipairs({'hp', 'sg'}) do
+                if sw_zones[transport][entry.en] then
+                    local icon = transport == 'hp' and 'home-point' or 'survival-guide'
+                    commands:append({id = 0, name = entry.en,
+                        icon = 'images/' .. get_icon_pathbase() .. '/' .. icon .. '.png',
+                        data = {target_type = {['None'] = true}, alias = entry.en,
+                            command = 'sw ' .. transport .. all .. ' ' .. entry.en,
+                            icon_path = icon}})
+                end
+            end
+        end
+    end
+    commands:sort(sortByName)
+    return commands
 end
 
 function fix_target_types(id, magic_type, targets)
@@ -4004,6 +4241,8 @@ end
 
 local click_row = nil
 local click_col = nil
+
+windower.register_event('prerender', function() caption_layout:update() end)
 
 windower.register_event('mouse', function(type, x, y, delta, blocked)
     if blocked then

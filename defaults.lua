@@ -1,21 +1,26 @@
 local defaults = {}
 
 defaults.buttonbackgroundalpha = 150
-defaults.iscompact = false
+defaults.iscompact = true
 
 defaults.iconpack = 'default'
-defaults.use_directinput = false
-defaults.use_xinput = true
+-- A: personal builds start with the extended profile; public defaults stay separate.
+defaults.ControllerProfile = 'ps5-extended'
+defaults.ControllerDevice = 1
+-- A: migrate older base-PS5 selections once; later explicit choices persist.
+defaults.PersonalProfileMigrated = false
 defaults.on_logout_unload_addon = false
-defaults.on_unload_killahk = false
-defaults.enable_superwarp_all = false
+-- A: requested preference, retained in XML. Last-client shutdown is not wired
+-- yet; unloading still leaves the shared wrapper available to other clients.
+defaults.on_unload_killahk = true
+defaults.enable_superwarp_all = true
 
 defaults.FrameSkip = 0
-defaults.AllowSTPCForSelfTargetedActions = false
+defaults.AllowSTPCForSelfTargetedActions = true
 
 defaults.AutoCreateXML = true
 defaults.UseAltLayout = false
-defaults.AutoHideExtraBars = false
+defaults.AutoHideExtraBars = true
 defaults.UseSharedSet = true
 
 defaults.SkillchainIndicator = {}
@@ -60,6 +65,8 @@ defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Green = 205
 defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Blue = 5
 
 defaults.AutoAttackIndicator = {}
+-- A: independent processing switch; opacity zero only hides the estimate.
+defaults.AutoAttackIndicator.Enabled = true
 defaults.AutoAttackIndicator.Opacity = 0
 defaults.AutoAttackIndicator.PausedOpacity = 110
 defaults.AutoAttackIndicator.BackgroundOpacity = 150
@@ -83,8 +90,6 @@ defaults.Hotbar.HideRecastAnimation = false
 defaults.Hotbar.HideRecastText = false
 defaults.Hotbar.HideBattleNotice = false
 
-defaults.Controls = {}
-defaults.Controls.ToggleBattleMode = 43
 
 defaults.Theme = {}
 defaults.Theme.BattleNotice = 'ffxiv'
@@ -108,9 +113,11 @@ defaults.HotbarOffsets.DoublePress.Y = 0
 
 defaults.Color = {}
 defaults.Color.MpCost = {}
-defaults.Color.MpCost.Red = 230
-defaults.Color.MpCost.Green = 91
-defaults.Color.MpCost.Blue = 151
+-- A: match the pale green used for defaulted custom-action fields.
+defaults.Color.MpCost.Red = 194
+defaults.Color.MpCost.Green = 253
+defaults.Color.MpCost.Blue = 195
+defaults.Color.MpCostInsufficient = {Red=255, Green=149, Blue=151}
 defaults.Color.TpCost = {}
 defaults.Color.TpCost.Red = 254
 defaults.Color.TpCost.Green = 222
@@ -138,6 +145,18 @@ defaults.Texts.Stroke.Red = 20
 defaults.Texts.Stroke.Green = 20
 defaults.Texts.Stroke.Blue = 20
 
-defaults.below1080 = false
+
+-- A: this transport test prints actions instead of executing slot commands.
+defaults.InputTest = false
+defaults.InputTrace = false
+-- A: wrapper and Lua must use the same modifier. Change with all clients
+-- unloaded and the shared wrapper stopped; Apps preserves Ctrl shortcuts.
+defaults.ControllerModifier = 'apps'
+-- A: bare gameplay D-pad only; menus and trigger-held slots stay logical.
+defaults.GameplayDPad = 'ijkl'
+defaults.VisibilityMode = 'oninput' -- always, oninput, hidden
+defaults.CrossbarScale = 1
+-- A: endpoint text visibility remains the default; TextFade is the comparison.
+defaults.Animation = {Enabled=true, TextFade=false, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2}
 
 return defaults

@@ -1,4 +1,6 @@
 local res = require('resources')
+-- Windower's logger exports a non-raising error(). Guards need Lua's exception.
+local error = (_raw and _raw.error) or error
 local storage = require('storage')
 local action_manager = require('action_manager')
 local mount_roulette = require('libs/mountroulette/mountroulette')
@@ -104,66 +106,112 @@ end
 
 -- load hotbar for current player and job combination
 function player:load_hotbar()
-    self:update_current_spells()
-    self:reset_hotbar()
-    local newly_created = false
+    -- A: keep the last complete view when parsing any layer fails. A
+    -- parser exception must block saves just like an explicit XML read error.
+    local previous = {hotbar=self.hotbar, shared_icons=self.shared_icons,
+        custom_actions=self.custom_actions}
+    self.hotbar_load_ok = false
+    storage.hotbar_read_error = nil
+    storage.created_files = {}
+    self.last_created_files = nil
+    local ok, err = pcall(function()
+        self:update_current_spells()
+        self:reset_hotbar()
+        local newly_created = false
 
-    -- Load shared-icons table first so it's available during slot parsing
-    -- when per-job XMLs are read below.
-    self.shared_icons = {}
-    if storage.shared_icons_file:exists() then
-        self:load_shared_icons(storage.shared_icons_file)
-    elseif self.auto_create_xml then
-        self:create_shared_icons()
-    end
+        -- Load shared-icons table first so it's available during slot parsing
+        -- when per-job XMLs are read below.
+        self.shared_icons = {}
+        if storage.shared_icons_file:exists() then
+            if self:load_shared_icons(storage.shared_icons_file) == false then
+                error('Could not read SharedIcons.xml; existing files were retained.')
+            end
+        elseif self.auto_create_xml then
+            self:create_shared_icons()
+        end
 
-    -- Load CustomActions catalog. 
-    self.custom_actions = {}
-    if storage.custom_actions_file:exists() then
-        self:load_custom_actions(storage.custom_actions_file)
-    elseif self.auto_create_xml then
-        self:create_custom_actions()
-    end
+        -- Load CustomActions catalog.
+        self.custom_actions = {}
+        if storage.custom_actions_file:exists() then
+            if self:load_custom_actions(storage.custom_actions_file) == false then
+                error('Could not read CustomActions.xml; existing files were retained.')
+            end
+        elseif self.auto_create_xml then
+            self:create_custom_actions()
+        end
 
-    -- if normal hotbar file exists, load it. If not, create a default hotbar
-    if storage.file:exists() then
-        windower.console.write('[XIVCrossbar] Load crossbar sets for ' .. storage.filename)
-        self:load_from_file(storage.file)
-    elseif self.auto_create_xml then
-        newly_created = true
-        self:create_default_hotbar()
-    end
+        -- if normal hotbar file exists, load it. If not, create a default hotbar
+        if storage.file:exists() then
+            if self:load_from_file(storage.file) == false then error(storage.hotbar_read_error) end
+        elseif self.auto_create_xml then
+            newly_created = true
+            self:create_default_hotbar()
+        end
 
-    -- if job default file exists, load it. If not, create a default version
-    if storage.job_default_file:exists() then
-        windower.console.write('[XIVCrossbar] Load cross-subjob fallback crossbar set for ' .. player.main_job)
-        self:load_from_file(storage.job_default_file)
-    elseif self.auto_create_xml then
-        newly_created = true
-        self:create_job_default_hotbar()
-    end
+        -- if job default file exists, load it. If not, create a default version
+        if storage.job_default_file:exists() then
+            if self:load_from_file(storage.job_default_file) == false then error(storage.hotbar_read_error) end
+        elseif self.auto_create_xml then
+            newly_created = true
+            self:create_job_default_hotbar()
+        end
 
-    -- if all jobs file exists, load it. If not, create a default version
-    if storage.all_jobs_file:exists() then
-        windower.console.write('[XIVCrossbar] Load cross-job fallback crossbar set')
-        self:load_from_file(storage.all_jobs_file)
-    elseif self.auto_create_xml then
-        newly_created = true
-        self:create_all_jobs_default_hotbar()
-    end
+        -- if all jobs file exists, load it. If not, create a default version
+        if storage.all_jobs_file:exists() then
+            if self:load_from_file(storage.all_jobs_file) == false then error(storage.hotbar_read_error) end
+        elseif self.auto_create_xml then
+            newly_created = true
+            self:create_all_jobs_default_hotbar()
+        end
 
-    -- if shared file exists, load it. If not, create an empty version
-    if storage.shared_file:exists() then
-        windower.console.write('[XIVCrossbar] Load shared crossbar set')
-        self:load_from_file(storage.shared_file)
-    elseif self.auto_create_xml then
-        newly_created = true
-        self:create_shared_hotbar()
-    end
+        -- if shared file exists, load it. If not, create an empty version
+        if storage.shared_file:exists() then
+            if self:load_from_file(storage.shared_file) == false then error(storage.hotbar_read_error) end
+        elseif self.auto_create_xml then
+            newly_created = true
+            self:create_shared_hotbar()
+        end
 
-    if (newly_created) then
-        player:store_new_hotbars()
+        if (newly_created) then
+            player:store_new_hotbars()
+        end
+        if not self.has_reported_load then
+            windower.add_to_chat(207, '[XIVCrossbar] Loaded crossbar sets for ' .. self.main_job .. '/' .. (self.sub_job or 'NOSUB') .. ' (job, defaults and shared).')
+            self.has_reported_load = true
+        end
+    end)
+    if not ok then
+        self.hotbar, self.shared_icons, self.custom_actions =
+            previous.hotbar, previous.shared_icons, previous.custom_actions
+        storage.hotbar_read_error = storage.hotbar_read_error or tostring(err)
+        windower.add_to_chat(123, '[XIVCrossbar] Crossbar load failed; the previous bars were retained. ' .. tostring(err))
+        return false
     end
+    self.hotbar_load_ok = true
+    self.last_created_files = storage.created_files
+    return true
+end
+
+-- Main/subjob can arrive as two events. Load immediately, but coalesce only
+-- their notices so chat reports the final combination and all new XML files.
+function player:queue_job_change_notice()
+    self.job_notice_files = self.job_notice_files or {}
+    for _, name in ipairs(self.last_created_files or {}) do
+        self.job_notice_files[name] = true
+    end
+    self.job_notice_generation = (self.job_notice_generation or 0) + 1
+    local generation = self.job_notice_generation
+    coroutine.schedule(function()
+        if generation ~= self.job_notice_generation then return end
+        local names = {}
+        for name in pairs(self.job_notice_files) do names[#names + 1] = name end
+        table.sort(names)
+        self.job_notice_files = nil
+        if not self.hotbar_load_ok then return end
+        local created = #names > 0 and ' (created ' .. table.concat(names, ', ') .. ')' or ''
+        windower.add_to_chat(207, '[XIVCrossbar] Crossbar sets ready for ' ..
+            self.main_job .. '/' .. (self.sub_job or 'NOSUB') .. created .. '.')
+    end, 0.3)
 end
 
 function kebab_casify(str)
@@ -199,15 +247,21 @@ end
 
 -- load a hotbar from existing file
 function player:load_from_file(storage_file)
-    local contents = xml.read(storage_file)
+    local contents, parse_error = xml.read(storage_file)
 
-    if contents.name ~= 'hotbar' then
-        windower.console.write('XIVCROSSBAR: invalid hotbar on ' .. storage.filename)
-        return
+    if not contents or contents.name ~= 'hotbar' then
+        local path = storage_file.path or storage.filename
+        storage.hotbar_read_error = tostring(path) .. ': ' .. (parse_error or 'Expected a hotbar XML document.')
+        windower.add_to_chat(123, '[XIVCrossbar] Could not load ' .. storage.hotbar_read_error)
+        windower.add_to_chat(123, '[XIVCrossbar] Hotbar saving is paused to preserve your files. Correct the XML and reload.')
+        return false
     end
 
     -- parse xml to hotbar
     for key, environment in ipairs(contents.children) do
+        -- A: the XML tag owns identity/scope; <name> is only its label.
+        -- Create empty sets too, rather than relying on finding a slot first.
+        local environment_key = kebab_casify(environment.name)
         local environment_name = nil
         for key, hotbar in ipairs(environment.children) do     -- hotbar number
             if (hotbar.name == 'name') then
@@ -217,18 +271,30 @@ function player:load_from_file(storage_file)
             end
         end
         if (environment_name == nil) then
-            environment_name = key
+            environment_name = environment.name
         end
+        if not self.hotbar[environment_key] then
+            self.hotbar[environment_key] = {}
+            self:setup_environment_hotbars(environment_key)
+        end
+        self.hotbar[environment_key].name = environment_name
         for key, hotbar in ipairs(environment.children) do     -- hotbar number
             if (hotbar.name ~= 'name') then
+                local hotbar_id = normalize_hotbar_id(hotbar.name:gsub('hotbar_', ''))
+                -- Bars outside the configured visible count still belong to
+                -- the saved file. Retain them without enabling their UI/input.
+                local hotbar_key = 'hotbar_' .. hotbar_id
+                self.hotbar[environment_key][hotbar_key] = self.hotbar[environment_key][hotbar_key] or {}
                 for key, slot in ipairs(hotbar.children) do       -- slot number
                     local new_action = {}
+                    local fallback_alias
 
                     for key, tag in ipairs(slot.children) do   -- action
+                        local value = tag.children and tag.children[1] and tag.children[1].value
                         if tag.name == 'type' then
-                            new_action.type = tag.children[1].value
+                            new_action.type = value
                         elseif tag.name == 'action' then
-                            new_action.action = unescape(tag.children[1].value)
+                            new_action.action = value and unescape(value) or nil
                         elseif tag.name == 'target' then
                             if tag.children[1] == nil then
                                 new_action.target = nil
@@ -237,21 +303,22 @@ function player:load_from_file(storage_file)
                             end
 
                         elseif tag.name == 'alias' then
+                            fallback_alias = value
                             if (settings.Hotbar.HideActionName == true) then
                                 new_action.alias = ' '
                             else
-                                new_action.alias = tag.children[1].value
+                                new_action.alias = value
                             end
                         elseif tag.name == 'icon' then
-                            new_action.icon = tag.children[1].value
+                            new_action.icon = value
                         elseif tag.name == 'equip_slot' then
-                            new_action.equip_slot = tag.children[1].value
+                            new_action.equip_slot = value
                         elseif tag.name == 'warmup' then
-                            new_action.warmup = tag.children[1].value
+                            new_action.warmup = value
                         elseif tag.name == 'cooldown' then
-                            new_action.cooldown = tag.children[1].value
+                            new_action.cooldown = value
                         elseif tag.name == 'usable' then
-                            new_action.usable = tag.children[1].value
+                            new_action.usable = value
                         elseif tag.name == 'linked_action' then
                             if tag.children[1] ~= nil then
                                 new_action.linked_action = tag.children[1].value
@@ -261,6 +328,12 @@ function player:load_from_file(storage_file)
                                 new_action.linked_type = tag.children[1].value
                             end
                         end
+                    end
+
+                    -- Older blank console slots can still execute their alias.
+                    if new_action.type == 'ex' and (not new_action.action or new_action.action == '')
+                        and fallback_alias and fallback_alias:match('%S') then
+                        new_action.action = fallback_alias
                     end
 
                     if (new_action.icon == nil and self.shared_icons ~= nil) then
@@ -273,54 +346,44 @@ function player:load_from_file(storage_file)
 
                     self:add_action(
                         action_manager:build(new_action.type, new_action.action, new_action.target, new_action.alias, new_action.icon, new_action.equip_slot, new_action.warmup, new_action.cooldown, new_action.usable, new_action.linked_action, new_action.linked_type),
-                        environment_name,
-                        normalize_hotbar_id(hotbar.name:gsub('hotbar_', '')),
+                        environment_key,
+                        hotbar_id,
                         normalize_slot_id(slot.name:gsub('slot_', ''))
                     )
                 end
             end
         end
     end
+    return true
+end
+
+-- A: a missing layer file may contain sets already imported from another
+-- XML. Populate only absent sets/bars so creating that file retains the imports.
+local function ensure_default_set(self, key, name)
+    self.hotbar[key] = self.hotbar[key] or {}
+    self.hotbar[key].name = self.hotbar[key].name or name
+    self:setup_environment_hotbars(key)
 end
 
 -- create a default hotbar
 function player:create_default_hotbar()
-    windower.console.write('[XIVCrossbar] No hotbar found. Creating default for ' .. storage.filename)
-
-    self.hotbar.default = {}
-    self.hotbar.default['name'] = 'Default'
-    self:setup_environment_hotbars('default')
-
-    self.hotbar.basic = {}
-    self.hotbar.basic['name'] = 'Basic'
-    self:setup_environment_hotbars('basic')
+    ensure_default_set(self, 'default', 'Default')
+    ensure_default_set(self, 'basic', 'Basic')
 end
 
 -- create a fallback hotbar that applies to all subjobs of this job
 function player:create_job_default_hotbar()
-    windower.console.write('[XIVCrossbar] No cross-subjob fallback crossbar set found. Creating a default version')
-
-    self.hotbar['job-default'] = {}
-    self.hotbar['job-default']['name'] = 'Job Default'
-    self:setup_environment_hotbars('job-default')
+    ensure_default_set(self, 'job-default', 'Job Default')
 end
 
 -- create a fallback hotbar that applies to all jobs on this character
 function player:create_all_jobs_default_hotbar()
-    windower.console.write('[XIVCrossbar] No cross-job fallback crossbar set found. Creating a default version')
-
-    self.hotbar['all-jobs-default'] = {}
-    self.hotbar['all-jobs-default']['name'] = 'All Jobs Default'
-    self:setup_environment_hotbars('all-jobs-default')
+    ensure_default_set(self, 'all-jobs-default', 'All Jobs Default')
 end
 
 -- create an empty shared hotbar that is selectable but does not participate in fallback layering
 function player:create_shared_hotbar()
-    windower.console.write('[XIVCrossbar] No shared crossbar set found. Creating an empty version')
-
-    self.hotbar['shared'] = {}
-    self.hotbar['shared']['name'] = 'Shared'
-    self:setup_environment_hotbars('shared')
+    ensure_default_set(self, 'shared', 'Shared')
 end
 
 -- Parse SharedIcons.xml into player.shared_icons as a simple name→path table.
@@ -329,8 +392,8 @@ function player:load_shared_icons(storage_file)
     self.shared_icons = {}
     local contents = xml.read(storage_file)
     if (contents == nil or contents.name ~= 'shared_icons') then
-        windower.console.write('[XIVCrossbar] SharedIcons.xml malformed, skipping')
-        return
+        windower.add_to_chat(123, '[XIVCrossbar] SharedIcons.xml is malformed; reload after correcting it.')
+        return false
     end
 
     for _, entry in ipairs(contents.children) do
@@ -352,6 +415,7 @@ function player:load_shared_icons(storage_file)
 end
 
 function player:save_shared_icons_file()
+    if storage.hotbar_read_error then error('Reload successfully before saving icons.') end
     if (storage.shared_icons_file == nil) then return end
 
     local keys = {}
@@ -376,11 +440,10 @@ function player:save_shared_icons_file()
     lines:append('</shared_icons>')
     lines:append('')
 
-    storage.shared_icons_file:write(table.concat(lines, '\n'))
+    storage:write_file(storage.shared_icons_file, table.concat(lines, '\n'))
 end
 
 function player:create_shared_icons()
-    windower.console.write('[XIVCrossbar] No SharedIcons.xml found. Creating an empty template.')
     self.shared_icons = {}
     local template = {
         shared_icons = {
@@ -390,15 +453,15 @@ function player:create_shared_icons()
             }
         }
     }
-    storage.shared_icons_file:write(table.to_xml(template))
+    storage:write_file(storage.shared_icons_file, table.to_xml(template))
 end
 
 function player:load_custom_actions(storage_file)
     self.custom_actions = {}
     local contents = xml.read(storage_file)
     if (contents == nil or contents.name ~= 'custom_actions') then
-        windower.console.write('[XIVCrossbar] CustomActions.xml malformed, skipping')
-        return
+        windower.add_to_chat(123, '[XIVCrossbar] CustomActions.xml is malformed; reload after correcting it.')
+        return false
     end
 
     for _, action_node in ipairs(contents.children) do
@@ -417,6 +480,7 @@ function player:load_custom_actions(storage_file)
 end
 
 function player:save_custom_actions_file()
+    if storage.hotbar_read_error then error('Reload successfully before saving custom actions.') end
     if (storage.custom_actions_file == nil) then return end
 
     local keys = {}
@@ -455,11 +519,10 @@ function player:save_custom_actions_file()
     lines:append('</custom_actions>')
     lines:append('')
 
-    storage.custom_actions_file:write(table.concat(lines, '\n'))
+    storage:write_file(storage.custom_actions_file, table.concat(lines, '\n'))
 end
 
 function player:create_custom_actions()
-    windower.console.write('[XIVCrossbar] No CustomActions.xml found. Creating an empty template.')
     self.custom_actions = {}
     local template = {
         custom_actions = {
@@ -473,7 +536,7 @@ function player:create_custom_actions()
             }
         }
     }
-    storage.custom_actions_file:write(table.to_xml(template))
+    storage:write_file(storage.custom_actions_file, table.to_xml(template))
 end
 
 function player:store_new_hotbars()
@@ -492,10 +555,11 @@ end
 
 function player:setup_environment_hotbars(environment)
     for h=1,self.hotbar_settings.max,1 do
-        self.hotbar[environment]['hotbar_' .. h] = {}
+        local bar_key = 'hotbar_' .. h
+        self.hotbar[environment][bar_key] = self.hotbar[environment][bar_key] or {}
 
         -- This is a hack to make sure all newly-created crossbars show up in the crossbar set selector
-        self.hotbar[environment]['hotbar_' .. h]['slot_9'] = {}
+        self.hotbar[environment][bar_key]['slot_9'] = self.hotbar[environment][bar_key]['slot_9'] or {}
     end
 end
 
@@ -729,7 +793,7 @@ function player:dispatch_action(action)
 				break
 			end
 		end
-		
+
 		if env ~= nil then
 			set_active_environment(env)
 		end
@@ -744,14 +808,14 @@ function player:dispatch_action(action)
 		local env = nil
 		local abil_name_lc = action.action:lower()
 		abil_name_lc = abil_name_lc:gsub("%s+","") -- TODO: removes whitespace, is there a more readable way of doing this, e.g. "trim" or something? If not, make a helper library for this.
-		
+
         for hb,_ in pairs(self.hotbar) do
 			if abil_name_lc == hb:lower() or abil_name_lc:startswith(hb:lower()) then
 				env = hb
 				break
 			end
 		end
-		
+
 		if env ~= nil then
 			set_active_environment(env)
 		end
@@ -822,20 +886,29 @@ end
 
 -- create a new environment for the existing hotbar
 function player:create_new_environment(name)
-    if (name ~= nil) then
-        local new_environment = {}
-        for h=1,self.hotbar_settings.max,1 do
-            new_environment['name'] = name
-            new_environment['hotbar_' .. h] = {}
-            for i=1,8,1 do
-                new_environment['hotbar_' .. h]['slot_' .. i] = {}
-            end
-        end
-
-        self.hotbar[kebab_casify(name)] = new_environment
-    else
-        print('XIVCROSSBAR: Attempted to create crossbar set with no name. Unable to create.')
+    -- A: every creation path must preserve existing normalized set keys.
+    if type(name) ~= 'string' or not name:match('%S') then
+        windower.add_to_chat(123, '[XIVCrossbar] A nonblank crossbar set name is required.')
+        return false
     end
+    local key = kebab_casify(name)
+    -- Set keys become XML element names; rejecting unsafe keys avoids writing
+    -- a file that cannot be loaded on the immediate reload.
+    if not key:match('^[%a_][%w_.%-]*$') then
+        windower.add_to_chat(123, '[XIVCrossbar] Use a set name starting with a letter, with letters, numbers, spaces, hyphens or underscores.')
+        return false
+    end
+    if key == 'default' or key == 'job-default' or key == 'all-jobs-default' or key == 'shared' or self.hotbar[key] ~= nil then
+        windower.add_to_chat(123, '[XIVCrossbar] Crossbar set already exists or is reserved: ' .. name)
+        return false
+    end
+    local new_environment = {name = name}
+    for h=1,self.hotbar_settings.max do
+        new_environment['hotbar_' .. h] = {}
+        for i=1,8 do new_environment['hotbar_' .. h]['slot_' .. i] = {} end
+    end
+    self.hotbar[key] = new_environment
+    return true
 end
 
 function get_player_buffs()

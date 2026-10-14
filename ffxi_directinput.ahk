@@ -1,403 +1,264 @@
-; Run every line
-Critical
-
-#SingleInstance force
-
-; Switch windows instantaeously
-SetWinDelay -1
-
-; Avoid warning dialogue about over-hits
-#MaxHotkeysPerInterval 50000
-#HotkeyInterval, 1
-#WinActivateForce
-
-IniRead, ButtonLayout, config.ini, ButtonMap, ButtonLayout
-IniRead, ConfirmButton, config.ini, ButtonMap, ConfirmButton
-IniRead, CancelButton, config.ini, ButtonMap, CancelButton
-IniRead, MainMenuButton, config.ini, ButtonMap, MainMenuButton
-IniRead, ActiveWindowButton, config.ini, ButtonMap, ActiveWindowButton
-StringUpper, ButtonLayout, ButtonLayout
-StringUpper, ConfirmButton, ConfirmButton
-StringUpper, CancelButton, CancelButton
-StringUpper, MainMenuButton, MainMenuButton
-StringUpper, ActiveWindowButton, ActiveWindowButton
-
-lastKeyPressed := ""
-isLeftTriggerDown := false
-isRightTriggerDown := false
-isEnvironmentDialogOpen := false
-
-#Persistent  ; Keep this script running until the user explicitly exits it.
-SetTimer, CheckPOVState, 10 ; Poll for POV hat every 10ms
-
-CheckPOVState:
-If WinActive("ahk_class FFXiClass") {
-  GetKeyState, joyp, JoyPOV
-
-  If (isLeftTriggerDown or isRightTriggerDown or isEnvironmentDialogOpen) {
-    If (joyp == 0) {
-      If (lastKeyPressed != "dpad_up") {
-        SendInput {f1}
-
-        lastKeyPressed:= "dpad_up"
-      }
-    } else If (joyp == 9000) {
-      If (lastKeyPressed != "dpad_right") {
-        SendInput {f2}
-
-        lastKeyPressed:= "dpad_right"
-      }
-    } else If (joyp == 18000) {
-      If (lastKeyPressed != "dpad_down") {
-        SendInput {f3}
-
-        lastKeyPressed:= "dpad_down"
-      }
-    } else If (joyp == 27000) {
-      If (lastKeyPressed != "dpad_left") {
-        SendInput {f4}
-
-        lastKeyPressed:= "dpad_left"
-      }
+#Requires AutoHotkey v1.1.33+
+; A: shared controller transport; physical readers are selected at startup.
+; All twelve buttons send consistent F1-F12 signals, with Apps capture.
+#SingleInstance ignore
+#Persistent
+; A: physical modifier checks must distinguish our injected key-down.
+#InstallKeybdHook
+SetWorkingDir, %A_ScriptDir%
+; A: an installation-scoped kernel handle closes the simultaneous-launch race.
+; A rejected duplicate exits before registering OnExit or touching status/input.
+instanceMutex := AcquireWrapperMutex()
+if (!instanceMutex)
+    ExitApp
+FileCreateDir, %A_ScriptDir%\data
+OnExit, TransportExit
+; A: one shared process; select transport only at startup, never mid-hold.
+modifierArgument = %1%
+profileArgument = %2%
+deviceArgument = %3%
+; A: use a validated startup handoff if the launcher drops script arguments.
+origin := "arguments"
+if (profileArgument = "") {
+    launchFile := A_ScriptDir . "\data\controller-launch.ini"
+    if FileExist(launchFile) {
+        IniRead, modifierArgument, %launchFile%, Controller, modifier, apps
+        IniRead, profileArgument, %launchFile%, Controller, profile, ps5-directinput
+        IniRead, deviceArgument, %launchFile%, Controller, device, 1
+        origin := "launch-file"
+    } else {
+        origin := "default"
     }
-  }
-
-  If (joyp == -1 and lastKeyPressed != "") {
-      lastKeyPressed:= ""
-  }
 }
+profile := profileArgument != "" ? profileArgument : "ps5-directinput"
+device := deviceArgument != "" ? deviceArgument + 0 : 1
+isXInput := (profile = "xinput" or profile = "xinput-r1-chooser")
+validProfile := isXInput or profile = "ps5-directinput" or profile = "ps5-extended" or profile = "f710-directinput" or profile = "fightpadpro-directinput"
+if (!validProfile or device < 1 or device > (isXInput ? 4 : 16) or Mod(device, 1))
+    ExitApp
+joystickPrefix := device = 1 ? "" : device
+xinputLibrary := 0
+xinputGetState := 0
+xinputFault := false
+connected := false
+phase := "starting"
+lastStatusTick := -1000
+if (isXInput)
+    xinputFault := !InitXInput()
+captureKey := (modifierArgument = "ctrl") ? "LControl" : "AppsKey"
+keys := ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
+labels := ["D-pad Up/F1", "D-pad Right/F2", "D-pad Down/F3", "D-pad Left/F4", "Cross/F5", "Square/F6", "Circle/F7", "Triangle/F8", "Share/F9", "Options/F10", "L2/F11", "R2/F12"]
+; Upstream PS5/F710 share assignments; FightPadPro rearranges face buttons.
+joys := profile = "fightpadpro-directinput"
+    ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
+    : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+previous := []
+owner := 0
+ready := false
+appsOwned := false
+Loop, 12
+    previous[A_Index] := false
+PersonalInit(profile, joystickPrefix)
+WriteTransportStatus(true)
+SetTimer, TransportPoll, 10
 return
 
-; Helper subroutines. *DON'T* modify these to remap, instead just change which buttons call them
-SendConfirmKey:
-	If !WinActive("ahk_class FFXiClass") {
-		WinActivate, ahk_class FFXiClass
-		sleep 250
-	}
-	SendInput {Enter}
-return
-SendCancelKey:
-	If !WinActive("ahk_class FFXiClass") {
-		WinActivate, ahk_class FFXiClass
-		sleep 250
-	}
-	SendInput {Esc}
-return
-SendMainMenuKey:
-	If !WinActive("ahk_class FFXiClass") {
-		WinActivate, ahk_class FFXiClass
-		sleep 250
-	}
-	SendInput {NumpadSub}
-return
-SendActiveWindowKey:
-	If !WinActive("ahk_class FFXiClass") {
-		WinActivate, ahk_class FFXiClass
-		sleep 250
-	}
-	SendInput {NumpadAdd}
-return
-
-; Gamecube Y Button (Playstation Triangle, Xbox Y Button, Nintendo X Button, TOP face button)
-Joy4::
-;If WinActive("ahk_class FFXiClass") {
-  If (isLeftTriggerDown or isRightTriggerDown) {
-    SendInput {f8}
-  } else {
-    If (ButtonLayout == "GAMECUBE" or ButtonLayout == "XBOX") {
-      If (ConfirmButton == "Y") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "Y") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "Y") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "Y") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "PLAYSTATION") {
-      If (ConfirmButton == "TRIANGLE") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "TRIANGLE") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "TRIANGLE") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "TRIANGLE") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "NINTENDO") {
-      If (ConfirmButton == "X") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "X") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "X") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "X") {
-        Gosub, SendActiveWindowKey
-      }
+TransportPoll:
+if FileExist(A_ScriptDir . "\data\input-stop.request") {
+    FileDelete, %A_ScriptDir%\data\input-stop.request
+    ExitApp
+}
+active := WinActive("ahk_class FFXiClass")
+; The PS button can restore a client while another application is focused.
+states := ReadTransportStates()
+states := PersonalPoll(states, active)
+current := WinActive("ahk_class FFXiClass")
+if (current != active) {
+    ReleaseTransport()
+    ready := false
+    return
+}
+if (!active) {
+    ReleaseTransport()
+    ready := false
+    phase := "unfocused"
+    WriteTransportStatus()
+    return
+}
+if (owner and owner != active) {
+    ReleaseTransport()
+    ready := false
+}
+owner := active
+connected := IsObject(states)
+if (!connected) {
+    ReleaseTransport()
+    ready := false
+    phase := xinputFault ? "xinput-unavailable" : "disconnected"
+    WriteTransportStatus()
+    return
+}
+neutral := true
+Loop, 12 {
+    if (states[A_Index])
+        neutral := false
+}
+anyDown := !neutral
+phase := ready ? "ready" : "waiting-neutral"
+WriteTransportStatus()
+if (!ready) {
+    if (neutral)
+        ready := true
+    return
+}
+if (anyDown and !appsOwned) {
+    appsOwned := true
+    SendEvent, % "{Blind}{" . captureKey . " down}"
+}
+Loop, 12 {
+    i := A_Index
+    if (states[i] != previous[i]) {
+        key := keys[i]
+        edge := states[i] ? "down" : "up"
+        SendEvent, % "{Blind}{" . key . " " . edge . "}"
+        previous[i] := states[i]
     }
-  }
-;}
+}
+if (!anyDown and appsOwned) {
+    physicallyHeld := GetKeyState(captureKey, "P")
+    if (!physicallyHeld)
+        SendEvent, % "{Blind}{" . captureKey . " up}"
+    appsOwned := false
+}
 return
 
-; Gamecube B Button (Playstation Square, Xbox X Button, Nintendo Y Button, LEFT face button)
-Joy1::
-;If WinActive("ahk_class FFXiClass") {
-  If (isLeftTriggerDown or isRightTriggerDown) {
-    SendInput {f6}
-  } else {
-    If (ButtonLayout == "GAMECUBE") {
-      If (ConfirmButton == "B") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "B") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "B") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "B") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "XBOX") {
-      If (ConfirmButton == "X") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "X") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "X") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "X") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "PLAYSTATION") {
-      If (ConfirmButton == "SQUARE") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "SQUARE") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "SQUARE") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "SQUARE") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "NINTENDO") {
-      If (ConfirmButton == "Y") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "Y") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "Y") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "Y") {
-        Gosub, SendActiveWindowKey
-      }
+; Explicit local stop; it exits only this script, even outside FFXI.
+^!F12::ExitApp
+
+TransportExit:
+; A: a v1 OnExit label must explicitly finish termination.
+ReleaseTransport()
+phase := "stopped"
+WriteTransportStatus(true)
+if (xinputLibrary)
+    DllCall("FreeLibrary", "Ptr", xinputLibrary)
+if (instanceMutex)
+    DllCall("CloseHandle", "Ptr", instanceMutex)
+ExitApp
+
+AcquireWrapperMutex() {
+    ; Normalize case; hash keeps the name below Windows' MAX_PATH limit.
+    path := A_ScriptDir
+    StringLower, path, path
+    hash := 2166136261
+    Loop, Parse, path
+        hash := ((hash ^ Asc(A_LoopField)) * 16777619) & 0xFFFFFFFF
+    handle := DllCall("CreateMutexW", "Ptr", 0, "Int", 0, "WStr", "Local\XIVCrossbar_" . hash, "Ptr")
+    error := A_LastError
+    if (!handle or error = 183) {
+        if (handle)
+            DllCall("CloseHandle", "Ptr", handle)
+        return 0
     }
-  }
-;}
-return
+    return handle
+}
 
-; Gamecube A Button (Playstation Cross, Xbox A Button, Nintendo B Button, BOTTOM face button)
-Joy2::
-;If WinActive("ahk_class FFXiClass") {
-  If (isLeftTriggerDown or isRightTriggerDown) {
-    SendInput {f5}
-  } else {
-    If (ButtonLayout == "GAMECUBE" or ButtonLayout == "XBOX") {
-      If (ConfirmButton == "A") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "A") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "A") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "A") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "PLAYSTATION") {
-      If (ConfirmButton == "CROSS") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "CROSS") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "CROSS") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "CROSS") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "NINTENDO") {
-      If (ConfirmButton == "B") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "B") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "B") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "B") {
-        Gosub, SendActiveWindowKey
-      }
+ReleaseTransport() {
+    global keys, previous, owner, appsOwned, captureKey
+    PersonalRelease()
+    Loop, 12 {
+        i := A_Index
+        if (previous[i]) {
+            key := keys[i]
+            if (owner == WinActive("ahk_class FFXiClass")) {
+                SendEvent, % "{Blind}{" . key . " up}"
+            } else if (owner) {
+                ControlSend,, % "{" . key . " up}", ahk_id %owner%
+            }
+            previous[i] := false
+        }
     }
-  }
-;}
-return
-
-; Gamecube X Button (Playstation Circle, Xbox B Button, Nintendo A Button, RIGHT face button)
-Joy3::
-;If WinActive("ahk_class FFXiClass") {
-  If (isLeftTriggerDown or isRightTriggerDown) {
-    SendInput {f7}
-  } else {
-    If (ButtonLayout == "GAMECUBE") {
-      If (ConfirmButton == "X") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "X") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "X") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "X") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "XBOX") {
-      If (ConfirmButton == "B") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "B") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "B") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "B") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "PLAYSTATION") {
-      If (ConfirmButton == "CIRCLE") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "CIRCLE") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "CIRCLE") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "CIRCLE") {
-        Gosub, SendActiveWindowKey
-      }
-    } else If (ButtonLayout == "NINTENDO") {
-      If (ConfirmButton == "A") {
-        Gosub, SendConfirmKey
-      } else If (CancelButton == "A") {
-        Gosub, SendCancelKey
-      } else If (MainMenuButton == "A") {
-        Gosub, SendMainMenuKey
-      } else If (ActiveWindowButton == "A") {
-        Gosub, SendActiveWindowKey
-      }
+    if (appsOwned) {
+        if (owner == WinActive("ahk_class FFXiClass")) {
+            if (!GetKeyState(captureKey, "P"))
+                SendEvent, % "{Blind}{" . captureKey . " up}"
+        } else if (owner) {
+            ControlSend,, % "{" . captureKey . " up}", ahk_id %owner%
+        }
+        appsOwned := false
     }
-  }
-;}
-return
-
-; Left Trigger
-Joy7::
-If WinActive("ahk_class FFXiClass") {
-  SendInput {Ctrl down}
-  SendInput {f11 down}
-  isLeftTriggerDown := true
-  SetTimer, WaitForButtonUp7, 10 ; Poll for button setting every 10ms
-}
-return
-
-WaitForButtonUp7:
-If WinActive("ahk_class FFXiClass") {
-  if GetKeyState("Joy7")  ; The button is still, down, so keep waiting.
-      return
-  ; Otherwise, the button has been released.
-  SendInput {f11 up}
-  if !isRightTriggerDown {
-	SendInput {Ctrl Down}
-    SendInput {Ctrl up}
-  }
-  isLeftTriggerDown := false
-  SetTimer, WaitForButtonUp7, Off ; Turn off polling
-  ;ReleaseCtrl()
-}
-return
-
-; Right Trigger
-Joy8::
-If WinActive("ahk_class FFXiClass") {
-  SendInput {Ctrl down}
-  SendInput {f12 down}
-  isRightTriggerDown := true
-  SetTimer, WaitForButtonUp8, 10 ; Poll for button setting every 10ms
-}
-return
-
-WaitForButtonUp8:
-If WinActive("ahk_class FFXiClass") {
-  if GetKeyState("Joy8")  ; The button is still, down, so keep waiting.
-      return
-  ; Otherwise, the button has been released.
-  SendInput {f12 up}
-  if !isLeftTriggerDown {
-	SendInput {Ctrl Down}
-    SendInput {Ctrl up}
-  }
-  isRightTriggerDown := false
-  SetTimer, WaitForButtonUp8, Off ; Turn off polling
-  ;ReleaseCtrl()
-
-}
-return
-
-ReleaseCtrl() {
-    ;sleep 20
-	Loop, 2 {
-		SendInput {Ctrl Down}
-		sleep 20
-		SendInput {Ctrl Up}
-	}
-	return
 }
 
-#t::
-loop, 50 {
- SendInput {Ctrl Down}
- SendInput {Ctrl Up}
- }
-return
-
-
-; Opens/closes gamepad binding dialog
-Joy9::
-If WinActive("ahk_class FFXiClass") {
-  SendInput {Ctrl down}
-  SendInput {f9 down}
-  SetTimer, WaitForButtonUp9, 10 ; Poll for button setting every 10ms
+; A: read hardware only. Output, focus cleanup and rearming remain shared.
+ReadTransportStates() {
+    global isXInput, profile, device, joystickPrefix, joys, xinputGetState
+    if (!isXInput) {
+        if (GetKeyState(joystickPrefix . "JoyName") = "")
+            return false
+        pov := GetKeyState(joystickPrefix . "JoyPOV")
+        states := [pov == 0, pov == 9000, pov == 18000, pov == 27000]
+        Loop, 8 {
+            i := A_Index + 4
+            states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
+        }
+        return states
+    }
+    if (!xinputGetState)
+        return false
+    VarSetCapacity(state, 16, 0)
+    if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", &state, "UInt") != 0)
+        return false
+    buttons := NumGet(state, 4, "UShort")
+    ; Logical order: Up, Right, Down, Left, bottom, left, right, top, Back, chooser.
+    flags := [0x0001, 0x0008, 0x0002, 0x0004, 0x1000, 0x4000, 0x2000, 0x8000, 0x0020]
+    flags.Push(profile = "xinput-r1-chooser" ? 0x0200 : 0x0010)
+    states := []
+    for i, flag in flags
+        states[i] := (buttons & flag) ? true : false
+    ; Match upstream's threshold; neither trigger is derived from the other.
+    states[11] := NumGet(state, 6, "UChar") > 4
+    states[12] := NumGet(state, 7, "UChar") > 4
+    return states
 }
-return
 
-WaitForButtonUp9:
-If WinActive("ahk_class FFXiClass") {
-  if GetKeyState("Joy9")  ; The button is still, down, so keep waiting.
-      return
-  ; Otherwise, the button has been released.
-  SendInput {f9 up}
-  SendInput {Ctrl up}
-  SetTimer, WaitForButtonUp9, Off ; Turn off polling
+InitXInput() {
+    global xinputLibrary, xinputGetState
+    for _, dll in ["xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll"] {
+        library := DllCall("LoadLibrary", "Str", dll, "Ptr")
+        if (!library)
+            continue
+        address := DllCall("GetProcAddress", "Ptr", library, "AStr", "XInputGetState", "Ptr")
+        if (address) {
+            xinputLibrary := library
+            xinputGetState := address
+            return true
+        }
+        DllCall("FreeLibrary", "Ptr", library)
+    }
+    return false
 }
-return
 
-; Shows the environment list
-Joy10::
-If WinActive("ahk_class FFXiClass") {
-  SendInput {Ctrl down}
-  SendInput {f10 down}
-  isEnvironmentDialogOpen := true
-  SetTimer, WaitForButtonUp10, 10 ; Poll for button setting every 10ms
+WriteTransportStatus(force := false) {
+    global profile, device, modifierArgument, phase, connected, ready, lastStatusTick, origin
+    if (!force and A_TickCount - lastStatusTick < 1000)
+        return
+    lastStatusTick := A_TickCount
+    timestamp := A_NowUTC
+    EnvSub, timestamp, 19700101000000, Seconds
+    pid := phase = "stopped" ? 0 : DllCall("GetCurrentProcessId", "UInt")
+    modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
+    contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
+        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
+    global PC
+    if (PC.enabled)
+        contents .= "personal_context=" . PC.context . "`ndouble_tap_ms=" . PC.doubleTapMs . "`nps_hold=" . PC.holdAction . "`n"
+    ; Replace the status as one file so Lua never treats a partial write as live.
+    temporary := A_ScriptDir . "\data\controller-status.tmp"
+    destination := A_ScriptDir . "\data\controller-status.ini"
+    FileDelete, %temporary%
+    FileAppend, %contents%, %temporary%
+    FileMove, %temporary%, %destination%, 1
 }
-return
 
-WaitForButtonUp10:
-If WinActive("ahk_class FFXiClass") {
-  if GetKeyState("Joy10")  ; The button is still, down, so keep waiting.
-      return
-  ; Otherwise, the button has been released.
-  SendInput {f10 up}
-  SendInput {Ctrl up}
-  isEnvironmentDialogOpen := false
-  SetTimer, WaitForButtonUp10, Off ; Turn off polling
-}
-return
-
-; Replace rb with better target
-Joy6::
-If WinActive("ahk_class FFXiClass") {
-  SendInput {f8}
-}
-return
+#Include %A_ScriptDir%\personal_controls.ahk
+#Include %A_ScriptDir%\personal_gestures.ahk

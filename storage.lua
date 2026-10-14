@@ -1,8 +1,25 @@
 local storage = {}
+-- Capture the raising function, independently of Windower's chat logger.
+local error = (_raw and _raw.error) or error
 
 storage.filename = ''
 storage.directory = ''
 storage.file = nil
+
+-- A: files.write announces each implicit creation. Create explicitly so
+-- a related load can report once; keep failures and the backup order intact.
+function storage:write_file(target, contents)
+    local created = not target:exists()
+    if created then
+        local result, err = target:create()
+        if not result then error(err or ('Could not create ' .. tostring(target.path))) end
+    end
+    local result = target:write(contents)
+    if created and self.created_files and not target.path:match('%.bak$') then
+        self.created_files[#self.created_files + 1] = target.path:match('[^/]+$')
+    end
+    return result
+end
 
 -- slot-name translation for XML files.
 -- In-memory slots stay as slot_1..slot_9; on disk we use readable names that
@@ -106,21 +123,38 @@ function split_hotbar(hotbar_to_split)
     return job_sub_hotbar, job_hotbar, all_jobs_hotbar, shared_hotbar
 end
 
+-- A: serialize every layer before touching disk, then retain the previous
+-- contents of every existing file before replacing any one of them. This is
+-- recovery protection, not an atomic transaction across the four XML files.
+local function write_hotbar_layers(self, new_hotbar)
+    local job, job_default, all_jobs, shared = split_hotbar(new_hotbar)
+    local serialized = {table.to_xml(job), table.to_xml(job_default),
+        table.to_xml(all_jobs), table.to_xml(shared)}
+    local base = 'data/hotbar/' .. self.directory .. '/'
+    local layers = {
+        {self.file, self.filename},
+        {self.job_default_file, self.filename:match('^(.-)-') .. '-DEFAULT'},
+        {self.all_jobs_file, 'ALL-JOBS-DEFAULT'}, {self.shared_file, 'Shared'},
+    }
+    for _, layer in ipairs(layers) do
+        if layer[1]:exists() then
+            self:write_file(file.new(base .. layer[2] .. '.xml.bak'), layer[1]:read())
+        end
+    end
+    for i, layer in ipairs(layers) do self:write_file(layer[1], serialized[i]) end
+end
+
 -- store an hotbar in a new file
 function storage:store_new_hotbar(new_hotbar)
-    self.file:create()
-
-    local job_sub_hotbar, job_hotbar, all_jobs_hotbar, shared_hotbar = split_hotbar(new_hotbar)
-
-    self.file:write(table.to_xml(job_sub_hotbar))
-    self.job_default_file:write(table.to_xml(job_hotbar))
-    self.all_jobs_file:write(table.to_xml(all_jobs_hotbar))
-    self.shared_file:write(table.to_xml(shared_hotbar))
+    if self.hotbar_read_error then
+        error('XIVCrossbar: hotbar files were left unchanged after a load failure: ' .. self.hotbar_read_error)
+    end
+    write_hotbar_layers(self, new_hotbar)
 end
 
 -- update filename according to jobs
 function storage:update_filename(main, sub)
-    self.filename = main .. '-' .. sub
+    self.filename = main .. '-' .. (sub or 'NOSUB')
     self.file = file.new('data/hotbar/' .. self.directory .. '/' .. self.filename .. '.xml')
     self.job_default_file = file.new('data/hotbar/' .. self.directory .. '/' .. main .. '-DEFAULT.xml')
     self.all_jobs_file = file.new('data/hotbar/' .. self.directory .. '/ALL-JOBS-DEFAULT.xml')
@@ -131,17 +165,15 @@ end
 
 -- update file with hotbar
 function storage:save_hotbar(new_hotbar)
+    if self.hotbar_read_error then
+        error('XIVCrossbar: hotbar files were left unchanged after a load failure: ' .. self.hotbar_read_error)
+    end
     if not self.file:exists() then
         error('Hotbar file could not be found!')
         return
     end
 
-    local job_sub_hotbar, job_hotbar, all_jobs_hotbar, shared_hotbar = split_hotbar(new_hotbar)
-
-    self.file:write(table.to_xml(job_sub_hotbar))
-    self.job_default_file:write(table.to_xml(job_hotbar))
-    self.all_jobs_file:write(table.to_xml(all_jobs_hotbar))
-    self.shared_file:write(table.to_xml(shared_hotbar))
+    write_hotbar_layers(self, new_hotbar)
 end
 
 return storage
