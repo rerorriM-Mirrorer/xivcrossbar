@@ -1,3 +1,31 @@
+# Personal 6 Fix2 — status/storage scope
+
+Runtime: `0.4.0-a.20261014.personal6-fix2`. User reported `//xb status`
+raising `xivcrossbar.lua:1203: attempt to index global storage`, followed by
+an FFXI process crash during addon reload after binding. The main file lacked
+its own `storage` import; player.lua's local import did not export a global.
+Fix the root import, including its pre-login/logout guards. Status now names
+pending character login instead of an empty storage directory.
+
+The new test executes the actual status branch, invalid-identity initializer
+and logout callback using the root's import, with global storage absent.
+These checks passed. Earlier injected-local fixtures did not detect the missing
+root import; this test covers that integration boundary.
+
+The native crash is not reproduced or attributed. A Lua scope error does not
+by itself establish a cause for a native FFXI process crash. Keep the current
+character XMLs/backups; no user data is shipped or automatically restored.
+A fresh console.log after the crash, the exact reload command used, and the
+Windows crash entry's faulting module/exception code would help distinguish
+addon/runtime/graphics failures. Current attachments precede this incident.
+
+Live checks: run `//xb status` after login; check storage Fenrir/Cioara and
+registration true. Verify newly saved bindings remain present after one reload.
+Confirm logout/pre-login input cleanup still completes. Native crash acceptance
+remains pending; the patch must not be described as a confirmed crash fix.
+
+---
+
 # Personal 6 compatibility fix — checkpoint 2 (complete correction)
 
 Runtime: `0.4.0-a.20261014.personal6-fix1`. Both reported startup errors are

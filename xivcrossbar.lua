@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-fix1'
+_addon.version = '0.4.0-a.20261014.personal6-fix2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -65,6 +65,7 @@ local text_input_guard = require('text_input_guard')
 local personal_controls = require('personal_controls').new()
 local publish_personal_context
 local visibility = require('visibility')
+local storage = require('storage')
 local player = require('player')
 local ui = require('ui')
 local env_chooser = require('environment_chooser')
@@ -1200,7 +1201,8 @@ windower.register_event('addon command', function(command, ...)
     end
     if command == 'unload' then return graceful_restart(true) end
     if command == 'status' then
-        windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..tostring(storage.directory))
+        local directory = storage.identity_valid and storage.directory or 'awaiting character login'
+        windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..directory)
         windower.add_to_chat(0,'[XIVCrossbar] Client registration: '..tostring(client_registry and client_registry.loaded or false)..' | Last-client shutdown: '..tostring(settings.on_unload_killahk))
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
         report_controller_status()
