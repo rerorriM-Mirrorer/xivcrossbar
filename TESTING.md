@@ -22,7 +22,10 @@ trying to establish which operation triggers another failure.
 Other pending requests are unchanged: login identity/Asura folder selection,
 default switch destinations, Save Changes returning to catalog, icon sorting,
 personal menu ordering and asset consolidation. The current PS5 extended
-controller mapping is documented at the top of PERSONAL.md.
+controller mapping and cross-addon source review are at the top of PERSONAL.md.
+The documentation checkpoint changes no controller outputs or addon defaults.
+Optional evidence: `//xp debug refcount` and `//cbg diagnose` before/after the
+same NPC interaction, alongside `//xb resources`. No other addon is patched.
 
 ---
 

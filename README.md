@@ -314,3 +314,12 @@ replacing it. Geometry destruction is idempotent, including objects queued for
 a closing fade. Unload stops geometry animation, releases its surfaces and
 rounded primitives, then releases any remaining tracked text/image objects.
 Personal controller outputs are unchanged.
+
+
+### Personal 7 review notes
+
+PERSONAL.md now starts with the current source-verified extended controller map
+and the shared-text failure investigation. It distinguishes explicit XIVCrossbar
+resource retention from unproven native crash causes and documents existing
+XIVParty/ConsoleBGPlus diagnostics. Historical mappings remain below, clearly
+superseded by the current table. No controller remapping is part of cleanup.

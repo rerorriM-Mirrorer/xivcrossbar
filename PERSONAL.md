@@ -1,3 +1,88 @@
+# Current personal controls — verified against the shipped AHK source
+
+These are the `ps5extended` gameplay overrides, unchanged by Personal 7 cleanup.
+Menus/text entry and L2/R2 crossbars take priority. Bare L1/R1 no longer hold
+Ctrl/Alt continuously. Unlisted combinations retain ordinary button handling
+and consume a shoulder's targeting tap.
+
+| Input | Output |
+| --- | --- |
+| Bare L1 tap | F10 immediately on release |
+| Bare R1 tap | F8 immediately on release |
+| Double L1 tap | Escape pulse to old client, then previous FFXI client |
+| Double R1 tap | Escape pulse to old client, then next FFXI client |
+| L1 + Cross | Ctrl + Space once on Cross press |
+| L1 + touchpad | Tab immediately on touchpad press |
+| L1 + touchpad held 500ms | F15 additionally; the earlier Tab is not retracted |
+| R1 + Triangle | Ctrl + Numpad Plus once on Triangle press |
+| R1 + Circle | Direct keyboard Escape once on Circle press |
+| R1 + Cross | Direct keyboard Enter once on Cross press |
+| R1 + D-pad Up/Down | Keyboard arrows; Alt joins if already latched by horizontal input |
+| R1 + D-pad Left/Right | Alt + corresponding arrow; Alt stays latched until R1 release |
+| Bare touchpad tap | Backtick on release |
+| Bare touchpad held 500ms | Backtick once at threshold; Escape on release in the same focused FFXI client |
+| Bare L3 / R3 | H / R on release |
+| Hold R3, then press L3 | Comma held while the second click (L3) remains held |
+| Hold L3, then press R3 | Period held while the second click (R3) remains held |
+| PS tap | Next client; restore last client when no FFXI client has focus |
+| PS held 500ms | Return to recent non-FFXI app; no extra switch on release |
+| Mute | Joy15 identified; no ordinary personal shortcut assigned |
+
+The 250ms shoulder double-tap window does not delay the first F8/F10. The first
+tap may target; a recognized second tap sends a 40ms Escape pulse before switching
+to a different client. No different client means no Escape/switch. Client order
+is retained during the wrapper session; new clients append. PS restores the last
+client from another app. `controller.ini` can retain the alternate Personal
+PSHoldAction=minimize behavior; focus is the default.
+
+R1+Square has no personal override. Both shoulder clicks must return neutral
+after an ordered stick-click pair; simultaneous clicks choose neither order.
+L1+analog-stick zoom was removed. No L1/R1 companion crossbars are included.
+
+# Personal 7 shared-text failure review
+
+The user observed Balloon, XIVParty and native console text disappearing while
+NPCMirror interacted with a home crystal. Earlier text loss preceded a native
+pol.exe/d3d8.dll access violation. The new incident has no matching native fault
+record yet. Simultaneous missing text is a symptom, not proof of a common cause.
+
+Reviewed sources, retrieved October 14, 2026:
+
+- Windower/Lua master `addons/libs/texts.lua` and `images.lua`: strong registries
+  retain objects until destroy. Hide only changes visibility. This confirms the
+  temporary-object retention fixed in XIVCrossbar. The installed library copies
+  were not supplied; no shared Windower library is replaced by this package.
+- `rerorriM-Mirrorer/Balloon`, `Balloon.lua` and `ui.lua`: three persistent text
+  objects (message/name/timer) and six persistent images. Incoming dialogue
+  updates these objects; it does not recreate text for each line in this source.
+  Portrait/timing work may still affect responsiveness independently. Another
+  concurrent Balloon development package may differ from this repository snapshot.
+- `rerorriM-Mirrorer/XivParty`, `xivparty.lua`, `uiText.lua`, `uiContainer.lua`:
+  text creation has an explicit disposal path, container disposal recurses to
+  children, and logout disposes the view. `//xp debug refcount` reports its own
+  counts. Full class/disabled-element lifecycle and installed layout were not
+  exhaustively tested; this does not rule out another leak or rendering issue.
+- ConsoleBGPlus 0.1.19, matching the supplied console load banner, recovered
+  from its delivery ZIP: retained labels and cached/reused frame primitives;
+  excess pieces are deleted and unload deletes labels/primitives. Its frame
+  fade changes its own objects. It sets native console font/color/activity on
+  settings application, but does not render or erase the native output buffer.
+  `//cbg diagnose` saves `ConsoleBGPlus/data/diagnostics.txt`; native console font
+  and text-buffer state lack documented getters in that implementation.
+- Native console output is handled by Windower, outside these Lua text objects.
+  A font/render-resource failure is plausible when both that output and addon
+  text vanish, but a process dump or controlled comparison is needed to locate it.
+
+No Balloon, XIVParty, ConsoleBGPlus or Windower core code is changed here. First
+compare the same clean-client scenario with the XIVCrossbar cleanup installed.
+Record `//xb resources`, `//xp debug refcount`, and `//cbg diagnose` while healthy
+and, if practical, again when text fails; chat output can remain in Logger files
+even when it cannot be drawn. Compare manual interaction with NPCMirror later
+while holding other variables steady. Avoid repeated addon reloads as a recovery
+experiment after a shared text failure; a fresh process gives a useful baseline.
+
+---
+
 # Personal 6 current lifecycle and catalog behavior
 
 - The wrapper may run before login; only confirmed character/server identity permits hotbar writes.
