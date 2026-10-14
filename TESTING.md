@@ -1,3 +1,11 @@
+# Personal 6 compatibility fix — checkpoint 1
+
+Cioara's native startup screenshot exposed an AHK v1 Files-loop brace error
+that lexical delimiter checks missed. Put the opening brace on its own line
+and add a regression guard. This checkpoint addresses the parser error only;
+the separate missing-FFI error in the chatlog is the next checkpoint.
+Native AHK execution remains a live check; this container cannot run it.
+
 # Personal 6 — complete testing package and checkpoint 7
 
 Runtime: `0.4.0-a.20261014.personal6`. Branch: `personal/ps5extended`. Package headers identify the exact source and published GitHub commit. Public RC3 is not modified.

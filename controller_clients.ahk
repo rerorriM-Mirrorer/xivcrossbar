@@ -14,7 +14,8 @@ WrapperClientsShouldExit() {
     latestClose := 0
     latestKill := false
     pattern := A_ScriptDir . "\data\controller-clients\*.ini"
-    Loop, Files, %pattern%, F {
+    Loop, Files, %pattern%, F
+    {
         path := A_LoopFileFullPath
         IniRead, pid, %path%, Client, pid, 0
         IniRead, token, %path%, Client, token, missing

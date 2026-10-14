@@ -5,6 +5,9 @@ import re
 root=Path(__file__).resolve().parents[1]
 sources={p:p.read_text() for p in root.rglob('*.ahk')}
 for path,source in sources.items():
+    # AHK v1 command-style Files/Read/Parse loops require the brace on a new
+    # line. Balanced braces alone missed the native Personal 6 startup error.
+    assert not re.search(r'^\s*Loop,\s*(Files|Read|Parse)\b[^\n]*\{\s*$',source,re.M|re.I),path
     stack=[];quoted=False;i=0
     while i<len(source):
         c=source[i]
