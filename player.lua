@@ -106,6 +106,7 @@ end
 
 -- load hotbar for current player and job combination
 function player:load_hotbar()
+    if not self.identity_confirmed or not storage.identity_valid then return false end
     -- A: keep the last complete view when parsing any layer fails. A
     -- parser exception must block saves just like an explicit XML read error.
     local previous = {hotbar=self.hotbar, shared_icons=self.shared_icons,

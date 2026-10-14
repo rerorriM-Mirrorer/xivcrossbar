@@ -243,3 +243,7 @@ are retained under `images/assets/menu/`. Original game artwork belongs to its r
 - Personal 2 Defaults 1: requested fresh-install defaults and matching setup
   choice, retained shutdown preference, color-setting reference, and read-only
   controller button discovery for planning a Mute-held probe layer.
+
+### Personal 6 checkpoint 1
+
+Controller transport may start before login. Character hotbar storage now requires a confirmed logged-in character and known server; logout disables character writes until a valid login. Packages omit all user data and configuration.

@@ -1,3 +1,18 @@
+# Personal 6 — checkpoint 1: confirmed character storage
+
+Runtime: `0.4.0-a.20261014.personal6-1`. Apply this overlay to Personal 5 (or the complete package later in this batch). No data, catalog, binding XML, settings XML, or controller INIs are supplied. Preserve your installed data. Rollback files restore the preceding committed code.
+
+1. Load before logging in. Verify the wrapper still provides login controls; no Asura/UnknownServer character folders should be created.
+2. Log into your Fenrir character, reload and bind an ordinary action. Confirm status and existing sets remain correct.
+3. Log out with the addon remaining loaded. Reload must not create or write character files until login.
+4. Repeat on another character. Compare existing XML/backups if bindings appear missing; report character/server/job and active set.
+
+Available verification: identity resolver and actual storage write guard exercised with simulated APIs; all Lua sources parsed using the documented Lua 5.4 fallback. Native wrapper/login testing remains pending.
+
+Agreed remainder: duplicate-action dimming and feedback completion; OnInput triggers during cutscenes; valid `<t>` first; merged global/private catalog listing with global default saves and source-preserving edits; coordinated saves; catalog-bound updates with deletion snapshots; last-client shutdown. Independent trigger-field fade remains dormant; L1 companion, icon organization and personal menu ordering are deferred.
+
+---
+
 ## Personal/public polish review — October 13, 2026
 
 Review only: no runtime files or public snapshot changed. User confirms text

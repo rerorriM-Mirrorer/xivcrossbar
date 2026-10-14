@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261013.personal5'
+_addon.version = '0.4.0-a.20261014.personal6-1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -46,6 +46,7 @@ local controller_capture_dik = controller_modifier == 'ctrl' and 29 or 221
 local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
 
 -- Load theme options according to settings
+local character_identity = require('character_identity')
 local theme = require('theme')
 local theme_options = theme.apply(settings)
 local buttonmapping = require('buttonmapping')
@@ -489,12 +490,13 @@ end
 -- initialize addon
 function initialize()
     local windower_player = windower.ffxi.get_player()
-    local server = resources.servers[windower.ffxi.get_info().server].en
-    if (server == nil) then
-        server = 'UnknownServer'
+    local server = character_identity.resolve(windower.ffxi.get_info(), windower_player, resources.servers)
+    if not server then
+        xivcrossbar.ready = false
+        storage.identity_valid = false
+        return false
     end
-
-    if windower_player == nil then return end
+    player.identity_confirmed = true
 
     -- A: config has refreshed character overrides by login. Build the layout
     -- from that table instead of the global theme cached before character load.
@@ -608,6 +610,7 @@ end
 
 -- reload hotbar
 function reload_hotbar()
+    if not windower.ffxi.get_info().logged_in then return false end
     if not xivcrossbar.ready then
         initialize()
         return xivcrossbar.ready == true
@@ -1178,6 +1181,11 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    xivcrossbar.ready = false
+    xivcrossbar.initialized = false
+    player.identity_confirmed = false
+    storage.identity_valid = false
+    if release_gameplay_keys then release_gameplay_keys() end
     ui.autoattack:reset()
     ui:hide()
     skillchains.logout()

@@ -9,6 +9,7 @@ storage.file = nil
 -- A: files.write announces each implicit creation. Create explicitly so
 -- a related load can report once; keep failures and the backup order intact.
 function storage:write_file(target, contents)
+    if not self.identity_valid then error("Log in to a confirmed character before saving crossbars.") end
     local created = not target:exists()
     if created then
         local result, err = target:create()
@@ -75,6 +76,8 @@ end
 
 -- setup storage for current player
 function storage:setup(player)
+    if not player.identity_confirmed then error("Character/server identity is not confirmed.") end
+    self.identity_valid = true
     local sub_job = player.sub_job
     if (sub_job == nil) then
         sub_job = 'NOSUB'
