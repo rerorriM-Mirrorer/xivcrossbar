@@ -1,3 +1,42 @@
+# Personal 6 Fix3 — preserve catalog tracking through XML reload
+
+Runtime: `0.4.0-a.20261014.personal6-fix3`. While reviewing the supplied
+catalog_* fields, the slot loader was found to parse these fields but discard
+them in action_manager.build. Carry them into the rebuilt action so stable
+identities and inherited-value snapshots survive reload. Native execution
+fields and catalog editing behavior are unchanged.
+
+A new regression executes the actual XML slot loader and action constructor:
+load, catalog update/rename, preserve an overridden label, serialize the field
+snapshot, load again, and retain the retired identity after same-name recreation.
+It also exercises a plain sixth-bar SlowEnter action. These checks passed.
+
+New user evidence (read-only): console(20261014-085359).log,
+Cioara_2026.10.14(1).log and WHM-RDM - Copy.xml. User confirmed xb restart
+preceded the game crash. Console reports Fix1, records the storage error and
+successful unload/load pairs at 03:41 and 03:48, plus an addon startup sequence
+at 03:45. The chatlog has Restarting followed by loaded sets and NPC dialogue.
+Shared-client console entries cannot determine the exact crashed client; no
+native faulting module/exception appears. Native crash cause remains unknown.
+The valid XML retains 12 actions in Switch; no deleted-bind evidence in this copy.
+
+A portable Fenrir four-character bundle moves those commands into All Jobs
+Default for Cioara, Myrr, Clairvaux and Killala, plus the later R2-double-tap
+Cross=se binding in the chatlog. These XMLs are a separate, explicitly requested
+data bundle, never included in the runtime update. Existing ALL-JOBS-DEFAULT
+files require backup/merge before replacement. The source upload is untouched.
+
+The chatlog also shows the stop/follow-stop chain saved into Party - Trust
+Toggle. This is a catalog edit, not a crash diagnosis. Preserve the uploaded
+slot commands in the copies and flag that entry for user review.
+
+Live checks: apply Fix3, verify status; bind a catalog action, reload hotbars and
+Lua, then edit/rename the catalog action and confirm the same bound identity
+updates while slot-specific overrides stay. Delete and reload: bound copy
+remains usable. Use the Fenrir files only after preserving the previous defaults.
+
+---
+
 # Personal 6 Fix2 — six-bar fresh defaults
 
 New settings now default to `Hotbar.Number=6`, with `AutoHideExtraBars=true`.

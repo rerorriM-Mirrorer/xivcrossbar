@@ -344,8 +344,15 @@ function player:load_from_file(storage_file)
                         end
                     end
 
+                    local action = action_manager:build(new_action.type, new_action.action, new_action.target, new_action.alias, new_action.icon, new_action.equip_slot, new_action.warmup, new_action.cooldown, new_action.usable, new_action.linked_action, new_action.linked_type)
+                    -- A: the constructor handles execution fields. Preserve the
+                    -- catalog identity/snapshot too, so reload cannot turn a
+                    -- linked copy into an anonymous legacy binding.
+                    for field,value in pairs(new_action) do
+                        if field:match('^catalog_') then action[field]=value end
+                    end
                     self:add_action(
-                        action_manager:build(new_action.type, new_action.action, new_action.target, new_action.alias, new_action.icon, new_action.equip_slot, new_action.warmup, new_action.cooldown, new_action.usable, new_action.linked_action, new_action.linked_type),
+                        action,
                         environment_key,
                         hotbar_id,
                         normalize_slot_id(slot.name:gsub('slot_', ''))

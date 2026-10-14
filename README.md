@@ -287,3 +287,7 @@ Import storage in the main addon so status, pending-login and logout guards acce
 ### Personal 6 Fix2: six bars by default
 
 Fresh personal settings default to six hotbars and hide inactive extra bars. Existing saved bar counts remain in force; set Hotbar.Number to 6 in the character settings to opt an existing installation in. No user XML or controller INI is shipped.
+
+### Personal 6 Fix3: catalog XML tracking
+
+Preserve catalog identities and inherited-value snapshots when rebuilding slots from XML, so catalog-linked bindings retain their provenance across reloads. Native crash cause remains unconfirmed by the supplied logs. The separately requested four-character Fenrir defaults are not part of the runtime update.
