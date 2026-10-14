@@ -1,3 +1,4 @@
+local ui_resources = require('ui/resources')
 require("lists")
 require("strings")
 require("tables")
@@ -309,6 +310,8 @@ local SPELL_TYPE_LOOKUP = {
 
 function action_binder:setup(buttonmapping, save_binding_func, delete_binding_func, theme_options, get_crossbar_sets_func, base_x, base_y, max_width, max_height,
 change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_custom_action_func, delete_custom_action_func, create_new_set_func)
+    ui_resources.clear(self.images); ui_resources.clear(self.hints)
+    if self.title then self.title:destroy() end
     -- A single centered panel owns the background, title and selector. Style
     -- offsets move the crossbar only; applying them here displaced the backdrop.
     local screen = windower.get_windower_settings()
@@ -386,6 +389,7 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
 end
 
 function action_binder:reset_state()
+    ui_resources.clear(self.images); ui_resources.clear(self.hints)
     self.custom_action_name_required = false
     self.page_gesture = nil
     self.menu_buttons_down = {}
@@ -404,7 +408,7 @@ function action_binder:reset_state()
     self.action_catalog = nil
     self.hotkey = nil
     self.selection_states = {}
-    self.selector:hide()
+    self.selector:reset_state()
     self.images = L{}
     self.hints = L{}
     self.icon_picker_stack = {}
@@ -461,7 +465,7 @@ function action_binder:clear_controller_input()
 end
 
 function action_binder:create_text(caption, x, y)
-    local text_field = texts.new({flags = {draggable = false}})
+    local text_field = ui_resources.text({flags = {draggable = false}})
     text_field:bg_alpha(0)
     text_field:bg_visible(false)
     text_field:font(self.theme_options.font)
@@ -1810,12 +1814,8 @@ function action_binder:display_button_assigner()
     windower.prim.set_color('button_entry_bg',150,0,0,0)
     windower.prim.set_visibility('button_entry_bg', true)
 
-    for i, image in ipairs(self.images) do
-        image:hide()
-    end
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
-    end
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
 
     local caption_x = self.base_x + self.width / 2
     local caption_y = self.base_y + self.height / 2 - 40
@@ -1850,9 +1850,7 @@ function action_binder:display_button_confirmer()
 
     self.selector:hide()
 
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
-    end
+    ui_resources.clear(self.hints); self.hints = L{}
 
     local caption_x = self.base_x + self.width / 2
     local caption_y = self.base_y + self.height / 2 - 40
@@ -1888,7 +1886,7 @@ function action_binder:delete_action()
 end
 
 function action_binder:show_icon(path, x, y)
-    local icon = images.new({draggable = false})
+    local icon = ui_resources.image({draggable = false})
     local icon_path = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/' .. path
     icon:path(icon_path)
     icon:repeat_xy(1, 1)
@@ -1898,13 +1896,12 @@ function action_binder:show_icon(path, x, y)
     icon:show()
     icon:pos(x, y)
     self.images:append(icon)
+    return icon
 end
 
 function action_binder:show_pressed_buttons()
     local icons = L{}
-    for i, image in ipairs(self.images) do
-        image:hide()
-    end
+    ui_resources.clear(self.images); self.images = L{}
 
     if (self.theme_options.hotbar_number > 3) then
         if (self.active_crossbar == 1) then
@@ -1982,9 +1979,7 @@ end
 
 function action_binder:confirm_buttons()
     local icons = L{}
-    for i, image in ipairs(self.images) do
-        image:hide()
-    end
+    ui_resources.clear(self.images); self.images = L{}
 
     if (self.theme_options.hotbar_number > 3) then
         if (self.active_crossbar == 1) then
@@ -2059,7 +2054,9 @@ function action_binder:confirm_buttons()
 end
 
 function action_binder:show_hint(hint_text, path, x, y)
-    self:show_icon(path, x, y)
+    local icon = self:show_icon(path, x, y)
+    self.control_hint_images = self.control_hint_images or L{}
+    self.control_hint_images:append(icon)
     local caption = self:create_text(hint_text, x + 45, y + 10)
     caption:size(14)
     self.hints:append(caption)
@@ -2097,9 +2094,11 @@ function action_binder:show_exit_hint()
 end
 
 function action_binder:show_control_hints(confirm, go_back)
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
+    ui_resources.clear(self.control_hint_images); self.control_hint_images = L{}
+    for i=#self.images,1,-1 do
+        if ui_resources.is_disposed(self.images[i]) then table.remove(self.images,i) end
     end
+    ui_resources.clear(self.hints); self.hints = L{}
     local y = self.base_y + self.height - 50
     local x1 = self.base_x + self.width - 130
     local x2 = self.base_x + self.width - 250
@@ -2888,10 +2887,8 @@ function action_binder:display_custom_action_field_review(field_label, field_let
     self.title:show()
 
     self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
 
     windower.prim.set_visibility('button_entry_bg', true)
 
@@ -3024,10 +3021,8 @@ function action_binder:display_custom_actions_picker(title_text)
     self.title:text(title_text)
     self.title:show()
     self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
     windower.prim.set_visibility('button_entry_bg', false)
 
     local names = {}
@@ -3054,9 +3049,8 @@ function action_binder:display_edit_custom_action_review()
     local d=self.custom_action_draft or {}
     self:show_set_title(self.editing_custom_action and 'Custom Action: Review and Edit' or 'New Custom Action: Review and Save')
     self.title:show(); self.selector:hide()
-    for _,image in ipairs(self.images) do image:hide() end
-    for _,hint in ipairs(self.hints) do hint:hide() end
-    self.images,self.hints=L{},L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
     require('ui/menu_background').set_color(windower.prim, 'dialog_bg',215,0,0,0)
     windower.prim.set_visibility('button_entry_bg',false)
     local path='images/'..get_icon_pathbase()..'/'
@@ -3136,11 +3130,9 @@ function action_binder:display_delete_custom_action_confirm()
     self.title:text('Delete Custom Action')
     self.title:show()
     self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
-    windower.prim.set_visibility('button_entry_bg', true)
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
+    windower.prim.set_visibility('button_entry_bg', false)
 
     self:show_control_hints('Confirm', 'Go Back')
 
@@ -3185,14 +3177,8 @@ end
 
 function action_binder:clear_button_entry_ui()
     windower.prim.set_visibility('button_entry_bg', false)
-    for i, image in ipairs(self.images) do
-        image:hide()
-    end
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
-    end
-    self.images = L{}
-    self.hints = L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
 end
 
 function action_binder:return_to_action_type_menu()
@@ -3274,10 +3260,8 @@ function action_binder:display_icon_choice_selector()
     self.title:text('Custom Action: Icon')
     self.title:show()
     self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
     windower.prim.set_visibility('button_entry_bg', false)
 
     local pathbase = get_icon_pathbase()
@@ -3293,10 +3277,8 @@ function action_binder:display_linked_type_selector()
     self.title:text('Custom Action: Linked Action Category')
     self.title:show()
     self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
     windower.prim.set_visibility('button_entry_bg', false)
 
     local p = windower.ffxi.get_player()
@@ -3363,10 +3345,8 @@ function action_binder:display_custom_action_confirm()
     self.title:text('Custom Action: Review and Save')
     self.title:show()
     self.selector:hide()
-    for i, image in ipairs(self.images) do image:hide() end
-    for i, hint in ipairs(self.hints) do hint:hide() end
-    self.images = L{}
-    self.hints = L{}
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
     windower.prim.set_visibility('button_entry_bg', true)
 
     self:show_control_hints('Confirm', 'Go Back')
@@ -3558,12 +3538,8 @@ function action_binder:display_text_entry(title_text, placeholder)
 
     self.selector:hide()
 
-    for i, image in ipairs(self.images) do
-        image:hide()
-    end
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
-    end
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
 
     windower.prim.set_position('button_entry_bg', self.base_x+30, self.base_y+self.height/2-60)
     windower.prim.set_size('button_entry_bg', self.width-60,120)
@@ -3584,9 +3560,8 @@ function action_binder:update_text_entry_display()
     if self.custom_action_review_field and self.inline_entry_text then
         self.inline_entry_text:text(self.text_entry_buffer:sub(-48) .. '|'); self.inline_entry_text:show(); return
     end
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
-    end
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
 
     local caption_x = self.base_x + self.width / 2
     local caption_y = self.base_y + self.height / 2 - 40

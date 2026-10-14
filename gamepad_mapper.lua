@@ -1,3 +1,4 @@
+local ui_resources = require('ui/resources')
 texts = require('texts')
 
 local gamepad_mapper = {}
@@ -23,6 +24,10 @@ local get_icon_pathbase = function()
 end
 
 function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, theme_options, base_x, base_y, max_width, max_height, profile_options)
+    ui_resources.clear(self.images); ui_resources.clear(self.hints)
+    for _, name in ipairs({'title','subtitle','intro','subintro','welcome_prompt','welcome_glow'}) do
+        if self[name] then self[name]:destroy() end
+    end
     self.is_showing = false
     self.buttonmapping = buttonmapping
     self.start_controller_wrappers = start_controller_wrappers_func
@@ -106,6 +111,7 @@ function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, the
 end
 
 function gamepad_mapper:reset_state()
+    ui_resources.clear(self.images); ui_resources.clear(self.hints)
     self.state = states.HIDDEN
 
     self.images = L{}
@@ -137,15 +143,11 @@ function gamepad_mapper:hide_text()
         choice.caption:hide()
         windower.prim.set_visibility(choice.background, false)
     end
-    for i, hint in ipairs(self.hints) do
-        hint:hide()
-    end
+    ui_resources.clear(self.hints); self.hints = L{}
 end
 
 function gamepad_mapper:hide_images()
-    for i, image in ipairs(self.images) do
-        image:hide()
-    end
+    ui_resources.clear(self.images); self.images = L{}
 end
 
 function gamepad_mapper:show(is_first_time)
@@ -170,7 +172,7 @@ function gamepad_mapper:is_within_dialog(x, y)
 end
 
 function gamepad_mapper:create_text(caption, x, y)
-    local text_field = texts.new({flags = {draggable = false}})
+    local text_field = ui_resources.text({flags = {draggable = false}})
     text_field:bg_alpha(0)
     text_field:bg_visible(false)
     text_field:font(self.theme_options.font)
@@ -516,7 +518,7 @@ function gamepad_mapper:is_over_gamecube_buttons(x, y)
 end
 
 function gamepad_mapper:create_image(path, x, y)
-    local image = images.new({draggable = false})
+    local image = ui_resources.image({draggable = false})
 
     local image_path = windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/' .. path
     setup_image(image, image_path)

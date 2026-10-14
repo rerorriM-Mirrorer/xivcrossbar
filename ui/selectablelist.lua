@@ -1,3 +1,4 @@
+local ui_resources = require('ui/resources')
 require("lists")
 require("tables")
 texts = require('texts')
@@ -12,6 +13,7 @@ local ROW_HEIGHT = 50
 local page_assets = 'images/assets/menu/'
 
 function selectable_list:setup(theme_options, base_x, base_y, max_width, max_height)
+    ui_resources.clear(self.fields); ui_resources.clear(self.images)
     self.theme_options = theme_options
     self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
     self.base_x = base_x or 150
@@ -61,10 +63,10 @@ function selectable_list:setup(theme_options, base_x, base_y, max_width, max_hei
     end
     self.page_backgrounds, self.page_trigger_icons = {}, {}
     for _, direction in ipairs({'prev','next'}) do
-        local bg = images.new({draggable=false})
+        local bg = ui_resources.image({draggable=false})
         setup_image(bg, windower.addon_path .. page_assets .. 'page-button.png')
         bg:size(COLUMN_WIDTH,ROW_HEIGHT); bg:hide(); self.page_backgrounds[direction]=bg
-        local icon = images.new({draggable=false})
+        local icon = ui_resources.image({draggable=false})
         setup_image(icon, windower.addon_path .. page_assets .. (direction=='prev' and 'L2' or 'R2') .. '.png')
         icon:size(28,28); icon:hide(); self.page_trigger_icons[direction]=icon
     end
@@ -83,12 +85,13 @@ function selectable_list:reset_state()
     windower.prim.set_visibility('prev_page_button', false)
     windower.prim.set_visibility('next_page_button', false)
     for index, field in ipairs(self.fields) do
-        field:hide()
+        field:destroy()
     end
     for index, image in ipairs(self.images) do
-        image:hide()
+        image:destroy()
     end
     self.fields = L{}
+    self.images = L{}
     self.field_coords = {}
     self.selected_row = 1
     self.selected_col = 1
@@ -171,7 +174,7 @@ function selectable_list:show()
 end
 
 function selectable_list:create_text(text_string, row, col)
-    local text = texts.new({flags = {draggable = false}})
+    local text = ui_resources.text({flags = {draggable = false}})
     text:bg_alpha(0)
     text:bg_visible(false)
     text:font(self.theme_options.font)
@@ -313,7 +316,7 @@ function selectable_list:display_options(options, presentation)
                 local caption=self:create_text(option_caption,row,col)
                 self.fields:append(caption)
 
-                local icon = images.new({draggable = false})
+                local icon = ui_resources.image({draggable = false})
                 local icon_path = windower.addon_path .. value.icon
                 local x, y = self:get_pos(row, col)
                 x = x + 5
@@ -323,7 +326,7 @@ function selectable_list:display_options(options, presentation)
                 icon:pos(x + icon_offset, y + icon_offset)
                 self.images:append(icon)
 
-                local frame = images.new({draggable = false})
+                local frame = ui_resources.image({draggable = false})
                 setup_image(frame, self.frame_image_path)
                 frame:pos(x, y)
                 self.images:append(frame)

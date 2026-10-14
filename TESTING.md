@@ -1,3 +1,41 @@
+# Personal 7 cleanup checkpoint 1
+
+Runtime: `0.4.0-a.20261014.personal7-cleanup1`. Temporary native text/image
+objects are explicitly released on screen replacement and actual close, including
+selector rows, binding footer icons, repeated text-entry captions and mapper
+screen objects. Hiding a draft under Options preserves it. Delete Custom Action
+no longer shows the text-input background band. Add `//xb resources` for quiet,
+manual same-state object-count comparisons. No user XML, INI or images in updates.
+
+Evidence: Windower Lua master texts.lua and images.lua retain objects in strong
+registries; hide only changes visibility, destroy removes the registration and
+native primitive. Prior picker resets dropped fields without destroying them
+and retained old image lists. This is a demonstrable leak independent of whether
+it caused Cioara's native crash.
+
+Simulated: 200 actual review/edit/bind/back cycles, 150 legacy typing updates and
+10 menu setup rebuilds return to baseline using strong native-style registries.
+108 layouts, slot/cost cleanup, text fades and root status/logout regressions
+pass. These are Lua 5.4 fallback/mocked checks, not Windows/FFXI execution.
+
+Live: stop editing if shared text disappears again. After a clean process start:
+1. `//xb resources` with menu closed; record counts.
+2. Open `//xb ca Bow`, edit command, review, Save & Bind, Circle back, Share exit;
+   repeat several times, then compare closed-menu counts.
+3. Browse several catalog/icon pages; close and compare again.
+4. Open Options over a draft, switch sets, close Options: fields remain intact.
+5. Delete confirmation has no blue input band; cancel without deleting.
+6. Repeat normal NPCMirror/home-point interaction with Balloon/XIVParty loaded;
+   note whether text survives. A normal native crash report remains useful.
+
+The new cross-addon text loss occurred while NPCMirror interacted with a home
+crystal. Balloon, XIVParty and console text were absent together. No new native
+fault record yet. Preserve current binds; do not infer another d3d8 exception
+without a new record. Asura identity, default switch destinations and Save Only
+return navigation remain separate pending changes.
+
+---
+
 # Personal 6 Fix3 — preserve catalog tracking through XML reload
 
 Runtime: `0.4.0-a.20261014.personal6-fix3`. While reviewing the supplied

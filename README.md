@@ -291,3 +291,17 @@ Fresh personal settings default to six hotbars and hide inactive extra bars. Exi
 ### Personal 6 Fix3: catalog XML tracking
 
 Preserve catalog identities and inherited-value snapshots when rebuilding slots from XML, so catalog-linked bindings retain their provenance across reloads. Native crash cause remains unconfirmed by the supplied logs. The separately requested four-character Fenrir defaults are not part of the runtime update.
+
+
+### Personal 7 cleanup checkpoint 1
+
+Temporary review, picker, binding and text-entry objects are explicitly destroyed
+when replaced or closed. Setup rebuilds replace their titles and cursor assets.
+Options overlays still hide and restore the active draft without disposing it.
+The unnecessary text-entry band is hidden on Delete Custom Action.
+
+`//xb resources` reports this addon's live text/image counts and cumulative
+creation/deletion totals, without touching other addons. Compare the same closed
+menu state before and after repeated editing. Counts differ between screens;
+cumulative creation totals naturally increase. This fixes demonstrated object
+retention, not a proven native d3d8 crash cause.

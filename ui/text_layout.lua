@@ -1,5 +1,6 @@
 -- A: native glyph measurements can arrive after the text is first drawn.
 -- Keep the desired center and revisit it on render, without rewriting captions.
+local ui_resources = require('ui/resources')
 local layout = {}
 layout.__index = layout
 
@@ -31,7 +32,7 @@ end
 
 function layout:update()
     for text, entry in pairs(self.entries) do
-        if text.visible and not text:visible() then self.entries[text]=nil
+        if ui_resources.is_disposed(text) or (text.visible and not text:visible()) then self.entries[text]=nil
         else self:update_text(text, entry) end
     end
 end

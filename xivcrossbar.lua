@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-fix3'
+_addon.version = '0.4.0-a.20261014.personal7-cleanup1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -986,6 +986,7 @@ function display_help_menu()
     help.command('autoattack [on|off|status]','Enable/stop swing estimation independently of opacity.')
     help.command('inputtest [on|off]','Enable input test messages; bare toggles.')
     help.command('inputtrace [on|off]','Enable input diagnostics; bare toggles.')
+    help.command('resources',"Report this addon's live UI objects and creation/deletion totals.")
     help.command('inputstatus','Report input settings.')
     help.command('remap','Open controller setup.')
     help.command('regenerate','Rebuild generated resources.')
@@ -1200,6 +1201,12 @@ windower.register_event('addon command', function(command, ...)
         return
     end
     if command == 'unload' then return graceful_restart(true) end
+    if command == 'resources' then
+        local r=require('ui/resources').snapshot()
+        windower.add_to_chat(0, '[XIVCrossbar] UI live: '..r.text..' text, '..r.image..' images | Created/deleted: '..r.created_text..'/'..r.destroyed_text..' text, '..r.created_image..'/'..r.destroyed_image..' images.')
+        windower.add_to_chat(0, '[XIVCrossbar] Counts cover this addon only; compare the same screen after repeating edits.')
+        return
+    end
     if command == 'status' then
         local directory = storage.identity_valid and storage.directory or 'awaiting character login'
         windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..directory)

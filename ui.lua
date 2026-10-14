@@ -1,3 +1,4 @@
+local ui_resources = require('ui/resources')
 local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
@@ -12,10 +13,10 @@ local prim = geometry:prim()
 ui.geometry = geometry
 ui.autoattack = require('autoattack').new(os.clock)
 local function new_image(options)
-    return geometry:surface(images.new(options), 'image', options)
+    return geometry:surface(ui_resources.image(options), 'image', options)
 end
 local function new_text(options)
-    return geometry:surface(texts.new(options), 'text', options)
+    return geometry:surface(ui_resources.text(options), 'text', options)
 end
 
 local text_setup = {
