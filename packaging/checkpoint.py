@@ -17,6 +17,12 @@ def include(p):
 entries={}
 for p in paths:
     if include(p) and (root/p).is_file():entries['xivcrossbar/'+p]=(root/p).read_bytes()
+if complete:
+    for p in git('diff','--name-only','16896b4','HEAD').decode().splitlines():
+        if include(p) and not p.startswith(('images/','themes/')):
+            prior=subprocess.run(['git','show','16896b4:'+p],cwd=root,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            if prior.returncode==0:entries['rollback/xivcrossbar/'+p]=prior.stdout
+    entries['rollback/README.md']=b'Personal 5 code rollback: stop the wrapper and unload all clients. Copy rollback/xivcrossbar files over the install, keeping your data/configuration and images. Extra new modules can remain unused. Start/reload after restoration. Restore a backed-up catalog separately if you intentionally want to reverse catalog edits; no user XML is packaged.\n'
 entries['WORKFLOW.md']=(root/'WORKFLOW.md').read_bytes()
 entries['TESTING.md']=('Package source commit: '+revision+'\nGitHub checkpoint: '+published+'\n\n').encode()+(root/'TESTING.md').read_bytes()
 if not complete:

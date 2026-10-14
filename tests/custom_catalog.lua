@@ -42,4 +42,14 @@ locked=false
 local replace=options.replace;options.replace=function()return false,'disk failure'end
 assert(not c.save(options,'global',nil,{name='Failure',id='f'}));assert(files.global==before and not locked)
 options.replace=replace
+local latest=c.decode(files.global,parse).Bow2
+assert(c.save(options,'global',latest,nil))
+local retired=c.decode(files.global,parse)
+assert(retired['@retired:one'] and retired['@retired:one'].command=='input /bow')
+assert(c.save(options,'global',nil,{name='Bow2',id='replacement',command='input /wave'}))
+local recreated=c.decode(files.global,parse)
+assert(recreated.Bow2.id=='replacement' and recreated['@retired:one'].id=='one')
+assert(c.view(recreated,{},'global').Bow2.id=='replacement')
 print('Merged catalog visibility, source choice, stale-save merging/conflicts, rename, blank commands, locks and failed-write preservation passed.')
+
+_G.catalog_test_parse=parse

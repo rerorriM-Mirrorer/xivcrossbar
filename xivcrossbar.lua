@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal6-6'
+_addon.version = '0.4.0-a.20261014.personal6'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -132,7 +132,6 @@ local function set_compact_mode(mode)
     if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
     ui_dirty = true
     config.save(settings)
-    windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..tostring(storage.directory))
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
 end
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
@@ -421,8 +420,10 @@ function initialize()
     if not server then
         xivcrossbar.ready = false
         storage.identity_valid = false
+        xivcrossbar.pending_initialize = windower.ffxi.get_info().logged_in == true
         return false
     end
+    xivcrossbar.pending_initialize = false
     player.identity_confirmed = true
     player.custom_action_save_scope = settings.CustomActionSaveScope
 
@@ -1091,8 +1092,14 @@ end)
 windower.register_event('logout', function()
     xivcrossbar.ready = false
     xivcrossbar.initialized = false
+    xivcrossbar.pending_initialize = false
     player.identity_confirmed = false
     storage.identity_valid = false
+    if action_binder.selector then action_binder:hide();action_binder:reset_state() end
+    if env_chooser.is_setup then env_chooser:close() end
+    if gamepad_mapper.is_showing then gamepad_mapper:hide() end
+    transport:reset()
+    gamepad_state.left_trigger,gamepad_state.right_trigger,gamepad_state.active_bar=false,false,0
     if release_gameplay_keys then release_gameplay_keys() end
     ui.autoattack:reset()
     ui:hide()
@@ -1193,6 +1200,8 @@ windower.register_event('addon command', function(command, ...)
     end
     if command == 'unload' then return graceful_restart(true) end
     if command == 'status' then
+        windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..tostring(storage.directory))
+        windower.add_to_chat(0,'[XIVCrossbar] Client registration: '..tostring(client_registry and client_registry.loaded or false)..' | Last-client shutdown: '..tostring(settings.on_unload_killahk))
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
         report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
@@ -1700,6 +1709,7 @@ release_gameplay_keys = function()
 end
 local function input_context()
     if gamepad_mapper.is_showing then return 'setup' end
+    if not xivcrossbar.ready then return 'login' end
     if env_chooser.capturing then return 'text' end
     if env_chooser:is_showing() then return 'sets' end
     if action_binder:is_capturing_text() then return 'text' end
@@ -1768,7 +1778,7 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     if signal and (gamepad_state.capturing or transport.down[dik]) then
         -- The wizard bootstraps button configuration and can be visible before
         -- hotbar initialization finishes. Gameplay still requires readiness.
-        if restart_pending or (not xivcrossbar.ready and not gamepad_mapper.is_showing) then return true end
+        if restart_pending then return true end
         if blocked and pressed and input_context() ~= 'text' and not action_binder.chooser_active then
             if settings.InputTrace then windower.add_to_chat(123, '[XIVCrossbar test] BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
             return true
@@ -1793,6 +1803,14 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
         -- The base set chooser uses only Up/Down; other slot buttons stay
         -- owned by that menu and must never fall through to a crossbar action.
         if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
+        if context == 'login' then
+            local key=transport:login_key(item,buttonmapping)
+            if key and pressed then
+                gameplay_down[dik]=key
+                windower.send_command('setkey '..key..' down')
+            end
+            return true
+        end
         if item.logical <= 66 and context == 'gameplay' then
             local key = transport:gameplay_key(item, buttonmapping, settings.GameplayDPad)
             if settings.InputTest then
@@ -1852,8 +1870,13 @@ windower.register_event('gain focus', function() clear_controller_input(true) en
 
 local catalog_clock=require('socket').gettime
 local next_catalog_refresh=0
+local next_identity_retry=0
 -- ON PRERENDER
 windower.register_event('prerender',function()
+    if xivcrossbar.pending_initialize and not restart_pending and catalog_clock()>=next_identity_retry then
+        next_identity_retry=catalog_clock()+.25
+        initialize()
+    end
     publish_personal_context()
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then
         next_catalog_refresh=catalog_clock()+1

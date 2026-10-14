@@ -1,6 +1,11 @@
-# XIVCrossbar — Personal 5 testing build
+# XIVCrossbar — Personal 6 testing build
 
 This personal build starts from RC3 plus its Icons, Credits and Escape patches.
+Personal 6 adds confirmed-character storage guards with controller login input,
+per-slot dimming fixes, cutscene trigger access, current-target-first selection,
+combined global/private custom-action catalogs, linked binding updates, and
+optional last-client wrapper shutdown. Complete and update packages omit all
+installed data/settings/controller INIs; preserve yours when copying over an install.
 New settings default to PS5 Extended, IJKL, on-input visibility, compact layout
 and Superwarp all. Existing saved values are retained. Select the extended
 profile with `//xb controller profile ps5extended`; `//xb controller profile ps5`
@@ -266,3 +271,7 @@ Catalog-linked bindings follow edits and renames by stable identity. Explicit sl
 ### Personal 6 checkpoint 6
 
 The installation-scoped mutex still prevents duplicate wrappers. A process registry now supports optional last-client shutdown: `on_unload_killahk=true` on the last departing client stops the shared wrapper after a two-second reload grace; false keeps it running. Registration begins before character login and uses process creation time to reject stale PID reuse. `//xb unload` performs graceful teardown; `//xb restart` reloads the addon and `//xb reload` only re-reads hotbars. Help now uses the shared chat-only formatting, and unknown commands display help. Apply matching Lua and wrapper files to every participating client, then restart the shared wrapper once for the new policy.
+
+### Personal 6 final review
+
+Allow controller menu input before character initialization while keeping crossbar execution/storage guarded. Retry transient identity readiness after login. Add a per-process counter to action IDs and retain the exact committed entry as a draft revision, so an intervening edit cannot be silently accepted. Keep the review's catalog scope centered with its changing set title. Full simulated regression checks and package checks passed; live Windows/FFXI checks are pending.

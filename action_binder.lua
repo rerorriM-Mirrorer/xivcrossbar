@@ -1782,7 +1782,9 @@ function action_binder:show_set_title(label)
     local name = bar and (bar.name or key) or key or ''
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
     local color = defaults[key] and '\\cs(0,128,255)' or '\\cs(255,255,255)'
-    self.title:text(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
+    local scope = self.state == states.EDIT_CUSTOM_ACTION_REVIEW and self.custom_action_draft and
+        (' ['..(self.custom_action_draft._scope or player_data:catalog_save_scope())..' catalog]') or ''
+    self.title:text(label .. ' — ' .. color .. name .. ' Crossbar\\cr' .. scope)
     self:center_caption(self.title, self.base_y + 30)
     self.title:show()
     if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end
@@ -3051,7 +3053,6 @@ end
 function action_binder:display_edit_custom_action_review()
     local d=self.custom_action_draft or {}
     self:show_set_title(self.editing_custom_action and 'Custom Action: Review and Edit' or 'New Custom Action: Review and Save')
-    self.title:text(self.title:text()..' ['..(d._scope or player_data:catalog_save_scope())..' catalog]')
     self.title:show(); self.selector:hide()
     for _,image in ipairs(self.images) do image:hide() end
     for _,hint in ipairs(self.hints) do hint:hide() end

@@ -1,3 +1,48 @@
+# Personal 6 — complete testing package and checkpoint 7
+
+Runtime: `0.4.0-a.20261014.personal6`. Branch: `personal/ps5extended`. Package headers identify the exact source and published GitHub commit. Public RC3 is not modified.
+
+## Install
+
+1. Back up your installed `xivcrossbar` folder, including `data/` and `config.ini`.
+2. Stop the old shared wrapper once with `//xb controller stop`, then unload XIVCrossbar on every participating client. Game clients can remain open.
+3. Copy the package's `xivcrossbar/` contents over the addon folder, preserving your existing `data/` and `config.ini`. The complete package includes images/dependencies; it needs none of the interim patches. There is no binding XML, catalog XML, settings XML, or controller INI in any package.
+4. Load with `lua l xivcrossbar`; confirm `//xb status` reports `personal6` and the expected server/character storage after login. Existing saved settings remain in force. A genuinely fresh installation uses personal defaults and controller setup.
+5. The rollback folder restores Personal 5 code only; user catalogs/settings are retained. Read its instructions before restoring.
+
+## Live checks, in order
+
+1. Before character login, verify controller arrows/confirm/cancel work while no character/server folders are created. Log in and verify the reported storage directory and original crossbar sets. Transient missing identity retries; invalid XML stops writes.
+2. OnInput: hold/release triggers during NPC dialogue/cutscenes. Explicit Hide still hides. Bind friendly/enemy actions and check `<t>` first where valid.
+3. Put the same spell on multiple slots/bars; check MP dim/recovery, recast/warmup and normal feedback completion.
+4. Confirm existing private actions plus global actions. `//xb catalog global` (default for new saves), `//xb catalog character`, `//xb catalog status`. Both sources remain listed; edits remain source-owned.
+5. Bind a global action on Franklet and Lionstag; edit/rename it and execute both copies. Preserve a slot-specific alias/icon override. Delete, reload another job/client, then recreate the same name: existing copies retain their prior identity/last command.
+6. On two clients, add different global actions from stale catalog views; both survive. Edit the same action in two drafts: the conflicting save keeps its draft. Confirm blank commands stay blank in XML, fallback execution works, and backups are made.
+7. Unload one of two clients: the other's wrapper keeps working. Unload the last with `on_unload_killahk=true`: exit after about two seconds. False keeps the wrapper running. Repeat with a minimized/pre-login peer and `lua r xivcrossbar`/`//xb restart`.
+8. Check current personal controls, bare Cross/Circle, normal F-key behavior, no native macro popup, Options chooser/draft preservation, item icons, compact/scale/drag/textfade. `//xb unload` is graceful; `//xb reload` only re-reads hotbars.
+
+## Verification performed here
+
+All 76 Lua sources parse after temporary normalization of inherited Windower string syntax, using the available Lua 5.4 fallback. Sixteen selected Lua regression groups passed, including the actual player catalog methods with mocked I/O. Rendering coverage remains 108 unique layouts across 960×540, 1280×720, 1600×900, 1920×1080, 2560×1440 and 3840×2160, three scales and 2/4/6 bars; 18 narrow indicator cases passed. Forty personal AHK gesture decisions and the actual AHK last-client decision policy passed through narrow test translations; five AHK files passed lexical/include checks.
+
+These are simulated/static checks. Native AHK execution, Windows FFI locks/replacement/process queries and live FFXI behavior are not tested here. Treat Personal 6 as a testing build until those checks pass.
+
+## Checkpoints
+
+1. Storage identity guard — local `f6e538e`, GitHub `0c8c736`.
+2. Per-slot dimming/feedback — local `a8d93b3`, GitHub `e1827d8`.
+3. Cutscene/target choices — local `11d3c09`, GitHub `d190c48`.
+4. Combined catalogs/coordinated saves — local `21a9310`, GitHub `5a82631`.
+5. Binding identity/deletion snapshots — local `58f2937`, GitHub `fea0cbb`.
+6. Last-client shutdown/shared help — local `1d4dde2`, GitHub `7441f61`.
+7. Final review: login input, source-revision/ID safeguards, centered scope and complete packaging; exact commits are in this package's header.
+
+## Retained backlog
+
+L1 companion next round; icon catalog cleanup and personal main-menu ordering; mute probe; further target refinement and trust-state artwork; alternative gesture/menu ideas. The independent trigger-field fade remains dormant. The reported bind loss has not been reproduced or conclusively attributed; the previous ZIP audit found no shipped user XML/INIs. Preserve any affected XML/backups/logs for comparison.
+
+---
+
 # Personal 6 — checkpoint 6: last-client wrapper shutdown
 
 Runtime: `0.4.0-a.20261014.personal6-6`. Apply after checkpoint 5. Update every participating client/install; stop the old wrapper once with `//xb controller stop`, then start the updated wrapper with `//xb controller start`. Lua reload alone leaves an already-running old wrapper unchanged.

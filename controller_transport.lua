@@ -41,4 +41,11 @@ function M:gameplay_key(signal, mapping, dpad_mode)
     if b == mapping.mainmenu_button then return 'numpad-' end
     if b == mapping.activewindow_button then return 'numpad+' end
 end
+function M:login_key(signal,mapping)
+    -- Before character settings are available, use ordinary menu arrows.
+    local defaults={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'}
+    local selected={}
+    for key,fallback in pairs(defaults) do selected[key]=mapping[key] or fallback end
+    return self:gameplay_key(signal,selected,'arrows')
+end
 return M

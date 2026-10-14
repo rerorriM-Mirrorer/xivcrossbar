@@ -8,7 +8,7 @@ for _,id in ipairs(profiles.order) do assert(id~='ps5-extended') end
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
 assert(not source:find('settings.on_unload_killahk = false',1,true),'preference overwritten')
 assert(source:find('default_profile=defaults.ControllerProfile',1,true),'wizard default missing')
-assert(not source:match("register_event%('unload'.-on_unload_killahk"),'new shutdown behavior not authorized here')
+assert(source:find('client_registry:close(settings.on_unload_killahk)',1,true),'last-client preference not passed to registry')
 local function text()
  return setmetatable({},{__index=function(_,key)
   return function(self,...)

@@ -467,6 +467,8 @@ local function read_catalog_file(path)
     local raw=f:read('*a');f:close();return raw
 end
 
+local catalog_id_counter=0
+
 function player:catalog_save_scope()
     return self.custom_action_save_scope=='character' and 'character' or 'global'
 end
@@ -540,15 +542,22 @@ function player:save_catalog_edit(original_key,record)
     local backend=require('windows_file').new()
     local next_record=catalog.copy(record)
     if next_record then
-        next_record.id=original and original.id or next_record.id or (self.name..':'..backend.pid..':'..tostring(require('socket').gettime()))
+        catalog_id_counter=catalog_id_counter+1
+        next_record.id=original and original.id or next_record.id or (self.name..':'..backend.pid..':'..tostring(require('socket').gettime())..':'..catalog_id_counter)
     end
     local ok,err=catalog.save({lock=backend.lock,replace=backend.replace,read=read_catalog_file,parse=xml.parse},path,expected,next_record)
     if not ok then return false,err end
-    self:refresh_custom_catalogs()
+    -- Use the committed snapshot as this draft's revision. A different client
+    -- may edit immediately afterwards; rereading here must not bless its edits
+    -- as this draft's expected version.
+    self.catalog_sources[scope]=err
+    self.catalog_raw[scope]=nil
+    self.custom_actions=catalog.view(self.catalog_sources.global,self.catalog_sources.character,self:catalog_save_scope())
+    self:sync_catalog_bindings(false)
     if record then
-        local saved,key=catalog.find(self.custom_actions,record.name,scope)
-        record._scope,record._key,record.id=scope,key,saved and saved.id
-        record._expected=catalog.copy(saved)
+        local _,key=catalog.find(self.custom_actions,record.name,scope)
+        record._scope,record._key,record.id=scope,key,next_record.id
+        record._expected=catalog.copy(next_record)
     end
     return true
 end
