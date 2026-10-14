@@ -1,7 +1,7 @@
 // Actual AHK decision function, with native process/file observations simulated.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 let s=fs.readFileSync('controller_clients.ahk','utf8');
-s=s.slice(s.indexOf('WrapperClientsDecision(state,'),s.indexOf('\nWrapperProcessToken(',s.indexOf('WrapperClientsDecision(state,')));
+s=s.slice(s.indexOf('WrapperClientsDecision(state,'),s.indexOf('\nWrapperOwnerAlive(',s.indexOf('WrapperClientsDecision(state,')));
 s=s.replace(/;[^\n]*/g,'').replace(/:=/g,'=').replace(/\bor\b/g,'||').replace(/\band\b/g,'&&');
 s=s.replace(/^WrapperClientsDecision\(/,'function decision(');
 const ctx={};vm.createContext(ctx);vm.runInContext(s,ctx);

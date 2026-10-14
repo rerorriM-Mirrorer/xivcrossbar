@@ -20,7 +20,7 @@ end
 windower={addon_path='addon/',create_dir=function()end}
 file={new=function(path)return{exists=function()return files['addon/'..path]~=nil end}end}
 xml={parse=catalog_test_parse}
-package.loaded['windows_file']={new=function()return{pid=123,lock=function()return function()end end,
+package.loaded['windows_file']={new=function()return{session_id='test-session',lock=function()return function()end end,
     replace=function(path,raw)files[path]=raw;return true end}end}
 package.loaded.socket={gettime=function()return 111 end}
 local storage={identity_valid=true,global_catalog_path='addon/data/CustomActions.xml',character_catalog_path='addon/data/hotbar/Fenrir/Test/CustomActions.xml'}

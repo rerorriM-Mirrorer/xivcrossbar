@@ -1,3 +1,38 @@
+# Personal 6 compatibility fix — checkpoint 2 (complete correction)
+
+Runtime: `0.4.0-a.20261014.personal6-fix1`. Both reported startup errors are
+addressed. Apply the update over Personal 6, preserving installed `data/` and
+configuration. Stop the old wrapper, unload the addon on participating clients,
+copy the matching Lua/AHK files, then load again. The update contains no user
+XML/INI or images. A corrected complete install is also available.
+
+1. Confirm the wrapper starts without the `Return` error, and the chatlog has
+   no missing-`ffi` error. `//xb status` should report client registration true.
+2. Create a disposable action, save, bind, edit and reload. Confirm global and
+   private catalogs remain available and original bindings/settings survive.
+3. From two clients, add different actions to the global catalog; both survive.
+   Saving an outdated edit of the same entry should retain its draft.
+4. Unload one client while another is minimized: controls remain working.
+   Unload the last with `on_unload_killahk=true`: wrapper exits after its grace.
+   Repeat with false and with `lua r xivcrossbar`/`//xb restart`.
+
+The new helper uses stock Lua and LuaSocket, already used by the addon. A short
+local port reservation serializes catalog writes without sending network data.
+Windows replacement uses a complete temporary file, a retained `.pending`
+revision, and rollback on publication failure. Readers can read that retained
+revision during the brief rename gap. This is recoverable replacement, not a
+claim of a single atomic filesystem operation. Owner file handles distinguish
+live/minimized/pre-login sessions from stale registrations; AHK makes the native
+Windows handle probe, not Lua.
+
+Verification: 77 Lua sources parsed in the available Lua 5.4 fallback; 18 Lua
+test groups passed, including stock-Lua dependency checks, lock contention,
+Windows-style rename failures/recovery and owner lifetime with simulated I/O.
+AHK lexical/integration checks, lifecycle decisions and 40 personal gesture
+decisions passed. Native AHK/Windows handle probing and live FFXI acceptance
+remain pending. The original FFI implementation below is historical and has
+been replaced; Cioara's log proved it incompatible with Windower.
+
 # Personal 6 compatibility fix — checkpoint 1
 
 Cioara's native startup screenshot exposed an AHK v1 Files-loop brace error

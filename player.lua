@@ -459,6 +459,10 @@ end
 local function read_catalog_file(path)
     local f,err=io.open(path,'rb')
     if not f then
+        -- Readers can observe the brief Windows two-rename swap. Read the
+        -- retained prior revision instead of treating it as an empty catalog.
+        f=io.open(path..'.pending','rb')
+        if f then local raw=f:read('*a');f:close();return raw end
         -- Missing catalog is an empty source, never an empty replacement file.
         local relative=path:sub(#windower.addon_path+1)
         if not file.new(relative):exists() then return nil end
@@ -543,7 +547,7 @@ function player:save_catalog_edit(original_key,record)
     local next_record=catalog.copy(record)
     if next_record then
         catalog_id_counter=catalog_id_counter+1
-        next_record.id=original and original.id or next_record.id or (self.name..':'..backend.pid..':'..tostring(require('socket').gettime())..':'..catalog_id_counter)
+        next_record.id=original and original.id or next_record.id or (self.name..':'..backend.session_id..':'..tostring(require('socket').gettime())..':'..catalog_id_counter)
     end
     local ok,err=catalog.save({lock=backend.lock,replace=backend.replace,read=read_catalog_file,parse=xml.parse},path,expected,next_record)
     if not ok then return false,err end
