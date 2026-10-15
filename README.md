@@ -340,3 +340,12 @@ independently of generic list iterators. `//xb resources` now identifies its hel
 build, so the loaded module can be checked separately from the addon version.
 This guards the reported repeated numeric-destroy failure; its recurrence after
 checkpoint 3 is not yet reproduced in FFXI. No controller changes.
+
+
+### Personal 7 cleanup checkpoint 5
+
+Options no longer tries to dim a deleted inline-entry caption after returning to
+the custom-action review. Overlay restoration skips objects replaced while it
+was open. Cursor cleanup works when root unload has already destroyed its images.
+Regression checks reproduce both previous calls before their respective fixes;
+controller scripts and installed data are unchanged.

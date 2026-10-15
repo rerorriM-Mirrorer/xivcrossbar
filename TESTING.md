@@ -1,3 +1,57 @@
+# Personal 7 cleanup checkpoint 5 — stale review references and cursor unload
+
+Runtime: `0.4.0-a.20261014.personal7-cleanup5`; `//xb resources` helper cleanup5.
+Source checkpoint is recorded in the delivered ZIP header.
+
+User materials: xivcrossbar-snapshot-10-15-2026.zip and console(20261015-133537).log.
+Every tracked runtime Lua file in the snapshot matches Cleanup4 (ignoring line
+endings). The DirectInput wrapper differs and includes the separately developed
+movement_signal.ahk integration. Neither file is changed or packaged here.
+The snapshot's installed data/settings/catalogs remain evidence, never runtime
+patch payload.
+
+The console confirms Cleanup4 loaded and records two additional lifecycle errors:
+- resources.lua:28, UI object used after disposal: text.alpha (including 07:55:37
+  and 08:27:23/27): Options suspends the old inline-entry caption after returning
+  to a freshly drawn review. It was destroyed with the previous hints, but its
+  secondary reference remained. Clear that reference when rebuilding/resetting;
+  skip disposed objects when dimming/restoring an Options overlay.
+- resources.lua:28, UI object used after disposal: image.hide (including 07:16:22
+  unloads): root cleanup may delete cursor images before the selector's unload
+  callback. Cursor destruction now deletes idempotently without hiding already
+  deleted frames first.
+
+Both failures were reproduced in the strengthened real-menu regression before
+fixing their callers. The registry's use-after-disposal assertion remains active;
+these changes do not silence errors in unrelated paths. Options restoration also
+handles a screen rebuilt while the overlay owns input.
+
+Simulated checks passed: 200 review/edit/bind/back cycles, 150 typed updates,
+100 footer redraws, Options following inline editing and replacement during the
+overlay, both cursor cleanup orders, repeated crossbar/chooser rebuilds, status,
+text fades and catalog integration. 84 Lua sources parsed under the Lua 5.4
+fallback after temporary Windower syntax normalization. No native FFXI testing.
+
+Other console messages are separate: TrustMovement reports malformed XML at
+line 12 before later successful loads; Repeater reports a string/number comparison
+at repeater.lua:210; Logger and Battle Stations also report unload-time errors.
+None establishes a cause for XIVCrossbar's observed stale-object calls, and no
+other addon is modified by this package.
+
+Live checks:
+1. Unload XIVCrossbar, overlay the matching xivcrossbar folder, then load it.
+   Retain data, images, configuration and the movement-enabled controller wrapper.
+2. Edit a custom-action field, confirm, open Options and select another crossbar;
+   close Options. The review remains usable without text.alpha errors.
+3. Repeat while still typing, cancel back to review and open Options again.
+4. Reload on one client while another remains loaded. No image.hide unload error.
+5. `//xb resources` live counts return to the same baseline after repeated cycles.
+
+The separate page-two spell-to-target transition is still under investigation in
+this checkpoint. No bindings, catalogs, settings, images or AHK files are included.
+
+---
+
 # Personal 7 cleanup checkpoint 4 — guarded object cleanup and build marker
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup4`. User reports the same numeric

@@ -47,7 +47,9 @@ function methods:update()
     end
 end
 function methods:destroy()
-    self:hide()
+    -- Deletion hides each image itself. Root cleanup may already have deleted
+    -- the owned images before the selector's unload callback runs.
+    self.shown=false;self.frame=nil
     for _,frame in ipairs(self.frames) do
         for _,part in ipairs(frame) do part:destroy() end
     end

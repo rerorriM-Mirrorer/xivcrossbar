@@ -13,7 +13,7 @@ local function object()
             elseif key=='hide' then self.shown=false
             elseif key=='visible' and #args==0 then return self.shown
             elseif key=='extents' then return #(self.values.text or '')*6,14
-            elseif #args==0 then return self.values[key]
+            elseif #args==0 then return self.values[key] or (key=='alpha' and 255 or nil)
             else self.values[key]=args[1] end
         end
     end})
@@ -38,8 +38,10 @@ package.loaded.player=player
 package.loaded['text_input_guard']={update=function()end}
 package.loaded.socket={gettime=function()return 1 end}
 config={load=function(d)return d end}
-local prim_values={}
-windower={addon_path='addon/',register_event=function()end,send_command=function()end,
+local prim_values,events={},{}
+windower={addon_path='addon/',register_event=function(name,callback)
+        events[name]=events[name] or {};table.insert(events[name],callback)
+    end,send_command=function()end,
     get_windower_settings=function()return {ui_x_res=1280,ui_y_res=720}end,
     prim=setmetatable({}, {__index=function(_,key)return function(name,...)
         prim_values[name]=prim_values[name] or {};prim_values[name][key]={...}
@@ -56,7 +58,7 @@ resources.clear(malformed)
 ipairs=previous_ipairs
 assert(resources.is_disposed(one) and resources.snapshot().text==0)
 resources.clear(malformed)
-assert(resources.version=='cleanup4')
+assert(resources.version=='cleanup5')
 local binder=require('action_binder')
 local options=require('theme').apply(require('defaults'))
 options.button_layout='playstation';options.hotbar_number=6
@@ -92,6 +94,20 @@ for i=1,200 do
     collectgarbage('collect')
     assert(totals()==baseline, 'closed menu retained temporary drawing objects')
 end
+-- Inline entry belongs to the previous review's hint list after editing ends.
+-- Options must not dim that deleted caption, or restore one replaced mid-overlay.
+binder.custom_action_draft={name='Bow',alias='Bow',command='input /bow'}
+binder.custom_action_review_field='command';binder.text_entry_buffer='input /bow'
+binder:display_inline_custom_action_entry()
+local former_entry=binder.inline_entry_text
+binder.custom_action_review_field=nil
+binder:display_edit_custom_action_review()
+assert(resources.is_disposed(former_entry))
+binder:set_chooser_active(true)
+binder:display_edit_custom_action_review()
+binder:set_chooser_active(false)
+binder:hide();binder:reset_state()
+assert(totals()==baseline)
 -- Legacy text entry previously created a caption and exit image per keystroke.
 binder.text_entry_buffer='';binder.custom_action_review_field=nil
 local typing_count
@@ -125,5 +141,8 @@ for i=1,10 do
     assert(totals()==baseline, 'setup retained prior menu objects')
 end
 resources.destroy_all();resources.destroy_all()
+-- The root unload can dispose all registered images before this module's
+-- later unload callback. Destruction must not hide native objects again.
+for _,callback in ipairs(events.unload or {}) do callback() end
 assert(totals()==0)
 print('Upstream Windower Lists: 200 review/edit/bind/back cycles, 150 typed updates, 100 footer redraws and repeated setup retained no extra native-style objects.')

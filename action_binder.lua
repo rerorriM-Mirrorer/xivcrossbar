@@ -390,6 +390,8 @@ end
 
 function action_binder:reset_state()
     ui_resources.clear(self.images); ui_resources.clear(self.hints)
+    self.inline_entry_text = nil
+    self.custom_action_value_texts = nil
     self.custom_action_name_required = false
     self.page_gesture = nil
     self.menu_buttons_down = {}
@@ -1536,7 +1538,7 @@ function action_binder:set_chooser_active(active, gamepad_state)
         self.chooser_visibility = {}
         local seen = {}
         local function suspend(object)
-            if not object or seen[object] then return end
+            if not object or seen[object] or ui_resources.is_disposed(object) then return end
             seen[object] = true
             local alpha = object:alpha()
             self.chooser_visibility[#self.chooser_visibility+1] = {object=object, visible=object:visible(), alpha=alpha}
@@ -1559,8 +1561,11 @@ function action_binder:set_chooser_active(active, gamepad_state)
         self.page_gesture = nil
     else
         for _,entry in ipairs(self.chooser_visibility or {}) do
-            entry.object:alpha(entry.alpha)
-            if entry.visible then entry.object:show() else entry.object:hide() end
+            -- Job/UI reconstruction can replace the screen while Options is up.
+            if not ui_resources.is_disposed(entry.object) then
+                entry.object:alpha(entry.alpha)
+                if entry.visible then entry.object:show() else entry.object:hide() end
+            end
         end
         self.chooser_visibility = nil
         self.chooser_title_alpha = nil
@@ -3051,6 +3056,8 @@ function action_binder:display_edit_custom_action_review()
     self.title:show(); self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
     ui_resources.clear(self.hints); self.hints = L{}
+    -- The inline caption was owned by the previous hints, not the new review.
+    self.inline_entry_text = nil
     require('ui/menu_background').set_color(windower.prim, 'dialog_bg',215,0,0,0)
     windower.prim.set_visibility('button_entry_bg',false)
     local path='images/'..get_icon_pathbase()..'/'
