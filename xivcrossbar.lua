@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261015.public-rc3-stroke1'
+_addon.version = '0.4.0-a.20261015.public-rc3-cleanup1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1041,6 +1041,8 @@ function display_help_menu()
     windower.add_to_chat(207, 'mv/move <env> <hb> <slot> <dest hb> <dest slot>')
     windower.add_to_chat(207, 'icon/ic <env> <hb> <slot> <icon>')
     windower.add_to_chat(207, 'alias/al/caption <env> <hb> <slot> <text>   Set slot caption')
+    windower.add_to_chat(207, '//xb compact [on|off]             Switch compact layout immediately')
+    windower.add_to_chat(207, '//xb resources                    Report live UI object counts')
     windower.add_to_chat(207, 'controller status|start|stop|profiles')
     windower.add_to_chat(207, 'controller profile <name> [device]  Save controller reader selection')
     windower.add_to_chat(207, '--- Custom Actions ---')
@@ -1141,7 +1143,8 @@ windower.register_event('unload',function()
     end
     -- No broad killahk.bat: the wrapper is shared across FFXI clients.
     if release_gameplay_keys then release_gameplay_keys() end
-
+    if ui.geometry then ui.geometry:shutdown() end
+    require('ui/resources').destroy_all()
 end)
 
 -- ON COMMAND
@@ -1197,6 +1200,13 @@ windower.register_event('addon command', function(command, ...)
         command = 'ui'
     end
 
+    if command == 'resources' then
+        local owner=require('ui/resources')
+        local r=owner.snapshot()
+        windower.add_to_chat(0, '[XIVCrossbar] UI '..owner.version..': '..r.text..' text, '..r.image..' images | Created/deleted: '..r.created_text..'/'..r.destroyed_text..' text, '..r.created_image..'/'..r.destroyed_image..' images.')
+        windower.add_to_chat(0, '[XIVCrossbar] Compare counts on the same screen after repeated edits; these cover XIVCrossbar only.')
+        return
+    end
     if command == 'status' then
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
         report_controller_status()

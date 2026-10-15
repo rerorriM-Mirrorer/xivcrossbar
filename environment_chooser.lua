@@ -1,8 +1,9 @@
+local ui_resources = require('ui/resources')
 local env_chooser = {}
 local geometry = require('ui_geometry').new()
 local prim = geometry:prim()
 local function new_text(options)
-    return geometry:surface(texts.new(options), 'text', options)
+    return geometry:surface(ui_resources.text(options), 'text', options)
 end
 local defaults = require('defaults')
 settings = config.load(defaults)
@@ -102,6 +103,7 @@ end
 
 -- load the ui
 function env_chooser:load(theme_options)
+    geometry:dispose_surfaces()
     self.layer_theme = theme_options
     prim.create('menu_background')
     prim.set_color('menu_background', 235, 0, 0, 0)
@@ -145,9 +147,6 @@ end
 -- Dispose every prior object first; geometry's destroy unregisters its proxy.
 function env_chooser:raise_layer()
     if not self.is_setup then return end
-    for _,entry in pairs(self.environments or {}) do entry.name_text:destroy() end
-    if self.tooltip then self.tooltip:destroy() end
-    if self.heading then self.heading:destroy() end
     for _,name in ipairs({'menu_background','menu_highlight','tooltip_background'}) do prim.delete(name) end
     self:load(self.layer_theme)
 end

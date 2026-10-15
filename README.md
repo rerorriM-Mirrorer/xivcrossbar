@@ -158,3 +158,5 @@ are retained under `images/assets/menu/`. Original game artwork belongs to its r
 2026-10-15: immediate `//xb compact [on|off]` preserves the active set, drafts, drag position and fade state.
 
 Stroke alpha now uses Windower's 0..255 alpha API for text outlines, preventing the invalid transparency values associated with fade flicker.
+
+Menu transitions and crossbar rebuilds now explicitly release replaced drawing objects. `//xb resources` reports live text/image counts for diagnostics; compare the same screen after repeated edits. This fixes demonstrated retained objects and does not establish the cause of earlier native crashes.

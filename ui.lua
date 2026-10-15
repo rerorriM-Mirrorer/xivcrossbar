@@ -1,3 +1,4 @@
+local ui_resources = require('ui/resources')
 local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
@@ -11,10 +12,10 @@ local geometry = require('ui_geometry').new()
 local prim = geometry:prim()
 ui.geometry = geometry
 local function new_image(options)
-    return geometry:surface(images.new(options), 'image', options)
+    return geometry:surface(ui_resources.image(options), 'image', options)
 end
 local function new_text(options)
-    return geometry:surface(texts.new(options), 'text', options)
+    return geometry:surface(ui_resources.text(options), 'text', options)
 end
 
 local text_setup = {
@@ -449,6 +450,7 @@ end
 
 -- load the images and text
 function ui:load(theme_options)
+    geometry:dispose_surfaces({[self.battle_notice]=true})
     -- load battle notice
     setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)

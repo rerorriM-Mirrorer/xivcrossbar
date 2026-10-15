@@ -1,3 +1,57 @@
+# Public RC3 Maintenance 1 — October 15, 2026
+
+Runtime: `0.4.0-a.20261015.public-rc3-cleanup1`. Cumulative public-only ports:
+immediate compact switching, corrected text stroke alpha, and resource cleanup.
+New branch public/rc3-maintenance recovers the delivered RC3 + Icons/Credits/Escape
+runtime. Personal controls, movement integration, personal defaults, catalog
+propagation, icon relocation and palette changes are excluded. Master and the
+personal development branch remain unchanged by these ports.
+
+Install over the public RC3 runtime only: unload XIVCrossbar on all participating
+clients, copy the installable xivcrossbar contents, then load again. No AHK
+changes in this patch; the running public wrapper can stay. Do not overlay this
+on a personal installation: it is a separate public candidate. No data, XML,
+INI, settings, catalogs, bindings or images are shipped. Code rollback targets
+the recovered RC3 public baseline, with user data preserved.
+
+## Verification and live checklist
+
+Available checks pass: 108 layouts (six resolutions x three scales x two/six-bar
+variants), compact command validation/state preservation, 200 review/edit/bind/back
+cycles, 150 text updates, 100 footer rebuilds using an upstream Windower List,
+30 crossbar reconstructions, 20 chooser reconstructions, cursor unload after
+root disposal, and idempotent deferred destruction. Lua 5.4 parsing uses temporary
+normalization of inherited Windower string methods; this is not Lua 5.1, native
+Windower drawing or Windows input execution. These checks do not prove a native
+crash fix. Prior original public test groups are not claimed rerun here: their
+sources were not in the recovered archive.
+
+1. `//xb status`: reports public-rc3-cleanup1. `//xb compact`, explicit on/off,
+   scale .6/1/1.5; toggle while choosing sets and editing a custom action. Draft,
+   current set, drag position and bindings survive; both layouts fit.
+2. Compare text fades in both layouts. No flickering outline; ordinary input,
+   startup visibility and captions behave as before.
+3. `//xb resources`: note counts on a closed menu, repeat edit/save/bind/back,
+   return to the same screen and compare. Counts should settle, not grow every
+   cycle. Unload/reload with a menu open; no disposed-object errors.
+4. Native gameplay, addon menu, all six crossbar states, physical F-keys and
+   Ctrl+F-key bindings remain correct. No personal profile is offered.
+5. Remaining prior release checks: Credits at 960x540 and 1280x720; Escape from
+   drafts/binding/chooser without native leakage; restart one client while another
+   remains usable; final clean installation and setup guide review.
+
+## New user feedback and next candidates
+
+Default reciprocal switches on the personal build are live-confirmed. TrustMovement
+is managed by AddonManager; no autoload integration is wanted here. Personal input
+stickiness remains under investigation. Deferred public candidates for review:
+stable world/server gating, shorter target-list pagination, Default destinations,
+and the existing catalog-save navigation request. Future personal design: two L1
+modes/banks, per-bank visibility, icon-picker organization and muted lockout colors.
+Do not silently include those in this three-feature maintenance patch.
+
+---
+
 # Public RC3 Stroke 1 — October 15, 2026
 
 Port corrected stroke_alpha calls in crossbar text, selector, binder, controller setup and chooser. The drawing mock rejects transparency arguments outside Windower's 0..1 range. The prior personal build was user-confirmed to fade text without flicker after this correction. Recheck public fades in both compact layouts; no palette or timing changes.
