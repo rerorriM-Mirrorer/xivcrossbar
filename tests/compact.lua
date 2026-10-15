@@ -9,6 +9,9 @@ local function object(kind)
             if key=='show' then self.visible=true
             elseif key=='hide' then self.visible=false
             elseif key=='destroy' then self.destroyed=true
+            elseif key=='stroke_transparency' then
+                assert(args[1]>=0 and args[1]<=1,'Windower stroke_transparency expects 0..1')
+                self.values[key]=args[1]
             elseif key=='extents' then return #(self.values.text or '')*(self.values.size or 10)*.5,10
             elseif #args==0 then
                 local value=self.values[key]

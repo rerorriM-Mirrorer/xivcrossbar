@@ -1,3 +1,7 @@
+# Public RC3 Stroke 1 — October 15, 2026
+
+Port corrected stroke_alpha calls in crossbar text, selector, binder, controller setup and chooser. The drawing mock rejects transparency arguments outside Windower's 0..1 range. The prior personal build was user-confirmed to fade text without flicker after this correction. Recheck public fades in both compact layouts; no palette or timing changes.
+
 # Public RC3 Compact 1 — October 15, 2026
 
 Immediate `//xb compact [on|off]` port only. Existing public settings and controller profiles are preserved; no personal controls or companion are included. Toggle during a draft, chooser use, trigger holds and at .6/1/1.5 scale; check all six bars and drag persistence. Simulated layout/command checks are run before delivery; Windows rendering and input require live testing.

@@ -177,7 +177,7 @@ function selectable_list:create_text(text_string, row, col)
     text:font(self.theme_options.font)
     text:size(self.theme_options.font_size + 2)
     text:color(self.theme_options.font_color_red, self.theme_options.font_color_green, self.theme_options.font_color_blue)
-    text:stroke_transparency(self.theme_options.font_stroke_alpha)
+    text:stroke_alpha(self.theme_options.font_stroke_alpha)
     text:stroke_color(self.theme_options.font_stroke_color_red, self.theme_options.font_stroke_color_green, self.theme_options.font_stroke_color_blue)
     text:stroke_width(self.theme_options.font_stroke_width)
 
