@@ -20,12 +20,17 @@ local function object()
 end
 texts={new=object}; images={new=object}
 package.loaded.texts=texts;package.loaded.images=images
-local list={}
-function list:append(value) self[#self+1]=value;return self end
-function list:contains(value) for _,v in ipairs(self) do if v==value then return true end end return false end
-L=function(t) return setmetatable(t or {},{__index=list}) end
-for _,name in ipairs({'lists','strings','tables','libs/mountroulette/mountroulette',
+for _,name in ipairs({'strings','tables','libs/mountroulette/mountroulette',
     'ui/item_icons','sw_zones','resources/crossbar_abilities','resources/crossbar_spells'}) do package.loaded[name]={} end
+-- The upstream List has a numeric n member and range-checked assignments.
+-- A plain array double hid the original cleanup regression.
+_libs={tables=table}
+class=function(value)
+    local mt=type(value)=='table' and getmetatable(value)
+    return mt and mt.__class or type(value)
+end
+dofile('tests/fixtures/windower_lists.lua')
+package.loaded.lists=list
 package.loaded['libs/kebab_casify']=function(s) return s:lower():gsub(' ','-') end
 local player={hotbar_settings={active_environment='basic'},hotbar={basic={name='Basic'}},
     catalog_save_scope=function() return 'global' end}
@@ -43,7 +48,7 @@ local resources=require('ui/resources')
 local binder=require('action_binder')
 local options=require('theme').apply(require('defaults'))
 options.button_layout='playstation';options.hotbar_number=6
-binder:setup({button_layout='playstation',confirm_button='cross'},function()end,function()end,
+binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function()end,function()end,
     options,function()return {'Basic'}end,0,0,1000,600)
 local function totals()
     local r=resources.snapshot();local n=0
@@ -86,16 +91,27 @@ for i=1,150 do
 end
 binder:hide();binder:reset_state()
 assert(totals()==baseline)
+-- Repeated footer redraw removes old image entries through List.remove so
+-- the explicit n counter remains correct as replacement icons append.
+binder:show_control_hints('Confirm','Go Back')
+local footer_count=totals()
+for i=1,100 do
+    binder:show_control_hints('Confirm','Go Back')
+    assert(binder.images.n==#binder.images and binder.images.n==3)
+    assert(totals()==footer_count, 'footer redraw retained native objects')
+end
+binder:hide();binder:reset_state()
+assert(totals()==baseline)
 binder.custom_action_delete_target='Bow'
 binder:display_delete_custom_action_confirm()
 assert(prim_values.button_entry_bg.set_visibility[1]==false, 'delete screen shows text-entry bar')
 binder:hide();binder:reset_state()
 -- Screen reconstruction must replace the title, cursor and page artwork.
 for i=1,10 do
-    binder:setup({button_layout='playstation',confirm_button='cross'},function()end,function()end,
+    binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function()end,function()end,
         options,function()return {'Basic'}end,0,0,1000,600)
     assert(totals()==baseline, 'setup retained prior menu objects')
 end
 resources.destroy_all();resources.destroy_all()
 assert(totals()==0)
-print('200 real review/edit/bind/back cycles, 150 typed updates, repeated setup and idempotent disposal retained no extra native-style objects.')
+print('Upstream Windower Lists: 200 review/edit/bind/back cycles, 150 typed updates, 100 footer redraws and repeated setup retained no extra native-style objects.')

@@ -1,3 +1,46 @@
+# Personal 7 cleanup checkpoint 3 — Windower List compatibility
+
+Runtime: `0.4.0-a.20261014.personal7-cleanup3`. Cumulative update includes
+previous cleanup fixes. User reported partial menu rendering and
+ui/resources.lua:40: destroy is not defined for numbers.
+
+Confirmed cause: Windower List (`L{}`) stores a numeric `n` field alongside
+indexed entries. Resource cleanup used pairs(), so it visited n and attempted
+to destroy it, including for an empty List. Use ipairs() to clean actual
+sequence entries only. Footer pruning now uses List.remove() so its explicit
+count remains correct; table.remove() alone did not maintain List metadata.
+
+Regression: tests now load a test-only snapshot of upstream Windower lists.lua
+with real metadata, append/remove operations and range checks. The strengthened
+menu test failed at resources.lua:40 before the fix. Afterward, 200 review/edit/
+bind/back cycles, 150 typed updates and 100 repeated footer redraws pass without
+retained native-style objects. Repeated setup, fade/disposal, status, compact
+and catalog checks also pass. These remain simulated Lua checks, not live FFXI.
+The earlier plain-array test double omitted this metadata and missed the bug.
+
+Installation: unload XIVCrossbar, overlay the matching xivcrossbar runtime folder,
+then `lua l xivcrossbar` (or `lua r xivcrossbar` if still loaded). AHK is unchanged
+from the prior cleanup package; no wrapper restart is required for this fix.
+No XML, INI, bindings, catalogs or images are included. Retain installed data.
+
+Live checks:
+1. `//xb status` reports personal7-cleanup3. Open/close main menu repeatedly.
+   Options, background, cursor and selection should remain coherent; no
+   resources.lua numeric destroy errors.
+2. Browse custom actions/icons, edit a draft, bind/back/cancel and exit.
+3. Check Delete Custom Action remains free of the unnecessary input band.
+4. `//xb resources` in the same closed-menu state before/after should show
+   stable live counts; created/deleted totals naturally increase.
+
+Controller changes remain pending. Notes: L1 as Ctrl for inventory/other menu
+shortcuts; PS tap minimize/restore rather than client cycling; remove the
+L1+touchpad 500ms/F15 experiment. Shoulder double taps were reconsidered as
+possible game-macro/crossbar modes, with behavior not yet settled. No companion
+bar or controller-output changes in this correction. Icon/menu organization and
+asset consolidation remain later work.
+
+---
+
 # Personal 7 cleanup checkpoint 2
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup2`. Includes checkpoint 1.

@@ -37,7 +37,9 @@ function M.text(...) return new('text', 'texts', ...) end
 function M.image(...) return new('image', 'images', ...) end
 
 function M.clear(objects)
-    for _, object in pairs(objects or {}) do object:destroy() end
+    -- Windower Lists include numeric metadata at key n; only indexed entries
+    -- are drawing objects. pairs() also visits n, including on an empty List.
+    for _, object in ipairs(objects or {}) do object:destroy() end
 end
 
 function M.is_disposed(object) return disposed_objects[object] == true end

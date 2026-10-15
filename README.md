@@ -323,3 +323,11 @@ and the shared-text failure investigation. It distinguishes explicit XIVCrossbar
 resource retention from unproven native crash causes and documents existing
 XIVParty/ConsoleBGPlus diagnostics. Historical mappings remain below, clearly
 superseded by the current table. No controller remapping is part of cleanup.
+
+
+### Personal 7 cleanup checkpoint 3
+
+Fix partial menus caused by iterating Windower List metadata as drawing objects.
+Cleanup visits indexed objects only; repeated footer replacement uses the List
+removal method to preserve its explicit count. Regression tests now execute the
+upstream List implementation. Controller outputs and saved data are unchanged.

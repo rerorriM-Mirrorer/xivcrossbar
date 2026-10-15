@@ -2096,7 +2096,7 @@ end
 function action_binder:show_control_hints(confirm, go_back)
     ui_resources.clear(self.control_hint_images); self.control_hint_images = L{}
     for i=#self.images,1,-1 do
-        if ui_resources.is_disposed(self.images[i]) then table.remove(self.images,i) end
+        if ui_resources.is_disposed(self.images[i]) then self.images:remove(i) end
     end
     ui_resources.clear(self.hints); self.hints = L{}
     local y = self.base_y + self.height - 50
