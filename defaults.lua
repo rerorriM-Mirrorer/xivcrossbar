@@ -4,18 +4,18 @@ defaults.buttonbackgroundalpha = 150
 defaults.iscompact = false
 
 defaults.iconpack = 'default'
-defaults.use_directinput = false
-defaults.use_xinput = true
+defaults.ControllerProfile = 'ps5-directinput'
+defaults.ControllerDevice = 1
 defaults.on_logout_unload_addon = false
 defaults.on_unload_killahk = false
 defaults.enable_superwarp_all = false
 
 defaults.FrameSkip = 0
-defaults.AllowSTPCForSelfTargetedActions = false
+defaults.AllowSTPCForSelfTargetedActions = true
 
 defaults.AutoCreateXML = true
 defaults.UseAltLayout = false
-defaults.AutoHideExtraBars = false
+defaults.AutoHideExtraBars = true
 defaults.UseSharedSet = true
 
 defaults.SkillchainIndicator = {}
@@ -83,8 +83,6 @@ defaults.Hotbar.HideRecastAnimation = false
 defaults.Hotbar.HideRecastText = false
 defaults.Hotbar.HideBattleNotice = false
 
-defaults.Controls = {}
-defaults.Controls.ToggleBattleMode = 43
 
 defaults.Theme = {}
 defaults.Theme.BattleNotice = 'ffxiv'
@@ -138,6 +136,17 @@ defaults.Texts.Stroke.Red = 20
 defaults.Texts.Stroke.Green = 20
 defaults.Texts.Stroke.Blue = 20
 
-defaults.below1080 = false
+
+-- A: this transport test prints actions instead of executing slot commands.
+defaults.InputTest = false
+defaults.InputTrace = false
+-- A: wrapper and Lua must use the same modifier. Change with all clients
+-- unloaded and the shared wrapper stopped; Apps preserves Ctrl shortcuts.
+defaults.ControllerModifier = 'apps'
+-- A: bare gameplay D-pad only; menus and trigger-held slots stay logical.
+defaults.GameplayDPad = 'arrows'
+defaults.VisibilityMode = 'always' -- always, oninput, hidden
+defaults.CrossbarScale = 1
+defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2}
 
 return defaults

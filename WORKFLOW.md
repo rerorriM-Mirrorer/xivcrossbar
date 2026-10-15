@@ -197,6 +197,8 @@ For packet-dependent work, maintain `docs/PACKETS.md` recording:
 - **README.md**
 
    - Keep `README.md` focused on configuration and use, ending with cumulative changelog.
+   - Maintain the source `README.md` at the repository root. In testing ZIPs, include its installable copy **inside the addon folder** (`AddonName/README.md`), alongside the addon code; do not duplicate it at the ZIP root.
+   - Place only the consolidated `WORKFLOW.md` and cumulative `TESTING.md` at the root of the testing ZIP, alongside the installable addon folder. Do not include retired `AGATHOS.md` or `DESIGN.md` separately.
 
 - **TESTING.md**
    
@@ -253,3 +255,5 @@ Apply these conventions to new addons and to existing addons as they are develop
 - Keep documentation, saved-setting compatibility, and tests aligned with changes. Distinguish simulated verification from live FFXI testing.
 
 **Principle:** Make each addon feel like a natural extension of FFXI. Reuse proven patterns without adding complexity that serves no purpose.
+
+

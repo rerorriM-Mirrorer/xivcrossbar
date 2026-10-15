@@ -2,9 +2,14 @@ local theme = {}
 
 theme.apply = function (settings)
     local options = {}
+    options.crossbar_scale = settings.CrossbarScale
+    options.fade_enabled = settings.Animation.Enabled
+    options.fade_in = settings.Animation.FadeIn
+    options.fade_out = settings.Animation.FadeOut
+    options.load_fade_in = settings.Animation.LoadFadeIn
 
     options.frame_skip = settings.FrameSkip or 0
-    options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions or false
+    options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions ~= false
 
     options.AutoCreateXML = settings.AutoCreateXML
     options.UseAltLayout = settings.UseAltLayout
@@ -23,8 +28,6 @@ theme.apply = function (settings)
     options.skillchain_open_color_green = settings.SkillchainIndicator.WindowOpenColor.Green
     options.skillchain_open_color_blue = settings.SkillchainIndicator.WindowOpenColor.Blue
 
-    options.use_directinput = settings.use_directinput
-	options.use_xinput = settings.use_xinput
     options.on_logout_unload_addon = settings.on_logout_unload_addon
 	options.on_unload_killahk = settings.on_unload_killahk
 	options.enable_superwarp_all = settings.enable_superwarp_all
@@ -118,7 +121,6 @@ theme.apply = function (settings)
     options.text_offset_x = settings.Texts.OffsetX
     options.text_offset_y = settings.Texts.OffsetY
 
-    options.controls_battle_mode = settings.Controls.ToggleBattleMode
 
     return options
 end

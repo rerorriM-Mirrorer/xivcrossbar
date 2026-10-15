@@ -26,6 +26,8 @@
 -- Written by Rubenator of Leviathan
 -- Base Extraction Code graciously provided by Trv of Windower discord
 local icon_extractor = {}
+-- Windower's logger error() prints and returns; validation must stop execution.
+local error = (_raw and _raw.error) or error
 
 local game_path_default = windower.ffxi_path
 local game_path = game_path_default
@@ -84,11 +86,10 @@ for i = 0x000, 0x0FF do
     color_lookup[string.char(i)] = ''
 end
 
---[[
-3072 bytes per icon
-640 bytes for stats, string table, etc.
-2432 bytes for pixel data
---]]
+-- A: item records exist in both legacy (0xC00) and expanded (0x1400)
+-- layouts. Captured client records establish the expanded stride; accept a
+-- candidate only when its decoded item ID and complete bitmap both match.
+local item_record_sizes = {0xC00, 0x1400}
 
 local item_dat_map = {
     [1]={min=0x0001, max=0x0FFF, dat_path='118/106', offset=-1}, -- General Items
@@ -104,22 +105,102 @@ local item_dat_map = {
     [11]={min=0xFFFF, max=0xFFFF, dat_path='174/48', offset=0}, -- Gil
 }
 
+local last_item_record
 local item_by_id = function (id, output_path)
+    last_item_record = nil
+    if type(id) ~= 'number' or id ~= floor(id) then error('Invalid item icon ID ' .. tostring(id)) end
     local dat_stats = find_item_dat_map(id)
+    if not dat_stats then error('Unsupported item icon ID ' .. tostring(id)) end
     local icon_file = open_dat(dat_stats)
     
-    local id_offset = dat_stats.min + dat_stats.offset
-    icon_file:seek('set', (id - id_offset) * 0xC00 + 0x2BD)
-    local data = icon_file:read(0x800)
-
-    bmp = convert_item_icon_to_bmp(data)
-
-    local f = io.open(output_path, 'wb')
-    f:write(bmp)
-    coroutine.yield()
-    f:close()
+    local index = id - (dat_stats.min + dat_stats.offset)
+    local function read_bitmap(size)
+        local offset = index * size
+        assert(icon_file:seek('set', offset), 'Could not seek item DAT record')
+        local record = icon_file:read(size)
+        last_item_record = {id=id, data=record, path='ROM/' .. dat_stats.dat_path .. '.DAT',
+            offset=offset, record_size=size}
+        if not record or #record ~= size then error('Short item DAT record for ID ' .. tostring(id)) end
+        local decoded = record:gsub('.', function(c)
+            local n = byte(c)
+            return char((n % 0x20) * 8 + floor(n / 0x20))
+        end)
+        local found_id = byte(decoded, 1) + byte(decoded, 2) * 256
+        last_item_record.decoded_id = found_id
+        if found_id ~= id then
+            error('Item DAT ID mismatch: requested ' .. tostring(id) .. ', found ' .. found_id ..
+                ' in ' .. last_item_record.path .. ' at byte ' .. offset)
+        end
+        local bitmap_header = char(40,0,0,0,32,0,0,0,32,0,0,0,1,0,8,0)
+        local at = decoded:find(bitmap_header, 0x101, true)
+        if not at or at + 40 + 0x800 - 1 > #record then
+            error('No complete 32x32 item bitmap for ID ' .. tostring(id))
+        end
+        return convert_item_icon_to_bmp(record:sub(at + 40, at + 40 + 0x800 - 1))
+    end
+    local bmp, failure
+    local preferred = dat_stats.record_size
+    -- Remember the working stride, but revalidate every item. Index zero can
+    -- fit either size, so permit another candidate if the next ID rejects it.
+    local sizes = preferred and {preferred, preferred == 0xC00 and 0x1400 or 0xC00} or item_record_sizes
+    for _, size in ipairs(sizes) do
+        local ok, result = pcall(read_bitmap, size)
+        if ok then
+            bmp = result
+            dat_stats.record_size = size
+            break
+        end
+        failure = result
+    end
+    if not bmp then error(failure) end
+    local f, err = io.open(output_path, 'wb')
+    if not f then error(err) end
+    local written, write_error = f:write(bmp)
+    local closed, close_error = f:close()
+    if not written or not closed then
+        os.remove(output_path)
+        error(write_error or close_error or 'Could not finish item bitmap')
+    end
+    -- Do not yield across a menu's protected-call boundary on Lua 5.1. The
+    -- complete file must be closed before the renderer can use it.
 end
 icon_extractor.item_by_id = item_by_id
+
+local failed_items = {}
+local function write_diagnostic(path, record, failure)
+    if not record or not record.data then return false end
+    -- Small local evidence captures, not game-file edits. At most one record
+    -- per failed item per load; collect these rather than uploading whole DATs.
+    local raw_path = path:gsub('%.bmp$', '.record.dat')
+    local f, err = io.open(raw_path, 'wb')
+    if not f then error(err) end
+    local written, write_error = f:write(record.data)
+    local closed, close_error = f:close()
+    if not written or not closed then error(write_error or close_error or 'Could not save item diagnostic') end
+    local hex = record.data:sub(1,32):gsub('.', function(c) return string.format('%02X ',byte(c)) end)
+    local info = 'requested_id=' .. record.id .. '\nsource=' .. record.path .. '\nbyte_offset=' .. record.offset ..
+        '\nrecord_size=' .. tostring(record.record_size) .. '\nrecord_length=' .. #record.data .. '\ndecoded_id=' .. tostring(record.decoded_id) ..
+        '\nencoded_first_32=' .. hex .. '\nfailure=' .. tostring(failure) .. '\n'
+    f, err = io.open(path:gsub('%.bmp$', '.record.txt'), 'wb')
+    if not f then error(err) end
+    written, write_error = f:write(info)
+    closed, close_error = f:close()
+    if not written or not closed then error(write_error or close_error or 'Could not finish item diagnostic') end
+    return true
+end
+
+function icon_extractor.safe_item_by_id(id, output_path)
+    local key = tostring(id)
+    if failed_items[key] then return false end
+    local ok, err = pcall(item_by_id, id, output_path)
+    if not ok then
+        failed_items[key] = true
+        local captured, saved = pcall(write_diagnostic, output_path, last_item_record, err)
+        local note = captured and saved and ' (record diagnostic saved beside the icon cache)' or ''
+        windower.add_to_chat(123, '[XIVCrossbar] Item icon ' .. key .. ': ' .. tostring(err) .. note)
+    end
+    return ok
+end
 
 function find_item_dat_map(id)
     for _,stats in pairs(item_dat_map) do
@@ -138,7 +219,8 @@ function open_dat(dat_stats)
         if not game_path then
             error('ffxi_path must be set before using icon_extractor library')
         end
-        filename = game_path .. '/ROM/' .. tostring(dat_stats.dat_path) .. '.DAT'
+        local filename = game_path .. '/ROM/' .. tostring(dat_stats.dat_path) .. '.DAT'
+        local err
         icon_file, err = io.open(filename, 'rb')
         if not icon_file then
             error(err)
@@ -249,12 +331,14 @@ function close_dats()
         if dat and dat.file then
             dat.file:close()
             dat.file = nil
+            dat.record_size = nil
         end
     end
     for _,dat in pairs(buff_dat_map) do
         if dat and dat.file then
             dat.file:close()
             dat.file = nil
+            dat.record_size = nil
         end
     end
 end

@@ -342,7 +342,11 @@ function build_module()
     myself.incoming_chunk = function(id, data)
         if (is_logged_in) then
             if id == 0x29 and data:unpack('H', 25) == 206 and data:unpack('I', 9) == info.player then
-                buffs[info.player][data:unpack('H', 13)] = nil
+                -- Buff removal can arrive before load/login populates this actor.
+                local tracked_buffs = buffs[info.player]
+                if tracked_buffs then
+                    tracked_buffs[data:unpack('H', 13)] = nil
+                end
             elseif id == 0x63 and data:byte(5) == 9 then
                 local set_buff = {}
                 for n=1,32 do
