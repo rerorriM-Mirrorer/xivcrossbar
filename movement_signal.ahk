@@ -1,4 +1,4 @@
-; Awake: Trust movement experiment 0.1.0, AutoHotkey v1.
+; A: Trust movement experiment 0.1.0, AutoHotkey v1.
 ; One signal per observed FFXI focus session. Neutral, modifier releases,
 ; disconnection and trips to other applications do not reset that latch.
 MovementInit() {

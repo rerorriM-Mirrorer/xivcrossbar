@@ -384,3 +384,5 @@ Default. Saved switches use stable keys while slots retain display labels, so
 renamed sets and same-slot round trips work. Destination icons use the correct
 images path. A new action choice replaces nullable alias/command/icon metadata
 from a previous choice. Includes Controls1, the stable login gate and Cleanup6.
+
+Movement bridge attribution is normalized to A; its takeover behavior is unchanged.
