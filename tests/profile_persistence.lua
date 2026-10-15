@@ -35,7 +35,8 @@ local function copy(t)
 end
 local current=copy(require('defaults'));current.CrossbarScale=.6;current.Style.OffsetX=37
 _G.current_settings=current
-windower.ffxi={get_player=function() return {name='Test',main_job='BST'} end,get_info=function() return {logged_in=true,server=1} end}
+windower.ffxi={get_player=function() return {name='Test',main_job='BST',id=123} end,get_info=function() return {logged_in=true,server=1,zone=100} end}
+windower.ffxi.get_mob_by_id=function()return{name='Test',id=123}end
 windower.get_windower_settings=function() return {ui_x_res=1280,ui_y_res=720} end
 resources={servers={[1]={en='Fenrir'}}}
 buttonmapping={validate=function() return true end,button_layout='playstation'}
@@ -43,10 +44,10 @@ local seen
 action_binder={setup=function(_,_,_,_,options) seen=options end}
 player={initialize=function() end,load_hotbar=function() return false end}
 xivcrossbar={}
-local first=assert(source:find('function initialize()',1,true))
-local last=assert(source:find('-- trigger hotbar action',first,true))
+local first=assert(source:find('function initialize(',1,true))
+local last=assert(source:find('-- A: recover the earlier personal',first,true))
 local init=assert(load("local character_identity=require('character_identity');local storage={};local settings=current_settings;local theme=require('theme');local theme_options={crossbar_scale=1};local y_adjust=450;\n"..
     source:sub(first,last-1)..'\nreturn initialize'))()
-init()
+init(1,'Test',123)
 assert(seen.crossbar_scale==.6 and seen.offset_x==37,'pre-login cached theme replaced character appearance')
 print('Profile migration, character refresh, explicit choice and unrelated settings preservation passed.')

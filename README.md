@@ -367,3 +367,11 @@ toggle. Double-tap switching and L1+touchpad Tab/F15 are dormant. The supplied
 movement takeover integration is retained. DirectInput diagonal hat rolls retain
 one adjacent direction. See PERSONAL.md for the current map and TESTING.md for
 native acceptance checks. Stop/start the shared wrapper after updating AHK files.
+
+
+### Personal 8 login checkpoint 1
+
+Restore the earlier personal branch's in-world identity gate: matching player
+entity and stable server/name/ID for 0.75 seconds before character storage opens.
+Keep watching for a late correction and reload the proper profile automatically.
+Pre-login controller transport remains available; existing directories are retained.

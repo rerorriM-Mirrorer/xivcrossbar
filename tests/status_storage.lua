@@ -22,12 +22,13 @@ assert(lines[1]:find('awaiting character login',1,true))
 storage.identity_valid=true;storage.directory='Fenrir/Cioara';lines={}
 status('status')
 assert(lines[1]:find('Fenrir/Cioara',1,true) and lines[2]:find('registration: true',1,true))
-local first=assert(source:find('function initialize()',1,true))
+local first=assert(source:find('function initialize(',1,true))
 local last=assert(source:find('\n    xivcrossbar.pending_initialize = false',first,true))
 local invalid=source:sub(first,last-1)..'\nend\nreturn initialize'
 env.windower.ffxi={get_player=function()return nil end,get_info=function()return{logged_in=false}end}
 env.resources={servers={}}
 env.character_identity=require('character_identity')
+env.profile_gate=require('profile_gate').new(function()return 0 end)
 local initialize=assert(load(imported..'\n'..invalid,'pre-login identity guard','t',env))()
 assert(initialize()==false and storage.identity_valid==false)
 local begin=assert(source:find("windower.register_event('logout'",1,true))

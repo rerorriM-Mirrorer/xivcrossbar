@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal8-controls1'
+_addon.version = '0.4.0-a.20261014.personal8-login1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -50,6 +50,7 @@ local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
 
 -- Load theme options according to settings
 local character_identity = require('character_identity')
+local profile_gate = require('profile_gate').new(require('socket').gettime)
 local theme = require('theme')
 local theme_options = theme.apply(settings)
 local buttonmapping = require('buttonmapping')
@@ -416,14 +417,22 @@ local function select_controller_profile(name, device, done)
 end
 
 -- initialize addon
-function initialize()
+function initialize(server_id, expected_name, expected_id)
     local windower_player = windower.ffxi.get_player()
-    local server = character_identity.resolve(windower.ffxi.get_info(), windower_player, resources.servers)
-    if not server then
+    local info = windower.ffxi.get_info()
+    local server = character_identity.resolve(info, windower_player, resources.servers)
+    local entity = windower_player and windower_player.id and windower.ffxi.get_mob_by_id(windower_player.id)
+    -- Calls without a settled identity request observation; the pre-login
+    -- controller wrapper remains independent and available at the lobby.
+    if not server_id or not server or info.server ~= server_id or not info.zone or info.zone <= 0 or
+        windower_player.name ~= expected_name or windower_player.id ~= expected_id or
+        not entity or entity.id ~= expected_id or entity.name ~= expected_name then
         xivcrossbar.ready = false
         storage.identity_valid = false
-        xivcrossbar.pending_initialize = windower.ffxi.get_info().logged_in == true
-        return false
+        player.identity_confirmed = false
+        xivcrossbar.pending_initialize = info and info.logged_in == true
+        if not server_id then profile_gate.loaded = nil end
+        return false, 'identity'
     end
     xivcrossbar.pending_initialize = false
     player.identity_confirmed = true
@@ -491,6 +500,32 @@ function initialize()
 
     xivcrossbar.ready = true
     xivcrossbar.initialized = true
+    return true
+end
+
+-- A: recover the earlier personal branch's world/stability gate. Continue
+-- observing after success: a valid but stale lobby server can correct later.
+local function check_profile_ready()
+    local info = windower.ffxi.get_info()
+    local current_player = windower.ffxi.get_player()
+    local entity = current_player and current_player.id and windower.ffxi.get_mob_by_id(current_player.id)
+    local server_record = info and resources.servers[info.server]
+    local server_id, name, id = profile_gate:observe(info, current_player, entity, server_record)
+    if not server_id then return end
+    if xivcrossbar.ready then
+        -- Rebuild through normal unload so drawing objects are not stacked.
+        xivcrossbar.ready = false
+        storage.identity_valid = false
+        player.identity_confirmed = false
+        restart_pending = true
+        crossbar_drag:finish()
+        if ui.is_setup then ui:hide() end
+        windower.add_to_chat(0, '[XIVCrossbar] Character/server changed; reloading for '..server_record.en..'/'..name..'.')
+        windower.send_command('lua r xivcrossbar')
+        return
+    end
+    local ok, reason = initialize(server_id, name, id)
+    if not ok and reason == 'identity' then profile_gate.loaded = nil end
 end
 
 -- trigger hotbar action
@@ -1087,12 +1122,14 @@ end)
 
 -- ON LOGIN
 windower.register_event('login',function()
+    profile_gate:reset()
     initialize()
     skillchains.login()
 end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    profile_gate:reset()
     xivcrossbar.ready = false
     xivcrossbar.initialized = false
     xivcrossbar.pending_initialize = false
@@ -1887,9 +1924,9 @@ local next_catalog_refresh=0
 local next_identity_retry=0
 -- ON PRERENDER
 windower.register_event('prerender',function()
-    if xivcrossbar.pending_initialize and not restart_pending and catalog_clock()>=next_identity_retry then
+    if not restart_pending and catalog_clock()>=next_identity_retry then
         next_identity_retry=catalog_clock()+.25
-        initialize()
+        check_profile_ready()
     end
     publish_personal_context()
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then

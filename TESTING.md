@@ -1,3 +1,36 @@
+# Personal 8 login checkpoint 1 — recovered stable world/server gate
+
+Runtime personal8-login1, including Controls1 and Cleanup6. Restores the earlier
+Batch19 profile_gate.lua behavior, with character ID also rechecked immediately
+before initialization. Gate requires a known server, logged-in valid zone, and
+matching player/entity name/ID stable for 0.75 seconds. Observe every 250ms even
+after ready; a later stable correction performs one normal Lua reload into the
+correct server profile. The wrapper/process registration starts before this gate,
+so lobby controller input remains available. No hardcoded Fenrir/Asura exception.
+
+Do not delete or copy old Asura directories automatically. The fix chooses the
+current profile and leaves historical user files untouched. If the identity shifts
+between observation and setup, no character storage is initialized and observation
+retries. A malformed hotbar load does not start a repeated UI initialization loop;
+a user reload can retry after fixing the file.
+
+Simulated real-observer checks passed: logged-out lobby, missing zone, mismatched
+entity, changing tuples, settling, real Asura, late server correction, changed
+character ID and transient setup invalidation. Profile migration/appearance,
+pre-login keyboard routing, root status/logout and client registration checks
+passed. 86 Lua sources parse with the documented Lua5.4 fallback; native timing
+and server values remain live checks.
+
+Live: load at character selection, use controller confirm/cancel normally, log
+into Fenrir and check `//xb status` selects Fenrir/<character> without a manual
+reload. A fresh character must not gain an Asura folder from lobby state. Existing
+bindings should load. Logout/relogin another character and check again. Late
+correction deliberately restarts Lua for clean drawing-resource reconstruction.
+
+Default switch destinations are next; no personal-control changes in this commit.
+
+---
+
 # Personal 8 controls checkpoint 1 — keyboard shortcuts, focus toggle and native pairs
 
 Runtime personal8-controls1; wrapper personal_version=8.1. Baseline dc4cbae
