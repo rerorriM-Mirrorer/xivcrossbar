@@ -45,6 +45,18 @@ windower={addon_path='addon/',register_event=function()end,send_command=function
         prim_values[name]=prim_values[name] or {};prim_values[name][key]={...}
     end end})}
 local resources=require('ui/resources')
+-- Metadata, malformed indexed values and unrelated objects must never receive
+-- cleanup dispatch. Use no generic iterator when visiting List entries.
+local one=resources.text({})
+local unrelated={destroy=function()error('foreign object destroyed')end}
+local malformed={one,73,unrelated,n=3}
+local previous_ipairs=ipairs
+ipairs=function()error('cleanup must not depend on global ipairs')end
+resources.clear(malformed)
+ipairs=previous_ipairs
+assert(resources.is_disposed(one) and resources.snapshot().text==0)
+resources.clear(malformed)
+assert(resources.version=='cleanup4')
 local binder=require('action_binder')
 local options=require('theme').apply(require('defaults'))
 options.button_layout='playstation';options.hotbar_number=6

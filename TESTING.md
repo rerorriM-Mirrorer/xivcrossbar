@@ -1,3 +1,37 @@
+# Personal 7 cleanup checkpoint 4 — guarded object cleanup and build marker
+
+Runtime: `0.4.0-a.20261014.personal7-cleanup4`. User reports the same numeric
+destroy error and partial menu/background after checkpoint 3. Its delivered ZIP
+was rechecked: it contains the ipairs correction; the new repeat is not yet
+reproduced with that source. Active runtime/helper version remains unconfirmed.
+
+Cleanup now reads raw indexed entries through the declared List length (or plain
+array length), dispatching destroy only for registered owned objects. Numeric
+metadata, stray numeric entries, foreign objects and already-disposed objects
+cannot receive cleanup dispatch. It does not depend on the generic ipairs
+iterator. `//xb resources` identifies the helper as cleanup4.
+
+Checks passed: 200 review/edit/bind/back cycles using upstream Windower Lists,
+150 typed updates, 100 footer redraws, repeated UI rebuilds, status, text fades,
+slot cleanup, compact switching and catalog integration. All 84 Lua sources
+parsed after temporary Windower syntax normalization under Lua 5.4. An additional
+case includes an owned object, a numeric entry and a foreign object, with global
+ipairs intentionally unavailable: only the owned object is deleted, once.
+This is a simulated compatibility safeguard, not a reproduction of the user's
+new failure in FFXI. All controller outputs remain unchanged.
+
+Install while unloaded: `lua u xivcrossbar`, copy the contents of the ZIP's
+xivcrossbar folder into the installed xivcrossbar folder, then
+`lua l xivcrossbar`. Keep existing data. The cumulative patch includes no images,
+settings, catalogs or bindings. No controller wrapper restart is needed.
+
+First checks: `//xb status` ends in personal7-cleanup4; `//xb resources` reports
+UI cleanup helper: cleanup4. Open/close the main menu, browse a list, then open
+and close a custom-action review. If an exception remains, retain its full file/
+line/message and these two version reports before changing more files.
+
+---
+
 # Personal 7 cleanup checkpoint 3 — Windower List compatibility
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup3`. Cumulative update includes

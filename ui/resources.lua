@@ -1,6 +1,6 @@
 -- A: ownership for this addon's Windower text/image objects only. Windower's
 -- libraries retain hidden objects until destroy; dropping a Lua list is not cleanup.
-local M = {}
+local M = {version='cleanup4'}
 local live = {}
 local disposed_objects = setmetatable({}, {__mode='k'})
 local created = {text=0,image=0}
@@ -37,9 +37,14 @@ function M.text(...) return new('text', 'texts', ...) end
 function M.image(...) return new('image', 'images', ...) end
 
 function M.clear(objects)
-    -- Windower Lists include numeric metadata at key n; only indexed entries
-    -- are drawing objects. pairs() also visits n, including on an empty List.
-    for _, object in ipairs(objects or {}) do object:destroy() end
+    if not objects then return end
+    -- Read indexed entries directly: collection metadata/iterator adapters are
+    -- not drawing objects. Only this registry may release the objects it owns.
+    local count = rawget(objects, 'n') or #objects
+    for index=1,count do
+        local object = rawget(objects, index)
+        if live[object] then object:destroy() end
+    end
 end
 
 function M.is_disposed(object) return disposed_objects[object] == true end

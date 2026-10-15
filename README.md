@@ -331,3 +331,12 @@ Fix partial menus caused by iterating Windower List metadata as drawing objects.
 Cleanup visits indexed objects only; repeated footer replacement uses the List
 removal method to preserve its explicit count. Regression tests now execute the
 upstream List implementation. Controller outputs and saved data are unchanged.
+
+
+### Personal 7 cleanup checkpoint 4
+
+Cleanup dispatch is limited to owned drawing objects, using raw indexed entries
+independently of generic list iterators. `//xb resources` now identifies its helper
+build, so the loaded module can be checked separately from the addon version.
+This guards the reported repeated numeric-destroy failure; its recurrence after
+checkpoint 3 is not yet reproduced in FFXI. No controller changes.

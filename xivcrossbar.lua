@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal7-cleanup3'
+_addon.version = '0.4.0-a.20261014.personal7-cleanup4'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1204,7 +1204,9 @@ windower.register_event('addon command', function(command, ...)
     end
     if command == 'unload' then return graceful_restart(true) end
     if command == 'resources' then
-        local r=require('ui/resources').snapshot()
+        local resources=require('ui/resources')
+        local r=resources.snapshot()
+        windower.add_to_chat(0, '[XIVCrossbar] UI cleanup helper: '..tostring(resources.version or 'older/unmarked'))
         windower.add_to_chat(0, '[XIVCrossbar] UI live: '..r.text..' text, '..r.image..' images | Created/deleted: '..r.created_text..'/'..r.destroyed_text..' text, '..r.created_image..'/'..r.destroyed_image..' images.')
         windower.add_to_chat(0, '[XIVCrossbar] Counts cover this addon only; compare the same screen after repeating edits.')
         return
