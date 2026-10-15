@@ -1,3 +1,19 @@
+# Personal 8 baseline — preserve supplied movement takeover integration
+
+The Oct 15 uploaded snapshot's ffxi_directinput.ahk and movement_signal.ahk are
+now tracked verbatim (line endings normalized), before changing personal inputs.
+This preserves the user-tested TrustMovement bridge, axis observations, per-client
+focus latch, release handling and status fields. It does not change TrustMovement
+or its commands. Runtime remains Personal7 Cleanup6. AHK include/link checks pass;
+no native Windows execution is claimed. This baseline records the user's actual
+wrapper for rollback, not the older wrapper without the movement integration.
+
+Next, per the user's revised order: personal keyboard controls and PS focus toggle,
+then the recovered stable server gate and Default switch destinations. L1 companion
+and double-tap modes are deferred; the public release snapshot remains unchanged.
+
+---
+
 # Personal 7 cleanup checkpoint 6 — paged spell targets and remaining cleanup calls
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup6`; `//xb resources` helper cleanup6.

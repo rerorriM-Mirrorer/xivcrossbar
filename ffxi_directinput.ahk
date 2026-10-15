@@ -60,6 +60,8 @@ Loop, 12
     previous[A_Index] := false
 PersonalInit(profile, joystickPrefix)
 WrapperClientsInit()
+; A: movement has its own per-focus latch; button neutral never rearms it.
+MovementInit()
 WriteTransportStatus(true)
 SetTimer, TransportPoll, 10
 return
@@ -76,6 +78,7 @@ active := WinActive("ahk_class FFXiClass")
 states := ReadTransportStates()
 states := PersonalPoll(states, active)
 current := WinActive("ahk_class FFXiClass")
+MovementTick(current)
 if (current != active) {
     ReleaseTransport()
     ready := false
@@ -101,6 +104,7 @@ if (!connected) {
     WriteTransportStatus()
     return
 }
+MovementPoll(states, active)
 neutral := true
 Loop, 12 {
     if (states[A_Index])
@@ -168,6 +172,7 @@ AcquireWrapperMutex() {
 
 ReleaseTransport() {
     global keys, previous, owner, appsOwned, captureKey
+    MovementRelease()
     PersonalRelease()
     Loop, 12 {
         i := A_Index
@@ -204,6 +209,13 @@ ReadTransportStates() {
             i := A_Index + 4
             states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
         }
+        ; A: observe analog axes without translating or swallowing movement.
+        x := GetKeyState(joystickPrefix . "JoyX")
+        y := GetKeyState(joystickPrefix . "JoyY")
+        if (StrLen(x) and StrLen(y)) {
+            states.moveX := (x - 50) / 50
+            states.moveY := (y - 50) / 50
+        }
         return states
     }
     if (!xinputGetState)
@@ -221,6 +233,8 @@ ReadTransportStates() {
     ; Match upstream's threshold; neither trigger is derived from the other.
     states[11] := NumGet(state, 6, "UChar") > 4
     states[12] := NumGet(state, 7, "UChar") > 4
+    states.moveX := NumGet(state, 8, "Short") / 32768
+    states.moveY := NumGet(state, 10, "Short") / 32768
     return states
 }
 
@@ -255,6 +269,8 @@ WriteTransportStatus(force := false) {
     global PC
     if (PC.enabled)
         contents .= "personal_context=" . PC.context . "`ndouble_tap_ms=" . PC.doubleTapMs . "`nps_hold=" . PC.holdAction . "`n"
+    global TM
+    contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
@@ -267,3 +283,5 @@ WriteTransportStatus(force := false) {
 #Include %A_ScriptDir%\personal_gestures.ahk
 
 #Include %A_ScriptDir%\controller_clients.ahk
+
+#Include %A_ScriptDir%\movement_signal.ahk

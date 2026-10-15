@@ -26,7 +26,7 @@ for path,source in sources.items():
     assert not quoted and not stack,path
 wrapper=sources[root/'ffxi_directinput.ahk']
 includes=re.findall(r'^#Include %A_ScriptDir%\\(.+)$',wrapper,re.M)
-assert set(includes)=={'personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk'}
+assert set(includes)=={'personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk'}
 for name in includes:assert (root/name).is_file()
 assert wrapper.index('instanceMutex := AcquireWrapperMutex()')<wrapper.index('OnExit, TransportExit')
 controls=sources[root/'personal_controls.ahk']
