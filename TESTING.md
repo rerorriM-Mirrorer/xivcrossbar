@@ -2,7 +2,8 @@
 
 Runtime personal8-controls1; wrapper personal_version=8.1. Baseline dc4cbae
 preserves the uploaded movement-aware wrapper. No data/settings/INI/catalog/binding
-files are shipped. Stop the shared wrapper, unload participating XIVCrossbar
+files are shipped. Rollback code targets dc4cbae (Cleanup6 plus the supplied movement wrapper).
+Stop the shared wrapper, unload participating XIVCrossbar
 clients, copy the update, then load on each client. A running AHK script does not
 reload when Lua alone reloads. Check `//xb controller status` reports Controls=8.1.
 
