@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal8-login1'
+_addon.version = '0.4.0-a.20261014.personal8-sets1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -243,7 +243,7 @@ function delete_hotkey(hotbar, slot)
 end
 
 function get_crossbar_sets()
-    return player:get_crossbar_names()
+    return require('crossbar_destinations').build(player.hotbar)
 end
 
 function create_new_set(name)

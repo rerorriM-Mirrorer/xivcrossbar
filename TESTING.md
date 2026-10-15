@@ -1,3 +1,91 @@
+# Personal 8 sets checkpoint 1 — cumulative controls, stable login and Default destinations
+
+Runtime: `0.4.0-a.20261014.personal8-sets1`. Shared wrapper Controls=8.1;
+UI cleanup helper remains cleanup6. Includes Controls1 (local 0b57621), supplied
+movement baseline dc4cbae, and Login1 (local 90dd1d7). ZIP header records the final
+source and published commit. No L1 bank/companion/double-tap modes in this batch.
+
+Install: stop the shared wrapper with `//xb controller stop`, unload XIVCrossbar
+on participating clients, copy the ZIP's xivcrossbar contents over the install,
+then load it on each client. Wrapper starts normally; if needed use
+`//xb controller start`. Stop/start is necessary for new AHK code. Existing data,
+XML/INI, bindings, catalogs, images and local preferences are not distributed.
+Cumulative update includes Cleanup6 and the supplied movement_signal.ahk bridge.
+Rollback restores dc4cbae (Cleanup6 plus the user's movement-enabled wrapper).
+
+## Switch destination changes
+
+Switch Crossbars and Quick XB Switch now include Default, Job Default and All
+Jobs Default. These three are grouped first, followed by other destinations in
+label order. Labels remain presentation; commands/store use actual internal keys.
+Renaming All Jobs Default to Universal still binds `xb bar all-jobs-default`;
+renaming an all-warps set to Warps still binds `xb bar all-warps`. Quick switches
+store the same stable key and preserve their one-action return behavior.
+The destination icon path now includes images/. Selecting another action after
+Back clears previous optional alias/command/icon metadata, so a destination's
+label or command cannot follow the user into a newly selected spell.
+
+A simulated test exercises the real binder, root set_hotkey, root switch command
+and player execute/dispatch methods, with only I/O and construction mocked:
+Default entries present; renamed labels preserved; Basic -> All Jobs Default ->
+Basic using the same physical slot; Quick Switch returns after one action; all
+Default/custom destinations use keys; changing choices clears obsolete metadata.
+No user XML was read or written in these tests.
+
+## Acceptance order
+
+1. Controls/version: `//xb status` reports personal8-sets1;
+   `//xb controller status` reports Controls=8.1. L1+Up/Down/Left/Right sends
+   Ctrl+I/E/J/M; Cross/Triangle/Square Ctrl+Space/S/Q. Empty L1 combinations
+   stay reserved. R1 arrows are plain; existing direct face shortcuts remain.
+2. L1+R1 sends one Tab. Bare L1 release switches next client without a delay;
+   combinations never switch. Double taps have no separate action. Bare R1 is
+   still F8. PS press toggles recent non-FFXI app/last FFXI client; holding adds
+   nothing. Touchpad peek and ordered click zoom retain prior behavior.
+3. L1+L2 holds Ctrl immediately; R1+R2 holds Alt immediately. Release either
+   first: modifier stays until both release. Native arrows work without firing
+   crossbar slots. Focus loss, disconnect, text/setup/menu or wrapper shutdown
+   clears owned keys; new input requires release before rearming. A deliberate
+   Ctrl pair may show native macro UI; ordinary Apps crossbars remain unchanged.
+4. D-pad: roll corners slowly. Each diagonal retains one adjacent direction,
+   with no neutral gap and never two crossbar slots. If sticky input persists,
+   distinguish bare D-pad from R1/native-pair arrows and collect inputtrace;
+   the original session's whole symptom has not been diagnosed.
+5. Movement takeover remains once per newly piloted FFXI client, not per stick
+   recenter or desktop trip. Check another client after unloading/reloading one.
+6. Stable login: load before entering world; controller confirm/cancel remains
+   available. Fenrir bindings load without manual reload or new Asura profiles.
+   Logout/login another character; verify its proper folder. Existing Asura
+   directories are left untouched. A late corrected identity reloads cleanly.
+7. Switch Crossbars: bind All Jobs Default in Basic, then Basic in All Jobs
+   Default at the same button combination. Toggle both directions. Repeat with
+   Default/Job Default if useful. Quick XB Switch should return after one action.
+8. Cleanup6 checks still apply: later-page Shellra II target choices appear;
+   Back preserves spell/page; editing then opening Options has no disposed-object
+   errors; reload has no cursor hide error; live UI counts settle after cycles.
+
+Available verification passed: 88 Lua sources parse with the Lua5.4 compatibility
+fallback; actual-menu/paging/lifecycle, 108 compact layouts, catalog/XML identity,
+profile migration, status/logout, stable profile observer, destinations, targets,
+pre-login routing and client registrations. 33 actual pure-AHK gesture/routing
+scenarios pass via the narrow JS translation; lifecycle policy tests and six AHK
+lexical/include/link checks pass. Native AHK parsing, Windows key delivery and
+FFXI gameplay/renderer acceptance remain live checks.
+
+## Public candidate review
+
+No public files/branch were changed. The archived public rollback source lacks
+instant compact switching, the stable gate and current resource ownership helper,
+and still uses stroke_transparency in UI/binder. Those are targeted port candidates,
+as are corrected later-page selection and Default destinations after live testing.
+The named public/rc3-snapshot remote ref was not available through the connector,
+so this is an archived-source review, not verification of a current remote branch.
+Personal controls/movement/companion experiments stay separate. Saving edits back
+to the catalog list, icon organization and the future L1 bank remain on the backlog.
+No native crash cause/resolution has been established by this batch.
+
+---
+
 # Personal 8 login checkpoint 1 — recovered stable world/server gate
 
 Runtime personal8-login1, including Controls1 and Cleanup6. Restores the earlier

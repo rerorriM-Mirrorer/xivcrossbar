@@ -1,6 +1,6 @@
 # Personal 8 keyboard controls — current proposal implemented for live testing
 
-Runtime: personal8-controls1. Wrapper reports personal_version=8.1. PS5 Extended
+Runtime: personal8-sets1 (includes Controls1). Wrapper reports personal_version=8.1. PS5 Extended
 only; ordinary controller profiles keep the shared Apps transport. The supplied
 movement_signal.ahk bridge is retained, with its per-FFXI-client takeover latch.
 No L1 companion or double-tap mode is enabled.

@@ -375,3 +375,12 @@ Restore the earlier personal branch's in-world identity gate: matching player
 entity and stable server/name/ID for 0.75 seconds before character storage opens.
 Keep watching for a late correction and reload the proper profile automatically.
 Pre-login controller transport remains available; existing directories are retained.
+
+
+### Personal 8 sets checkpoint 1
+
+Switch and Quick Switch destinations include Default, Job Default and All Jobs
+Default. Saved switches use stable keys while slots retain display labels, so
+renamed sets and same-slot round trips work. Destination icons use the correct
+images path. A new action choice replaces nullable alias/command/icon metadata
+from a previous choice. Includes Controls1, the stable login gate and Cleanup6.

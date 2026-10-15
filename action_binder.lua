@@ -955,24 +955,16 @@ function action_binder:submit_selected_option()
             end
         else
             self.action_catalog = option.data.catalog_id and {scope=option.data.catalog_scope,id=option.data.catalog_id} or nil
-            self.action_name = option.data.catalog_name or option.text
+            self.action_name = option.data.action_name or option.data.catalog_name or option.text
             self.target_type = option.data.target_type
 
-            if (option.data.command ~= nil) then
-                self.action_command = option.data.command
-            end
-            if (option.data.icon_path ~= nil) then
-                self.action_icon = option.data.icon_path
-            end
-            if (option.data.linked_action ~= nil) then
-                self.action_linked_action = option.data.linked_action
-            end
-            if (option.data.linked_type ~= nil) then
-                self.action_linked_type = option.data.linked_type
-            end
-            if (option.data.alias ~= nil) then
-                self.action_alias = option.data.alias
-            end
+            -- A new choice replaces nullable metadata too. Going Back from a
+            -- switch/custom action must not carry its alias/command to a spell.
+            self.action_command = option.data.command
+            self.action_icon = option.data.icon_path
+            self.action_linked_action = option.data.linked_action
+            self.action_linked_type = option.data.linked_type
+            self.action_alias = option.data.alias
 
             if (self.target_type['Self'] and not (self.theme_options.allow_stpc_for_self_targeted_actions or
                     self.target_type['NPC'] or
@@ -2663,22 +2655,16 @@ function action_binder:display_crossbar_sets_selector()
     end
     self.title:show()
 
-    crossbar_set_list = L{}
-
-    local icon_offset = 0
-    local icon_path = get_icon_pathbase() .. '/ui/facebuttons_' .. self.button_layout .. '.png'
-
-    for i, crossbar_set in ipairs(self.get_crossbar_sets_binding()) do
-        if (crossbar_set ~= 'Default' and crossbar_set ~= 'Job Default' and crossbar_set ~= 'All Jobs Default') then
-            local data = {
-                target_type = {['None'] = true},
-                icon_path = '/ui/facebuttons_' .. self.button_layout
-            }
-            if (not is_quick_switch) then
-                data.command = 'xb bar ' .. crossbar_set
-            end
-            crossbar_set_list:append({id = 0, name = crossbar_set, icon = icon_path, icon_offset = icon_offset, data = data})
-        end
+    local crossbar_set_list = L{}
+    local icon = '/ui/facebuttons_' .. self.button_layout
+    local icon_path = 'images/' .. get_icon_pathbase() .. icon .. '.png'
+    for _, destination in ipairs(self.get_crossbar_sets_binding()) do
+        -- Accept older string callbacks too; production supplies stable keys.
+        local name = type(destination)=='table' and destination.name or destination
+        local key = type(destination)=='table' and destination.key or kebab_casify(destination)
+        local data = {target_type={None=true},icon_path=icon,alias=name,action_name=key}
+        if not is_quick_switch then data.command='xb bar '..key end
+        crossbar_set_list:append({id=key,name=name,icon=icon_path,icon_offset=0,data=data})
     end
 
     self.selector:display_options(crossbar_set_list)
