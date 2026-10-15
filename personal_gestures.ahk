@@ -1,63 +1,56 @@
 ; A: gesture decisions contain no keyboard/Windows calls. The wrapper applies
 ; their results only to the current FFXI owner, and cancels them on context loss.
-PersonalShoulderStep(g, pressed, previous, consumed, now, interval) {
-    if (consumed) {
-        g.pending := 0, g.phase := pressed ? "cancelled" : "idle"
-        return ""
-    }
-    event := ""
-    ; A: the first completed tap already targeted. The remaining window
-    ; recognizes a second tap without delaying the first key.
-    if (g.pending and now > g.pending)
-        g.pending := 0
-    if (pressed and !previous) {
-        g.phase := g.pending ? "double" : "single"
-        g.pending := 0, g.started := now
-    }
-    if (pressed and g.phase = "double" and now - g.started > interval)
-        g.phase := "cancelled"
-    if (!pressed and previous) {
-        if (g.phase = "double")
-            event := "switch"
-        else if (g.phase = "single") {
-            event := g.key
-            g.pending := now + interval
-        }
-        g.phase := "idle"
-    }
-    if (!pressed and g.phase = "cancelled")
-        g.phase := "idle"
-    return event
-}
-
-PersonalTouchStep(g, pressed, previous, l1, consumed, now) {
+PersonalShoulderStep(g, pressed, previous, consumed) {
     if (consumed) {
         g.phase := pressed ? "cancelled" : "idle"
         return ""
     }
-    if (pressed and !previous) {
-        g.phase := "timing", g.started := now, g.withL1 := l1
-        ; A: the short shortcut responds on down. A later hold additionally
-        ; emits F15; it cannot retract the Tab already delivered to the game.
-        if (l1)
-            return "Tab"
+    if (pressed and !previous)
+        g.phase := "single"
+    if (!pressed and previous) {
+        phase := g.phase, g.phase := "idle"
+        return phase = "single" ? g.key : ""
     }
-    ; A shoulder changing while touchpad remains held cannot change the action.
-    ; Releasing both together still permits the short L1+touchpad tap.
-    if (pressed and g.phase = "timing" and l1 != g.withL1)
-        g.phase := "cancelled"
+    return ""
+}
+
+PersonalTouchStep(g, pressed, previous, consumed, now) {
+    if (consumed) {
+        g.phase := pressed ? "cancelled" : "idle"
+        return ""
+    }
+    if (pressed and !previous)
+        g.phase := "timing", g.started := now
     if (pressed and g.phase = "timing" and now - g.started >= 500) {
         g.phase := "fired"
-        return g.withL1 ? "F15" : "vkC0sc029"
+        return "vkC0sc029"
     }
     if (!pressed and previous) {
         phase := g.phase, g.phase := "idle"
         if (phase = "timing")
-            return g.withL1 ? "" : "vkC0sc029"
-        if (phase = "fired" and !g.withL1)
+            return "vkC0sc029"
+        if (phase = "fired")
             return "Escape"
     }
     return ""
+}
+
+PersonalModifierStep(g, l1, l2, r1, r2, allowed) {
+    if (!allowed) {
+        g.ctrl := false, g.alt := false
+        return ""
+    }
+    if (!l1 and !l2)
+        g.ctrl := false
+    else if (l1 and l2)
+        g.ctrl := true
+    if (!r1 and !r2)
+        g.alt := false
+    else if (r1 and r2)
+        g.alt := true
+    if (g.ctrl and g.alt)
+        return "both"
+    return g.ctrl ? "ctrl" : (g.alt ? "alt" : "")
 }
 
 PersonalClicksStep(g, l3, r3, previousL3, previousR3, consumed) {
@@ -100,22 +93,23 @@ PersonalClicksStep(g, l3, r3, previousL3, previousR3, consumed) {
     return ""
 }
 
-PersonalAltStep(g, r1, right, left) {
-    ; A: once horizontal input used Alt, keep the latch until R1 releases.
-    ; Direct shortcuts may suspend the physical modifier without clearing it.
-    if (!r1)
-        g.altLatched := false
-    else if (right or left)
-        g.altLatched := true
-    return g.altLatched
-}
 
-PersonalSwitchStep(pending, active, allowed, neutral, now) {
-    if (active != pending.owner or !allowed or !neutral)
-        return "cancel"
-    return now >= pending.due ? "switch" : "wait"
-}
-
-PersonalAltOutput(latched, allowed, l1, pulseBusy, newTap) {
-    return latched and allowed and !l1 and !pulseBusy and !newTap
+PersonalPovDirection(pov, previous) {
+    if (pov = 0)
+        return 1
+    if (pov = 9000)
+        return 2
+    if (pov = 18000)
+        return 3
+    if (pov = 27000)
+        return 4
+    if (pov = 4500)
+        return previous = 2 ? 2 : 1
+    if (pov = 13500)
+        return previous = 3 ? 3 : 2
+    if (pov = 22500)
+        return previous = 4 ? 4 : 3
+    if (pov = 31500)
+        return previous = 1 ? 1 : 4
+    return 0
 }

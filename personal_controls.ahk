@@ -3,19 +3,11 @@
 PersonalInit(selected, prefix) {
     global PC
     PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
-        , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false, altLatched:false
-        , psPhase:"idle", touch:{phase:"idle"}, clicks:{phase:"idle"}
-        , shoulders:{l1:{phase:"idle", key:"F10", direction:-1}, r1:{phase:"idle", key:"F8", direction:1}}
-        , clients:[], lastClient:0, lastOther:0, switchPending:0}
-    if (!PC.enabled)
-        return
-    file := A_ScriptDir . "\data\personal-controller.ini"
-    if !FileExist(file)
-        FileAppend, % "[Personal]`nPSHoldAction=focus`nDoubleTapMs=250`n", %file%
-    IniRead, hold, %file%, Personal, PSHoldAction, focus
-    IniRead, doubleTap, %file%, Personal, DoubleTapMs, 250
-    PC.holdAction := hold = "minimize" ? "minimize" : "focus"
-    PC.doubleTapMs := doubleTap >= 100 and doubleTap <= 600 ? doubleTap + 0 : 250
+        , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
+        , touch:{phase:"idle"}, clicks:{phase:"idle"}, navigation:{ctrl:false, alt:false}
+        , shoulders:{l1:{phase:"idle", key:"switch"}, r1:{phase:"idle", key:"F8"}}
+        , clients:[], lastClient:0, lastOther:0, navigationActive:false}
+    ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
 PersonalPoll(states, active) {
@@ -29,134 +21,141 @@ PersonalPoll(states, active) {
         PC.lastOther := foreground
     if (!IsObject(states)) {
         PersonalRelease()
-        PC.connected := false, PC.psPhase := "idle", PC.previous := []
+        PC.connected := false, PC.previous := []
         return states
     }
     raw := []
     for i, value in states
         raw[i] := value
-    for name, button in {l1:5, r1:6, l3:11, r3:12, ps:13, touch:14}
+    for name, button in {l1:5, r1:6, l3:11, r3:12, ps:13, touch:14, mute:15}
         raw[name] := GetKeyState(PC.prefix . "Joy" . button) ? true : false
     now := DllCall("GetTickCount64", "UInt64")
     if (!PC.connected) {
         PC.connected := true, PC.previous := raw
-        PC.ready := false, PC.psPhase := "idle", PC.blocked := {}, PC.suppressed := {}
+        PC.ready := false, PC.blocked := {}, PC.suppressed := {}
         return states
     }
-    PersonalPS(raw.ps, foreground, active, now)
+    PersonalPS(raw.ps, foreground, active, raw.l1 or raw.r1 or raw[11] or raw[12])
+    if (WinActive("ahk_class FFXiClass") != active) {
+        PC.previous := raw
+        return states
+    }
     if (PC.owner != active) {
         PersonalRelease()
-        PC.owner := active, PC.ready := false
-        PC.previous := raw
+        PC.owner := active, PC.previous := raw
     }
     PersonalReleaseDue(now)
     mode := PersonalContext(active)
     PC.context := mode
-    keepAlt := active and mode = "gameplay" and raw.r1
-        and !raw[11] and !raw[12] and !raw[9] and !raw[10]
-    allowed := active and mode = "gameplay" and !raw[11] and !raw[12]
-        and !raw[9] and !raw[10] and !appsOwned
-    if (!allowed) {
-        PersonalRelease(false, keepAlt)
-    }
-    neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps
+    contextAllowed := active and (mode = "gameplay" or mode = "crossbar") and !raw[9] and !raw[10]
+    allowed := contextAllowed and mode = "gameplay" and !raw[11] and !raw[12] and !appsOwned
+    neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
     Loop, 12
         if (raw[A_Index])
             neutral := false
-    if (PC.switchPending) {
-        step := PersonalSwitchStep(PC.switchPending, active, allowed, neutral, now)
-        if (step = "cancel")
-            PersonalRelease()
-        else if (step = "switch") {
-            pending := PC.switchPending
-            PC.switchPending := 0
-            if WinExist("ahk_id " . pending.target) {
-                ; Escape's due key-up was delivered above to its original owner.
-                ReleaseTransport()
-                target := pending.target
-                WinActivate, ahk_id %target%
-            }
-            PC.previous := raw
-            return states
-        } else {
-            PC.previous := raw
-            return PersonalFilter(states, raw)
-        }
+    if (!contextAllowed) {
+        PersonalRelease()
+        PC.previous := raw
+        return PersonalFilter(states, raw)
     }
     if (!PC.ready) {
         if (allowed and neutral) {
             PC.ready := true
             PC.touch.phase := "idle", PC.clicks.phase := "idle"
             for _, gesture in PC.shoulders
-                gesture.phase := "idle", gesture.pending := 0
+                gesture.phase := "idle"
         }
         PC.previous := raw
         return PersonalFilter(states, raw)
     }
 
-    ; Claim only a fresh button-down. A held button cannot acquire a new
-    ; meaning by pressing a shoulder, changing focus, or closing an addon menu.
     arrows := ["Up", "Right", "Down", "Left"]
-    taps := []
-    fresh := []
-    Loop, 4 {
-        i := A_Index
-        fresh[i] := raw[i] and !PC.previous[i]
-    }
-    directionChanged := false
-    Loop, 4 {
-        i := A_Index
-        if (allowed and raw.r1 and !raw.l1 and raw[i] and !PC.previous[i])
-            PC.blocked[i] := arrows[i], directionChanged := true
-    }
-    if (directionChanged) {
-        ; A held previous direction must not acquire the new chord's modifier.
-        Loop, 4 {
+    navigation := PersonalModifierStep(PC.navigation, raw.l1, raw[11], raw.r1, raw[12], contextAllowed)
+    if (navigation != "") {
+        if (!PC.navigationActive) {
+            PersonalRelease(false)
+            ; Release Apps/F11/F12 before native modifiers: no Apps+Ctrl+arrow
+            ; and no crossbar action from the same physical chord.
+            ReleaseTransport(true)
+            PC.navigationActive := true
+        }
+        Loop, 12 {
             i := A_Index
-            if (PC.blocked.HasKey(i) and !fresh[i]) {
-                PC.suppressed[i] := true
-                PersonalKey(arrows[i], false)
+            if (raw[i]) {
+                PC.blocked[i] := i <= 4 ? arrows[i] : ""
+                if (!PC.previous[i] and i <= 4)
+                    PC.suppressed.Delete(i)
+                else if (i <= 4 and !PC.keys.HasKey(arrows[i]))
+                    PC.suppressed[i] := true
             }
         }
+        PersonalKey("LControl", PC.navigation.ctrl)
+        PersonalKey("LAlt", PC.navigation.alt)
+        Loop, 4 {
+            i := A_Index
+            PersonalKey(arrows[i], raw[i] and !PC.suppressed.HasKey(i))
+        }
+        PC.previous := raw
+        return PersonalFilter(states, raw)
     }
-    if (allowed and raw.l1 and !raw.r1 and raw[5] and !PC.previous[5]) {
-        PC.blocked[5] := "Space"
-        taps.Push({key:"Space", modifier:"LControl"})
+    if (PC.navigationActive) {
+        PersonalRelease(false)
+        PC.navigationActive := false
     }
-    if (allowed and raw.r1 and !raw.l1) {
+    if (!allowed) {
+        PersonalRelease(false)
+        PC.previous := raw
+        return PersonalFilter(states, raw)
+    }
+
+    taps := []
+    ; Each assigned Ctrl shortcut fires once. Empty L1 slots are reserved and
+    ; consume their button rather than leaking native confirm/cancel.
+    if (raw.l1 and !raw.r1) {
+        shortcuts := {1:"i", 2:"m", 3:"e", 4:"j", 5:"Space", 6:"q", 7:"", 8:"s"}
+        for i, key in shortcuts {
+            if (raw[i] and !PC.previous[i]) {
+                PC.blocked[i] := key
+                if (key != "")
+                    taps.Push({key:key, modifier:"LControl"})
+            }
+        }
+    } else if (raw.r1 and !raw.l1) {
+        Loop, 4 {
+            i := A_Index
+            if (raw[i] and !PC.previous[i])
+                PC.blocked[i] := arrows[i]
+        }
         for i, key in {5:"Enter", 7:"Escape", 8:"NumpadAdd"} {
             if (raw[i] and !PC.previous[i]) {
                 PC.blocked[i] := key
                 taps.Push({key:key, modifier:i = 8 ? "LControl" : ""})
             }
         }
+    } else if (raw.l1 and raw.r1) {
+        Loop, 8
+            if (raw[A_Index])
+                PC.blocked[A_Index] := ""
+        if (!PC.previous.l1 or !PC.previous.r1)
+            taps.Push({key:"Tab", modifier:""})
     }
     states := PersonalFilter(states, raw)
     transportBusy := false
     Loop, 12
         if (states[A_Index])
             transportBusy := true
-    ; A native F8 tap must finish before Apps/F8 can belong to a slot packet.
     if (transportBusy)
-        PersonalRelease(false, keepAlt)
-
-    latched := PersonalAltStep(PC, raw.r1, allowed and !raw.l1 and fresh[2], allowed and !raw.l1 and fresh[4])
-    pulseBusy := PC.releases.HasKey("Enter") or PC.releases.HasKey("Escape")
-        or PC.releases.HasKey("Space") or PC.releases.HasKey("NumpadAdd")
-    alt := PersonalAltOutput(latched, allowed, raw.l1, pulseBusy, taps.Length())
-    if (!transportBusy) {
-        PersonalKey("LAlt", alt)
+        PersonalRelease(false)
+    else {
         Loop, 4 {
             i := A_Index
-            PersonalKey(arrows[i], allowed and raw.r1 and !raw.l1 and PC.blocked.HasKey(i)
+            PersonalKey(arrows[i], raw.r1 and !raw.l1 and PC.blocked.HasKey(i)
                 and raw[i] and !PC.suppressed.HasKey(i))
         }
-        ; A direct Enter/Escape/Ctrl shortcut must not regain inventory Alt
-        ; during its short pulse. Require held arrows to release before reuse.
         if (taps.Length()) {
             Loop, 4 {
                 i := A_Index
-                if (PC.blocked.HasKey(i)) {
+                if (PC.blocked[i] = arrows[i]) {
                     PC.suppressed[i] := true
                     PersonalKey(arrows[i], false)
                 }
@@ -170,9 +169,9 @@ PersonalPoll(states, active) {
     Loop, 12
         if (raw[A_Index])
             anyButton := true
-    busy := !allowed or anyButton or raw.ps
-    touchEvent := PersonalTouchStep(PC.touch, raw.touch, PC.previous.touch, raw.l1
-        , busy or raw.r1 or raw.l3 or raw.r3, now)
+    busy := transportBusy or anyButton or raw.ps or raw.mute
+    touchEvent := PersonalTouchStep(PC.touch, raw.touch, PC.previous.touch
+        , busy or raw.l1 or raw.r1 or raw.l3 or raw.r3, now)
     if (touchEvent != "")
         PersonalChord(touchEvent, "", now)
     clickEvent := PersonalClicksStep(PC.clicks, raw.l3, raw.r3
@@ -185,22 +184,9 @@ PersonalPoll(states, active) {
     for name, gesture in PC.shoulders {
         other := name = "l1" ? raw.r1 : raw.l1
         consumed := busy or other or raw.touch or raw.l3 or raw.r3
-        event := PersonalShoulderStep(gesture, raw[name], PC.previous[name]
-            , consumed, now, PC.doubleTapMs)
+        event := PersonalShoulderStep(gesture, raw[name], PC.previous[name], consumed)
         if (event = "switch") {
-            target := PersonalClientTarget(active, gesture.direction)
-            if (target and target != active) {
-                ; A: clear the current client's target before focus changes.
-                ; Queue the switch until the 40ms Escape pulse has completed.
-                PersonalKey(gesture.key, false)
-                PersonalChord("Escape", "", now)
-                ; Count from completed emission, not the poll's earlier clock:
-                ; file reads/SendEvent delays must not shorten Escape's hold.
-                due := DllCall("GetTickCount64", "UInt64") + 40
-                if (PC.keys.HasKey("Escape"))
-                    PC.releases["Escape"] := due
-                PC.switchPending := {owner:active, target:target, due:due}
-            }
+            PersonalSwitchClient(active)
             PC.previous := raw
             return states
         } else if (event != "")
@@ -301,7 +287,7 @@ PersonalReleaseDue(now) {
             PersonalKey(key, false)
 }
 
-PersonalRelease(reset := true, keepAlt := false) {
+PersonalRelease(reset := true) {
     global PC
     if (!IsObject(PC) or !PC.enabled)
         return
@@ -320,11 +306,12 @@ PersonalRelease(reset := true, keepAlt := false) {
         PC.ready := false
     PC.touch.phase := "cancelled"
     PC.clicks.phase := "cancelled"
-    if (!keepAlt)
-        PC.altLatched := false
-    PC.switchPending := 0
+    if (reset) {
+        PC.navigation.ctrl := false, PC.navigation.alt := false
+        PC.navigationActive := false
+    }
     for _, gesture in PC.shoulders
-        gesture.phase := "cancelled", gesture.pending := 0
+        gesture.phase := "cancelled"
 }
 
 PersonalOtherWindow(hwnd) {
@@ -335,44 +322,35 @@ PersonalOtherWindow(hwnd) {
         and class != "Shell_TrayWnd" and class != "AutoHotkey" and class != "tooltips_class32"
 }
 
-PersonalPS(pressed, foreground, active, now) {
+PersonalPS(pressed, foreground, active, consumed) {
     global PC
-    if (pressed and !PC.previous.ps) {
-        PC.psPhase := "timing", PC.psStarted := now, PC.psFocus := foreground
-    }
-    if (PC.psPhase = "timing" and foreground != PC.psFocus)
-        PC.psPhase := "cancelled"
-    if (pressed and PC.psPhase = "timing" and active and now - PC.psStarted >= 500) {
-        PC.psPhase := "fired"
-        ReleaseTransport()
-        if (PC.holdAction = "minimize") {
-            WinGet, clients, List, ahk_class FFXiClass
-            Loop, %clients% {
-                id := clients%A_Index%
-                WinMinimize, ahk_id %id%
+    ; A single fresh press toggles focus. Holds never cycle or minimize clients.
+    if (!pressed or PC.previous.ps or consumed)
+        return
+    target := active ? PC.lastOther : PersonalClientTarget(0)
+    if (active and !PersonalOtherWindow(target)) {
+        WinGet, windows, List
+        Loop, %windows% {
+            id := windows%A_Index%
+            if (PersonalOtherWindow(id)) {
+                target := id
+                break
             }
-        } else {
-            target := PC.lastOther
-            if (!PersonalOtherWindow(target)) {
-                WinGet, windows, List
-                Loop, %windows% {
-                    id := windows%A_Index%
-                    if (PersonalOtherWindow(id)) {
-                        target := id
-                        break
-                    }
-                }
-            }
-            if (PersonalOtherWindow(target))
-                WinActivate, ahk_id %target%
         }
     }
-    if (!pressed and PC.previous.ps) {
-        phase := PC.psPhase
-        PC.psPhase := "idle"
-        if (phase = "timing" and foreground = PC.psFocus)
-            PersonalSwitchClient(active)
-    }
+    if (!target or (active and !PersonalOtherWindow(target)))
+        return
+    ReleaseTransport()
+    PersonalActivate(target)
+}
+
+PersonalActivate(target) {
+    if (!target or !WinExist("ahk_id " . target))
+        return
+    WinGet, minimized, MinMax, ahk_id %target%
+    if (minimized = -1)
+        WinRestore, ahk_id %target%
+    WinActivate, ahk_id %target%
 }
 
 PersonalClientTarget(active, direction := 1) {
@@ -411,8 +389,8 @@ PersonalClientTarget(active, direction := 1) {
 
 PersonalSwitchClient(active, direction := 1) {
     target := PersonalClientTarget(active, direction)
-    if (!target)
+    if (!target or target = active)
         return
     ReleaseTransport()
-    WinActivate, ahk_id %target%
+    PersonalActivate(target)
 }

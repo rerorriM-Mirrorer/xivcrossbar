@@ -16,15 +16,15 @@ vm.runInContext(source, context, {filename:'translated-personal_gestures.ahk'});
 let cases = 0;
 function shoulder(key='F8') {
   const g={phase:'idle', key}; let previous=false;
-  return (down,time,consumed=false) => {
-    const value=context.PersonalShoulderStep(g,down,previous,consumed,time,250);
+  return (down,consumed=false) => {
+    const value=context.PersonalShoulderStep(g,down,previous,consumed);
     previous=down; return value;
   };
 }
 function touch() {
   const g={phase:'idle'}; let previous=false;
-  return (down,time,l1=false,consumed=false) => {
-    const value=context.PersonalTouchStep(g,down,previous,l1,consumed,time);
+  return (down,time,consumed=false) => {
+    const value=context.PersonalTouchStep(g,down,previous,consumed,time);
     previous=down; return value;
   };
 }
@@ -36,38 +36,21 @@ function clicks() {
   };
 }
 function check(name, run) {run();cases++;}
-check('single R1 F8 immediately on completed tap',()=>{
-  const s=shoulder(); assert.equal(s(true,100),'');assert.equal(s(false,150),'F8');
-  assert.equal(s(false,399),'');assert.equal(s(false,401),'');assert.equal(s(false,450),'');
+check('bare L1 switches immediately on release',()=>{
+  const s=shoulder('switch');assert.equal(s(true),'');assert.equal(s(false),'switch');assert.equal(s(false),'');
 });
-check('double R1 targets first, then requests Escape and switching',()=>{
-  const s=shoulder();assert.equal(s(true,100),'');assert.equal(s(false,150),'F8');assert.equal(s(true,220),'');
-  assert.equal(s(false,270),'switch');assert.equal(s(false,1000),'');
+check('two completed L1 taps switch twice; no double mode or delay',()=>{
+  const s=shoulder('switch');s(true);assert.equal(s(false),'switch');s(true);assert.equal(s(false),'switch');
 });
-check('L1 singles preserve F10',()=>{
-  const s=shoulder('F10');s(true,100);assert.equal(s(false,150),'F10');assert.equal(s(false,401),'');
+check('bare R1 keeps F8 on release',()=>{const s=shoulder();s(true);assert.equal(s(false),'F8');});
+check('combinations consume shoulder single',()=>{
+  const s=shoulder('switch');s(true);s(true,true);assert.equal(s(false),'');
 });
-check('long first hold still targets on release',()=>{
-  const s=shoulder();s(true,100);assert.equal(s(true,3000),'');assert.equal(s(false,3010),'F8');
-  assert.equal(s(false,3261),'');
+check('context loss cannot switch on release',()=>{
+  const s=shoulder('switch');s(true);s(true,true);assert.equal(s(false,true),'');assert.equal(s(false),'');
 });
-check('combo consumes shoulder tap',()=>{
-  const s=shoulder();s(true,100);s(true,150,true);assert.equal(s(false,200),'');assert.equal(s(false,500),'');
-});
-check('second combo cancels switching after first tap targeted',()=>{
-  const s=shoulder();s(true,100);assert.equal(s(false,150),'F8');s(true,200);s(true,220,true);
-  assert.equal(s(false,250),'');assert.equal(s(false,600),'');
-});
-check('context loss cancels the pending double window',()=>{
-  const s=shoulder();s(true,100);assert.equal(s(false,150),'F8');s(false,200,true);assert.equal(s(false,1000),'');
-});
-check('slow separate taps both target',()=>{
-  const s=shoulder();s(true,100);assert.equal(s(false,150),'F8');assert.equal(s(true,500),'');
-  assert.equal(s(false,550),'F8');assert.equal(s(false,801),'');
-});
-check('long second hold cancels double switch',()=>{
-  const s=shoulder();s(true,100);s(false,150);s(true,200);s(true,451);
-  assert.equal(s(false,500),'');assert.equal(s(false,1000),'');
+check('holding a shoulder does not repeat',()=>{
+  const s=shoulder('switch');s(true);assert.equal(s(true),'');assert.equal(s(true),'');assert.equal(s(false),'switch');
 });
 check('bare touchpad tap backtick only on release',()=>{
   const t=touch();assert.equal(t(true,100),'');assert.equal(t(false,300),'vkC0sc029');assert.equal(t(false,700),'');
@@ -77,21 +60,13 @@ check('map peek opens once and closes once',()=>{
   assert.equal(t(true,900),'');assert.equal(t(false,1000),'Escape');assert.equal(t(false,1100),'');
 });
 check('peek focus/context loss cancels Escape',()=>{
-  const t=touch();t(true,100);t(true,600);t(true,700,false,true);
-  assert.equal(t(false,800),'');
+  const t=touch();t(true,100);t(true,600);t(true,700,true);assert.equal(t(false,800),'');
 });
-check('L1 touchpad sends Tab on down, not release',()=>{
-  const t=touch();assert.equal(t(true,100,true),'Tab');assert.equal(t(false,300,true),'');
+check('L1 touchpad is reserved, emits neither Tab nor F15',()=>{
+  const t=touch();assert.equal(t(true,100,true),'');assert.equal(t(true,600,true),'');assert.equal(t(false,700,true),'');
 });
-check('simultaneous L1 and touchpad release retains Tab',()=>{
-  const t=touch();assert.equal(t(true,100,true),'Tab');assert.equal(t(false,300,false),'');
-});
-check('L1 touchpad hold follows immediate Tab with F15',()=>{
-  const t=touch();assert.equal(t(true,100,true),'Tab');assert.equal(t(true,600,true),'F15');
-  assert.equal(t(true,800,true),'');assert.equal(t(false,900,false),'');
-});
-check('changing shoulder mid-touch does not change meaning',()=>{
-  const t=touch();t(true,100);t(true,200,true);assert.equal(t(true,600,true),'');assert.equal(t(false,700),'');
+check('adding shoulder mid-peek cannot retain Escape',()=>{
+  const t=touch();t(true,100);t(true,600);t(true,700,true);assert.equal(t(false,800),'');
 });
 check('R3 then L3 holds comma, without autorun/heal',()=>{
   const c=clicks();assert.equal(c(false,true),'');assert.equal(c(true,true),'vkBCsc033');
@@ -130,43 +105,52 @@ check('focus loss clears held zoom output',()=>{
   const c=clicks();c(true,false);c(true,true);assert.equal(c(true,true,true),'');
   assert.equal(c(false,false),'');
 });
-function alt() {
-  const g={altLatched:false};
-  return (r1=true, l1=false, up=false, right=false, down=false, left=false, other=false)=>
-    context.PersonalAltStep(g,r1,right,left);
+function pair() {
+  const g={ctrl:false,alt:false};
+  return (l1=false,l2=false,r1=false,r2=false,allowed=true)=>context.PersonalModifierStep(g,l1,l2,r1,r2,allowed);
 }
-check('vertical R1 arrows remain bare',()=>{const a=alt();assert.equal(a(true,false,true),false);
-  assert.equal(a(true,false,false,false,true),false);});
-check('right latches Alt through direction release',()=>{const a=alt();
-  assert.equal(a(true,false,false,true),true);assert.equal(a(),true);});
-check('left also latches Alt',()=>{const a=alt();assert.equal(a(true,false,false,false,false,true),true);});
-check('up retains horizontal Alt latch until R1 release',()=>{const a=alt();a(true,false,false,true);
-  assert.equal(a(true,false,true),true);assert.equal(a(),true);});
-check('other R1 shortcut retains the logical Alt latch',()=>{const a=alt();a(true,false,false,true);
-  assert.equal(a(true,false,false,false,false,false,true),true);});
-check('R1 release clears Alt',()=>{const a=alt();a(true,false,false,true);assert.equal(a(false),false);});
-check('L1 can suspend output without clearing the R1 latch',()=>{const a=alt();a(true,false,false,true);assert.equal(a(true,true),true);});
-check('horizontal latches in a simultaneous diagonal',()=>{const a=alt();assert.equal(a(true,false,true,true),true);});
-check('direct pulse suspends Alt and restores it after key-up',()=>{
-  assert.equal(context.PersonalAltOutput(true,true,false,false,true),false);
-  assert.equal(context.PersonalAltOutput(true,true,false,true,false),false);
-  assert.equal(context.PersonalAltOutput(true,true,false,false,false),true);
+check('Ctrl starts on L1+L2 without an arrow',()=>{const p=pair();assert.equal(p(true,true),'ctrl');});
+check('Alt starts on R1+R2 without an arrow',()=>{const p=pair();assert.equal(p(false,false,true,true),'alt');});
+check('single buttons never start modifiers',()=>{
+  for(let i=0;i<4;i++){const a=[false,false,false,false];a[i]=true;assert.equal(pair()(...a),'');}
 });
-check('context or L1 priority suspends Alt output',()=>{
-  assert.equal(context.PersonalAltOutput(true,false,false,false,false),false);
-  assert.equal(context.PersonalAltOutput(true,true,true,false,false),false);
+check('Ctrl survives either first release until both released',()=>{
+  for(const a of [[true,false],[false,true]]) {const p=pair();p(true,true);assert.equal(p(...a),'ctrl');assert.equal(p(),'');}
 });
-check('switch waits for Escape pulse completion',()=>{
-  const p={owner:100,due:140};assert.equal(context.PersonalSwitchStep(p,100,true,true,139),'wait');
-  assert.equal(context.PersonalSwitchStep(p,100,true,true,140),'switch');
+check('Alt survives either first release until both released',()=>{
+  for(const a of [[true,false],[false,true]]) {const p=pair();p(false,false,true,true);assert.equal(p(false,false,...a),'alt');assert.equal(p(),'');}
 });
-check('focus change cancels pending switch',()=>{
-  assert.equal(context.PersonalSwitchStep({owner:100,due:140},200,true,true,150),'cancel');
+check('pairs can overlap and release independently',()=>{
+  const p=pair();assert.equal(p(true,true,true,true),'both');assert.equal(p(false,false,true,false),'alt');assert.equal(p(),'');
 });
-check('new input cancels pending switch',()=>{
-  assert.equal(context.PersonalSwitchStep({owner:100,due:140},100,true,false,150),'cancel');
+check('focus/menu loss clears both modifiers immediately',()=>{
+  const p=pair();p(true,true,true,true);assert.equal(p(true,true,true,true,false),'');assert.equal(p(),'');
 });
-check('menu or trigger context cancels pending switch',()=>{
-  assert.equal(context.PersonalSwitchStep({owner:100,due:140},100,false,true,150),'cancel');
+check('POV centered/invalid is neutral',()=>{for(const v of [-1,65535,40000])assert.equal(context.PersonalPovDirection(v,1),0);});
+check('POV cardinals and diagonal rolls retain one adjacent direction',()=>{
+  for(let i=0;i<4;i++){
+    const current=i+1,next=(i+1)%4+1,diag=i*9000+4500;
+    assert.equal(context.PersonalPovDirection(i*9000,0),current);
+    assert.equal(context.PersonalPovDirection(diag,current),current);
+    assert.equal(context.PersonalPovDirection(diag,next),next);
+    assert.equal(context.PersonalPovDirection(diag,0),current);
+  }
 });
-console.log(`${cases} gesture decision scenarios passed; Windows delivery remains a live check.`);
+// Read actual shortcut declarations rather than maintain an implementation copy.
+const controls=fs.readFileSync('personal_controls.ahk','utf8');
+const shortcuts=vm.runInNewContext('({'+controls.match(/shortcuts := \{([^}]+)\}/)[1]+'})');
+check('L1 keys match the requested physical-button mapping',()=>{
+  assert.deepEqual(JSON.parse(JSON.stringify(shortcuts)),{1:'i',2:'m',3:'e',4:'j',5:'Space',6:'q',7:'',8:'s'});
+});
+check('navigation releases Apps before modifier down and masks transport buttons',()=>{
+  const begin=controls.indexOf('if (navigation != "")');const end=controls.indexOf('if (PC.navigationActive)',begin+30);
+  const body=controls.slice(begin,end);
+  assert(body.indexOf('ReleaseTransport(true)')<body.indexOf('PersonalKey("LControl"'));
+  assert(body.includes('Loop, 12')&&body.includes('return PersonalFilter(states, raw)'));
+});
+check('PS is one focus toggle per down edge, with no hold threshold',()=>{
+  const ps=controls.slice(controls.indexOf('\nPersonalPS('),controls.indexOf('\nPersonalActivate('));
+  assert(ps.includes('PC.previous.ps')&&ps.includes('PersonalClientTarget(0)'));
+  assert(!ps.includes('500')&&!ps.includes('WinMinimize'));
+});
+console.log(`${cases} personal gesture/routing scenarios passed; Windows delivery remains a live check.`);

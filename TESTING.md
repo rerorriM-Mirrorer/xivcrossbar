@@ -1,3 +1,65 @@
+# Personal 8 controls checkpoint 1 — keyboard shortcuts, focus toggle and native pairs
+
+Runtime personal8-controls1; wrapper personal_version=8.1. Baseline dc4cbae
+preserves the uploaded movement-aware wrapper. No data/settings/INI/catalog/binding
+files are shipped. Stop the shared wrapper, unload participating XIVCrossbar
+clients, copy the update, then load on each client. A running AHK script does not
+reload when Lua alone reloads. Check `//xb controller status` reports Controls=8.1.
+
+User's updated order: controls and PS first; stable server gate and Default switch
+destinations next; L1 companion/double-tap modes deferred. Down was listed twice
+in the proposal; as discussed, Right maps Ctrl+M, Down Ctrl+E. Fresh L1 key combos
+send the requested Ctrl+letter; L1 release switches next client immediately.
+PS toggles focus on a press, with no hold/minimize or client cycle. R1 retains bare
+F8 and direct Triangle/Circle/Cross shortcuts, now plain D-pad arrows. L1+R1 is
+Tab; L1+touchpad Tab/F15 is removed. Full current table is in PERSONAL.md.
+
+L1+L2 begins Ctrl immediately; R1+R2 begins Alt immediately. Each remains until
+BOTH members release, except focus/disconnect/menu/text/setup cancellation. Native
+pairs preempt transport: release Apps/F-keys, mask trigger/face signals, send native
+arrows, and never fire ordinary crossbar slots. Existing crossbars outside these
+pairs retain priority. Empty L1 combinations are consumed. No companion is loaded.
+
+D-pad observation: AHK polls at 10ms; it does not wait for stick movement. The
+old DirectInput reader recognized cardinal POV values only. Diagonal rolls
+looked neutral. Retain ONE adjacent cardinal through diagonal readings, preventing
+both gaps and two slots firing at once. This source defect is confirmed; the
+reported overall stickiness is not reproduced in a native client. File/context
+reads and game input may also affect timing; no speculative broad tuning is made.
+
+Available verification: 33 decision/routing scenarios exercise actual pure AHK
+functions through the existing narrow JS translation, including pair release
+orders, focus cancellation, touch/click behavior, repeated singles, requested key
+mapping, Apps-release ordering and diagonal decoding. Six AHK files pass lexical,
+include and function-link checks. Lua checks below cover unchanged crossbar/menu
+behavior. These are not native AHK parsing, SendEvent or FFXI acceptance tests.
+
+Live checks, first with a single client:
+1. L1 + Up/Down/Left/Right opens intended Ctrl+I/E/J/M menus. Cross/triangle/square
+   send Ctrl+Space/S/Q once. Reserved Circle/touchpad/clicks/PS/Mute send nothing.
+2. R1 D-pad moves menus with plain arrows. R1 Circle/Cross operate Trust menus;
+   Triangle sends Ctrl+Numpad Plus. L1+R1 sends one Tab in either press order.
+3. L1+L2 shows native Ctrl behavior immediately. Release either first: Ctrl stays;
+   release both: it stops. Repeat R1+R2/Alt. D-pad performs modified navigation
+   without crossbar actions. With both pairs held, both modifiers are intentional.
+4. Enter an addon menu, change focus, unplug/replug or stop the wrapper during a
+   native pair: no stuck modifier/arrows or fresh action on regain. Return neutral.
+5. Hold ordinary L2/R2 without shoulder pairs and use all bar types: unchanged
+   execution with no F-key targeting leak. Slowly roll D-pad corners: no dropped
+   neutral beat and never two slots from one diagonal.
+6. Two clients: L1 tap advances once on release; combos never switch. PS press
+   goes to recent non-FFXI app; next press restores last client. Holding PS adds
+   nothing. No double-tap special action. Existing movement takeover still fires
+   once per client takeover, not every stick recenter or trip to another app.
+7. Touchpad peek and ordered stick clicks remain functional. Catalog/menu/page
+   Cleanup6 fixes remain installed and `//xb resources` remains bounded.
+
+Stable server gate and Default switch destinations are not yet changed in this
+checkpoint. Public candidate is untouched. Current packages will not include
+controller settings or command catalogs to avoid overwriting live choices.
+
+---
+
 # Personal 8 baseline — preserve supplied movement takeover integration
 
 The Oct 15 uploaded snapshot's ffxi_directinput.ahk and movement_signal.ahk are

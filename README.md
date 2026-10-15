@@ -357,3 +357,13 @@ Selecting a spell or action on a later page now clamps the following list to
 its available pages, so a one-page target list appears immediately. Back still
 restores the original spell/page. Includes checkpoint 5's stale-caption and
 cursor-unload fixes; all controller scripts, catalogs and bindings are preserved.
+
+
+### Personal 8 controls checkpoint 1
+
+PS5 Extended gains immediate L1-release client switching, Ctrl menu shortcuts,
+plain R1 arrows, L1+R1 Tab, native Ctrl/Alt shoulder-trigger pairs and a PS focus
+toggle. Double-tap switching and L1+touchpad Tab/F15 are dormant. The supplied
+movement takeover integration is retained. DirectInput diagonal hat rolls retain
+one adjacent direction. See PERSONAL.md for the current map and TESTING.md for
+native acceptance checks. Stop/start the shared wrapper after updating AHK files.

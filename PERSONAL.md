@@ -1,3 +1,56 @@
+# Personal 8 keyboard controls — current proposal implemented for live testing
+
+Runtime: personal8-controls1. Wrapper reports personal_version=8.1. PS5 Extended
+only; ordinary controller profiles keep the shared Apps transport. The supplied
+movement_signal.ahk bridge is retained, with its per-FFXI-client takeover latch.
+No L1 companion or double-tap mode is enabled.
+
+| Input | Output |
+| --- | --- |
+| Bare L1 release | Next FFXI client immediately; no F10, Escape or double-tap delay |
+| Bare R1 release | F8 (retained); double taps have no special action |
+| L1 + D-pad Up / Down / Left / Right | Ctrl+I / Ctrl+E / Ctrl+J / Ctrl+M, once on D-pad press |
+| L1 + Cross / Triangle / Square | Ctrl+Space / Ctrl+S / Ctrl+Q, once on face press |
+| L1 + Circle / touchpad / L3 / R3 / PS / Mute | Reserved; no personal output or bare-button fallback |
+| L1 + R1 | Tab once when the second shoulder is pressed |
+| R1 + D-pad | Corresponding plain arrow held with the D-pad |
+| R1 + Triangle / Circle / Cross | Ctrl+Numpad Plus / Escape / Enter, retained |
+| L1 + L2 | Hold Ctrl immediately; release after BOTH buttons release |
+| R1 + R2 | Hold Alt immediately; release after BOTH buttons release |
+| D-pad during either native modifier pair | Corresponding native arrow; no crossbar slot |
+| Bare touchpad | Backtick on short release; 500ms peek emits backtick then Escape on release in same client |
+| Bare L3 / R3 | H / R on release, retained |
+| Ordered R3 then L3 / L3 then R3 | Comma / period held by second click, retained |
+| PS press | Focus recent non-FFXI app from FFXI; restore last FFXI client from another app |
+
+Unassigned R1 combinations retain their previous behavior. Combinations consume
+L1/R1 singles. New input after focus/disconnect/menu changes requires physical
+neutral; held inputs do not acquire new meaning. Native modifier pairs remain in
+navigation mode until both members release; overlapping pairs hold both modifiers.
+Menus, text and setup cancel native pairs immediately and require neutral before
+rearming. Within a pair, face buttons are consumed, avoiding modifier+confirm
+accidents. Outside these explicit native pairs, ordinary L2/R2 bindings retain
+priority over the personal shortcuts.
+
+The wrapper releases Apps and outstanding F-key signals before native modifiers.
+It releases owned arrows before modifiers, without releasing genuine keyboard
+keys. Native Ctrl/Alt behavior during these deliberate pairs is intentional.
+Old PSHoldAction/DoubleTapMs settings are retained but unused by this mapping.
+PS toggles on press, so a hold adds no action. Last-client shutdown and the
+installation mutex continue sharing one controller process.
+
+DirectInput POV diagonals retain one adjacent cardinal direction until a cardinal
+or neutral is reached. This avoids the former neutral gaps without firing two
+crossbar slots from one diagonal. It is a plausible contributor to the user's
+sticky-D-pad observation, not a proven diagnosis of that whole session.
+
+Binding conventions for a later L1 bank remain the existing 1 Left, 2 Down,
+3 Right, 4 Up, 5 Square, 6 Cross, 7 Circle, 8 Triangle. That bank is deferred.
+
+The historical notes below describe preceding mappings and deliveries.
+
+---
+
 # Current personal controls — verified against the shipped AHK source
 
 These are the `ps5extended` gameplay overrides, unchanged by Personal 7 cleanup.

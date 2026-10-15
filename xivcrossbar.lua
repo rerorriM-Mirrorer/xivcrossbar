@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal7-cleanup6'
+_addon.version = '0.4.0-a.20261014.personal8-controls1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -325,8 +325,9 @@ local function report_controller_status()
             ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if status.profile=='ps5-extended' then
             windower.add_to_chat(207, '[XIVCrossbar] Personal: '..(status.personal_context or 'starting')..
-                ' | PS hold='..(status.ps_hold or 'focus')..' | double tap='..
-                (status.double_tap_ms or '250')..'ms')
+                ' | Controls='..(status.personal_version or 'older wrapper; stop/start required')..
+                ' | PS='..(status.ps_action or status.ps_hold or 'unknown')..
+                ' | Ctrl/Alt pairs='..(status.ctrl_pair or '0')..'/'..(status.alt_pair or '0'))
         end
         if not controller_profiles.matches(status, settings.ControllerProfile, settings.ControllerDevice, controller_modifier)
             and not (controller_switcher and controller_switcher.pending) then

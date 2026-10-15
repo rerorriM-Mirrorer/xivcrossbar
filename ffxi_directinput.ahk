@@ -53,6 +53,7 @@ joys := profile = "fightpadpro-directinput"
     ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
     : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
 previous := []
+povDirection := 0
 owner := 0
 ready := false
 appsOwned := false
@@ -170,10 +171,11 @@ AcquireWrapperMutex() {
     return handle
 }
 
-ReleaseTransport() {
+ReleaseTransport(preservePersonal := false) {
     global keys, previous, owner, appsOwned, captureKey
     MovementRelease()
-    PersonalRelease()
+    if (!preservePersonal)
+        PersonalRelease()
     Loop, 12 {
         i := A_Index
         if (previous[i]) {
@@ -199,12 +201,15 @@ ReleaseTransport() {
 
 ; A: read hardware only. Output, focus cleanup and rearming remain shared.
 ReadTransportStates() {
-    global isXInput, profile, device, joystickPrefix, joys, xinputGetState
+    global isXInput, profile, device, joystickPrefix, joys, xinputGetState, povDirection
     if (!isXInput) {
         if (GetKeyState(joystickPrefix . "JoyName") = "")
             return false
         pov := GetKeyState(joystickPrefix . "JoyPOV")
-        states := [pov == 0, pov == 9000, pov == 18000, pov == 27000]
+        ; Keep one adjacent cardinal through a diagonal roll, not a neutral gap
+        ; or two simultaneous crossbar slots.
+        povDirection := PersonalPovDirection(pov, povDirection)
+        states := [povDirection = 1, povDirection = 2, povDirection = 3, povDirection = 4]
         Loop, 8 {
             i := A_Index + 4
             states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
@@ -268,7 +273,7 @@ WriteTransportStatus(force := false) {
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
     global PC
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`ndouble_tap_ms=" . PC.doubleTapMs . "`nps_hold=" . PC.holdAction . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=8.1`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=" . PC.navigation.ctrl . "`nalt_pair=" . PC.navigation.alt . "`n"
     global TM
     contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
     ; Replace the status as one file so Lua never treats a partial write as live.
