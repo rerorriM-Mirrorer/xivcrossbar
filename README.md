@@ -31,6 +31,21 @@ an existing XML. The public snapshot is unchanged.
 
 Based on qEagleStrikerp's consolidated XIVCrossbar repository, with updates by A.
 
+## TrustMovement companion
+
+[TrustMovement](companions/trustmovement/README.md) is maintained beside
+XIVCrossbar in this repository. Its source is under `companions/trustmovement/`;
+the shared controller wrapper uses `movement_signal.ahk` beside
+`ffxi_directinput.ahk` to send its once-per-client-focus movement signal.
+
+At installation, TrustMovement is a separate sibling addon at
+`Windower/addons/trustmovement`, alongside `xivcrossbar` and `trust`.
+See its [installation guide](companions/trustmovement/INSTALL.md) and the root
+[testing record](TESTING.md). The optional follow/assist `--quiet` support is
+maintained in the [Trust fork](https://github.com/rerorriM-Mirrorer/trust).
+This keeps controller transport and its companion together while Trust owns
+the follow/assist command behavior.
+
 ## What this update addresses
 
 - Native macro palettes no longer appear when using crossbars in Apps mode.
