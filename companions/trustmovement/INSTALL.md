@@ -1,27 +1,46 @@
-# Trust movement — Test 1 (0.1.0)
+# Trust movement — Quiet update (0.1.1)
 
 This patch is based on the exact ffxi_directinput.ahk you supplied, matching
 XIVCrossbar's personal/ps5extended baseline 0d4f09a. It adds a diagnostic-first
 movement receiver. Read TESTING.md first for checks and remaining live tests.
 
-## Install
+## Update an already working Test 1 installation
+
+1. Merge the ZIP's **addons/trust** and **addons/trustmovement** folders into
+   the corresponding folders under **Windower/addons**.
+2. In each participating client run `//lua reload trust`, followed by
+   `//lua reload trustmovement`. Use the Lua reload command: //trust reload only
+   reloads job settings and does not load this code update.
+3. Existing live/test/off settings are retained; quiet defaults on. If needed,
+   `//tm live` enables the actual follow/assist handoff.
+
+Your working AHK files are unchanged. No shared-wrapper restart or setup script
+is needed for this update. Switch to another FFXI client and move to try the
+next handoff. Normal handoffs should produce no success acknowledgments;
+actual failures remain visible. `//tm quiet off` restores success messages.
+
+Both Trust senders and recipients need the included patch for full quieting.
+This is an overlay for the existing Trust installation, not a full Trust ZIP.
+Trust patch baseline: test/compact-trust-title-20261008 at 89939a7.
+
+## Fresh movement install (requires existing Trust and XIVCrossbar)
 
 1. In one game client, run `//xb controller stop`. Wait until
    `//xb controller status` reports stopped. This stops the shared wrapper for
    all clients; the game clients can remain open.
 2. Copy the package's **addons** and **scripts** folders into your **Windower**
-   folder, merging folders. Only ffxi_directinput.ahk is replaced. Your existing
+   folder, merging folders. The package also overlays the targeted Trust quiet-command files. Your existing
    personal_controls.ahk, personal_gestures.ahk, controller_clients.ahk, controller
    selection and character settings stay in place. Do not run this AHK copy
    directly from the ZIP: it expects your existing companion includes.
 3. In each client you want to test, run `//exec trust-movement-test.txt`.
 4. In one client, run `//xb controller start` to restart the shared wrapper.
 
-No Trust files or global keyboard bindings are changed. Keep your current
+No global keyboard bindings or user configuration files are replaced. Keep your current
 controller profile and device selection. Your window title must contain its
 character's name, as default Windower titles do.
 
-## First test
+## Diagnostic test
 
 Move the left stick on the focused client. Expect:
 
@@ -47,7 +66,7 @@ trust follow me
 trust assist me
 ```
 
-Trust must be loaded and its normal IPC modes configured, just as for your
+Patched Trust must be loaded and its normal IPC modes configured, just as for your
 existing working commands. Start/stop management and outside-party following
 are not included. Use `//tm test` for diagnostics or `//tm off` to disable a
 client. Modes are saved per Windower config. Nothing is added to init.txt;
@@ -70,6 +89,13 @@ isolates Windows scan-code delivery as the next thing to investigate.
 
 ## Roll back
 
+For quiet-only rollback, restore **rollback/quiet-update/addons/** over your
+Windower/addons folder, then reload Trust and TrustMovement in each client.
+This restores the previously working Test 1 receiver and original Trust files.
+The new command_feedback.lua is unused by restored Trust and may remain.
+
+For complete movement rollback:
+
 1. Run `//tm unload` in every client that loaded it.
 2. Run `//xb controller stop` and wait for stopped status.
 3. Restore **rollback/ffxi_directinput.ahk** over
@@ -81,7 +107,10 @@ be removed. The trustmovement folder and setup script may also be removed.
 
 ## Verification and changelog
 
+0.1.1: quiet movement success messages and a scoped --quiet Trust patch.
+
 0.1.0: one signal per client focus; physical-stick observation; diagnostic-first
 receiver; native-menu/chat/event guards; optional follow/assist commands.
 Mocked receiver checks and Lua syntax checks are recorded in TESTING.md.
-Windows AutoHotkey loading and actual FFXI input delivery remain untested.
+The user reported Test 1 working live. This quiet update has 81 simulated
+assertions and Lua 5.1 syntax checks; its new quiet behavior awaits live testing.

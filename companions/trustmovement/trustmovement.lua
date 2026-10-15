@@ -1,13 +1,13 @@
--- Awake: an isolated receiver for the movement experiment. Trust is unchanged.
+-- Awake: isolated movement receiver; Trust supports scoped --quiet feedback.
 _addon.name = 'TrustMovement'
 _addon.author = 'Awake'
-_addon.version = '0.1.0'
+_addon.version = '0.1.1'
 _addon.commands = {'trustmovement', 'tm'}
 
 require('chat')
 local config = require('config')
 local clock = require('socket').gettime
-local settings = config.load({mode = 'test'})
+local settings = config.load({mode = 'test', quiet = true})
 local signal_dik = 0x7B -- DIK_NOCONVERT, AHK vk1Dsc07B; independent of modifiers.
 local received, executed, skipped = 0, 0, 0
 local signal_down, lease_path = false, nil
@@ -20,6 +20,10 @@ end
 local function mode()
     if settings.mode == 'live' or settings.mode == 'off' then return settings.mode end
     return 'test'
+end
+
+local function quiet()
+    return settings.quiet ~= false
 end
 
 local function block_reason()
@@ -62,7 +66,7 @@ local function publish_lease(force)
 end
 
 local function status()
-    say('v' .. _addon.version .. ' | mode=' .. mode() .. ' | received=' .. received
+    say('v' .. _addon.version .. ' | mode=' .. mode() .. ' | quiet=' .. (quiet() and 'on' or 'off') .. ' | received=' .. received
         .. ' | executed=' .. executed .. ' | skipped=' .. skipped
         .. ' | ' .. (block_reason() or 'ready'))
 end
@@ -73,6 +77,7 @@ local function help()
         {'test', 'Diagnostic message only (default).'},
         {'live', 'Movement runs Trust follow me, then assist me.'},
         {'off', 'Disable this receiver.'},
+        {'quiet [on|off]', 'Quiet movement acknowledgments locally and on Trust receivers; bare toggles.'},
         {'status', 'Show mode and received signal count.'},
         {'help', 'Show commands.'},
         {'restart', 'Reload this receiver.'},
@@ -89,7 +94,7 @@ local function movement()
     local reason = block_reason()
     if reason then
         skipped = skipped + 1
-        say('Signal skipped: ' .. reason .. '.')
+        if mode() == 'test' or not quiet() then say('Signal skipped: ' .. reason .. '.') end
         return
     end
     local name = windower.ffxi.get_player().name
@@ -98,8 +103,9 @@ local function movement()
         return
     end
     executed = executed + 1
-    windower.send_command('lua c trust follow me; lua c trust assist me')
-    say('Follow/assist requested from ' .. name .. '.')
+    local flag = quiet() and ' --quiet' or ''
+    windower.send_command('lua c trust follow me' .. flag .. '; lua c trust assist me' .. flag)
+    if not quiet() then say('Follow/assist requested from ' .. name .. '.') end
 end
 
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
@@ -115,13 +121,23 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     return true
 end)
 
-windower.register_event('addon command', function(command)
+windower.register_event('addon command', function(command, argument)
     command = (command or ''):lower()
     if command == 'test' or command == 'live' or command == 'off' then
         settings.mode = command
         config.save(settings)
         publish_lease(true)
         say('Mode: ' .. command .. '. Switch to another FFXI client and back if this focus already fired.')
+    elseif command == 'quiet' then
+        argument = argument and argument:lower()
+        if argument and argument ~= 'on' and argument ~= 'off' then
+            say('Use //tm quiet [on|off].'); help(); return
+        end
+        if argument == 'on' then settings.quiet = true
+        elseif argument == 'off' then settings.quiet = false
+        else settings.quiet = not quiet() end
+        config.save(settings)
+        say('Quiet movement feedback: ' .. (quiet() and 'on' or 'off') .. '.')
     elseif command == 'status' then status()
     elseif command == 'restart' or command == 'unload' then
         remove_lease()

@@ -18,7 +18,11 @@ end
 function string.color(value) return value end
 package.preload.chat = function() return {} end
 package.preload.config = function() return {
-    load=function(defaults) check(defaults.mode=='test', 'default is diagnostic'); return settings end,
+    load=function(defaults)
+        check(defaults.mode=='test', 'default is diagnostic')
+        check(defaults.quiet==true, 'new quiet default is enabled')
+        return settings
+    end,
     save=function(value) check(value==settings, 'save same configuration') end,
 } end
 package.preload.socket = function() return {gettime=function() return now end} end
@@ -70,8 +74,9 @@ info.chat_open=false; player.status=4; now=now+1; events.prerender()
 check(lease():find('ready=0',1,true), 'cutscene blocks lease')
 player.status=0; now=now+1; events.prerender()
 check(lease():find('ready=1',1,true), 'closing menu restores eligibility')
-events['addon command']('live'); pulse()
-check(commands[#commands]=='lua c trust follow me; lua c trust assist me', 'exact requested commands, ordered')
+events['addon command']('live'); before=#messages; pulse()
+check(#messages==before, 'quiet live movement emits no acknowledgment')
+check(commands[#commands]=='lua c trust follow me --quiet; lua c trust assist me --quiet', 'exact quiet commands, ordered')
 check(not commands[#commands]:find('stop',1,true) and not commands[#commands]:find('start',1,true), 'no start/stop management')
 events['addon command']('off'); before=#commands; pulse()
 check(#commands==before, 'off never sends commands')
@@ -82,6 +87,16 @@ before=#messages; events['addon command']('nonsense')
 check(#messages>before+2 and contains(messages,'//tm live'), 'invalid command shows full help')
 events['addon command']('status')
 check(contains(messages,'executed=1'), 'status distinguishes requests from diagnostics')
+events['addon command']('live')
+events['addon command']('quiet','off'); before=#messages; pulse()
+check(#messages==before+1, 'verbose mode restores movement acknowledgment')
+check(commands[#commands]=='lua c trust follow me; lua c trust assist me', 'verbose uses original commands')
+events['addon command']('quiet','on'); before=#messages; pulse()
+check(#messages==before, 'explicit quiet on is effective')
+events['addon command']('quiet','on')
+check(settings.quiet==true, 'explicit quiet on is idempotent')
+events['addon command']('quiet','invalid')
+check(settings.quiet==true, 'invalid quiet argument does not change setting')
 events['addon command']('restart')
 check(commands[#commands]=='lua reload trustmovement', 'restart dispatches once')
 check(lease()==nil, 'restart removes readiness lease')

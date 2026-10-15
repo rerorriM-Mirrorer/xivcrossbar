@@ -1,4 +1,4 @@
-# TrustMovement 0.1.0 — movement takeover test
+# TrustMovement 0.1.1 — movement takeover test
 
 First movement after selecting an FFXI client produces one diagnostic message.
 Further movement and returning the stick to center do not rearm the signal.
@@ -8,13 +8,14 @@ The shared XIVCrossbar controller wrapper reads the physical movement stick.
 The receiver defaults to **test** and sends no Trust commands. In **live**, it
 runs `trust follow me`, then `trust assist me`, using Trust's existing handlers.
 It does not start or stop Trust, change profiles, or implement outside-party
-following. Trust must already be loaded for live mode.
+following. The quiet update overlays the included Trust source patch. Trust must already be loaded for live mode.
 
 ## Commands
 
 - `//tm test` — diagnostic messages only; initial default.
 - `//tm live` — enable the two Trust commands on this client.
 - `//tm off` — disable this client's receiver.
+- `//tm quiet [on|off]` — movement success chatter; default on, bare toggles.
 - `//tm status` — version, mode, received/executed/skipped counts, and readiness.
 - `//tm help` — command list; also shown for bare or invalid commands.
 - `//tm restart` / `//tm unload` — receiver lifecycle.
@@ -22,6 +23,24 @@ following. Trust must already be loaded for live mode.
 The selected mode is saved through Windower config. Use `//tm test` when
 returning to diagnostics. Changing mode or reloading the receiver does not
 rearm an already-fired wrapper latch: switch to another FFXI client and back.
+
+## Quiet movement feedback
+
+Quiet is enabled by default, including when updating existing settings. In live
+mode the receiver omits its own success message and appends `--quiet` to both
+Trust commands. Patched Trust propagates that flag to receivers and suppresses
+only successful follow/assist acknowledgments, their character chatter and
+path-clear notices caused by the handoff. Validation/IPC errors and meaningful
+pulling-state notices remain visible. Typed commands without --quiet retain
+normal feedback; no text-matching filter or global chat toggle is used.
+
+`//tm quiet off` restores the earlier movement messages for troubleshooting.
+`//tm test` still produces diagnostics. Status/help and explicit mode changes
+always give feedback. Quiet state is saved independently of live/test/off mode.
+
+Install the Trust patch and reload Trust on every participating client to quiet
+their acknowledgments too. An older unpatched Trust may still execute the
+commands while ignoring the extra flag and continuing to print its messages.
 
 ## Signal and readiness
 
@@ -55,6 +74,12 @@ Receiver counts record signal reception and command dispatch, not confirmation
 that every remote Trust client completed the requested follow/assist action.
 
 ## Changelog
+
+### 0.1.1 — 2026-10-15
+
+- Quiet live movement acknowledgments by default, with //tm quiet on/off.
+- Add opt-in --quiet to Trust follow/assist and propagate it through IPC.
+- Preserve manual command feedback, errors, control behavior and the AHK wrapper.
 
 ### 0.1.0 — 2026-10-15
 
