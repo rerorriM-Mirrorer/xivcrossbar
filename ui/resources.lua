@@ -1,6 +1,6 @@
 -- A: ownership for this addon's Windower text/image objects only. Windower's
 -- libraries retain hidden objects until destroy; dropping a Lua list is not cleanup.
-local M = {version='cleanup5'}
+local M = {version='cleanup6'}
 local live = {}
 local disposed_objects = setmetatable({}, {__mode='k'})
 local created = {text=0,image=0}

@@ -349,3 +349,11 @@ the custom-action review. Overlay restoration skips objects replaced while it
 was open. Cursor cleanup works when root unload has already destroyed its images.
 Regression checks reproduce both previous calls before their respective fixes;
 controller scripts and installed data are unchanged.
+
+
+### Personal 7 cleanup checkpoint 6
+
+Selecting a spell or action on a later page now clamps the following list to
+its available pages, so a one-page target list appears immediately. Back still
+restores the original spell/page. Includes checkpoint 5's stale-caption and
+cursor-unload fixes; all controller scripts, catalogs and bindings are preserved.

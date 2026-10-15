@@ -1,3 +1,54 @@
+# Personal 7 cleanup checkpoint 6 — paged spell targets and remaining cleanup calls
+
+Runtime: `0.4.0-a.20261014.personal7-cleanup6`; `//xb resources` helper cleanup6.
+The ZIP header identifies the final local/GitHub source commits. Includes
+checkpoint 5 (local 94b07ab, GitHub 0af3680e6f22cfc976ba2b61674f41ab6f4e2ff3).
+
+This patch targets the user's uploaded Oct 15 Cleanup4 snapshot. All its runtime
+Lua files match the baseline; its movement-enabled AHK wrapper is preserved.
+Only Lua plus README/WORKFLOW/TESTING documentation and Lua rollback files are
+packaged. No images, data, XML, INI, bindings, catalogs or controller scripts.
+
+Shellra II report: selecting the spell on page two produced only Previous Page;
+pressing it revealed the target choices, then binding succeeded. Reproduced in
+real binder methods with a multi-page spell fixture: display_options reused page
+two/three for a shorter target list that had only one page. Clamp the displayed
+page to the new list's page count. Valid page turns and explicitly restored Back
+pages remain intact. No target rules or saved action commands changed.
+
+The simulation failed with "spell page leaked into target selection" before the
+fix. Afterward, all 12 page-two/page-three -> target -> binding -> Back -> save
+scenarios pass across 960x540, 1280x720, 1600x900, 1920x1080, 2560x1440 and
+3840x2160. The save callback receives ma / Shellra II / me at the requested slot.
+These are fixture-based Lua tests, not real FFXI resource, rendering or gameplay
+tests. 200 prior menu cycles, 150 typed updates, 100 footer redraws, Options with
+live/replaced/deleted inline fields, cursor unload, repeated crossbar/chooser
+setup, status, fade, compact, catalog and target ordering checks also passed.
+84 Lua sources parse with the documented Lua 5.4 compatibility fallback.
+
+Live checklist:
+1. `//lua u xivcrossbar`, overlay the ZIP's xivcrossbar contents onto the installed
+   addon, then `//lua l xivcrossbar`. Leave installed data and AHK files intact.
+   No wrapper restart needed. `//xb status` ends personal7-cleanup6 and
+   `//xb resources` reports helper cleanup6.
+2. White Magic -> page two -> Shellra II: target choices should show immediately,
+   without a blank intermediate page. Bind and execute normally.
+3. Repeat, using Circle to go Back from binding to targets to the spell list.
+   The previous spell/page remains selected. Try another later-page action.
+4. Edit a custom-action field, confirm, open/close Options and change crossbars;
+   repeat while the inline field is active. No text.alpha errors; draft retained.
+5. Reload one client while another remains loaded. No image.hide unload error;
+   other client's controls and movement integration continue normally.
+6. Compare `//xb resources` from the same closed-menu state before/after several
+   cycles. Live counts should settle at the same baseline; totals increase.
+
+The log's TrustMovement XML, Repeater type comparison, Logger and Battle Stations
+errors belong to other addons and remain separate observations, not fixes here.
+This patch fixes reproduced Lua calls; it does not prove a cause or resolution
+for the earlier native d3d8.dll crashes.
+
+---
+
 # Personal 7 cleanup checkpoint 5 — stale review references and cursor unload
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup5`; `//xb resources` helper cleanup5.

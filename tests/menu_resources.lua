@@ -39,10 +39,11 @@ package.loaded['text_input_guard']={update=function()end}
 package.loaded.socket={gettime=function()return 1 end}
 config={load=function(d)return d end}
 local prim_values,events={},{}
+local screen={ui_x_res=1280,ui_y_res=720}
 windower={addon_path='addon/',register_event=function(name,callback)
         events[name]=events[name] or {};table.insert(events[name],callback)
     end,send_command=function()end,
-    get_windower_settings=function()return {ui_x_res=1280,ui_y_res=720}end,
+    get_windower_settings=function()return screen end,
     prim=setmetatable({}, {__index=function(_,key)return function(name,...)
         prim_values[name]=prim_values[name] or {};prim_values[name][key]={...}
     end end})}
@@ -58,7 +59,7 @@ resources.clear(malformed)
 ipairs=previous_ipairs
 assert(resources.is_disposed(one) and resources.snapshot().text==0)
 resources.clear(malformed)
-assert(resources.version=='cleanup5')
+assert(resources.version=='cleanup6')
 local binder=require('action_binder')
 local options=require('theme').apply(require('defaults'))
 options.button_layout='playstation';options.hotbar_number=6
@@ -100,6 +101,9 @@ binder.custom_action_draft={name='Bow',alias='Bow',command='input /bow'}
 binder.custom_action_review_field='command';binder.text_entry_buffer='input /bow'
 binder:display_inline_custom_action_entry()
 local former_entry=binder.inline_entry_text
+binder:set_chooser_active(true);binder:set_chooser_active(false)
+assert(not resources.is_disposed(former_entry) and former_entry:alpha()==255)
+binder:update_text_entry_display()
 binder.custom_action_review_field=nil
 binder:display_edit_custom_action_review()
 assert(resources.is_disposed(former_entry))
@@ -108,6 +112,45 @@ binder:display_edit_custom_action_review()
 binder:set_chooser_active(false)
 binder:hide();binder:reset_state()
 assert(totals()==baseline)
+-- Use the real action -> target -> binding methods with a multi-page white
+-- magic fixture. Target choices must not inherit a page beyond their length.
+local original_selector=binder.display_action_selector
+for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,1440},{3840,2160}}) do
+    screen.ui_x_res,screen.ui_y_res=resolution[1],resolution[2]
+    for _,page in ipairs({2,3}) do
+        local saved
+        binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},
+            function(...)saved={...}end,function()end,options,function()return {'Basic'}end)
+        binder.theme_options.allow_stpc_for_self_targeted_actions=true
+        local capacity=binder.selector.normal_max_row*binder.selector.normal_max_col
+        local spells=L{}
+        for i=1,(page-1)*capacity+1 do
+            spells:append({id=i,name='White Magic '..i,icon='spell.png',data={target_type={Self=true}}})
+        end
+        spells[#spells].name='Shellra II'
+        binder.display_action_selector=function(self)self.selector:display_options(spells)end
+        binder.state,binder.action_type=2,4 -- SELECT_ACTION, WHITE_MAGIC
+        binder.selector:set_page(page);binder:display_action_selector()
+        assert(binder.selector:get_selected_option().text=='Shellra II')
+        binder:submit_selected_option()
+        assert(binder.selector.current_page==1 and binder.selector:get_selected_option().id=='SELF',
+            'spell page leaked into target selection')
+        binder:submit_selected_option()
+        assert(binder.state==5 and not binder.selector.is_showing, 'target did not reach binding')
+        binder:go_back();binder:go_back()
+        assert(binder.selector.current_page==page and binder.selector:get_selected_option().text=='Shellra II',
+            'Back lost the selected spell/page')
+        binder:submit_selected_option();binder:submit_selected_option()
+        binder.active_crossbar,binder.hotkey=2,4
+        binder:assign_action()
+        assert(saved[1]==2 and saved[2]==4 and saved[3]=='ma' and saved[4]=='Shellra II' and saved[5]=='me')
+        assert(totals()==baseline)
+    end
+end
+binder.display_action_selector=original_selector
+screen.ui_x_res,screen.ui_y_res=1280,720
+binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function()end,function()end,
+    options,function()return {'Basic'}end)
 -- Legacy text entry previously created a caption and exit image per keystroke.
 binder.text_entry_buffer='';binder.custom_action_review_field=nil
 local typing_count
@@ -145,4 +188,4 @@ resources.destroy_all();resources.destroy_all()
 -- later unload callback. Destruction must not hide native objects again.
 for _,callback in ipairs(events.unload or {}) do callback() end
 assert(totals()==0)
-print('Upstream Windower Lists: 200 review/edit/bind/back cycles, 150 typed updates, 100 footer redraws and repeated setup retained no extra native-style objects.')
+print('Upstream Windower Lists: 200 menu cycles, 150 typed updates, 100 footer redraws; live/stale Options overlays, cursor unload and 12 spell-page/target/bind/Back scenarios across six resolutions passed without retained objects.')

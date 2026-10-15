@@ -280,7 +280,10 @@ function selectable_list:display_options(options, presentation)
     end
     self.width=2*BORDER_PADDING+self.max_col*COLUMN_WIDTH
     self.height=2*BORDER_PADDING+self.max_row*ROW_HEIGHT
-    local current_page = self.current_page
+    -- A shorter child list (for example spell targets) cannot inherit a page
+    -- beyond its contents. Keep valid pages for page turns and explicit Back.
+    local last_page=math.max(1,math.ceil(#options/(self.max_row*self.max_col)))
+    local current_page=math.max(1,math.min(self.current_page,last_page))
     self:reset_state()
     self.is_showing = true
     self.page_captions = {}
