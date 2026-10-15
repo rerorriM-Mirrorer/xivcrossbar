@@ -1,0 +1,2 @@
+lua load trustmovement
+lua c trustmovement test

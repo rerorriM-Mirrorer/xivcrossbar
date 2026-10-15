@@ -1,3 +1,61 @@
+# Trust movement — Test 1, 0.1.0 (2026-10-15)
+
+## Install and current checks
+
+The package README has the installation, mode commands and rollback steps.
+Baseline: personal/ps5extended commit 0d4f09a54fd601e319eb990ac4687d2c494c1d9f.
+The uploaded ffxi_directinput.ahk matches that baseline byte for byte.
+This batch changes only the shared wrapper and adds movement_signal.ahk plus
+an isolated TrustMovement receiver. No Trust source, profiles, bindings or
+existing personal-control include is replaced.
+
+Start in diagnostic mode. On each test client: `//exec trust-movement-test.txt`.
+The shared wrapper must be stopped before overlaying the patch and restarted
+once afterward (`//xb controller stop`, then `//xb controller start`).
+
+### Live checklist — all pending
+
+- [ ] Script loads without an AutoHotkey error; existing controls still work.
+- [ ] First left-stick movement on a selected client prints one diagnostic.
+- [ ] Center/stop/start movement repeatedly: no further signals on that focus.
+- [ ] Switch to another FFXI client while centered: nothing until movement.
+- [ ] Switch back and move: exactly one new diagnostic.
+- [ ] Visit another application and return to the same client: no rearm.
+- [ ] Camera/right-stick movement and ordinary drift: no diagnostic.
+- [ ] Repeat first movement while L2/R2 or L1/Shift are held: one diagnostic,
+      no crossbar action, stuck key, lost modifier or unintended menu action.
+- [ ] Move inside a native menu/chat/event before first gameplay movement:
+      no signal; after returning to gameplay, movement remains eligible.
+- [ ] With ps5-extended, also test the crossbar editor and set chooser.
+- [ ] Switch while the stick is held: the newly focused client can signal once.
+- [ ] Optional `//tm live`: follow me then assist me; no Trust start/stop.
+- [ ] Rollback restores the original wrapper and normal controls.
+
+### Completed local verification
+
+- PASS: both added Lua files parse as Lua 5.1 using luaparse.
+- PASS: 42 mocked Windower receiver assertions, including diagnostic silence,
+  exact live command ordering, key-repeat debounce, modifier independence,
+  background silence, menu/chat/cutscene/off guards, readiness leases,
+  help/status and lifecycle cleanup. Executed with LuaTeX's Lua runtime.
+- PASS: git diff whitespace checks and focused source review against upload.
+- Native AutoHotkey syntax/loading, hardware thresholds, NOCONVERT delivery,
+  simultaneous trigger handling and actual multi-client following are NOT yet
+  live-tested. The local Lua mocks do not test the AHK focus latch or Windows.
+
+### Delivery register and retained request
+
+Test 1: diagnostic-first package from test/trust-movement-20261015. The package
+includes BUILD.txt identifying its exact source commit and the untouched upload
+under rollback/. The companion README records operation and limitations.
+User selected one movement-triggered follow-me/assist-me sequence per FFXI
+focus session, with no rearm on stick centering and no start/stop bookkeeping.
+Attached baseline: ffxi_directinput.ahk, received 2026-10-15.
+
+---
+
+# Earlier development record (preserved)
+
 # Personal 7 cleanup checkpoint 4 — guarded object cleanup and build marker
 
 Runtime: `0.4.0-a.20261014.personal7-cleanup4`. User reports the same numeric
