@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261013.public-rc3-escape1'
+_addon.version = '0.4.0-a.20261015.public-rc3-compact1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -108,6 +108,22 @@ local crossbar_drag = require('ui_drag').new({
     end,
     save=function() config.save(settings) end,
 })
+
+local function set_compact_mode(mode)
+    mode = mode and mode:lower()
+    if mode and mode ~= 'on' and mode ~= 'off' then
+        windower.add_to_chat(123, '[XIVCrossbar] //xb compact [on|off]')
+        return
+    end
+    local enabled = mode == 'on' or (not mode and not settings.iscompact)
+    crossbar_drag:finish()
+    settings.iscompact, theme_options.is_compact = enabled, enabled
+    ui:set_compact(enabled)
+    if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
+    ui_dirty = true
+    config.save(settings)
+    windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
+end
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
     return crossbar_drag:mouse(kind,x,y,blocked)
 end)
@@ -1033,6 +1049,7 @@ function display_help_menu()
     windower.add_to_chat(207, '--- Other ---')
     windower.add_to_chat(207, 'status                          Version and current display/input settings')
     windower.add_to_chat(207, 'scale <0.25-2>              Scale crossbar independently of menus')
+    windower.add_to_chat(207, 'compact [on/off]                Switch layout immediately; bare toggles')
     windower.add_to_chat(207, 'hide/show/auto                  Visibility; bound actions remain active')
     windower.add_to_chat(207, 'fade [on/off]                   Toggle fades (also ui fade)')
     windower.add_to_chat(207, 'autohide [on/off]               Trigger-only visibility; bare toggles')
@@ -1185,10 +1202,15 @@ windower.register_event('addon command', function(command, ...)
         report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
         windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
+        windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
         windower.add_to_chat(207, '[XIVCrossbar] Ready: ' .. tostring(xivcrossbar.ready == true) ..
             ' | Setup: ' .. tostring(gamepad_mapper.is_showing == true) .. ' (state ' .. tostring(gamepad_mapper.state) ..
             ') | Capture: ' .. tostring(gamepad_state.capturing == true))
         return
+    end
+
+    if command == 'compact' or (command == 'ui' and args[1] == 'compact') then
+        return set_compact_mode(command == 'compact' and args[1] or args[2])
     end
 
     if command == 'ui' and args[1] == 'fade' then

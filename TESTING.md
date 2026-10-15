@@ -1,3 +1,7 @@
+# Public RC3 Compact 1 — October 15, 2026
+
+Immediate `//xb compact [on|off]` port only. Existing public settings and controller profiles are preserved; no personal controls or companion are included. Toggle during a draft, chooser use, trigger holds and at .6/1/1.5 scale; check all six bars and drag persistence. Simulated layout/command checks are run before delivery; Windows rendering and input require live testing.
+
 # Public RC3 maintenance — recovered release checkpoint
 
 Recovered RC3 + Icons/Credits/Escape from the delivered public runtime archive. The former local public snapshot ref is not present on GitHub; this branch explicitly recovers that archive and does not alter master or the personal branch.

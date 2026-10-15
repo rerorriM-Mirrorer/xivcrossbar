@@ -53,6 +53,7 @@ Dragging also works while addon menus are open.
 
 - `//xb autohide [on|off]`: show crossbars with trigger input; bare command toggles.
 - `//xb fade [on|off]`: enable or disable regular crossbar fading; bare command toggles.
+- `//xb compact [on|off]`: switch layout immediately; bare command toggles.
 - `//xb scale <number>`: change crossbar scale, from 0.25 to 2. Menus keep their own layout.
 - `//xb hide`, `//xb show`, `//xb auto`: manually hide, show continuously, or use autohide.
   Bindings remain active in each mode.
@@ -151,3 +152,7 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
+
+## Maintenance changelog
+
+2026-10-15: immediate `//xb compact [on|off]` preserves the active set, drafts, drag position and fade state.

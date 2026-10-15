@@ -637,6 +637,61 @@ function ui:set_scale(scale)
     self:update_geometry_origin()
 end
 
+-- A: compact is a layout change, not a reload. Keep the objects and their
+-- recast crops/fade state; neither menus nor player bindings are rebuilt.
+function ui:set_compact(enabled)
+    if self.is_compact == enabled then return false end
+    if not self.is_setup then self.is_compact = enabled; return true end
+    local old = {}
+    for h, bar in ipairs(self.hotbars) do
+        old[h] = {}
+        for i = 1, 8 do old[h][i] = {self:get_slot_x(h,i), self:get_slot_y(h,i)} end
+    end
+    local old_x, old_y = self:get_slot_x(1,1), self:get_slot_y(1,4)
+    self.is_compact = enabled
+    for h, bar in ipairs(self.hotbars) do
+        for i = 1, 8 do
+            local dx,dy = self:get_slot_x(h,i)-old[h][i][1], self:get_slot_y(h,i)-old[h][i][2]
+            for _, objects in pairs(bar) do
+                if type(objects)=='table' then geometry:move_surface(objects[i],dx,dy) end
+            end
+        end
+        if enabled then
+            bar.slot_recast[9]:hide(); bar.slot_recast[10]:hide()
+        end
+    end
+    local dx,dy = self:get_slot_x(1,1)-old_x, self:get_slot_y(1,4)-old_y
+    for name,p in pairs(geometry.primitives) do
+        if p.x then prim.set_position(name,p.x+dx,p.y+dy) end
+    end
+    if self.feedback.is_active then
+        self.feedback_icon:pos(self:get_slot_x(self.feedback.hotbar,self.feedback.slot),
+            self:get_slot_y(self.feedback.hotbar,self.feedback.slot))
+    end
+    local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/'
+    self.bar_background:path(base .. (enabled and 'bar_bg_compact.png' or 'bar_bg.png'))
+    self.bar_background_left:path(base .. (enabled and 'bar_bg_compact_alt.png' or 'bar_bg_alt.png'))
+    self.bar_background_right:path(base .. (enabled and 'bar_bg_compact_alt.png' or 'bar_bg_alt.png'))
+    self.bar_background:size(330,enabled and 180 or 220)
+    -- Match a fresh layout's alternate background geometry, including upstream's
+    -- noncompact size. Do not quietly redesign the alternate layout here.
+    self.bar_background_left:size(enabled and 330 or 40,enabled and 180 or 40)
+    self.bar_background_right:size(enabled and 330 or 40,enabled and 180 or 40)
+    self.action_binder_icon:pos(self:get_slot_x(1,1)-10,self:get_slot_y(1,4)-27)
+    self.action_binder_text:pos(self:get_slot_x(1,1)+35,self:get_slot_y(1,4)-15)
+    self.environment_selector_icon:pos(self:get_slot_x(2,5)-5,self:get_slot_y(1,4)-27)
+    self.environment_selector_text:pos(self:get_slot_x(2,5)+40,self:get_slot_y(1,4)-15)
+    if enabled or not self.public_visible then self:hide_button_hints()
+    else self:show_button_hints() end
+    -- Background visibility is decided by the normal render; only move it now.
+    local h = self.background_hotbar or 1
+    self.bar_background:pos(self:get_slot_x(h,1)-30,self:get_slot_y(h,4)-35)
+    self.bar_background_left:pos(self:get_slot_x(h,1)-30,self:get_slot_y(h,4)-35)
+    self.bar_background_right:pos(self:get_slot_x(h,1)+(h>=5 and 430 or 290),self:get_slot_y(h,4)-35)
+    geometry:refresh()
+    return true
+end
+
 function ui:update_offsets(offset_x, offset_y)
     -- Every surface already belongs to geometry: move the whole bar once,
     -- including hints, recasts, costs, labels and background primitives.
@@ -776,6 +831,7 @@ function ui:set_chooser_open(open)
 end
 
 function ui:show_bar_background(hotbar_number)
+    self.background_hotbar = hotbar_number
 
     self.bar_background:pos(self:get_slot_x(hotbar_number, 1) - 30, self:get_slot_y(hotbar_number, 4) - 35)
     self.bar_background_left:pos(self:get_slot_x(hotbar_number, 1) - 30, self:get_slot_y(hotbar_number, 4) - 35)
@@ -2125,7 +2181,7 @@ end
 -- trigger feedback visuals in given hotbar and slot
 function ui:trigger_feedback(hotbar, slot)
     if slot == 0 then slot = 10 end    
-
+    self.feedback.hotbar, self.feedback.slot = hotbar, slot
     self.feedback_icon:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
     self.feedback.is_active = true
 end

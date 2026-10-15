@@ -67,6 +67,16 @@ function geometry:refresh()
     end
 end
 
+-- A: relayout a single existing surface without changing its texture, crop,
+-- visibility or ownership. Labels with a stored center move by the same delta.
+function geometry:move_surface(surface, dx, dy)
+    local m = self.surfaces[surface]
+    if not m then return end
+    if m.x then m.x, m.y = m.x + dx, m.y + dy end
+    if m.center_x then m.center_x, m.center_y = m.center_x + dx, m.center_y + dy end
+    draw_surface(self, m.object, m)
+end
+
 function geometry:set_scale(scale)
     self.scale = scale
     self:refresh()
