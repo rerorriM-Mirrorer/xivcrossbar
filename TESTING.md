@@ -1,5 +1,13 @@
 # Public Maintenance 2 development — October 16, 2026
 
+Default destinations port: personal a390b06 adapted without catalog ownership
+changes. Tests exercise actual binder, slot save, root switch and action execution
+for all fallback destinations, a renamed display label, reciprocal same-slot
+switches and Quick XB Switch return after the next action. New action selection
+clears stale switch/custom-action metadata. Live: bind reciprocal Default/custom
+set switches, reload, then repeat with Job Default and All Jobs Default; test
+Quick XB Switch's one-action return. Saved older bindings are not migrated.
+
 Identity port: personal 7c97012 plus its character-identity/storage guards and
 login-navigation dependency. Keep the public wrapper, profiles and defaults.
 Simulations cover lobby/unknown-server/mismatched-entity rejection, stable

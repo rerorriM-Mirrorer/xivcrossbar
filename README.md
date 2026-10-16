@@ -175,6 +175,11 @@ are retained under `images/assets/menu/`. Original game artwork belongs to its r
 
 ## Maintenance changelog
 
+2026-10-16: Switch Crossbars and Quick XB Switch include Default, Job Default
+and All Jobs Default. Bindings store stable environment keys while showing
+readable labels, including renamed sets. Existing bindings remain unchanged;
+rebind an old label-based switch if its destination was unreliable.
+
 2026-10-16: character XML loads wait for a matching in-world entity and a stable
 server/name/ID tuple (0.75 seconds, sampled every 0.25 seconds). Login navigation
 remains available; a later identity correction requests one normal Lua reload.

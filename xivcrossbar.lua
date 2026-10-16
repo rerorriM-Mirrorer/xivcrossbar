@@ -230,7 +230,7 @@ function delete_hotkey(hotbar, slot)
 end
 
 function get_crossbar_sets()
-    return player:get_crossbar_names()
+    return require('crossbar_destinations').build(player.hotbar)
 end
 
 function create_new_set(name)
