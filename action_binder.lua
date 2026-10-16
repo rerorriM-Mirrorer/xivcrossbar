@@ -1230,7 +1230,9 @@ function action_binder:submit_selected_option()
                 self.action_target = nil
                 self.state = states.SELECT_BUTTON_ASSIGNMENT
                 self:display_button_assigner()
-            else self:hide(); self:reset_state() end
+            else
+                self:return_to_custom_actions_list(self.custom_action_draft.name)
+            end
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_PICK) then
         local option = self.selector:submit_selected_option()
@@ -3018,7 +3020,25 @@ function action_binder:new_custom_action(name, origin)
     return true
 end
 
-function action_binder:display_custom_actions_picker(title_text)
+-- Saving without binding stays in the catalog, ready to edit another entry.
+-- Preserve the main-menu Back selection, but discard all completed draft state.
+function action_binder:return_to_custom_actions_list(saved_name)
+    self.custom_action_draft, self.custom_action_original_name = nil, nil
+    self.custom_action_review_field, self.custom_action_entry_origin = nil, nil
+    self.editing_custom_action, self.binding_custom_action_review = false, false
+    self.custom_action_name_required, self.is_linking_for_custom_action = false, false
+    self.inline_entry_text, self.custom_action_value_texts = nil, nil
+    self.text_entry_buffer = ''
+    self:set_capturing_text(false)
+    self.action_name, self.action_alias, self.action_command, self.action_icon = nil, nil, nil, nil
+    self.action_linked_action, self.action_linked_type = nil, nil
+    self.action_target, self.target_type = nil, nil
+    self.active_crossbar, self.hotkey = nil, nil
+    self.state, self.action_type = states.EDIT_CUSTOM_ACTION_PICK, action_types.EDIT_CUSTOM_ACTION
+    self:display_custom_actions_picker('Edit Custom Action: Pick Entry', saved_name)
+end
+
+function action_binder:display_custom_actions_picker(title_text, selected_name)
     self.title:text(title_text)
     self.title:show()
     self.selector:hide()
@@ -3041,7 +3061,24 @@ function action_binder:display_custom_actions_picker(title_text)
         list:append({id = 'CA_' .. name, name = name, icon = icon_path, icon_offset = icon_offset})
     end
 
+    -- Review uses a different grid from the normal catalog. Locate the saved
+    -- entry in normal-grid coordinates before displaying its (possibly new) page.
+    local selection
+    if selected_name then
+        local rows, cols = self.selector.normal_max_row, self.selector.normal_max_col
+        local capacity = rows * cols
+        for index, name in ipairs(names) do
+            if name == selected_name then
+                local offset = (index - 1) % capacity
+                selection = {page=math.floor((index - 1) / capacity) + 1,
+                    row=math.floor(offset / cols) + 1, col=offset % cols + 1}
+                break
+            end
+        end
+        self.selector:set_page(selection and selection.page or 1)
+    end
     self.selector:display_options(list)
+    if selection then self.selector:import_selection_state(selection) end
     self:show_control_hints('Confirm', 'Go Back')
 end
 

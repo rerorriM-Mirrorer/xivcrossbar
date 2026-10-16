@@ -1,5 +1,14 @@
 # Public Maintenance 2 development — October 16, 2026
 
+Save-return implementation: new behavior, not an already-completed personal
+port. After successful Save Only / Save Changes, return to the edit picker and
+select the saved name at its sorted page/row/column. Preserve main-menu Back
+selection; clear the completed draft. Failed/invalid saves remain in review;
+Save & Bind keeps the existing binding path. Live: create from menu and command,
+edit/rename several entries including a later-page entry, save then edit another,
+Back to main menu, Save & Bind then Back, cancel an unsaved draft, and verify
+persistence after reload. Public linked-copy propagation is still out of scope.
+
 Default destinations port: personal a390b06 adapted without catalog ownership
 changes. Tests exercise actual binder, slot save, root switch and action execution
 for all fallback destinations, a renamed display label, reciprocal same-slot

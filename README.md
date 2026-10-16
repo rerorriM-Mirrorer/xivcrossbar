@@ -175,6 +175,11 @@ are retained under `images/assets/menu/`. Original game artwork belongs to its r
 
 ## Maintenance changelog
 
+2026-10-16: Save Only / Save Changes returns to the editable custom-action list
+with the saved entry selected (including renamed or later-page entries). This
+also applies to `//xb ca` entry. Save & Bind still opens binding; failed saves
+keep the draft open. Public catalog storage/ownership is unchanged.
+
 2026-10-16: Switch Crossbars and Quick XB Switch include Default, Job Default
 and All Jobs Default. Bindings store stable environment keys while showing
 readable labels, including renamed sets. Existing bindings remain unchanged;
