@@ -1,4 +1,105 @@
-# Public Maintenance 2 development — October 16, 2026
+# Public RC3 Maintenance 2 — complete testing installation — October 16, 2026
+
+Runtime: `0.4.0-a.20261016.public-rc3-maintenance2`.
+Branch: `public/rc3-maintenance`. Package header records the final local commit.
+GitHub source baseline: `2c41936a5b095b73f3615b3ba241e413ae846126`.
+**NOT PUBLISHED:** the environment approval check denied the first push. No
+alternative push mechanism was attempted. Ask Max to confirm publishing these
+commits to the existing public branch. Do not describe this delivery as pushed.
+
+## Request, workflow and source baseline
+
+Max requested review of NPCmirror's current WORKFLOW.md first, then all four
+previously identified public candidates. Read shared WORKFLOW from
+`rerorriM-Mirrorer/ffxi-NPCmirror` (blob
+`424d643fd63b944bd8534f455342b5328f1ca48c`); it matches the public copy.
+Read the public source, existing passing tests, handoffs and the upstream root
+module. Inspect personal source at `9375a66d75778744a865077e2f676458688fc65a`
+and the individual port commits; do not overlay whole personal runtime files.
+No personal branch, default settings, controller-profile or AHK changes.
+
+| Improvement | Local feature commit | Personal source / behavior |
+| --- | --- | --- |
+| Shorter target-list pagination | `db3b662` | `2f462fa`; retain Back spell/page |
+| Stable identity/storage gate and login keys | `5b31fc4` | `7c97012` and required guards/login dependencies |
+| Default-set destinations | `1afc4ef` | `a390b06`; readable labels, stable execution keys |
+| Save Only / Save Changes return | `292682a` | New implementation; saved entry selected in edit picker |
+
+## Install safely
+
+This is a **complete install**, not an update-only patch. Unload XIVCrossbar on
+all clients first. Back up the installed public folder, including data/config.ini
+and custom images. Install the ZIP's `xivcrossbar/` into Windower/addons. For an
+upgrade, restore only the PUBLIC backup's data/config.ini and user-added images;
+for fresh acceptance, leave user files absent and complete setup. Never run
+personal and public variants together on one PC or round-trip personal catalogs
+through this public implementation. Switching variants requires stopping the
+current wrapper before unloading; this batch's public AHK itself is unchanged.
+No settings.xml, config.ini, catalogs, binds, extracted caches or user data ship.
+Rollback: unload all clients and restore the backed-up PUBLIC folder/data.
+
+## Verification performed here — simulations only
+
+- All 60 Lua sources parse using the existing Lua 5.4 runner and temporary
+  normalization of inherited Windower string-literal method syntax. Lua 5.1,
+  LuaJIT, luacheck, Windows, native Windower and AHK runtimes are unavailable;
+  this is **not** Lua 5.1/API-aware static validation or live FFXI acceptance.
+- Existing checks: 108 layout scenarios across six resolutions/three scales;
+  compact command validation/state preservation; 200 menu cycles, 150 typed
+  updates, 100 footer rebuilds; 30 crossbar/20 chooser rebuilds; cursor unload
+  and deferred/idempotent object destruction.
+- Pagination: 12 actual binder spell-page-two/three -> targets -> binding ->
+  Back -> save scenarios across six resolutions. Target choices show at page
+  one and Back restores Shellra II and the original page.
+- Identity: actual initializer, observer and load/login/logout/keyboard handlers
+  under mocks. Lobby/unknown server/missing or mismatched entity rejected;
+  0.75-second tuple stability, transient retry, late correction and one reload,
+  changed character IDs, actual Asura support, no-subjob identity, unconfirmed
+  writes blocked, wrapper startup independent of identity, logout invalidation,
+  login key-down/up ownership, ignored triggers, physical F-key passthrough.
+- Destinations: real binder, slot save, root switch and player execution under
+  mocks; all three Default sets, renamed display label, reciprocal same-slot
+  switches, quick-switch return and replacement of stale action metadata.
+- Save return: six resolutions, real binder and catalog callbacks with mocked
+  writes; menu/command create, edit/rename, selection across three pages,
+  Back-to-main selection, false/throwing writes with rollback, invalid/duplicate
+  names, unsaved cancellation, Save & Bind/Back and 180 bounded repeat cycles.
+- Scope checks compare public defaults, AHK, controller profiles and assets
+  byte-for-byte with the remote baseline. Package checks enforce required new
+  modules, no distributed user state, archive integrity and source-byte equality.
+
+Repeat from repository root:
+
+`python3 tests/run_lua.py tests/compact.lua tests/compact_command.lua tests/menu_resources.lua tests/ui_lifecycle.lua tests/character_identity.lua tests/profile_gate.lua tests/profile_lifecycle.lua tests/login_input.lua tests/crossbar_destinations.lua tests/custom_action_save_return.lua`
+
+## First live tests — not yet performed
+
+1. Verify `//xb status` ends `public-rc3-maintenance2` and reports the correct
+   character/server; resource helper stays `public-cleanup1` (unchanged helper).
+2. On Franklet 1280x720 and Lionstag 960x540, select a later-page spell, check
+   targets immediately, go Back twice, bind and execute. Spot-check 3840x2160.
+3. Load before login; test controller arrows/confirm/cancel, then login with a
+   no-subjob character. Confirm no false lobby-server folders are created.
+   Logout/relogin as another character, reload, zone and change jobs. A server
+   remaining wrong beyond the settling interval cannot be predicted; a later
+   observed correction reloads normally and does not delete existing folders.
+4. Bind reciprocal Default/custom switches (same slot), then Job Default and
+   All Jobs Default. Reload and repeat. Check Quick XB Switch returns after one
+   action. Rebind an old label-based switch if necessary; no XML migration.
+5. Create through menu and `//xb ca`, Save Only, edit the selected entry, rename
+   across pages and Save Changes; edit another entry. Check Back, Save & Bind,
+   draft cancellation, reload persistence and Options overlay restoration.
+6. Repeat prior compact/fades/resource checks, Credits, Escape and fresh setup.
+   Restart/unload one of two clients and confirm the other remains usable.
+
+Public candidate remains unreleased. No forum post, PR or announcement. These
+changes do not prove resolution of native d3d8.dll crashes, shared text loss or
+personal input stickiness. Standard public help/unload modernization and all
+personal-only controls/catalog ownership features remain outside this batch.
+
+---
+
+# Maintenance 2 per-feature development notes (retained)
 
 Save-return implementation: new behavior, not an already-completed personal
 port. After successful Save Only / Save Changes, return to the edit picker and

@@ -1,19 +1,44 @@
 # XIVCrossbar Public — RC3 maintenance and release handoff
 
-Prepared October 15, 2026, America/Chicago. Author: A.
+Updated October 16, 2026, America/Chicago. Author: A.
+
+## Maintenance 2 current checkpoint
+
+Runtime: `0.4.0-a.20261016.public-rc3-maintenance2`. Includes all four changes
+Max requested on October 16: shorter target-list pagination; stable in-world
+server/name/ID detection with storage guards and pre-login controller navigation;
+Default/Job Default/All Jobs Default switch destinations by stable key; and
+Save Only / Save Changes returning to the edit list with the saved entry selected.
+Save & Bind and failed-save drafts keep their previous flow. Public catalog
+storage and ownership are unchanged; no linked-copy propagation was ported.
+
+Local feature commits: db3b662 (pagination), 5b31fc4 (identity/login), 1afc4ef
+(destinations), 292682a (save return). Package headers identify the final local
+documentation/runtime checkpoint. This batch is NOT published: the environment
+approval check blocked the GitHub push. Do not retry by another mechanism; ask
+Max to confirm publishing the commits to public/rc3-maintenance. Remote source
+baseline remains 2c41936a5b095b73f3615b3ba241e413ae846126.
+
+NPCmirror's current WORKFLOW.md (blob 424d643fd63b944bd8534f455342b5328f1ca48c)
+was read first and matches this branch's copy. Small feature commits, cumulative
+testing history and explicit simulated/live evidence were retained. No shared
+workflow or personal branch writes were made. Windows/FFXI/AHK acceptance is
+still pending. Read the newest root TESTING.md first; older notes below describe
+Maintenance 1 except where updated explicitly.
 
 ## Start here
 
 Continue public/rc3-maintenance in
 https://github.com/rerorriM-Mirrorer/xivcrossbar. Runtime baseline:
-0.4.0-a.20261015.public-rc3-cleanup1. Published runtime checkpoint:
+0.4.0-a.20261016.public-rc3-maintenance2 (local). Last published runtime checkpoint:
 93624052f8cb170d47f5747d11d6ad0aeb6665ee; local source counterpart:
 dfdd7612cf4bbd07ddb0514cdabf2ed4534817e7. Package TESTING.md records the exact
-new documentation/source checkpoint. This complete delivery adds handoffs and
-installation guidance, not additional gameplay features.
+new documentation/source checkpoint. Maintenance 2 adds the four behaviors
+listed above; the historical October 15 delivery added documentation only.
 
 This is public RC3 + Icons/Credits/Escape + the three approved maintenance ports:
-instant compact switching, corrected stroke alpha and bounded drawing resources.
+instant compact switching, corrected stroke alpha and bounded drawing resources,
+plus Maintenance 2's four improvements listed above.
 It is NOT the personal line or a patch stack that can be combined with it.
 Read docs/BRANCH-MAP.md and root WORKFLOW.md/TESTING.md before changing code.
 
@@ -60,7 +85,7 @@ and the four-step FFXI IJKL targeting guide. Do not clear stick movement/camera.
 1. Fresh setup: welcome hover/click, reader profile, button artwork, R2+requested
    face button registration and completion screen. Keyboard text entry must not
    remain blocked. Test a no-subjob character too. `//xb status` must say
-   public-rc3-cleanup1. `//xb controller status` shows the selected/running reader,
+   public-rc3-maintenance2. `//xb controller status` shows the selected/running reader,
    device, fresh status, connected and ready. No ps5extended choice exists here.
 2. Gameplay: bare D-pad, Cross confirm, Circle cancel, Triangle game menu and
    Square active-window focus with the intended PS5 mapping. Then XB menu:
@@ -208,14 +233,17 @@ tested DirectInput update with experimental other profiles, not universal hardwa
 support. It is fine to acknowledge AI-assisted coding with human direction/live
 testing and traceable code; no claim of an upstream endorsement or accepted PR.
 
-The new personal fixes worth reviewing next, not secretly included here:
+The four former next candidates are now implemented in public Maintenance 2
+(simulated, not live-accepted). Original candidate descriptions retained below:
 1. Shorter target-list page clamp (personal local724bf0f): fixes later-page spell
    -> small target list with blank options. Preserve Back selection/page.
 2. Stable in-world server/character gate (local90dd1d7): avoid bogus lobby server
    data and a later identity correction; retain controller login functionality.
 3. Default/JobDefault/AllJobsDefault switch destinations by stable key (35716c0):
    user-confirmed reciprocal switching on personal. Include display-name feedback.
-4. Save Only edit returning to custom-action list (pending in both lines).
+4. Save Only edit returning to custom-action list: ~~pending in both lines~~
+   now implemented in public Maintenance 2; not present in the inspected personal
+   checkpoint. Save Changes also returns to the list, selecting the saved entry.
 
 Other possible polish: chat-only modernized help/status, code/comment cleanup,
 review startup/transition guards, empty-name/new-set persistence and error paths,
@@ -227,8 +255,8 @@ palette redesign, trigger-field fade or expanded Superwarp folders in this scope
 The native d3d8.dll access violation and cross-addon missing text remain unresolved.
 Cleanup fixes demonstrated resource retention; it is not proof of crash resolution.
 Menu input stickiness is a newer personal report; investigate there before porting
-an unproven timing change to public. Low-resolution spell page bug/gating should
-be assessed before claiming final release quality.
+an unproven timing change to public. The spell-page and identity-gating fixes
+are now ported but still need public live acceptance before final release.
 
 Final delivery tasks after acceptance: review concise README/install guide and
 the screenshots; verify all required assets/licenses/credits; omit data/config,

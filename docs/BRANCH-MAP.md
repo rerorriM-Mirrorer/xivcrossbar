@@ -1,6 +1,12 @@
 # XIVCrossbar branch map and shared working rules
 
-Checkpoint: October 15, 2026, America/Chicago. Collaborative author: A.
+Checkpoint: October 16, 2026, America/Chicago. Collaborative author: A.
+
+Maintenance 2 public additions are committed locally but NOT published: the
+GitHub push was denied by the environment approval check. Do not retry via
+another transport. Ask Max to confirm publishing to public/rc3-maintenance.
+Package headers identify the local source commit; the table's published
+checkpoint remains the earlier remote runtime, not this new delivery.
 
 ## Choose the correct line before editing
 
@@ -9,12 +15,12 @@ Repository: https://github.com/rerorriM-Mirrorer/xivcrossbar
 | Line | Branch | Runtime baseline | Published runtime checkpoint before this documentation delivery |
 | --- | --- | --- | --- |
 | NEW personal development, rebuilt from public RC3 | personal/ps5extended | 0.4.0-a.20261014.personal8-sets1; AHK Controls=8.1 | 59f1950acdec61002333f5491f334b26c2243ba9 |
-| Public release candidate, maintenance after RC3 | public/rc3-maintenance | 0.4.0-a.20261015.public-rc3-cleanup1 | 93624052f8cb170d47f5747d11d6ad0aeb6665ee |
+| Public release candidate, maintenance after RC3 | public/rc3-maintenance | 0.4.0-a.20261016.public-rc3-maintenance2 (local) | 93624052f8cb170d47f5747d11d6ad0aeb6665ee |
 | LEGACY personal development before the RC3 rebuild | Historical packages/source only | Batch-era Apps/L1 experiments | Do not invent a current branch/ref or use it as the baseline |
 
-Package TESTING.md records the exact new documentation/source commit and published
-checkpoint used to build that package. Runtime versions remain unchanged because
-this delivery adds handoffs and packaging instructions, not gameplay code.
+Package TESTING.md records the exact source commit and publication status used
+to build that package. October 15's handoff-only delivery left runtime versions
+unchanged; October 16's public Maintenance 2 intentionally increments its version.
 Verify the branch, commit, clean/dirty state and runtime before working.
 
 The old local public/rc3-snapshot reference and public-rc3-snapshot-20261013 tag
@@ -36,12 +42,17 @@ controller profile selection, draggable/scalable crossbars, responsive menus,
 single-screen custom action review, extracted item icons, Superwarp fixes,
 Options chooser overlays, and RC3 Icons/Credits/Escape repairs. Both now have
 instant compact switching, correct stroke alpha and explicit drawing cleanup.
+Public Maintenance 2 also ports shorter target-list pagination, stable
+in-world identity/storage gating (including pre-login navigation), and stable
+Default-set switch destinations. It newly implements Save Only / Save Changes
+returning to the editable catalog. These public changes need live acceptance.
 
 The NEW personal line additionally has PS5 Extended controls, personal defaults,
 movement signaling, named-mutex duplicate protection, last-client shutdown,
-stable world/server gating, global plus character catalogs with linked-copy
-updates, MP-cost refinements, rounded indicators, textfade/autoattack controls,
-later-page target-list correction and Default switch destinations.
+global plus character catalogs with linked-copy updates, MP-cost refinements,
+rounded indicators and textfade/autoattack controls. Stable identity, target-page correction and Default
+destinations are now shared behaviors; Save Only return is implemented in public
+Maintenance 2, not claimed implemented in the inspected personal checkpoint.
 
 The public line excludes those personal additions unless separately ported and
 tested. In particular it has no L1 companion, no PS5 Extended profile and no
@@ -131,6 +142,7 @@ overlap heavily: branches are not interchangeable overlay layers. Never copy
 the whole personal ui.lua/xivcrossbar.lua/AHK into public. Port the smallest
 coherent behavior, adapt dependent helpers and tests, preserve public defaults,
 then record its live acceptance. Current public port commits: compact 5242a8e,
-stroke 084e72b, cleanup 9362405. Next candidates: shorter-list pagination,
-stable identity gate, Default destinations, Save Only catalog return. Personal
+stroke 084e72b, cleanup 9362405. Public Maintenance 2 local commits: pagination
+db3b662, identity/login 5b31fc4, Default destinations 1afc4ef, save return 292682a.
+Their public live acceptance remains pending. Personal
 controls, L1 banks, icon migration and lockout palette are separate design work.

@@ -11,7 +11,7 @@ root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1]).resolve()
 stem, published = sys.argv[2:4]
 assert re.fullmatch(r'[A-Za-z0-9_-]+', stem)
-assert re.fullmatch(r'[0-9a-f]{40}', published)
+assert published == 'unpublished' or re.fullmatch(r'[0-9a-f]{40}', published)
 
 def git(*args):
     return subprocess.check_output(['git', *args], cwd=root)
@@ -22,8 +22,9 @@ tree = git('rev-parse', 'HEAD^{tree}').decode().strip()
 branch = git('branch', '--show-current').decode().strip()
 handoff = 'HANDOFF-PERSONAL-RC3.md' if branch == 'personal/ps5extended' else 'HANDOFF-PUBLIC-RC3.md'
 assert branch in ('personal/ps5extended', 'public/rc3-maintenance')
+publication = published if published != 'unpublished' else 'NOT PUBLISHED; local committed source only'
 header = ('Complete installation; branch: ' + branch + '\nLocal source commit: ' + commit +
-          '\nPublished source commit: ' + published + '\nGit tree: ' + tree + '\n\n').encode()
+          '\nPublished source commit: ' + publication + '\nGit tree: ' + tree + '\n\n').encode()
 
 def include(path):
     if path.startswith(('.', 'data/', 'tests/', 'packaging/')):
@@ -52,6 +53,7 @@ assert not any('/data/' in path or path.lower().endswith(('.xml', '.ini', '.log'
                for path in entries)
 assert not any('/tests/' in path or '/packaging/' in path for path in entries)
 required = ['xivcrossbar.lua', 'ffxi_directinput.ahk', 'ui/resources.lua',
+            'character_identity.lua', 'profile_gate.lua', 'crossbar_destinations.lua',
             'images/icons/iconpacks/default/icon_list.txt', 'images/assets/menu/L2.png',
             'images/assets/menu/R2.png', 'images/setup/gamepad-directinput.jpg',
             'images/setup/ffxi-ijkl-targeting.png', 'themes/ffxiv/notice.png',

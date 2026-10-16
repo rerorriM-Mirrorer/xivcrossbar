@@ -1,8 +1,8 @@
 # XIVCrossbar — PUBLIC RC3 maintenance complete testing installation
 
 This is a **complete installation**, including required images/themes. It is
-not an update patch. The current runtime code is unchanged by this handoff
-delivery. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and
+not an update patch. Maintenance 2 adds four public-candidate improvements for
+live testing. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and
 [the branch map](docs/BRANCH-MAP.md) before testing or opening a new development
 conversation. Package-root TESTING.md gives installation and first tests.
 
@@ -11,8 +11,9 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **public-rc3-cleanup1**, with RC3 Icons/Credits/Escape
-and compact/stroke/resource maintenance ports. It does not include the personal
+Current runtime is **public-rc3-maintenance2**, with RC3 Icons/Credits/Escape,
+compact/stroke/resource maintenance, target pagination, stable character identity,
+Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or the future L1 banks.
 A dedicated //xb unload alias is pending; use //lua u xivcrossbar.
 
@@ -91,6 +92,13 @@ Use `//xb ca` to create a new custom action. `//xb ca <name>` also works; for ex
 
 Select Edit Name, Edit Alias or Edit Command to type directly into the review; then choose Save Only or Save & Bind.
 Enter commits the active text field; Circle cancels it.
+Save Only (Save Changes for an existing action) returns to the editable catalog
+with the saved entry selected, ready to edit another action. Save & Bind opens
+slot binding as before. A failed save keeps the draft open.
+
+Switch Crossbars and Quick XB Switch offer Default, Job Default and All Jobs
+Default alongside custom sets. Newly bound switches use the actual set key,
+independently of its display label. Quick XB Switch returns after one action.
 
 While the review is open, you can also edit fields with these commands:
 
