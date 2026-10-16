@@ -1,3 +1,13 @@
+# Public Maintenance 2 development — October 16, 2026
+
+Pagination port: personal published 2f462fa, adapted to public. Actual binder
+methods pass 12 page-two/page-three -> targets -> binding -> Back -> save cases
+across six resolutions. Lua fixture simulation only; live FFXI acceptance pending.
+Retest Shellra II from a later spell page at 960x540 and 1280x720; targets should
+appear immediately, Back should restore the spell/page, and binding should work.
+
+---
+
 # Complete installation + conversation handoff — October 15, 2026
 
 Variant: **PUBLIC RC3 maintenance**. This delivery packages all currently implemented
