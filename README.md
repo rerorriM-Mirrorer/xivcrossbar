@@ -1,3 +1,23 @@
+# XIVCrossbar — NEW RC3-based personal complete testing installation
+
+This is a **complete installation**, including required images/themes. It is
+not an update patch. The current runtime code is unchanged by this handoff
+delivery. Read [the branch handoff](docs/HANDOFF-PERSONAL-RC3.md) and
+[the branch map](docs/BRANCH-MAP.md) before testing or opening a new development
+conversation. Package-root TESTING.md gives installation and first tests.
+
+No saved settings, config.ini, catalogs, bindings or controller preferences
+are supplied. Preserve the appropriate installation's data separately. Both
+variants use the xivcrossbar name and keyboard transport: test one at a time per
+PC, stopping the wrapper and unloading all clients before changing variants.
+
+Current runtime is **personal8-sets1**, AHK Controls=8.1. The top table in
+PERSONAL.md is current; its older tables and the chronological notes below are
+history. L1 mode switching/banks and new icon/palette designs are pending, not
+part of this installation. TrustMovement stays separately managed by AddonManager.
+
+---
+
 # XIVCrossbar — Personal 6 testing build
 
 This personal build starts from RC3 plus its Icons, Credits and Escape patches.

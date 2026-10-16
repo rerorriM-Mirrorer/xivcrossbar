@@ -1,3 +1,48 @@
+# Complete installation + conversation handoff — October 15, 2026
+
+Variant: **NEW RC3-based personal**. This delivery packages all currently implemented
+runtime code and required images/themes. Pending ideas are documented, not
+implemented. The runtime version remains unchanged.
+
+Start with `xivcrossbar/docs/HANDOFF-PERSONAL-RC3.md` and the shared
+`xivcrossbar/docs/BRANCH-MAP.md`. The exported package header records exact local
+and published source checkpoints. The standalone handoff copies carry that
+header too. Historical update-only instructions below apply to those earlier
+ZIPs, not to this complete ZIP.
+
+## Install and identify
+
+1. Stop the currently running shared wrapper with //xb controller stop and
+   unload XIVCrossbar on every client (//lua u xivcrossbar works in both builds).
+2. Back up/move the existing addon folder. Copy this complete xivcrossbar folder
+   into Windower/addons. Do not overlay or run public and personal together.
+3. For clean setup leave data/config.ini absent; the wizard creates them. For
+   an upgrade restore the matching variant's data/, config.ini and custom icons.
+   Never use the installer as a source of empty user files.
+4. Load //lua l xivcrossbar. Verify //xb status and //xb controller status,
+   complete setup if needed, then use the focused checklist in the handoff.
+5. If swapping variants later, repeat stop/unload and use their separate data
+   backups. TrustMovement/Trust/AddonManager and native Windower libraries are
+   separate dependencies and are not replaced by these installations.
+
+## Evidence and next development
+
+User confirms reciprocal Default-bar switching works. TrustMovement remains
+in AddonManager; no auto-loader requested. The input report includes delayed/
+missed presses, nonresponsiveness and D-pad doubling sensation; no root cause
+is established. Cutscene reveal still fails in some scenes. Bare L1 is still
+client switching in this runtime; its two-bank mode toggle is pending. Prioritize
+input/context communication, cutscene access and Save Only catalog return before
+new L1/visibility/icon/palette work. Preserve the movement hook.
+
+Additional conversation retrieval did not recover the other threads. This
+handoff uses visible discussion, current source, recovered archives and cumulative
+records; gaps and historical-only claims are identified. Documentation checks
+verify current roles/defaults/commands and preserved branch separation. No new
+Windows/FFXI acceptance is implied.
+
+---
+
 # Personal 8 sets checkpoint 1 — cumulative controls, stable login and Default destinations
 
 Runtime: `0.4.0-a.20261014.personal8-sets1`. Shared wrapper Controls=8.1;
