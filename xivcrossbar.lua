@@ -42,6 +42,9 @@ local controller_capture_dik = controller_modifier == 'ctrl' and 29 or 221
 local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
 
 -- Load theme options according to settings
+local character_identity = require('character_identity')
+local profile_clock = require('socket').gettime
+local profile_gate = require('profile_gate').new(profile_clock)
 local theme = require('theme')
 local theme_options = theme.apply(settings)
 local buttonmapping = require('buttonmapping')
@@ -56,6 +59,7 @@ local transport = require('controller_transport')
 local text_input_guard = require('text_input_guard')
 local visibility = require('visibility')
 local player = require('player')
+local storage = require('storage')
 local ui = require('ui')
 local env_chooser = require('environment_chooser')
 local action_binder = require('action_binder')
@@ -475,14 +479,23 @@ local function select_controller_profile(name, device, done)
 end
 
 -- initialize addon
-function initialize()
+function initialize(server_id, expected_name, expected_id)
     local windower_player = windower.ffxi.get_player()
-    local server = resources.servers[windower.ffxi.get_info().server].en
-    if (server == nil) then
-        server = 'UnknownServer'
+    local info = windower.ffxi.get_info()
+    local server = character_identity.resolve(info, windower_player, resources.servers)
+    local entity = windower_player and windower_player.id and windower.ffxi.get_mob_by_id(windower_player.id)
+    -- The wrapper and login keys need no character storage. Only an observed,
+    -- settled in-world identity may open/create the character's XML files.
+    if not server_id or not server or info.server ~= server_id or not info.zone or info.zone <= 0 or
+        windower_player.name ~= expected_name or windower_player.id ~= expected_id or
+        not entity or entity.id ~= expected_id or entity.name ~= expected_name then
+        xivcrossbar.ready = false
+        storage.identity_valid = false
+        player.identity_confirmed = false
+        if not server_id then profile_gate.loaded = nil end
+        return false, 'identity'
     end
-
-    if windower_player == nil then return end
+    player.identity_confirmed = true
 
     if (buttonmapping.validate()) then
         theme_options.button_layout = buttonmapping.button_layout
@@ -542,6 +555,31 @@ function initialize()
 
     xivcrossbar.ready = true
     xivcrossbar.initialized = true
+    return true
+end
+
+-- Continue observing after initialization: a valid-looking lobby server can
+-- correct later. A normal reload cleans old drawing resources before rebuilding.
+local function check_profile_ready()
+    local info = windower.ffxi.get_info()
+    local current_player = windower.ffxi.get_player()
+    local entity = current_player and current_player.id and windower.ffxi.get_mob_by_id(current_player.id)
+    local server_record = info and resources.servers[info.server]
+    local server_id, name, id = profile_gate:observe(info, current_player, entity, server_record)
+    if not server_id then return end
+    if xivcrossbar.ready then
+        xivcrossbar.ready = false
+        storage.identity_valid = false
+        player.identity_confirmed = false
+        restart_pending = true
+        crossbar_drag:finish()
+        if ui.is_setup then ui:hide() end
+        windower.add_to_chat(0, '[XIVCrossbar] Character/server changed; reloading for '..server_record.en..'/'..name..'.')
+        windower.send_command('lua r xivcrossbar')
+        return
+    end
+    local ok, reason = initialize(server_id, name, id)
+    if not ok and reason == 'identity' then profile_gate.loaded = nil end
 end
 
 -- trigger hotbar action
@@ -1117,12 +1155,22 @@ end)
 
 -- ON LOGIN
 windower.register_event('login',function()
+    profile_gate:reset()
     initialize()
     skillchains.login()
 end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    profile_gate:reset()
+    xivcrossbar.ready = false
+    xivcrossbar.initialized = false
+    storage.identity_valid = false
+    player.identity_confirmed = false
+    if release_gameplay_keys then release_gameplay_keys() end
+    transport:reset()
+    gamepad_state.left_trigger, gamepad_state.right_trigger = false, false
+    gamepad_state.active_bar = 0
     ui:hide()
     skillchains.logout()
 
@@ -1210,6 +1258,8 @@ windower.register_event('addon command', function(command, ...)
     if command == 'status' then
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
         report_controller_status()
+        windower.add_to_chat(207, '[XIVCrossbar] Profile: ' ..
+            (storage.identity_valid and (player.server .. '/' .. player.name) or 'waiting for a stable in-world character'))
         windower.add_to_chat(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
         windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
@@ -1711,6 +1761,7 @@ release_gameplay_keys = function()
 end
 local function input_context()
     if gamepad_mapper.is_showing then return 'setup' end
+    if not xivcrossbar.ready then return 'login' end
     if env_chooser.capturing then return 'text' end
     if env_chooser:is_showing() then return 'sets' end
     if action_binder:is_capturing_text() then return 'text' end
@@ -1769,7 +1820,7 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     if signal and (gamepad_state.capturing or transport.down[dik]) then
         -- The wizard bootstraps button configuration and can be visible before
         -- hotbar initialization finishes. Gameplay still requires readiness.
-        if restart_pending or (not xivcrossbar.ready and not gamepad_mapper.is_showing) then return true end
+        if restart_pending then return true end
         if blocked and pressed and input_context() ~= 'text' and not action_binder.chooser_active then
             if settings.InputTrace then windower.add_to_chat(123, '[XIVCrossbar test] BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
             return true
@@ -1791,6 +1842,14 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
         -- menu opens/closes between edges. Slots keep their original owner.
         local transition = item.logical >= 67
         if not pressed and owner ~= context and not transition then return true end
+        if context == 'login' then
+            local key = transport:login_key(item, buttonmapping)
+            if key and pressed then
+                gameplay_down[dik] = key
+                windower.send_command('setkey ' .. key .. ' down')
+            end
+            return true
+        end
         -- The base set chooser uses only Up/Down; other slot buttons stay
         -- owned by that menu and must never fall through to a crossbar action.
         if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
@@ -1849,7 +1908,12 @@ windower.register_event('lose focus', function() clear_controller_input(false) e
 windower.register_event('gain focus', function() clear_controller_input(true) end)
 
 -- ON PRERENDER
+local next_identity_retry = 0
 windower.register_event('prerender',function()
+    if not restart_pending and profile_clock() >= next_identity_retry then
+        next_identity_retry = profile_clock() + .25
+        check_profile_ready()
+    end
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.

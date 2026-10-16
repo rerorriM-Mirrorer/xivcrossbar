@@ -1,5 +1,14 @@
 # Public Maintenance 2 development — October 16, 2026
 
+Identity port: personal 7c97012 plus its character-identity/storage guards and
+login-navigation dependency. Keep the public wrapper, profiles and defaults.
+Simulations cover lobby/unknown-server/mismatched-entity rejection, stable
+identity, late correction, character IDs, genuine Asura and blocked writes.
+Live: load before login; use controller arrows/confirm/cancel, log in and verify
+only the correct server/character hotbars load. Logout and select another
+character; do not create data under a lobby/default server. Test a no-subjob
+character, a reload, job changes and another client remaining usable.
+
 Pagination port: personal published 2f462fa, adapted to public. Actual binder
 methods pass 12 page-two/page-three -> targets -> binding -> Back -> save cases
 across six resolutions. Lua fixture simulation only; live FFXI acceptance pending.

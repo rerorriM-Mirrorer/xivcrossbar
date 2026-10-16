@@ -175,6 +175,11 @@ are retained under `images/assets/menu/`. Original game artwork belongs to its r
 
 ## Maintenance changelog
 
+2026-10-16: character XML loads wait for a matching in-world entity and a stable
+server/name/ID tuple (0.75 seconds, sampled every 0.25 seconds). Login navigation
+remains available; a later identity correction requests one normal Lua reload.
+Unconfirmed character writes are blocked. `//xb status` reports profile readiness.
+
 2026-10-16: shorter target lists clamp to their available pages; Back restores
 the selected spell and its original page. Public port of personal 2f462fa.
 
