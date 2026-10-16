@@ -1,6 +1,14 @@
 # TESTING.md
 
-Read this first when preparing or evaluating a development/testing batch. This is a cumulative, project-specific development record kept at the repository and testing-package roots alongside `WORKFLOW.md`.
+## Package layout convention — 2026-10-16
+
+- **Repository:** Keep `WORKFLOW.md` and `TESTING.md` at the repository root.
+- **Testing ZIPs:** Include both inside the installable addon folder alongside the README and code. For patch/test-only bundles without an addon folder, place both next to the delivered files. No redundant outer ZIP-root copies.
+- **Reference commit:** [`aa2eb8b`](https://github.com/rerorriM-Mirrorer/xivcrossbar/commit/aa2eb8b247118baf7d32f7994e3b54670f2a932a).
+- **Verification:** Documentation only; no game code changed and no in-game tests performed for this instruction update.
+- **History:** Previous ZIP-root conventions remain below as historical records, with dated corrections where they were stated as current instructions.
+
+Read this first when preparing or evaluating a development/testing batch. This is a cumulative, project-specific development record kept at the repository ~~and testing-package~~ root alongside `WORKFLOW.md`. **Correction (2026-10-16):** In testing packages, put both guides alongside the addon or patch/test files, not at the outer ZIP root.
 
 ## Current testing batch — documentation adoption (2026-10-13)
 
