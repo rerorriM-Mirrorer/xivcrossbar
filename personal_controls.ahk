@@ -5,7 +5,8 @@ PersonalInit(selected, prefix) {
     PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
         , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
         , touch:{phase:"idle"}, clicks:{phase:"idle"}, navigation:{ctrl:false, alt:false}
-        , shoulders:{l1:{phase:"idle", key:"switch"}, r1:{phase:"idle", key:"F8"}}
+        , shoulders:{l1:{phase:"idle", key:"l1mode"}, r1:{phase:"idle", key:"F8"}}
+        , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false, waiting:0}
         , clients:[], lastClient:0, lastOther:0, navigationActive:false}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
@@ -49,6 +50,13 @@ PersonalPoll(states, active) {
     PC.context := mode
     contextAllowed := active and (mode = "gameplay" or mode = "crossbar") and !raw[9] and !raw[10]
     allowed := contextAllowed and mode = "gameplay" and !raw[11] and !raw[12] and !appsOwned
+    if (PC.l1.waiting) {
+        PC.ready := false
+        PC.previous := raw
+        if (allowed)
+            PersonalL1Block(raw)
+        return PersonalFilter(states, raw)
+    }
     neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
     Loop, 12
         if (raw[A_Index])
@@ -65,6 +73,8 @@ PersonalPoll(states, active) {
             for _, gesture in PC.shoulders
                 gesture.phase := "idle"
         }
+        if (allowed)
+            PersonalL1Block(raw)
         PC.previous := raw
         return PersonalFilter(states, raw)
     }
@@ -108,6 +118,10 @@ PersonalPoll(states, active) {
         return PersonalFilter(states, raw)
     }
 
+    if (raw.l1 and !PC.previous.l1 and !raw.r1)
+        PersonalL1Event("show")
+    if (!raw.l1 and PC.previous.l1)
+        PersonalL1Event("release")
     taps := []
     ; Each assigned Ctrl shortcut fires once. Empty L1 slots are reserved and
     ; consume their button rather than leaking native confirm/cancel.
@@ -116,10 +130,15 @@ PersonalPoll(states, active) {
         for i, key in shortcuts {
             if (raw[i] and !PC.previous[i]) {
                 PC.blocked[i] := key
-                if (key != "")
+                if (PC.l1.available and PC.l1.mode = "bank") {
+                    slots := [4, 3, 2, 1, 6, 5, 7, 8]
+                    PersonalL1Event("slot", slots[i])
+                } else if (PC.l1.mode = "keyboard" and key != "")
                     taps.Push({key:key, modifier:"LControl"})
             }
         }
+        ; A held button from before L1 is consumed, never re-fired or leaked.
+        PersonalL1Block(raw)
     } else if (raw.r1 and !raw.l1) {
         Loop, 4 {
             i := A_Index
@@ -185,10 +204,9 @@ PersonalPoll(states, active) {
         other := name = "l1" ? raw.r1 : raw.l1
         consumed := busy or other or raw.touch or raw.l3 or raw.r3
         event := PersonalShoulderStep(gesture, raw[name], PC.previous[name], consumed)
-        if (event = "switch") {
-            PersonalSwitchClient(active)
-            PC.previous := raw
-            return states
+        if (event = "l1mode") {
+            PersonalL1Event("tap")
+            PC.ready := false
         } else if (event != "")
             PersonalChord(event, "", now)
     }
@@ -211,6 +229,7 @@ PersonalFilter(states, raw) {
 }
 
 PersonalContext(hwnd) {
+    global PC
     if (!hwnd)
         return "unfocused"
     WinGetTitle, title, ahk_id %hwnd%
@@ -227,9 +246,83 @@ PersonalContext(hwnd) {
             or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", mode))
             return "unknown"
         age := now - stamp1
-        return age >= -1 and age <= 2 ? mode1 : "stale"
+        if (age >= -1 and age <= 2) {
+            PersonalL1Lease(lease, A_LoopFileFullPath)
+            return mode1
+        }
+        return "stale"
     }
     return "unknown"
+}
+
+; A: complete mailbox snapshots; only Lua's current session token may receive
+; edges. No F13/media-key experiment, synthetic menu keys or process IPC hook.
+PersonalL1Lease(lease, contextPath) {
+    global PC
+    ; Native menu toggles still use keyboard shortcuts in keyboard mode. Only
+    ; bank/toggle events need an executable gameplay token; text is blocked by
+    ; the ordinary context gate above.
+    if RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
+        PC.l1.mode := mode1
+    if (!RegExMatch(lease, "m)^l1token=([A-Za-z0-9-]+)\r?$", token)
+        or !RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
+        or !RegExMatch(lease, "m)^l1ack=(\d+)\r?$", ack)) {
+        PC.l1.available := false
+        PC.l1.waiting := 0
+        return
+    }
+    if (PC.l1.token != token1) {
+        PC.l1 := {token:token1, mode:mode1, seq:0, ack:0, pending:[], available:true
+            , path:RegExReplace(contextPath, "\.ini$", ".l1"), showing:false, waiting:0}
+        PC.ready := false
+    }
+    PC.l1.available := true, PC.l1.mode := mode1, PC.l1.ack := ack1 + 0
+    retained := []
+    for _, event in PC.l1.pending
+        if (event.seq > PC.l1.ack)
+            retained.Push(event)
+    PC.l1.pending := retained
+    if (PC.l1.waiting and PC.l1.ack >= PC.l1.waiting)
+        PC.l1.waiting := 0
+}
+
+PersonalL1Block(raw) {
+    global PC
+    if (raw.l1)
+        Loop, 8
+            if (raw[A_Index] and !PC.blocked.HasKey(A_Index))
+                PC.blocked[A_Index] := ""
+}
+
+PersonalL1Event(kind, slot := 0) {
+    global PC
+    if (!PC.l1.available or PC.l1.pending.Length() >= 64)
+        return false
+    if ((kind = "release" or kind = "cancel") and !PC.l1.showing)
+        return false
+    PC.l1.seq += 1
+    event := {seq:PC.l1.seq, kind:kind, slot:slot}
+    PC.l1.pending.Push(event)
+    if (kind = "show")
+        PC.l1.showing := true
+    else if (kind = "release" or kind = "cancel" or kind = "tap")
+        PC.l1.showing := false
+    if (kind = "tap")
+        PC.l1.waiting := PC.l1.seq
+    stamp := A_NowUTC
+    EnvSub, stamp, 19700101000000, Seconds
+    contents := "token=" . PC.l1.token . "`nstamp=" . stamp . "`n"
+    for _, edge in PC.l1.pending
+        contents .= edge.seq . "," . edge.kind . "," . edge.slot . "`n"
+    contents .= "END`n"
+    temporary := PC.l1.path . ".tmp"
+    destination := PC.l1.path
+    FileDelete, %temporary%
+    FileAppend, %contents%, %temporary%
+    if (ErrorLevel)
+        return false
+    FileMove, %temporary%, %destination%, 1
+    return !ErrorLevel
 }
 
 PersonalKey(key, down) {
@@ -291,6 +384,7 @@ PersonalRelease(reset := true) {
     global PC
     if (!IsObject(PC) or !PC.enabled)
         return
+    PersonalL1Event("cancel")
     keys := []
     for key in PC.keys
         keys.Push(key)

@@ -1,4 +1,34 @@
-# XIVCrossbar Personal — NEW RC3-based development handoff
+# Current continuation — Personal 9 L1 Test 1 (October 16, 2026)
+
+Author: A. Branch personal/ps5extended. Runtime personal9-l1test1; Controls=9.0-l1.
+The earlier handoff below remains a historical record. Its statements that L1
+is pending or switches clients and Save Only closes the editor are superseded.
+
+Implemented: successful Save Only returns to the scoped catalog record selected
+on its page; failed saves preserve drafts and Save & Bind is unchanged. L1 has
+two saved modes: existing keyboard shortcuts plus fading reference, and one
+editable eight-slot command bank plus persistent companion. Bare unused L1 tap
+toggles modes, not clients; combinations consume the tap. Native modifier pairs,
+R1/PS/touchpad/movement and normal trigger routing remain. The bank has command
+editing, append, clear, scale/position/drag lock/reset/preview under //xb l1.
+
+New modules: l1_bank.lua, l1_transport.lua, l1_view.lua. Main integrates their
+context lifecycle and drawing; personal_controls.ahk publishes acknowledged
+token-scoped snapshots. personal_controls.lua publishes complete leases with
+the current mode/token/ack. No extra keyboard signal, separate addon, new
+L1 global alias or Trust autoloader. Complete test ZIP includes the unchanged
+TrustMovement 0.1.1 companion separately from xivcrossbar/.
+
+Read current README/PERSONAL/TESTING before older notes. Stop the shared wrapper
+and unload all clients before installing. Preserve user data/config.ini/icons.
+Native AHK/Windows/FFXI acceptance is pending; general sticky-input and cutscene
+reveal issues are NOT claimed fixed. Next: live basic press/release/focus/menu/
+native-pair testing with harmless echo commands, then editor/catalog expansion.
+The ZIP's TESTING header identifies exact local and published source commits.
+
+---
+
+# Historical XIVCrossbar Personal — NEW RC3-based development handoff
 
 Prepared October 15, 2026, America/Chicago. Author: A.
 

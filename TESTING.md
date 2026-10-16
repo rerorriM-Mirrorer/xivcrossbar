@@ -1,3 +1,85 @@
+# Personal 9 L1 Test 1 — October 16, 2026
+
+Author: A. Branch: personal/ps5extended. Baseline published checkpoint:
+9375a66d75778744a865077e2f676458688fc65a. Save Only was committed separately at
+b923133046eaf8b2e3a73ffc57f8a4ebe2dfb19b. Package-generated header identifies the
+exact subsequent L1 source commit. Runtime: personal9-l1test1; Controls=9.0-l1.
+
+## Install — complete personal build, not a public update
+
+1. Stop //xb controller stop. Unload XIVCrossbar on every client. Back up the
+   personal addon directory, including data/, config.ini and custom icons.
+2. Install this complete xivcrossbar/ folder; restore your personal state.
+   There are no shipped settings, catalogs, binds, leases or controller choices.
+   Do not mix with public RC3 or run two wrapper processes/variants on one PC.
+3. The ZIP also contains trustmovement/ (unchanged v0.1.1 receiver). Install it
+   alongside xivcrossbar if needed, preserving its data. Keep AddonManager in
+   charge of loading it. No old wrapper or Trust quiet-patch overlays ship.
+4. Load XIVCrossbar with all buttons/sticks neutral. Select ps5extended if needed.
+   Check //xb status -> personal9-l1test1; //xb controller status -> Controls=9.0-l1.
+   An older wrapper requires stop/start; Lua restart alone is insufficient.
+
+## First live checks — all pending
+
+- Start with //xb l1 status and //xb l1 preview. Default mode is keyboard. Hold
+  L1: a reference appears. Release an unused L1: bank mode appears persistently;
+  release another unused tap: keyboard mode, then reference fade. No client switch.
+- Assign harmless test slots: //xb l1 1 Left input /echo L1-left and
+  //xb l1 6 Cross input /echo L1-cross. In bank mode L1+Left and L1+Cross each
+  dispatch once, never repeat while held. Empty slots do nothing. Bare Cross/
+  D-pad still perform normal gameplay. Test every slot against its printed number.
+- Release button then L1, and L1 then button. Neither combination toggles mode.
+  Held buttons from before L1 must not execute. A tap immediately followed by a
+  chord must wait for mode acknowledgment and neutral, never use the old mode.
+- Recheck Ctrl+I/E/J/M, Ctrl+Q/Space/S and reserved Circle in keyboard mode;
+  L1+R1 Tab; L1+L2 Ctrl and R1+R2 Alt including either release order; R1 arrows,
+  face shortcuts/F8; PS/touchpad/L3/R3; all six L2/R2 crossbar activations.
+- Hold a chord while switching clients, opening/closing menus, typing, zoning,
+  reconnecting and restarting the wrapper. Require neutral before fresh personal
+  gestures. No action may occur merely when a context becomes eligible.
+- //xb l1 append 6 input /echo second; test the chain. Clear a slot; reload;
+  assignments/mode persist separately on two characters. No job/set change should
+  overwrite the bank. //xb l1 unlock permits visible-panel dragging; lock stops it.
+  Test scale 0.4/0.8/1/2 and resetpos at 960x540, 1280x720, 1600x900 and 4K.
+- //xb status reports L1 receive/reject/ack counters; wrapper status file reports
+  l1_mode/l1_ready/l1_sent/l1_ack. Match sender vs receiver before changing timing.
+- Save/edit/rename a custom action on a later page, including matching Global/
+  Character names. Save Only returns to that record; a failed save retains the
+  draft. Save & Bind and mid-draft set changes retain their previous behavior.
+- Verify TrustMovement follow/assist takeover unchanged; //tm test first if needed.
+
+## Verification performed here
+
+Simulated using the available Lua 5.4 library with temporary normalization of
+inherited Windower string syntax (NOT native Lua 5.1/FFXI): bank commands/modes,
+empty/held-only execution, quote preservation, persisted state, sequenced mailbox
+duplicate/partial/CRLF/stale rejection, actual root bridge mode/focus/menu/trigger/
+cutscene/stall invalidation, complete context leases and failure cleanup; 26
+fixed companion surfaces, 24 scale/resolution layouts and 300 hide/reveal cycles;
+actual binder Save Only selection/rename/scopes/pages/failure/Save & Bind.
+
+Regression fixtures: personal defaults, merged catalog editing and XML snapshots,
+Windows file rollback/lock ownership, menu resource/pagination cleanup and Default
+destination round trips. AHK lexical/include checks and 37 translated pure
+gesture/source-routing scenarios pass; shared-wrapper lifecycle simulation passes.
+Native AHK SendEvent/file scheduling and in-game visuals remain live tests.
+
+## Implemented vs deferred
+
+Implemented: two modes, one eight-slot command bank, saved independent companion
+position/scale/lock, keyboard reference fade, bank persistence, help/status and
+token/ack/neutral guards; Save Only return. New settings merge via Windower config.
+Deferred: multiple banks, graphical/catalog bank binding, arbitrary button banks,
+extra bank autohide overrides and new art/sounds. Current keyboard/native-pair
+behavior is deliberately preserved. L1 no longer switches clients by itself.
+Unresolved: general sticky/doubling input, cutscene reveal and process-wide crash
+cause. Complete lease publication does not establish a fix for those reports.
+
+The historical cumulative records below remain unchanged except explicit dated
+superseding notes. Older "pending" statements refer to their own checkpoints.
+
+---
+
 # Personal RC3 — Save Only catalog return (October 16, 2026)
 
 Implemented on personal/ps5extended by A: successful Save Only / Save Changes

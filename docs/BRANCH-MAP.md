@@ -1,5 +1,16 @@
 # XIVCrossbar branch map and shared working rules
 
+October 16 continuation by A: **personal/ps5extended** now has
+**personal9-l1test1 / Controls=9.0-l1**, including Save Only catalog return and
+the first two-mode L1 companion with one saved eight-slot command bank. See
+current README/PERSONAL/TESTING for implemented behavior and pending live checks.
+The public branch has not been changed by this personal delivery. The public
+checkpoint and comparison table below are the October 15 historical snapshot,
+not a claim about the latest public maintenance work. Never overlay personal
+runtime/AHK files on public. The exact delivery commit is in the ZIP header.
+
+---
+
 Checkpoint: October 15, 2026, America/Chicago. Collaborative author: A.
 
 ## Choose the correct line before editing

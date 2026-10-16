@@ -153,4 +153,29 @@ check('PS is one focus toggle per down edge, with no hold threshold',()=>{
   assert(ps.includes('PC.previous.ps')&&ps.includes('PersonalClientTarget(0)'));
   assert(!ps.includes('500')&&!ps.includes('WinMinimize'));
 });
+check('unused L1 toggles once on release, with no double-tap delay',()=>{
+  const g=shoulder('l1mode');assert.equal(g(true),'');assert.equal(g(true),'');
+  assert.equal(g(false),'l1mode');assert.equal(g(false),'');
+  assert.equal(g(true),'');assert.equal(g(false),'l1mode');
+});
+check('L1 combination consumes toggle in either release order',()=>{
+  for(const releaseFirst of [true,false]){
+    const g=shoulder('l1mode');g(true);g(true,true);
+    if(releaseFirst)assert.equal(g(false,true),'');else assert.equal(g(true,false),'');
+    assert.equal(g(false),'');
+  }
+});
+check('L1 bank uses existing slot order and does not emit native Ctrl keys',()=>{
+  const sequence=controls.match(/slots := \[([^\]]+)\]/)[1].split(',').map(Number);
+  assert.deepEqual(sequence,[4,3,2,1,6,5,7,8]);
+  assert(controls.includes('else if (PC.l1.mode = "keyboard" and key != "")'));
+  assert(controls.includes('key:"l1mode"')&&!controls.includes('key:"switch"'));
+});
+check('mode tap waits for ack/new token and neutral; old chords stay blocked',()=>{
+  const wait=controls.slice(controls.indexOf('if (PC.l1.waiting)'),controls.indexOf('neutral := !raw.l1'));
+  assert(wait.includes('PC.ready := false')&&wait.includes('PersonalL1Block(raw)'));
+  const lease=controls.slice(controls.indexOf('\nPersonalL1Lease('),controls.indexOf('\nPersonalL1Block('));
+  assert(lease.includes('PC.ready := false')&&lease.includes('PC.l1.ack >= PC.l1.waiting'));
+});
 console.log(`${cases} personal gesture/routing scenarios passed; Windows delivery remains a live check.`);
+

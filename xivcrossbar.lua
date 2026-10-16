@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261014.personal8-sets1'
+_addon.version = '0.4.0-a.20261016.personal9-l1test1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -101,6 +101,26 @@ local is_left_doublepress_window_open = false
 local is_right_doublepress_window_open = false
 local y_adjust = 450
 
+-- A: companion state lives in this client's settings, never in the shared
+-- wrapper. The sequenced bridge cannot replay across focus/menu transitions.
+local l1_clock=require('socket').gettime
+local l1_bank=require('l1_bank').new({settings=settings,clock=l1_clock,
+    save=function() config.save(settings) end,
+    execute=function(command) windower.send_command(command) end,
+    say=function(message) windower.add_to_chat(0,('[XIVCrossbar] '):color(200)..message) end,
+    help=function(syntax,description) require('chat_help').command(syntax,description) end})
+local l1_bridge=require('l1_transport').new({session=require('windows_file').new().session_id,
+    event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
+local l1_view=require('l1_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path})
+local l1_epoch,l1_last_tick,l1_next_read=0,0,0
+local l1_drag=require('ui_drag').new({
+    enabled=function() return l1_view.opacity>.01 and not l1_bank:settings().Locked end,
+    bounds=function() return l1_view:bounds() end,
+    offsets=function() local d=l1_bank:settings();return d.X,d.Y end,
+    move=function(x,y) local d=l1_bank:settings();d.X,d.Y=x,y end,
+    save=function() config.save(settings) end,
+})
+
 local function move_crossbars(x,y)
     ui:move_to(x,y)
     env_chooser:set_anchor(ui:get_set_chooser_anchor())
@@ -137,6 +157,7 @@ local function set_compact_mode(mode)
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
 end
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
+    if l1_drag:mouse(kind,x,y,blocked) then return true end
     return crossbar_drag:mouse(kind,x,y,blocked)
 end)
 
@@ -1008,6 +1029,7 @@ function display_help_menu()
     help.command('ca alias <label>','Set the alias in the active draft (a).')
     help.command('ca command <command>','Set the command in the active draft (c).')
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
+    help.command('l1 [help|status]','Personal L1 modes, saved eight-slot bank, position and scale.')
     help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
@@ -1080,6 +1102,7 @@ local function graceful_restart(unload)
     restart_pending = true
     xivcrossbar.ready = false
     crossbar_drag:finish()
+    l1_drag:finish();l1_bridge:reset()
     controller_switcher:cancel()
     if env_chooser.is_setup then env_chooser:close() end
     if action_binder.selector then
@@ -1129,6 +1152,7 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    l1_drag:finish();l1_bridge:reset();l1_view:destroy();personal_controls:close()
     profile_gate:reset()
     xivcrossbar.ready = false
     xivcrossbar.initialized = false
@@ -1155,6 +1179,7 @@ windower.register_event('unload',function()
     if client_registry then client_registry:close(settings.on_unload_killahk) end
     ui.autoattack:set_enabled(false)
     personal_controls:close()
+    l1_drag:finish();l1_bridge:reset();l1_view:destroy()
     controller_switcher:cancel()
     crossbar_drag:finish()
     text_input_guard:reset_confirmation()
@@ -1176,6 +1201,16 @@ windower.register_event('addon command', function(command, ...)
     -- A: the binding consumes native input without echoing or executing
     -- an action; the keyboard router independently handles the actual slot.
     if command == 'inputconsume' then
+        return
+    elseif command == 'l1' then
+        local operation=(...) or 'help'
+        if not xivcrossbar.ready and operation~='help' and operation~='status' then
+            windower.add_to_chat(0,'[XIVCrossbar] Log in and finish setup before changing the L1 bank.');return
+        end
+        l1_drag:finish()
+        l1_bank:command({...})
+        l1_epoch=l1_epoch+1
+        if publish_personal_context then publish_personal_context() end
         return
     elseif command == 'controller' then
         local mode, name, device = ...
@@ -1259,6 +1294,8 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | Text fade: ' .. tostring(settings.Animation.TextFade) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
         windower.add_to_chat(207, '[XIVCrossbar] Autoattack estimate: ' .. tostring(settings.AutoAttackIndicator.Enabled) .. ' | Opacity: ' .. tostring(settings.AutoAttackIndicator.Opacity))
+        l1_bank:status()
+        windower.add_to_chat(0,'[XIVCrossbar] L1 bridge: received='..l1_bridge.received..' | rejected='..l1_bridge.rejected..' | ack='..l1_bridge.ack)
         windower.add_to_chat(207, '[XIVCrossbar] Ready: ' .. tostring(xivcrossbar.ready == true) ..
             ' | Setup: ' .. tostring(gamepad_mapper.is_showing == true) .. ' (state ' .. tostring(gamepad_mapper.state) ..
             ') | Capture: ' .. tostring(gamepad_state.capturing == true))
@@ -1770,11 +1807,31 @@ local function input_context()
 end
 publish_personal_context = function()
     if settings.ControllerProfile~='ps5-extended' or not windower.ffxi.get_info().logged_in then
-        personal_controls:close();return
+        l1_bridge:reset();personal_controls:close();return
     end
     local context = (restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
+    local info=windower.ffxi.get_info()
+    local character=windower.ffxi.get_player()
+    if info.chat_open then context='text' end
+    local now=l1_clock()
+    if l1_last_tick>0 and now-l1_last_tick>.5 then l1_epoch=l1_epoch+1 end
+    l1_last_tick=now
+    local eligible=context=='gameplay' and windower.has_focus() and not info.chat_open and not info.menu_open
+        and character and character.status~=4
+    local key=table.concat({player.server or '',player.name or '',context,l1_bank:mode(),tostring(l1_epoch)},':')
+    l1_bridge:context(key,eligible)
+    if l1_bridge.token and now>=l1_next_read then
+        l1_next_read=now+.02
+        local f=io.open(windower.addon_path..'data/personal-controls/'..player.name..'.l1','rb')
+        if f then
+            local contents=f:read(4097);f:close();l1_bridge:accept(contents)
+        end
+        -- A tap changes the saved mode: invalidate any further old-mode edges.
+        local updated=table.concat({player.server or '',player.name or '',context,l1_bank:mode(),tostring(l1_epoch)},':')
+        if updated~=key then l1_bridge:context(updated,eligible) end
+    end
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
-        settings.ControllerProfile,context)
+        settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- Own Escape through key-up after closing: neither repeats nor release
@@ -1895,6 +1952,7 @@ local frame = 0
 -- local controller ownership without submitting or discarding menu drafts.
 local focus_release_keys = {}
 local function clear_controller_input(regained)
+    l1_epoch=l1_epoch+1;l1_bridge:reset();l1_bank:cancel();l1_drag:finish()
     set_chooser_button_down=false
     menu_escape_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
@@ -1929,6 +1987,14 @@ windower.register_event('prerender',function()
         check_profile_ready()
     end
     publish_personal_context()
+    local l1_info=windower.ffxi.get_info()
+    local l1_character=windower.ffxi.get_player()
+    local l1_display=xivcrossbar.ready and not restart_pending and settings.ControllerProfile=='ps5-extended'
+        and action_binder.is_hidden and not env_chooser:is_showing() and not gamepad_mapper.is_showing
+        and l1_character and l1_character.status~=4 and not l1_info.chat_open and not l1_info.menu_open
+    local viewport=windower.get_windower_settings()
+    l1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
+    if not l1_display then l1_drag:finish() end
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then
         next_catalog_refresh=catalog_clock()+1
         local ok,changed=player:refresh_custom_catalogs()

@@ -1,4 +1,43 @@
-# Personal 8 keyboard controls — current proposal implemented for live testing
+# Personal 9 — current L1 prototype (October 16, 2026)
+
+Runtime personal9-l1test1; wrapper Controls=9.0-l1. The Personal 8 mappings below
+remain applicable except **bare L1 release now toggles keyboard/bank mode**, not
+client switching, and **L1+directions/face buttons use the editable bank in bank
+mode**. Keyboard mode retains the listed Ctrl shortcuts. An L1 combination
+consumes the tap in either release order; no double-tap delay is introduced.
+
+The eight-slot bank and mode save per character, separately from trigger-bar
+sets. Slots are 1 Left, 2 Down, 3 Right, 4 Up, 5 Square, 6 Cross, 7 Circle,
+8 Triangle. New banks are empty. See README and `//xb l1 help` for assignment,
+append, clearing, mode, scale, position, lock and preview commands. Canonical
+commands use `//xb l1`, not a separate addon or global alias.
+
+The two-diamond reference fades in keyboard mode and remains visible in bank
+mode. Normal gameplay buttons still require no L1 and remain unaffected. The
+companion has independent scale/position, explicit drag unlock and screen clamps.
+L1+R1 Tab and native Ctrl/Alt pairs retain priority. Main bars are not forced
+visible. Native/addon menus and cutscenes hide the companion; only a fresh
+foreground gameplay context accepts bank events. A held button does not execute
+on focus regain, menu closure or reconnect. The wrapper must be restarted.
+Keyboard-mode Ctrl menu toggles remain usable inside native menus; chat/text
+entry blocks personal gestures. Bank actions and mode taps require gameplay.
+
+The Lua mode is authoritative. AHK keeps native Ctrl-key ownership and publishes
+ordered per-client L1 event snapshots, retaining unacknowledged edges. Each
+context/session token expires at menu/focus/mode transitions; a render stall over
+0.5 seconds also rearms. Snapshots older than one wallclock second are rejected.
+AHK waits for the toggle acknowledgment/new token and then physical neutral.
+No F13/F14/media transport or global event hook is added. The bridge's 20ms read
+interval and native scheduling are not a measured latency guarantee.
+
+All new runtime features are implemented for testing, not user-confirmed live.
+Existing sticky/doubling input and cutscene-reveal reports remain unresolved.
+The chronological sections below are **historical**, including headings that
+formerly called Personal 8 the current version and said no companion existed.
+
+---
+
+# Historical Personal 8 keyboard controls
 
 Runtime: personal8-sets1 (includes Controls1). Wrapper reports personal_version=8.1. PS5 Extended
 only; ordinary controller profiles keep the shared Apps transport. The supplied

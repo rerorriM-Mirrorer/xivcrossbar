@@ -6,25 +6,39 @@ function M.new(options)
     local self={clock=options.clock or require('socket').gettime,open=options.open or io.open,
         remove=options.remove or os.remove,create_dir=options.create_dir or windower.create_dir}
     function self:close()
-        if self.path then self.remove(self.path) end
-        self.path,self.mode,self.next_write=nil,nil,nil
+        if self.path then
+            self.remove(self.path)
+            self.remove(self.path:gsub('%.ini$','.l1'))
+            self.remove((self.path:gsub('%.ini$','.l1'))..'.tmp')
+            self.remove(self.path..'.tmp')
+        end
+        self.path,self.mode,self.next_write,self.payload=nil,nil,nil,nil
     end
-    function self:update(directory,name,profile,mode)
+    function self:update(directory,name,profile,mode,l1)
         if profile~='ps5-extended' or type(name)~='string' or not name:match('^%a+$') then
             self:close();return false
         end
         local path=directory..name..'.ini'
         if self.path~=path then self:close();self.create_dir(directory);self.path=path end
         local now=self.clock()
-        if self.mode==mode and self.next_write and now<self.next_write then return true end
+        l1=l1 or {}
+        local payload='\nl1token='..(l1.token or '')..'\nl1mode='..(l1.mode or 'keyboard')..'\nl1ack='..(l1.ack or 0)..'\n'
+        if self.mode==mode and self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.25
         -- Partial reads are safe: AHK requires name/mode/timestamp before use.
-        local f=self.open(path,'w')
+        -- Publish complete leases, not a half-written gameplay/menu context.
+        local temporary=path..'.tmp'
+        local f=self.open(temporary,'w')
         if not f then self.remove(path);self.mode=nil;return false end
-        local ok=f:write('[Personal]\nname='..name..'\nmode='..mode..'\ntimestamp='..math.floor(now)..'\n')
-        f:close();self.mode=ok and mode or nil
-        if not ok then self.remove(path) end
-        return ok~=nil
+        local ok=f:write('[Personal]\nname='..name..'\nmode='..mode..'\ntimestamp='..math.floor(now)..payload)
+        local closed=f:close();ok=ok and closed
+        if ok then
+            self.remove(path)
+            ok=(options.rename or os.rename)(temporary,path)
+        end
+        self.mode=ok and mode or nil;self.payload=ok and payload or nil
+        if not ok then self.remove(path);self.remove(temporary) end
+        return ok~=nil and ok~=false
     end
     return self
 end

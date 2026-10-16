@@ -1,4 +1,69 @@
-# XIVCrossbar — NEW RC3-based personal complete testing installation
+# XIVCrossbar — Personal 9 L1 Test 1
+
+Runtime: **0.4.0-a.20261016.personal9-l1test1**; shared wrapper Controls **9.0-l1**.
+Built on the new RC3 personal line, not the legacy Batch-era line. Public RC3 is
+unchanged by this development. Author: A. Native Windows/FFXI acceptance pending.
+
+## First L1 prototype
+
+PS5 Extended only. An unused L1 tap now switches modes on release instead of
+cycling FFXI clients. In **keyboard** mode, L1 combinations retain the current
+Ctrl shortcuts; a small upper-left two-diamond reference fades after release.
+In **bank** mode, L1 plus a direction/face button executes its saved command
+once on press. The companion remains visible, but ordinary buttons without L1
+remain normal gameplay input. Empty slots do nothing; no default actions ship.
+
+Mode and all eight slots save per character through Windower config. The bank
+is independent of the main trigger-bar sets/jobs. L1+R1 Tab, native L1+L2 Ctrl
+and R1+R2 Alt pairs retain priority. Menus/text entry suppress bank execution;
+keyboard-mode Ctrl shortcuts still open/close native menus; native chat blocks
+personal gestures.
+focus/context changes require a new neutral input before personal gestures.
+There is no separate L1 addon, automatic Trust loader or new F/media-key mapping.
+
+```
+//xb l1 help
+//xb l1 status
+//xb l1 1 Hello input /echo L1-left
+//xb l1 6 Hello input /echo L1-cross
+//xb l1 append 6 input /echo Second-command
+//xb l1 mode bank
+//xb l1 clear 6
+//xb l1 unlock
+//xb l1 lock
+//xb l1 scale 0.8
+//xb l1 resetpos
+//xb l1 preview
+```
+
+Slots: **1 Left, 2 Down, 3 Right, 4 Up, 5 Square, 6 Cross, 7 Circle, 8 Triangle**.
+Quote a multiword alias. Native spell/item names keep their grouping, for example
+`//xb l1 6 Heal input /ma "Cure III" <p1>`. Use append for a semicolon chain.
+This first editor is command-based; catalog/menu binding and multiple banks are
+not included. Commands are under `//xb l1`; no global `//l1` alias is installed.
+
+The companion has its own position/scale/drag lock and hides during native/addon
+menus, text entry and cutscenes. Default mode is keyboard; default position is
+24,70, scale 0.8, locked. Inactive/background bank displays may remain visible;
+only the foreground client can receive a valid bank event.
+
+## Updating this test build
+
+Stop `//xb controller stop`, then unload XIVCrossbar on **all** clients. Back up
+the personal installation. Install the complete xivcrossbar/ folder and restore
+its personal data/, config.ini and custom icons. Restart with all buttons and
+sticks neutral; verify `//xb controller status` reports Controls=9.0-l1. Lua
+reload alone does not update a running AHK wrapper. Run one variant/wrapper per PC.
+
+The testing ZIP also includes the unchanged **TrustMovement 0.1.1** companion
+folder, not its old wrapper/Trust overlays. Keep it managed by AddonManager and
+preserve existing Trust quiet patches. L1 does not require TrustMovement.
+
+The older RC3 introduction below is historical, superseded by this section.
+
+---
+
+# Historical RC3 complete-install introduction
 
 October 16, 2026: Save Only / Save Changes now returns to the custom-action
 picker with the saved record selected, instead of closing the editor. Save &
@@ -213,6 +278,21 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Personal 9 L1 Test 1 — October 16, 2026
+
+- Add unused-L1 mode switching, native-shortcut reference and one saved eight-slot
+  command bank with independent compact companion layout, scale, position and lock.
+- Use session/context tokens, ordered event snapshots, acknowledgments and a
+  neutral rearm fence; no additional synthetic keyboard transport. Preserve native
+  shortcut key ownership, L2/R2 routing, R1, PS/touchpad and movement integration.
+- Publish complete personal-control lease files and update mode/ack changes
+  immediately. This is not a proven fix for the reported general input stickiness.
+- Add bank/bridge/lease/UI and root-integration regression fixtures. Native AHK
+  execution remains a live test; translated pure functions are not Windows proof.
+- Save Only / Save Changes returns to the selected scoped catalog entry. Failed
+  saves retain drafts; Save & Bind is unchanged. Include TrustMovement companion
+  in the complete test ZIP without copying its older AHK/Trust patch overlays.
 
 ### Personal 5 — October 13, 2026
 
