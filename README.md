@@ -1,3 +1,23 @@
+# XIVCrossbar — PUBLIC RC3 maintenance complete testing installation
+
+This is a **complete installation**, including required images/themes. It is
+not an update patch. The current runtime code is unchanged by this handoff
+delivery. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and
+[the branch map](docs/BRANCH-MAP.md) before testing or opening a new development
+conversation. Package-root TESTING.md gives installation and first tests.
+
+No saved settings, config.ini, catalogs, bindings or controller preferences
+are supplied. Preserve the appropriate installation's data separately. Both
+variants use the xivcrossbar name and keyboard transport: test one at a time per
+PC, stopping the wrapper and unloading all clients before changing variants.
+
+Current runtime is **public-rc3-cleanup1**, with RC3 Icons/Credits/Escape
+and compact/stroke/resource maintenance ports. It does not include the personal
+controller profile, personal catalogs, movement signaling or the future L1 banks.
+A dedicated //xb unload alias is pending; use //lua u xivcrossbar.
+
+---
+
 # XIVCrossbar — Apps-key public release candidate
 
 Based on qEagleStrikerp's consolidated XIVCrossbar repository, with updates by A.
