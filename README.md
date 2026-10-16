@@ -1,8 +1,44 @@
-# XIVCrossbar — Personal 9 L1 Test 1
+# XIVCrossbar — Personal 9 L1 Test 2
 
-Runtime: **0.4.0-a.20261016.personal9-l1test1**; shared wrapper Controls **9.0-l1**.
+Runtime: **0.4.0-a.20261016.personal9-l1test2**; shared wrapper Controls **9.1-diag**.
 Built on the new RC3 personal line, not the legacy Batch-era line. Public RC3 is
 unchanged by this development. Author: A. Native Windows/FFXI acceptance pending.
+
+## Controller comparison and compact companion update
+
+`//xb controller profile x` now selects PS5 Extended. `ps5extended` and the full
+name still work. `xinput` remains a different reader; x is not its abbreviation.
+`//xb controller profile ps5` selects the ordinary PS5 profile. Both profiles use
+our shared AHK reader; ps5 skips the extended personal-control layer. Wait for
+the selected/running profile to match in `//xb controller status` before comparing.
+The wrapper is shared across clients: use one testing client to request switches.
+
+The L1 companion now uses a tighter two-diamond layout with 40px slots and 6px
+spacing, PS symbols inside the installed slot background/frame themes, and aliases
+underneath. Its own position/scale/drag lock and existing bank assignments persist.
+Static companion frames reuse their prior drawing state instead of resubmitting
+native drawing calls every render; fades, dragging and label edits still redraw.
+No mode-switching, native modifier, D-pad or shoulder-order changes in this update.
+
+For the reported sticky input on Frank's PC, `//xb controller trace on` requests
+a 30-second wrapper capture; off stops early. The log is
+`xivcrossbar/data/controller-input-trace.log`, buffered until stop/expiry/size limit.
+Capture the same bare D-pad taps/holds, face presses and trigger actions first
+with ps5, then with x. The log separates physical AHK button readings from routed
+states and emitted keys, and reports poll/read/personal-handler timing and lease
+misses. No chat text is recorded. `//xb controller status` also shows lifetime
+maxima and miss counters for this wrapper process. Maxima include startup/focus
+events; correlate a trace with the actual sticky action instead of treating a
+large maximum as proof. Trace overhead may affect timing while enabled.
+
+If ps5 is clean and x sticky, the personal layer becomes the next investigation
+target. If both are sticky, the common wrapper/Lua path, native duplicate input,
+device/driver and client timing remain candidates. Neither outcome alone proves
+a cause. No generic debounce, key-delay change or sticky-input fix is claimed.
+
+Save Only is already present from Test 1. User confirmed L1+Left echo and mode
+switching live; general stickiness remains unresolved. See TESTING for the queued
+shoulder-order, Ctrl/Alt/R1 and combat-bar design, which is not installed here.
 
 ## First L1 prototype
 
@@ -52,7 +88,7 @@ only the foreground client can receive a valid bank event.
 Stop `//xb controller stop`, then unload XIVCrossbar on **all** clients. Back up
 the personal installation. Install the complete xivcrossbar/ folder and restore
 its personal data/, config.ini and custom icons. Restart with all buttons and
-sticks neutral; verify `//xb controller status` reports Controls=9.0-l1. Lua
+sticks neutral; verify `//xb controller status` reports Controls=9.1-diag. Lua
 reload alone does not update a running AHK wrapper. Run one variant/wrapper per PC.
 
 The testing ZIP also includes the unchanged **TrustMovement 0.1.1** companion
@@ -278,6 +314,19 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Personal 9 L1 Test 2 — October 16, 2026
+
+- Add x as a deterministic short alias for PS5 Extended, retaining existing aliases.
+- Tighten the companion to the main crossbar's slot spacing; reuse actual theme
+  backgrounds/frames around the PS button art. Preserve all assignments and scale.
+- Cache unchanged companion rendering to avoid redundant native calls across
+  multiple clients. Do not attribute general input stickiness to this alone.
+- Add optional bounded wrapper tracing, raw/routed button states, key-output
+  records, context-lease misses and timing maxima. Keep input decisions and native
+  key emission order unchanged; this is diagnosis, not a proven stickiness fix.
+- Preserve the user-confirmed echo/mode-switch behavior and record upcoming control
+  design separately. Save Only was already included in Test 1; no re-port required.
 
 ### Personal 9 L1 Test 1 — October 16, 2026
 

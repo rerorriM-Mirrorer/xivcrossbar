@@ -63,11 +63,14 @@ PersonalInit(profile, joystickPrefix)
 WrapperClientsInit()
 ; A: movement has its own per-focus latch; button neutral never rearms it.
 MovementInit()
+InputTraceInit()
 WriteTransportStatus(true)
 SetTimer, TransportPoll, 10
 return
 
 TransportPoll:
+pollStart := DllCall("GetTickCount64", "UInt64")
+InputTraceStart(pollStart)
 if (WrapperClientsShouldExit())
     ExitApp
 if FileExist(A_ScriptDir . "\data\input-stop.request") {
@@ -76,13 +79,20 @@ if FileExist(A_ScriptDir . "\data\input-stop.request") {
 }
 active := WinActive("ahk_class FFXiClass")
 ; The PS button can restore a client while another application is focused.
+readStart := DllCall("GetTickCount64", "UInt64")
 states := ReadTransportStates()
+rawBits := InputTraceMask(states)
+readMs := DllCall("GetTickCount64", "UInt64") - readStart
+personalStart := DllCall("GetTickCount64", "UInt64")
 states := PersonalPoll(states, active)
+personalMs := DllCall("GetTickCount64", "UInt64") - personalStart
+InputTraceObserve(rawBits, states, active, readMs, personalMs)
 current := WinActive("ahk_class FFXiClass")
 MovementTick(current)
 if (current != active) {
     ReleaseTransport()
     ready := false
+    InputTraceFinish(pollStart)
     return
 }
 if (!active) {
@@ -90,6 +100,7 @@ if (!active) {
     ready := false
     phase := "unfocused"
     WriteTransportStatus()
+    InputTraceFinish(pollStart)
     return
 }
 if (owner and owner != active) {
@@ -103,6 +114,7 @@ if (!connected) {
     ready := false
     phase := xinputFault ? "xinput-unavailable" : "disconnected"
     WriteTransportStatus()
+    InputTraceFinish(pollStart)
     return
 }
 MovementPoll(states, active)
@@ -117,10 +129,12 @@ WriteTransportStatus()
 if (!ready) {
     if (neutral)
         ready := true
+    InputTraceFinish(pollStart)
     return
 }
 if (anyDown and !appsOwned) {
     appsOwned := true
+    InputTraceRecord("emit " . captureKey . " down")
     SendEvent, % "{Blind}{" . captureKey . " down}"
 }
 Loop, 12 {
@@ -128,16 +142,20 @@ Loop, 12 {
     if (states[i] != previous[i]) {
         key := keys[i]
         edge := states[i] ? "down" : "up"
+        InputTraceRecord("emit " . key . " " . edge)
         SendEvent, % "{Blind}{" . key . " " . edge . "}"
         previous[i] := states[i]
     }
 }
 if (!anyDown and appsOwned) {
     physicallyHeld := GetKeyState(captureKey, "P")
-    if (!physicallyHeld)
+    if (!physicallyHeld) {
+        InputTraceRecord("emit " . captureKey . " up")
         SendEvent, % "{Blind}{" . captureKey . " up}"
+    }
     appsOwned := false
 }
+InputTraceFinish(pollStart)
 return
 
 ; Explicit local stop; it exits only this script, even outside FFXI.
@@ -146,6 +164,7 @@ return
 TransportExit:
 ; A: a v1 OnExit label must explicitly finish termination.
 ReleaseTransport()
+InputTraceClose()
 phase := "stopped"
 WriteTransportStatus(true)
 if (xinputLibrary)
@@ -173,6 +192,7 @@ AcquireWrapperMutex() {
 
 ReleaseTransport(preservePersonal := false) {
     global keys, previous, owner, appsOwned, captureKey
+    InputTraceRecord("transport release owner=" . owner . " preserve_personal=" . preservePersonal)
     MovementRelease()
     if (!preservePersonal)
         PersonalRelease()
@@ -206,6 +226,8 @@ ReadTransportStates() {
         if (GetKeyState(joystickPrefix . "JoyName") = "")
             return false
         pov := GetKeyState(joystickPrefix . "JoyPOV")
+        global IT
+        IT.pov := pov
         ; Keep one adjacent cardinal through a diagonal roll, not a neutral gap
         ; or two simultaneous crossbar slots.
         povDirection := PersonalPovDirection(pov, povDirection)
@@ -273,15 +295,125 @@ WriteTransportStatus(force := false) {
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
     global PC
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.0-l1`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=" . PC.navigation.ctrl . "`nalt_pair=" . PC.navigation.alt . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.1-diag`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=" . PC.navigation.ctrl . "`nalt_pair=" . PC.navigation.alt . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
     global TM
     contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
+    global IT
+    contents .= "input_trace=" . IT.enabled . "`npoll_max_ms=" . IT.pollMax . "`npoll_gap_max_ms=" . IT.gapMax
+        . "`nread_max_ms=" . IT.readMax . "`npersonal_max_ms=" . IT.personalMax . "`ncontext_misses=" . IT.misses . "`ntrace_error=" . IT.error . "`n"
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
     FileDelete, %temporary%
     FileAppend, %contents%, %temporary%
     FileMove, %temporary%, %destination%, 1
+}
+
+; A: observation only. Opt-in 30-second capture; no key delays, debounce,
+; device thresholds or input decisions are changed by this diagnostic.
+InputTraceInit() {
+    global IT
+    IT := {enabled:false, deadline:0, nextRequest:0, buffer:"", signature:"", previous:0
+        , gapMax:0, pollMax:0, readMax:0, personalMax:0, misses:0, error:false, pov:""}
+}
+
+InputTraceStart(now) {
+    global IT, profile, device
+    if (IT.previous)
+        IT.gapMax := Max(IT.gapMax, now - IT.previous)
+    IT.previous := now
+    if (IT.enabled and now >= IT.deadline) {
+        InputTraceRecord("capture auto-stopped after 30 seconds")
+        InputTraceClose()
+    }
+    if (now < IT.nextRequest)
+        return
+    IT.nextRequest := now + 250
+    path := A_ScriptDir . "\data\controller-trace.request"
+    if (!FileExist(path))
+        return
+    FileRead, request, %path%
+    FileDelete, %path%
+    request := Trim(request, " `t`r`n")
+    if (request = "on") {
+        InputTraceClose()
+        IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
+        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device)
+    } else if (request = "off") {
+        InputTraceRecord("capture manually stopped")
+        InputTraceClose()
+    }
+}
+
+InputTraceMask(states) {
+    global IT
+    if (!IT.enabled)
+        return ""
+    if (!IsObject(states))
+        return "disconnected"
+    mask := ""
+    Loop, 12
+        mask .= states[A_Index] ? "1" : "0"
+    return mask
+}
+
+InputTraceObserve(raw, routed, active, readMs, personalMs) {
+    global IT, PC, appsOwned, ready
+    IT.readMax := Max(IT.readMax, readMs), IT.personalMax := Max(IT.personalMax, personalMs)
+    if (!IT.enabled)
+        return
+    signature := "hwnd=" . active . " raw=" . raw . " routed=" . InputTraceMask(routed)
+        . " pov=" . IT.pov . " apps=" . appsOwned . " base_ready=" . ready
+        . " context=" . PC.context . " personal_ready=" . PC.ready
+    if (PC.enabled)
+        signature .= " l1=" . PC.previous.l1 . " r1=" . PC.previous.r1
+    if (signature != IT.signature or readMs > 30 or personalMs > 30) {
+        IT.signature := signature
+        InputTraceRecord(signature . " read_ms=" . readMs . " personal_ms=" . personalMs)
+    }
+}
+
+InputTraceFinish(started) {
+    global IT
+    elapsed := DllCall("GetTickCount64", "UInt64") - started
+    IT.pollMax := Max(IT.pollMax, elapsed)
+    if (elapsed > 30)
+        InputTraceRecord("slow poll_ms=" . elapsed)
+    if (StrLen(IT.buffer) > 65536)
+        InputTraceFlush()
+}
+
+InputTraceRecord(message) {
+    global IT
+    if (IsObject(IT) and IT.enabled)
+        IT.buffer .= DllCall("GetTickCount64", "UInt64") . " " . message . "`n"
+}
+
+InputTraceFlush() {
+    global IT
+    if (IT.buffer = "")
+        return
+    path := A_ScriptDir . "\data\controller-input-trace.log"
+    text := IT.buffer
+    IT.buffer := ""
+    FileAppend, %text%, %path%
+    if (ErrorLevel)
+        IT.error := true, IT.enabled := false
+}
+
+InputTraceClose() {
+    global IT
+    if (!IsObject(IT))
+        return
+    InputTraceFlush()
+    IT.enabled := false
+}
+
+InputTraceContextMiss(reason) {
+    global IT
+    IT.misses += 1
+    InputTraceRecord("context lease miss=" . reason)
+    return reason = "stale" ? "stale" : "unknown"
 }
 
 #Include %A_ScriptDir%\personal_controls.ahk

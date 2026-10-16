@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261016.personal9-l1test1'
+_addon.version = '0.4.0-a.20261016.personal9-l1test2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -111,7 +111,7 @@ local l1_bank=require('l1_bank').new({settings=settings,clock=l1_clock,
     help=function(syntax,description) require('chat_help').command(syntax,description) end})
 local l1_bridge=require('l1_transport').new({session=require('windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
-local l1_view=require('l1_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path})
+local l1_view=require('l1_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui_drag').new({
     enabled=function() return l1_view.opacity>.01 and not l1_bank:settings().Locked end,
@@ -351,6 +351,12 @@ local function report_controller_status()
                 ' | PS='..(status.ps_action or status.ps_hold or 'unknown')..
                 ' | Ctrl/Alt pairs='..(status.ctrl_pair or '0')..'/'..(status.alt_pair or '0'))
         end
+        if status.poll_max_ms then
+            windower.add_to_chat(0,'[XIVCrossbar] Input diagnosis: trace='..tostring(status.input_trace)..
+                ' | max poll/gap='..status.poll_max_ms..'/'..status.poll_gap_max_ms..' ms'..
+                ' | max read/personal='..status.read_max_ms..'/'..status.personal_max_ms..' ms'..
+                ' | lease misses='..status.context_misses..' | trace write error='..status.trace_error)
+        end
         if not controller_profiles.matches(status, settings.ControllerProfile, settings.ControllerDevice, controller_modifier)
             and not (controller_switcher and controller_switcher.pending) then
             windower.add_to_chat(123, '[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
@@ -402,6 +408,24 @@ local function stop_controller_wrapper()
     if not f then windower.add_to_chat(123, '[XIVCrossbar] Could not write wrapper stop request.'); return false end
     f:write(tostring(os.time())); f:close()
     windower.add_to_chat(207, '[XIVCrossbar] Shared wrapper stop requested for all clients.')
+    return true
+end
+local function request_controller_trace(mode)
+    if mode~='on' and mode~='off' then
+        windower.add_to_chat(0,'[XIVCrossbar] //xb controller trace on|off');return false
+    end
+    local current=controller_status()
+    if not current or not current.running then
+        windower.add_to_chat(0,'[XIVCrossbar] Start the current controller wrapper before requesting a trace.');return false
+    end
+    local f=io.open(windower.addon_path..'data/controller-trace.request','w')
+    if not f then windower.add_to_chat(0,'[XIVCrossbar] Could not write controller trace request.');return false end
+    local written=f:write(mode);local closed=f:close()
+    if not written or not closed then
+        windower.add_to_chat(0,'[XIVCrossbar] Controller trace request failed.');return false
+    end
+    windower.add_to_chat(0,'[XIVCrossbar] Wrapper trace '..mode..' requested'..
+        (mode=='on' and ' for 30 seconds.' or '.')..' Log: data/controller-input-trace.log')
     return true
 end
 controller_switcher = require('controller_switch').new({
@@ -1032,6 +1056,7 @@ function display_help_menu()
     help.command('l1 [help|status]','Personal L1 modes, saved eight-slot bank, position and scale.')
     help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
+    help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
     help.command('scale <0.25-2>','Scale crossbars independently of menus.')
     help.command('compact [on|off]','Switch layout immediately; bare toggles.')
@@ -1220,6 +1245,7 @@ windower.register_event('addon command', function(command, ...)
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
         elseif mode == 'profile' then select_controller_profile(name, device)
         elseif mode == 'status' then report_controller_status()
+        elseif mode == 'trace' then request_controller_trace(name)
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
                 local profile = controller_profiles.profiles[id]

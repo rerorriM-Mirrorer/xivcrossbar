@@ -12,8 +12,9 @@ M.profiles = {
 }
 M.aliases = {ps5='ps5-directinput', f710='f710-directinput',
     fightpadpro='fightpadpro-directinput', xinput='xinput', xinputalt='xinput-r1-chooser',
-    ps5extended='ps5-extended'}
+    ps5extended='ps5-extended', x='ps5-extended'}
 function M.short_name(name)
+    if name=='ps5-extended' then return 'x' end
     for short, canonical in pairs(M.aliases) do if canonical == name then return short end end
     return name
 end

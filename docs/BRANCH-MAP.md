@@ -1,5 +1,9 @@
 # XIVCrossbar branch map and shared working rules
 
+Current personal continuation: personal9-l1test2 / Controls=9.1-diag, x profile
+alias, compact themed companion slots and optional wrapper diagnosis. Earlier
+personal/public checkpoint tables below are historical. Public source unchanged.
+
 October 16 continuation by A: **personal/ps5extended** now has
 **personal9-l1test1 / Controls=9.0-l1**, including Save Only catalog return and
 the first two-mode L1 companion with one saved eight-slot command bank. See

@@ -1,4 +1,42 @@
-# Personal 9 — current L1 prototype (October 16, 2026)
+# Personal 9 Test 2 — compact slots and controller diagnosis
+
+Runtime personal9-l1test2, Controls=9.1-diag. x aliases ps5-extended; ps5extended
+remains accepted. The standard ps5 profile uses the same base wrapper without
+the personal layer, making it useful for comparison but not an untouched
+upstream-script test. The companion is tighter and uses native themed icon slots.
+All Test 1 control mappings remain, including the symmetric native Ctrl/Alt pairs.
+
+User confirmed L1-left/echo and mode switching working live, likes the display,
+and reports severe remaining stickiness on Frank's computer. No cause established.
+Use //xb controller trace on for an optional 30-second raw/routed/output/timing
+capture with each profile; status shows timing maxima and lease-miss counts.
+Stop the trace before reading its buffered log. No input timing changes made.
+
+## Agreed next design and open choices — not implemented
+
+- Trigger first (L2 then L1) MUST retain the ordinary L2 crossbar. Current native
+  modifier pairs still accept both orders; ordered routing is a next-pass change.
+- Shoulder first then trigger selects a separate Ctrl/Alt companion; releasing
+  the trigger while still holding the shoulder should reveal the shoulder layer
+  again. Reveal must not execute a newly exposed held-button action.
+- Consider one L1 keyboard reference instead of a mode toggle, plus R1 reference
+  with unused bare-release F8, and a separate R1-then-R2 bar upper-right. Whether
+  L1/R1 swap Ctrl/Alt schemas is not decided. Native directional menu/list controls
+  and Trust's direct D-pad navigation remain important.
+- Inventory cluster: unused job-ability/magic shortcuts could become Sack/Wardrobe
+  accesses; do not fill every slot just because it exists. Bindings not changed yet.
+- R2 combat cluster may add native F8 acquisition before Apps+F12, plus temporary
+  magic/ability/item submenus. Timing/retarget rules still experimental; no F8
+  pulse or extra delay was added. Apps+F8 remains Triangle, not the R2 signal.
+- Basic is the ordinary selected top layer, not a special fallback provider for
+  every other set. Main is a candidate display name; no keys/files renamed.
+  Shared can be another selectable top layer across jobs but is not a fallback
+  provider to other sets. Its display/execution fallback discrepancy is retained
+  pending the user's design choice; do not silently make it standalone here.
+
+---
+
+# Historical Personal 9 Test 1 prototype (October 16, 2026)
 
 Runtime personal9-l1test1; wrapper Controls=9.0-l1. The Personal 8 mappings below
 remain applicable except **bare L1 release now toggles keyboard/bank mode**, not

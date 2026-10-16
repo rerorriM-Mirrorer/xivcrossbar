@@ -23,9 +23,9 @@ assert git('branch','--show-current')=='personal/ps5extended'
 assert re.fullmatch('[0-9a-f]{40}',args.published)
 assert not args.output.exists(), 'Do not overwrite an existing delivery.'
 local=git('rev-parse','HEAD')
-header=(f'Complete personal L1 Test 1; branch: personal/ps5extended\n'
+header=(f'Complete personal L1 Test 2; branch: personal/ps5extended\n'
         f'Local source commit: {local}\nPublished source commit: {args.published}\n'
-        'Runtime: personal9-l1test1; Controls=9.0-l1\n'
+        'Runtime: personal9-l1test2; Controls=9.1-diag\n'
         'TrustMovement 0.1.1 companion: unchanged receiver from TrustMovement-v0.1.1-Quiet.zip\n\n').encode()
 entries={'TESTING.md':header+(root/'TESTING.md').read_bytes(),
          'WORKFLOW.md':(root/'WORKFLOW.md').read_bytes()}

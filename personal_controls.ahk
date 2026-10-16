@@ -244,15 +244,15 @@ PersonalContext(hwnd) {
             continue
         if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", stamp)
             or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", mode))
-            return "unknown"
+            return InputTraceContextMiss("malformed")
         age := now - stamp1
         if (age >= -1 and age <= 2) {
             PersonalL1Lease(lease, A_LoopFileFullPath)
             return mode1
         }
-        return "stale"
+        return InputTraceContextMiss("stale")
     }
-    return "unknown"
+    return InputTraceContextMiss("no-matching-lease")
 }
 
 ; A: complete mailbox snapshots; only Lua's current session token may receive
@@ -334,9 +334,11 @@ PersonalKey(key, down) {
         if GetKeyState(key, "P")
             return
         PC.keys[key] := PC.owner
+        InputTraceRecord("personal " . key . " down owner=" . PC.owner)
         SendEvent, % "{Blind}{" . key . " down}"
     } else if (PC.keys.HasKey(key)) {
         owner := PC.keys[key]
+        InputTraceRecord("personal " . key . " up owner=" . owner)
         if (owner = WinExist("A")) {
             if (!GetKeyState(key, "P"))
                 SendEvent, % "{Blind}{" . key . " up}"

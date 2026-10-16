@@ -1,4 +1,18 @@
-# Current continuation — Personal 9 L1 Test 1 (October 16, 2026)
+# Current continuation — Personal 9 L1 Test 2 (October 16, 2026)
+
+personal9-l1test2 / Controls=9.1-diag: x alias, tighter themed companion slots and
+optional 30-second wrapper tracing. Test 1 controls/binds remain. Save Only was
+already implemented in Test 1. L1-left/echo and mode switching are user-confirmed
+live; Frank's PC still has substantial sticky input. Do not claim a cause or fix.
+Compare ps5 vs x with current selected/running status; both use the shared reader.
+Trace: //xb controller trace on|off, log data/controller-input-trace.log (buffered).
+Read TESTING/PERSONAL's current sections for the exact A/B test and agreed but
+unimplemented trigger-order, return-to-shoulder, inventory and combat-bar ideas.
+No public changes, bank collapse, Ctrl/Alt swap, Basic rename or R2 F8 experiment.
+
+---
+
+# Historical continuation — Personal 9 L1 Test 1 (October 16, 2026)
 
 Author: A. Branch personal/ps5extended. Runtime personal9-l1test1; Controls=9.0-l1.
 The earlier handoff below remains a historical record. Its statements that L1

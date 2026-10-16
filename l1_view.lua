@@ -2,7 +2,9 @@
 -- and dragging are independent of the main trigger bars and their autohide.
 local bank=require('l1_bank')
 local M={}
-local layout={{36,100},{100,153},{164,100},{100,47},{218,100},{282,153},{346,100},{282,47}}
+-- Centers use the main crossbar's 40px slots + 6px spacing. The second
+-- diamond begins after a single empty center, rather than a wide panel gap.
+local layout={{30,82},{76,128},{122,82},{76,36},{168,82},{214,128},{260,82},{214,36}}
 -- These bundled artwork suffixes use b=Square and x=Circle, not Xbox semantics.
 local icons={'dpad_playstation_left','dpad_playstation_down','dpad_playstation_right','dpad_playstation_up',
     'facebuttons_playstation_b','facebuttons_playstation_a','facebuttons_playstation_x','facebuttons_playstation_y'}
@@ -22,16 +24,25 @@ function M.new(options)
         self.bg:path(options.path..'images/icons/iconpacks/default/ui/bar_bg_compact.png')
         self.bg:hide();self.objects[#self.objects+1]=self.bg
         self.title=text(11)
+        local theme=options.settings and options.settings.Theme or {}
+        local slot_theme=tostring(theme.Slot or 'ffxiv'):lower()
+        local frame_theme=tostring(theme.Frame or 'ffxiv'):lower()
         for i=1,8 do
+            local background=options.resources.image({draggable=false})
+            background:path(options.path..'themes/'..slot_theme..'/slot.png')
+            background:hide();self.objects[#self.objects+1]=background
             local icon=options.resources.image({draggable=false})
             icon:path(options.path..'images/icons/iconpacks/default/ui/binding_icons/'..icons[i]..'.png')
             icon:hide();self.objects[#self.objects+1]=icon
-            self.slots[i]={icon=icon,number=text(8),alias=text(10)}
+            local frame=options.resources.image({draggable=false})
+            frame:path(options.path..'themes/'..frame_theme..'/frame.png')
+            frame:hide();self.objects[#self.objects+1]=frame
+            self.slots[i]={background=background,icon=icon,frame=frame,number=text(8),alias=text(9)}
         end
     end
     function self:bounds()
         local d=options.bank:settings()
-        return {x=d.X,y=d.Y,width=382*d.Scale,height=205*d.Scale}
+        return {x=d.X,y=d.Y,width=292*d.Scale,height=182*d.Scale}
     end
     function self:clamp(width,height)
         local d=options.bank:settings();local b=self:bounds()
@@ -46,24 +57,40 @@ function M.new(options)
             if self.visible~=false then for _,o in ipairs(self.objects) do o:hide() end end
             self.visible=false;return
         end
-        self.visible=true
         local d=options.bank:settings();local s,x,y=d.Scale,d.X,d.Y
         local alpha=math.floor(255*self.opacity+.5)
-        self.bg:pos(x,y);self.bg:size(382*s,205*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
+        local labels,parts={},{d.Mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha)}
+        for i=1,8 do
+            local entry=d['Slot'..i]
+            local label=d.Mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
+            if #label>10 then label=label:sub(1,9)..'~' end
+            labels[i]=label;parts[#parts+1]=string.format('%q',label)
+        end
+        local key=table.concat(parts,'|')
+        -- A persistent companion is mostly static. Do not repeat native
+        -- position/size/font/show calls on every render of every client.
+        -- Retry deferred native glyph measurements before allowing the cache.
+        if self.visible and self.render_key==key and not self.needs_measurement then return end
+        self.visible=true;self.render_key=key;self.needs_measurement=false
+        self.bg:pos(x,y);self.bg:size(292*s,182*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
         local title='L1  '..(d.Mode=='bank' and 'Action Bank' or 'Keyboard Shortcuts')..(d.Locked and '' or '  [drag]')
         self.title:text(title);self.title:size(math.max(6,math.floor(11*s+.5)));self.title:pos(x+10*s,y+8*s)
         self.title:alpha(alpha);self.title:stroke_alpha(math.floor(alpha*.7));self.title:show()
         for i,slot in ipairs(self.slots) do
             local px,py=layout[i][1],layout[i][2]
-            slot.icon:pos(x+(px-12)*s,y+py*s);slot.icon:size(24*s,24*s);slot.icon:alpha(alpha);slot.icon:show()
-            slot.number:text(tostring(i));slot.number:size(math.max(4,math.floor(8*s+.5)));slot.number:pos(x+(px-24)*s,y+(py+2)*s)
-            local entry=d['Slot'..i]
-            local label=d.Mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
-            if #label>10 then label=label:sub(1,9)..'~' end
-            slot.alias:text(label);slot.alias:size(math.max(4,math.floor(10*s+.5)))
+            slot.background:pos(x+(px-20)*s,y+py*s);slot.background:size(40*s,40*s)
+            slot.background:alpha(math.floor(alpha*.6));slot.background:show()
+            slot.icon:pos(x+(px-18)*s,y+(py+2)*s);slot.icon:size(36*s,36*s);slot.icon:alpha(alpha);slot.icon:show()
+            slot.frame:pos(x+(px-20)*s,y+py*s);slot.frame:size(40*s,40*s);slot.frame:alpha(alpha);slot.frame:show()
+            slot.number:text(tostring(i));slot.number:size(math.max(4,math.floor(8*s+.5)));slot.number:pos(x+(px-18)*s,y+(py+1)*s)
+            local label=labels[i]
+            local font_size=math.max(4,math.floor(9*s+.5))
+            if slot.caption~=label then slot.alias:text(label);slot.caption=label end
+            if slot.font_size~=font_size then slot.alias:size(font_size);slot.font_size=font_size end
             local extents=slot.alias:extents()
             local width_text=type(extents)=='number' and extents or 0
-            slot.alias:pos(x+px*s-width_text/2,y+(py+27)*s)
+            if width_text<=0 then self.needs_measurement=true end
+            slot.alias:pos(x+px*s-width_text/2,y+(py+40)*s)
             for _,t in ipairs({slot.number,slot.alias}) do
                 t:alpha(alpha);t:stroke_alpha(math.floor(alpha*.7));t:show()
             end

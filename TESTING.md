@@ -1,3 +1,82 @@
+# Personal 9 L1 Test 2 — October 16, 2026
+
+Author A. Branch personal/ps5extended. Baseline published L1 commit
+69b9fe12c42b5d026dec83553f37a6117f87fdba. Exact new delivery commits are in the
+package header. Runtime personal9-l1test2; wrapper Controls=9.1-diag.
+
+## Scope and live evidence
+
+User confirms L1+Left/echo and switching work well; likes the layout. Frank's PC
+still has controller stickiness severe enough to hurt play. Cause unresolved.
+Save Only was already in Personal9 Test 1, committed separately at b923133.
+This update adds x -> ps5-extended (old aliases retained), tighter companion
+geometry and actual theme slot backgrounds/frames around PS symbols, plus
+opt-in wrapper diagnosis. Static companion rendering is cached while retaining
+fade/drag/label invalidation. Existing mode switching, actions, modifier-pair orders,
+key emissions, thresholds and native behavior are retained. Public unchanged.
+
+## Install and compare
+
+1. Stop wrapper and unload all clients; back up the personal folder. Install
+   complete xivcrossbar/, restore data/config.ini/icons. TrustMovement 0.1.1 is
+   included unchanged alongside it and stays managed by AddonManager. No user
+   settings, bindings, catalogs or diagnostic files are distributed.
+2. Restart with neutral controls. Check personal9-l1test2 and Controls=9.1-diag.
+   A Lua-only reload does not replace the running wrapper.
+3. Use the same focused client: //xb controller profile ps5. Wait until
+   //xb controller status shows the running base PS5 profile. Test bare D-pad
+   taps/holds, each face button and normal L2/R2 actions under the usual client load.
+4. //xb controller trace on; reproduce for 15-30 seconds, then off or let the
+   wrapper auto-stop after 30 seconds. Records are buffered until stop/expiry/size
+   limit in xivcrossbar/data/controller-input-trace.log. Trace overhead can affect
+   timing. No chat text is captured. Keep traces short and repeatable.
+5. //xb controller profile x. Confirm selected/running PS5 Extended, then repeat
+   the same test/trace. The log appends labeled captures, including their profile.
+   ps5 is our common reader WITHOUT personal controls; x adds the personal layer.
+   This does not compare our entire wrapper to the untouched upstream AHK script.
+6. Share which profile sticks, whether bare D-pad vs R1 arrows differ, and the
+   trace/status. If x alone sticks, inspect personal handling/context leases first.
+   If both stick, inspect common transport/Lua/native duplicate input/driver/client
+   timing next. Neither result proves a root cause by itself.
+
+## Diagnostic meaning
+
+raw/routed masks order: Up Right Down Left Cross Square Circle Triangle Share
+Options L2 R2. Trace records POV, personal context/rearm, base output edges and
+owned personal key transitions, plus slow polls (>30ms) and lease failures.
+Status records lifetime max poll gap, poll/read/personal-handler duration, lease
+miss count and trace write-error flag. Maxima can include startup/focus stalls;
+use correlated capture events, not one number alone. A lease miss counter counts
+read attempts, not distinct hardware failures. Diagnostics do not debounce input,
+change SendEvent delays, request higher timer resolution or claim an input fix.
+
+## Verification
+
+Lua 5.4 temporary-normalization fallback: deterministic new/old profile aliases,
+actual trace-command guards/write failure, L1 bank/bridge/lease/root integration,
+42 fixed UI surfaces, 24 scale/resolution clamps, 300 reveal/hide cycles, Save
+Only plus catalog/XML/Windows-file/menu/default-destination regressions passed.
+AHK lexical/include checks, 37 translated personal gesture/routing scenarios,
+shared-client lifecycle and actual pure trace-helper simulations pass. Source
+review confirms native SendEvent/ControlSend statements and ordering unchanged.
+Font/asset geometry inspected in a local preview; not native Windower rendering.
+Native AHK timer/file scheduling and Windows/FFXI live acceptance remain pending.
+
+## Queued, not installed in this delivery
+
+See PERSONAL for the newly agreed L2-then-L1 ordinary crossbar priority and
+return-to-L1 reveal after releasing L2; possible one-layer L1/R1 references,
+Ctrl/Alt schema choices, inventory cluster, R2 F8/combat submenus, and Basic's
+possible Main display name. Shared's invisible fallback execution was reproduced
+in review and is retained pending its intended role. It supplies no fallback to
+other sets. No changes to Pathfinder/Sparks/NPCMirror belong to this controller ZIP.
+
+Older cumulative records follow unchanged; their "current"/"pending" wording
+applies to their dates. Test 1's live-pending statement is superseded only for
+the user's confirmed L1 echo and switching observations, not all listed checks.
+
+---
+
 # Personal 9 L1 Test 1 — October 16, 2026
 
 Author: A. Branch: personal/ps5extended. Baseline published checkpoint:
