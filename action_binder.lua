@@ -1236,7 +1236,14 @@ function action_binder:submit_selected_option()
                 self.action_target = nil
                 self.state = states.SELECT_BUTTON_ASSIGNMENT
                 self:display_button_assigner()
-            else self:hide(); self:reset_state() end
+            else
+                local d=self.custom_action_draft
+                local selected={key=d._key or d.name,scope=d._scope,id=d.id}
+                self:reset_state()
+                self.action_type=action_types.EDIT_CUSTOM_ACTION
+                self.state=states.EDIT_CUSTOM_ACTION_PICK
+                self:display_custom_actions_picker('Edit Custom Action: Pick Entry',selected)
+            end
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_PICK) then
         local option = self.selector:submit_selected_option()
@@ -3007,7 +3014,7 @@ function action_binder:new_custom_action(name, origin)
     return true
 end
 
-function action_binder:display_custom_actions_picker(title_text)
+function action_binder:display_custom_actions_picker(title_text,preferred)
     if player_data.refresh_custom_catalogs then player_data:refresh_custom_catalogs() end
     self.title:text(title_text)
     self.title:show()
@@ -3025,13 +3032,26 @@ function action_binder:display_custom_actions_picker(title_text)
     table.sort(names, function(a, b) return a:lower() < b:lower() end)
 
     local list = L{}
+    local preferred_index
     for _, name in ipairs(names) do
         local record = player_data.custom_actions[name]
+        if preferred and ((preferred.id and record.id==preferred.id and record._scope==preferred.scope)
+            or (not preferred.id and name==preferred.key)) then preferred_index=#list+1 end
         local icon_path,icon_offset = self:custom_action_icon(record)
         list:append({id = 'CA_' .. name, name = name, icon = icon_path, icon_offset = icon_offset})
     end
 
+    local columns=self.selector.normal_max_col
+    local rows=self.selector.normal_max_row
+    local capacity=rows*columns
+    if preferred_index then self.selector:set_page(math.floor((preferred_index-1)/capacity)+1) end
     self.selector:display_options(list)
+    if preferred_index then
+        local offset=(preferred_index-1)%capacity
+        self.selector.selected_row=math.floor(offset/columns)+1
+        self.selector.selected_col=offset%columns+1
+        self.selector:highlight_selection()
+    end
     self:show_control_hints('Confirm', 'Go Back')
 end
 

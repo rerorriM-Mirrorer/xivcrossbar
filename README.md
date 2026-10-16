@@ -1,5 +1,9 @@
 # XIVCrossbar — NEW RC3-based personal complete testing installation
 
+October 16, 2026: Save Only / Save Changes now returns to the custom-action
+picker with the saved record selected, instead of closing the editor. Save &
+Bind still proceeds to binding; failed saves retain the draft.
+
 This is a **complete installation**, including required images/themes. It is
 not an update patch. The current runtime code is unchanged by this handoff
 delivery. Read [the branch handoff](docs/HANDOFF-PERSONAL-RC3.md) and

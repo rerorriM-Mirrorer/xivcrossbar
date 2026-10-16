@@ -1,3 +1,24 @@
+# Personal RC3 — Save Only catalog return (October 16, 2026)
+
+Implemented on personal/ps5extended by A: successful Save Only / Save Changes
+returns to the editable catalog picker with the committed record selected,
+including renamed records and Global/Character records sharing a name or ID.
+Selection is located on the correct page. Failed saves keep the draft; Save &
+Bind retains its button-assignment flow. New actions saved without binding also
+return to the picker. No controller or main-bar behavior belongs to this change.
+
+Simulated: tests/save_only.lua exercises the actual binder/selector with later
+pages, rename, two catalog scopes, a failed save and Save & Bind. Existing menu
+resource tests also pass. Native FFXI acceptance remains pending. Cumulative
+records and original installation provenance follow unchanged.
+
+---
+
+Complete installation; branch: personal/ps5extended
+Local source commit: 7967e84a209b9f2a596a04357743c6a85ccc3ddc
+Published source commit: 9375a66d75778744a865077e2f676458688fc65a
+Git tree: c1fb5a71dd9ff9932c7711d87519cccc3b028908
+
 # Complete installation + conversation handoff — October 15, 2026
 
 Variant: **NEW RC3-based personal**. This delivery packages all currently implemented
