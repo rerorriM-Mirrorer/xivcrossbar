@@ -175,6 +175,7 @@ end
 
 function selectable_list:create_text(text_string, row, col)
     local text = ui_resources.text({flags = {draggable = false}})
+    require('ui/render_trace').track(text,nil,'selector','caption')
     text:bg_alpha(0)
     text:bg_visible(false)
     text:font(self.theme_options.font)

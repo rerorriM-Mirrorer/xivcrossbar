@@ -1,9 +1,11 @@
-# DirectLink development roadmap and render-diagnostic proposal
+# DirectLink development roadmap and render diagnostics
 
 Reviewed October 17, 2026, America/Chicago. Author A.
-Current source: 86b50f103425d1ed871d7612735d2d4fa6e3126c on development/directlink.
-This is a planning/source-review record. No runtime, settings or controller mapping
-is changed by it. Snapshot 1 remains preserved on snapshot/directlink-unbound-20261016.
+Initial review source: 86b50f103425d1ed871d7612735d2d4fa6e3126c.
+Updated after the authorized diagnostic checkpoint based on c8f198a, on
+development/directlink. Chooser repair and render trace are now implemented;
+their live acceptance is pending. Controller mappings are unchanged.
+Snapshot 1 remains preserved on snapshot/directlink-unbound-20261016.
 
 Sources: current README/PERSONAL/TESTING, current rendering/router/binder source,
 the visible controller-design conversation, retrieved earlier project notes,
@@ -20,31 +22,34 @@ simulated/live results, and use small development changes.
 
 | Item | State and intended result |
 | --- | --- |
-| Quiet render trace | Proposed; not implemented. Correlate caption/layout changes with the visual hop without adding an overlay or chat spam. |
+| Quiet render trace | Implemented, local checks pass; live capture needed. Default OFF, 6,000-event memory ring, explicit save, no overlay or extra native measurements. |
 | Text flicker/recentering | Still reported. Test 5 stopped clearing populated labels before replacing them, but that is not proof the visible hop is fixed. |
-| Options chooser cancel error | Confirmed source defect to repair: xivcrossbar.lua calls action_binder:is_cancel_button(button), but the current action_binder module defines no such method. The supplied console has matching earlier Test 4 errors. Do not confuse this with evidence of a new DirectLink transport failure. |
-| Active-route status wording | Pending polish: Selected/Running still shows apps as fallback modifier even while Button route=messages. Show active route and fallback distinctly. |
+| Options chooser cancel error | Repaired missing layout-aware binder helper and earlier face-button discard in shared router. Actual-source regression checks pass; full live chooser restoration still needs acceptance. |
+| Active-route status wording | Implemented: requested/active route and key fallback modifier are labelled separately. Live status check pending. |
 | DirectLink acceptance | First live operation is confirmed; all six bars, modifier orders, fast rolling inputs, addon/native menus, focus/client handoffs, disconnect/restart, cutscenes and low-frame-rate behavior still need systematic acceptance. |
 | Public RC3 message-mode port | Desired next public experiment after isolation/acceptance. Port a generic optional transport with its dependencies/tests; preserve public defaults and exclude personal mappings. No port is claimed yet. |
 
-## Proposed invisible render diagnostics
+## Invisible render diagnostics
 
 Existing tools are //xb controller trace on|off (buffered, bounded input capture)
-and //xb resources (one-shot resource counts). They do not yet record the history
-of caption positions, measurements or native draw requests.
+and //xb resources (one-shot resource counts). The new render trace records
+caption positions, measurements and native draw requests.
 
-Proposed new commands, NOT currently implemented:
+Implemented commands (default OFF on load):
 - //xb rendertrace on: bounded detailed capture.
 - //xb rendertrace mark: timestamp a noticed jump while preserving earlier events.
 - //xb rendertrace save: dump the retained capture.
-- //xb rendertrace off: stop detail capture.
+- //xb rendertrace off: save and stop detail capture.
+- //xb rendertrace status (or bare): report capture state/counts.
 
-A small bounded event buffer can retain recent history, with sampled counters
-for long sessions. File output should be batched/on save, not per setter or every
-render frame. Capture related events across a frame, not just a final screenshot.
-Only annotate measurements and setter calls the runtime already makes; avoid
-extra extent queries that could alter the timing being investigated. Measure
-diagnostic cost with it off/on before calling it lightweight.
+A 6,000-event memory ring retains recent events, with counters for unchanged
+calls and overwritten records. Every actual caption write is retained, including
+unchanged text. Save promptly after marking a hop: busy activity can overwrite
+older records. Explicit save/off writes data/render-trace-<character>.log,
+overwriting the previous save. Capture does not persist across reload/unload.
+Measurements/setters are existing calls only; no native queries are added.
+Local native-call parity checks pass. The simulated benchmark shows measurable
+overhead; live OFF/ON comparison is still needed (see TESTING).
 
 | Record | What it helps distinguish |
 | --- | --- |
@@ -52,7 +57,7 @@ diagnostic cost with it off/on before calling it lightweight.
 | Stable object ID, owner/layer/role, caption revision and actual caption setter writes | Reusing a caption versus repeated rewrites or replacing it with a new object |
 | Font/style/size, existing returned extents, desired center, requested final x/y, screen size and scale | A stale/zero width becoming current, font fitting, viewport/scale changes or competing layout writers |
 | Visibility, alpha/stroke changes and hide/show requests | Recentring versus opacity flicker or repeated reveals |
-| Object create/destroy/retire counts and disposal attempts | Resource churn, leaks, stale objects or duplicate layers |
+| Object create/destroy/retire events and call counts | Resource churn, leaks or duplicate layers |
 | Input/transport transitions and a shared timestamp/marker | A trigger/set switch preceding the visual change |
 
 Source-supported lead, not a confirmed cause: ui/text_layout.lua revisits extents
@@ -66,10 +71,16 @@ text uses the same centering helper.
 
 A change of extents/position for the same caption revision differs from two
 layout owners moving it in one frame, which differs from repeated object creation.
-The trace should make those distinctions visible. It records requested operations
+The trace helps distinguish those patterns. It records requested operations
 and returned measurements; it cannot by itself certify which pixels the game
 finally displayed. A short matching video can help correlate that last step if
 needed. No packet injection or Windower-core replacement is proposed.
+
+The user's opacity-until-settled idea remains a candidate: keep a changed label
+transparent through its width/fit revisit, then restore its intended alpha,
+including stroke/background and current fade state. Validate that transparent
+text still updates native extents; prevent zero-width text remaining invisible.
+No opacity change is included before a capture identifies the affected path.
 
 ## Controller and menu design still open
 
@@ -77,16 +88,59 @@ needed. No packet injection or Windower-core replacement is proposed.
 | --- | --- |
 | L1 inventory/item cluster | Shapes could open the most-used inventory/menu actions, including Sack. Final map not chosen; do not auto-install custom Windower bindings. |
 | R1 equipment/wardrobe cluster | Shapes could open equipment/wardrobes. Bare R1 is currently free; R was suggested, not assigned. |
-| L1 directional scrolling | Proposed Left/Right = Alt+Left/Right; Up/Down = Ctrl+Left/Right. Preserve navigation in native item menus. Not implemented. |
+| L1 directional scrolling | Proposed only while native menu_open is true: Left/Right = Alt+Left/Right; Up/Down = Ctrl+Left/Right. Closed menus retain existing shortcuts. Companion remains hidden in native menus. Not implemented; no remap installed. |
 | R1 and R1→R2 companions | An R1 reference and an upper-right R1→R2 action bar remain ideas. Existing R1 direct arrows/Enter/Escape/Trust shortcut remain. |
 | R2 directional quick menus | Temporary magic/ability/item/combat choices were brainstormed; no agreed state machine or bindings yet. |
 | Trust menu integration | Investigate direct logical navigation/IJKL/Enter support and command-driven menu opening; retain the working raw-input route until compatibility is verified. The Trust thread is also developing AUTO/MANUAL behavior. |
 | Personal routing in Lua | Ordinary buttons are messages now; personal gestures still decide some meanings in AHK. A general Lua→AHK request path for Windows key delivery is proposed, not implemented. One owner must retain each press through its release. |
 | More specific native menu context | menu_open already supplies the broad open/closed guard. Main/item/other menu identity and appropriate output routing need investigation; do not assume the boolean identifies the exact menu. |
+| Success-confirmed quickswitch | A requested action can retain its temporary bar until correlated action evidence arrives. Engagement alone cannot confirm Sic. Design explicit waiting/success/failure/cancel states; retain bar on failure, require another press to retry, and cancel pending tracking on context/target/pet/job/zone/focus changes. Exact Sic evidence needs a controlled observation before implementing a matcher. |
 
 The user's existing external shortcuts are Ctrl+I/M/E/J for Item/Magic/Equipment/
 Job Ability and Ctrl+Space/Q/S/1/2/3 for jump/quest/sack/wardrobe/wardrobe2/
 wardrobe3. These are user bindings, not defaults installed by this review.
+
+### What DirectLink changes for shoulders
+
+L1 show/release/bank-slot events already use a mailbox, but the personal AHK
+filter still consumes L1 shortcut buttons and emits Ctrl keys. R1 combinations
+also emit native keys. Simply adding a Lua Triangle handler would not see those
+consumed edges. The next routing step would feed ordered shoulder/button state
+to Lua, give Lua ownership of gesture meaning, and retain AHK as hardware reader
+and optional native key-output service. Native menu scrolling can still need
+Ctrl/Alt+arrows; press ownership must keep their key-ups/modifier releases correct
+if a menu closes mid-hold. Chat/addon-menu/trigger-order guards take priority.
+
+Lua could independently show a reference and run input /sack from one fresh
+L1+Triangle gesture. The existing native-menu visibility guard can still hide the
+reference; drawing and command execution need not depend on one another.
+This would bypass the user's Ctrl+S binding, not remove the game-command parser.
+
+Remaining keyboard paths: personal L1 shortcuts, R1 menu/Trust combinations,
+L1+R1 Tab, native click/touch/PS behaviors, R3 F8 and the TrustMovement takeover
+marker (vk1Dsc07B). Bare ordinary native gameplay uses Lua setkey. Optional
+legacy Apps/F-key transport still exists for comparison/other profiles, with its
+silent bindings installed. None of those are ordinary transport emissions while
+the message stream owns the twelve buttons. TrustMovement's hidden marker is a
+separate remaining transport candidate, not already converted by DirectLink.
+
+Keep R3 F8 for now: its existing AHK-to-game path avoids a new Lua message hop.
+Do not substitute /focusnpc without verifying such a command. Direct commands
+are attractive for named actions; keyboard delivery remains useful for native
+navigation and keyboard-listener addons. Fewer layers depends on the operation.
+
+Other controller readers already normalize the same twelve logical slots in
+the common wrapper. That makes transport reuse feasible for PS5 standard, F710,
+FightPadPro and XInput; it is currently enabled only by the PS5 Extended context
+lease. Generalize lease/profile eligibility and validate each reader's neutral,
+disconnect, trigger threshold and ownership behavior separately. Shoulder/Mute
+availability is hardware-specific; do not copy PS5 Joy numbers to other readers.
+
+Input acknowledgment means the Lua receiver accepted a transport batch; it is
+not confirmation of game/server action success. For quickswitch success, first
+observe a matching actor/pet/action/target result in a bounded attempt window,
+including failures and unrelated actions. Action events may suffice; packet
+captures are warranted only for unresolved evidence. Do not auto-retry attacks.
 
 ## Older optional ideas to retain, not silently reactivate
 
@@ -164,12 +218,13 @@ XIVCrossbar runtime features.
 
 ## Suggested next sequence
 
-1. Repair the confirmed chooser-cancel method mismatch in an isolated change.
-2. Add the bounded render diagnostic; reproduce the hop and examine measurement/
-   placement/visibility/resource events before choosing a rendering fix.
-3. Clarify active-route status and keep testing DirectLink under real client load.
-4. Settle the inventory/wardrobe/Trust mapping through small trials.
-5. Port generic message transport into public RC3 as a separate optional experiment.
+1. Live-check repaired chooser cancellation, including restoration and Options release.
+2. Reproduce the hop with the implemented bounded render diagnostic and examine
+   measurements/placement/visibility before choosing a rendering fix.
+3. Verify clarified route status and keep testing DirectLink under real client load.
+4. Trial native-menu-only L1 scrolling, then settle inventory/wardrobe/Trust mapping
+   and move shoulder meanings into Lua in a separate controlled batch.
+5. Public DirectLink port belongs in the user's separate conversation.
 
-This sequence is a recommendation from the review, not a claim that these changes
-have been implemented or that old optional controls were reapproved.
+Other roadmap items remain proposals; this checkpoint does not activate every
+historical wish or change controller mappings.

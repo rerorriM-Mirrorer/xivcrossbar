@@ -481,6 +481,7 @@ end
 
 function action_binder:create_text(caption, x, y)
     local text_field = ui_resources.text({flags = {draggable = false}})
+    require('ui/render_trace').track(text_field,nil,'binder','caption')
     text_field:bg_alpha(0)
     text_field:bg_visible(false)
     text_field:font(self.theme_options.font)

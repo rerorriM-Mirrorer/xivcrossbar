@@ -12,6 +12,9 @@ local env=setmetatable({_addon={version='test'},settings=defaults,
     player={catalog_save_scope=function()return 'global' end,hotbar_settings={active_environment='Basic'}},
     client_registry={loaded=true},report_controller_status=function()end,xivcrossbar={ready=false},
     gamepad_mapper={},gamepad_state={},text_input_guard={},
+    l1_bank={status=function()end},l1_bridge={received=0,rejected=0,ack=0,reset=function()end},
+    l1_drag={finish=function()end},l1_view={destroy=function()end},personal_controls={close=function()end},
+    controller_message_bridge={reset=function()end},
     windower={add_to_chat=function(_,line)lines[#lines+1]=line end},
 }, {__index=_G})
 local status=assert(load(imported..'\nreturn function(command)\n'..body..'\nend','real status branch','t',env))()

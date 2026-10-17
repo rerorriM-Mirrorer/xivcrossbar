@@ -1,22 +1,47 @@
 # XIVCrossbar DirectLink — Unbound
 
-**Development Snapshot 1 · October 16, 2026 · keyboard-free controller transport.**
+**Development branch · October 17, 2026 · keyboard-free controller transport.**
 
 Preserved checkpoint: `snapshot/directlink-unbound-20261016`.
 Future work: `development/directlink`. See the [snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md)
 and [branch map](docs/BRANCH-MAP.md) to distinguish the two older Personal lines.
-The executable baseline remains the live-tested Personal 9 Test 6; naming and
-preservation introduce no runtime changes.
+Snapshot 1 preserves the live-tested Personal 9 Test 6. This working branch adds
+chooser cancellation repairs and opt-in render diagnostics; live checks are pending.
 
-Runtime: **0.4.0-a.20261017.personal9-l1test6**; shared wrapper Controls **9.5-messages**.
+Runtime: **0.4.0-a.20261017.directlink1-trace1**; shared wrapper Controls **9.5-messages**.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
 ## Development roadmap
 
-The [current roadmap and render-diagnostic proposal](docs/ROADMAP-DIRECTLINK.md)
+The [current roadmap and render diagnostics](docs/ROADMAP-DIRECTLINK.md)
 separates open repairs, controller ideas, older optional work and completed features.
-The proposed rendertrace commands are not implemented yet.
+Chooser Cancel now reaches the configured face button correctly. Controller
+status labels the requested/active route separately from its legacy key modifier.
+
+## Quiet text/layout diagnosis
+
+```
+//xb rendertrace on
+//xb rendertrace mark
+//xb rendertrace save
+//xb rendertrace off
+```
+
+Turn on before reproducing a text hop. Mark after noticing it, then save promptly.
+Save leaves capture running; off saves and stops. Bare command/status reports state.
+Logs overwrite `data/render-trace-<character>.log` on each save; copy a useful log
+before saving another capture. Capture starts OFF on addon load and is not saved
+as a setting. Save before unloading; the in-memory history otherwise disappears.
+
+No overlay or per-frame disk writing. The most recent 6,000 changed events are
+retained, with call counters, timestamps/frame IDs, captions/revisions, existing
+extent results, placement/font/opacity requests, context and object lifetimes.
+Repeated identical caption writes remain events; other unchanged calls increment
+counters. History duration depends on activity. Trace adds CPU work while on;
+native performance needs live comparison. It observes Lua requests/returned
+measurements, not final GPU pixels. It does not change text opacity or positioning.
+If useful, capture `//xb controller trace on` alongside it for input correlation.
 
 ## Message-based controller experiment
 
@@ -426,11 +451,20 @@ See LICENSE and NOTICE. Menu asset attribution, license links and cursor provena
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
 
+### DirectLink diagnostic checkpoint 1 — October 17, 2026
+
+- Repair the missing layout-aware chooser Cancel helper and let face input reach
+  the chooser instead of discarding it early. Other chooser faces stay consumed.
+- Add opt-in bounded rendertrace on/mark/save/off/status, without extra native
+  measurements or capture-time disk writes. Preserve ordinary rendering behavior.
+- Distinguish requested/active controller transport from its key fallback modifier.
+- Keep all personal controls, R3 F8, the public RC3 and preserved snapshot unchanged.
+  Source/simulated checks pass; Windows/FFXI acceptance is pending.
+
 ### DirectLink chooser cancellation repair — October 17, 2026
 
 - Restore layout-aware Cancel recognition and let face input reach the chooser.
 - Other chooser faces stay consumed; source/simulated checks pass, live acceptance pending.
-
 
 ### DirectLink — Unbound, Snapshot 1 — October 16, 2026
 

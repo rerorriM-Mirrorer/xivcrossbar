@@ -5,6 +5,10 @@ local live = {}
 local disposed_objects = setmetatable({}, {__mode='k'})
 local created = {text=0,image=0}
 local destroyed = {text=0,image=0}
+local trace = require('ui/render_trace')
+local observed = {text=true,font=true,size=true,pos=true,pos_x=true,pos_y=true,color=true,
+    alpha=true,bg_alpha=true,bg_visible=true,stroke_alpha=true,stroke_color=true,
+    stroke_width=true,pad=true,show=true,hide=true,visible=true,bold=true,italic=true,flags=true}
 
 local function new(kind, library, ...)
     local api = _G[library] or require(library)
@@ -12,6 +16,8 @@ local function new(kind, library, ...)
     local proxy, methods, disposed = {}, {}, false
     created[kind] = created[kind] + 1
     live[proxy] = kind
+    trace.track(proxy,kind)
+    if trace.enabled then trace.event('create',proxy) end
     function methods:destroy()
         if disposed then return end
         object:destroy()
@@ -19,6 +25,7 @@ local function new(kind, library, ...)
         live[proxy] = nil
         disposed_objects[proxy] = true
         destroyed[kind] = destroyed[kind] + 1
+        if trace.enabled then trace.event('destroy',proxy) end
     end
     return setmetatable(proxy, {__index=function(_, key)
         if methods[key] then return methods[key] end
@@ -26,6 +33,17 @@ local function new(kind, library, ...)
         if type(value) ~= 'function' then return value end
         local method = function(_, ...)
             assert(not disposed, 'UI object used after disposal: ' .. kind .. '.' .. key)
+            if kind=='text' and key=='text' and select('#',...)>0 then trace.caption(proxy,(...)) end
+            if trace.enabled then
+                if kind=='text' and key=='extents' then
+                    local width,height=value(object,...)
+                    trace.call(proxy,'extents',width,height)
+                    return width,height
+                end
+                if kind=='text' and observed[key] and (select('#',...)>0 or key=='show' or key=='hide') then
+                    trace.call(proxy,'native.'..key,...)
+                end
+            end
             return value(object, ...)
         end
         methods[key] = method

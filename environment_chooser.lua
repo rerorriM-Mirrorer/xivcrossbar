@@ -1,6 +1,6 @@
 local ui_resources = require('ui/resources')
 local env_chooser = {}
-local geometry = require('ui_geometry').new()
+local geometry = require('ui_geometry').new('chooser')
 local prim = geometry:prim()
 local function new_text(options)
     return geometry:surface(ui_resources.text(options), 'text', options)

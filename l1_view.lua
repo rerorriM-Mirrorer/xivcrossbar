@@ -12,6 +12,7 @@ function M.new(options)
     local self={options=options,objects={},slots={},opacity=0,allocated=false}
     local function text(size)
         local t=options.resources.text({flags={draggable=false}})
+        require('ui/render_trace').track(t,nil,'l1-companion','caption')
         t:bg_alpha(0);t:bg_visible(false)
         t:font('Verdana');t:size(size);t:color(228,231,240)
         t:stroke_width(1);t:stroke_alpha(180);t:hide()

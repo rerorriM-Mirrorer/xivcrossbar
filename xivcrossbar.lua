@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.personal9-l1test6'
+_addon.version = '0.4.0-a.20261017.directlink1-trace1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -19,6 +19,11 @@ xml = require('libs/xml2')   -- TODO: REMOVE
 
 -- User settings
 local defaults = require('defaults')
+local render_trace = require('ui/render_trace')
+-- Register before UI modules so their existing measurements share this frame ID.
+windower.register_event('prerender',function()
+    if render_trace.enabled then render_trace.begin_frame(require('socket').gettime()) end
+end)
 local settings = config.load(defaults)
 local client_registry
 -- A: profile selection replaces the independent legacy backend flags. Existing
@@ -345,7 +350,8 @@ local function controller_status()
 end
 local function report_controller_status()
     local selected = settings.ControllerProfile .. ' / device ' .. settings.ControllerDevice
-    windower.add_to_chat(207, '[XIVCrossbar] Selected: ' .. selected .. ' / ' .. controller_modifier)
+    local requested=settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' and 'messages' or 'keys'
+    windower.add_to_chat(207, '[XIVCrossbar] Selected: ' .. selected .. ' | requested route=' .. requested .. ' | key fallback=' .. controller_modifier)
     if controller_switcher and controller_switcher.pending then
         windower.add_to_chat(207, '[XIVCrossbar] Controller change: ' .. controller_switcher.pending.phase)
     end
@@ -357,7 +363,7 @@ local function report_controller_status()
             windower.add_to_chat(123,'[XIVCrossbar] Restart the AHK wrapper for controller messages (Controls 9.5 required).')
         end
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
-            ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
+            ' | active route=' .. (status.button_route or 'keys') .. ' | key fallback=' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if status.profile=='ps5-extended' then
             windower.add_to_chat(207, '[XIVCrossbar] Personal: '..(status.personal_context or 'starting')..
                 ' | Controls='..(status.personal_version or 'older wrapper; stop/start required')..
@@ -1095,6 +1101,7 @@ function display_help_menu()
     help.command('inputtest [on|off]','Enable input test messages; bare toggles.')
     help.command('inputtrace [on|off]','Enable input diagnostics; bare toggles.')
     help.command('resources',"Report this addon's live UI objects and creation/deletion totals.")
+    help.command('rendertrace [on|mark|save|off|status]','Quiet bounded layout capture; off saves and stops.')
     help.command('inputstatus','Report input settings.')
     help.command('remap','Open controller setup.')
     help.command('regenerate','Rebuild generated resources.')
@@ -1255,6 +1262,10 @@ windower.register_event('addon command', function(command, ...)
     -- an action; the keyboard router independently handles the actual slot.
     if command == 'inputconsume' then
         return
+    elseif command == 'rendertrace' then
+        local name=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
+        return render_trace.command((...),windower.addon_path..'data/render-trace-'..name..'.log',
+            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
     elseif command == 'l1' then
         local operation=(...) or 'help'
         if not xivcrossbar.ready and operation~='help' and operation~='status' then
@@ -2117,6 +2128,13 @@ windower.register_event('prerender',function()
         and action_binder.is_hidden and not env_chooser:is_showing() and not gamepad_mapper.is_showing
         and l1_character and l1_character.status~=4 and not l1_info.chat_open and not l1_info.menu_open
     local viewport=windower.get_windower_settings()
+    if render_trace.enabled then
+        render_trace.context(gamepad_state.active_bar,player.hotbar_settings and player.hotbar_settings.active_environment,
+            input_context(),action_binder.state,action_binder.selector and action_binder.selector.current_page,
+            env_chooser:is_showing(),l1_info.menu_open,l1_info.chat_open,
+            viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res,
+            settings.CrossbarScale,ui_dirty,l1_bank:mode(),controller_message_bridge.ack)
+    end
     l1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
     if not l1_display then l1_drag:finish() end
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then

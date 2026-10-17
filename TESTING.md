@@ -1,3 +1,96 @@
+# DirectLink diagnostic checkpoint 1 — October 17, 2026 (America/Chicago)
+
+Author A. Branch development/directlink; base c8f198ab2de20bad07678ce23c5f5c134e467ca7.
+Runtime 0.4.0-a.20261017.directlink1-trace1; unchanged Controls=9.5-messages.
+Chooser repair commit: 0873707898fd50d3f19503f9cdb30b90eef70a9c.
+The diagnostic commit follows it; its exact ID is in Git history/delivery feedback. Snapshot
+1 and public/rc3-maintenance remain unchanged. No installed settings/data ship.
+
+## First live checks — pending
+
+1. Preserve data/, config.ini and personal assets. Install this source over the
+   existing DirectLink folder and reload Lua. This batch changes no AHK bytes;
+   the already-running Controls=9.5-messages wrapper can remain. Verify runtime
+   with //xb inputstatus. Older wrappers still need stop/start per Test 6 below.
+2. Open Options chooser, move to another set, then press the configured Cancel
+   face while Options is held. Expect original set restored and chooser closed;
+   releasing Options must not reopen or commit the cancelled selection. Repeat
+   with the binder open, physical Escape and ordinary release-to-select. Other
+   face buttons must not execute actions or leak native keys. Compare messages
+   on/off only at neutral. Check nondefault Cancel mapping if used.
+3. //xb rendertrace on; reproduce text/set/page flicker at the usual resolution.
+   After a hop use //xb rendertrace mark, then //xb rendertrace save promptly.
+   Send data/render-trace-<character>.log with a description of the affected
+   screen/label. Off saves and stops. Save before unloading: history is memory
+   only. Repeated saves overwrite this character's file; preserve a useful copy.
+4. Compare the same navigation with rendertrace off/on and note any change in
+   feel. No visible overlay, per-event chat or altered fade is intended. Capture
+   is OFF after reload, and does not persist. //xb rendertrace status reports
+   retained/overwritten counts. No minimum retention duration is guaranteed.
+5. Controller status should distinguish requested route, actual active route and
+   key fallback=apps. R3 remains F8 on eligible press/R on unused release; R2 F8
+   remains off by existing default/choice, bare R1 unassigned. Existing L1/menu
+   hiding and shortcuts, six trigger bars, Save Only and multibox checks remain.
+
+## Changes and verification
+
+Chooser: supplied console/source showed a missing is_cancel_button method.
+Actual routing regression then exposed a second obstacle: the shared router
+discarded every chooser face before the handler could recognize Cancel. Added
+the real layout-aware helper and removed that early filter; the chooser's own
+handler consumes all face/D-pad input. Tests use actual binder helper/router
+source (not a fake helper), all four layouts/all saved cancel choices, and
+message-driven chooser cancellation including a remapped Cross. Native acceptance
+of complete chooser restoration remains pending.
+
+Render tracing: a default-off 6,000-event chronological ring records changed
+native text calls, every caption write, caption revision/owner/stable ID,
+existing measurements and requested layout/visibility, creates/destroys/retirement,
+frame gaps and root context (bar/set/menu/page/viewport/scale/L1/input ack).
+Counters summarize unchanged calls. IDs use weak keys and no objects enter the
+event buffer. No extra native extent/getter calls; no opacity or layout policy
+change. Captures are saved explicitly/per character, with write failures reported.
+This is a Lua observation stream, not a GPU screenshot or action-success receipt.
+
+109 Lua sources parse with the available Lua 5.4 temporary Windower-syntax
+normalization fallback. Lua 5.1/Windower and Windows/AHK execution are unavailable.
+New trace tests check exact native-call parity on/off, zero/stale/updated widths,
+proxy return values, object aliases/revisions, unchanged-context deduplication,
+bounded chronological eviction, mark/save/off/status routing, failed writes,
+per-character filenames, disabled clock silence and weak lifetimes.
+
+Simulated 600-frame/48-centered-label workload measured 0.032 seconds OFF versus
+0.154 seconds ON (about 0.20 ms extra per simulated frame), with identical 34,560
+native calls. This single local Lua 5.4 run is not a Windows performance claim;
+enabled tracing has measurable cost and needs live comparison. Retention is
+activity-bounded, not a guaranteed number of seconds.
+
+Regression checks pass for menu resource ownership/repeated redraws, compact
+geometry, rebuilds/deferred destruction, caption replacement, text fades/reversal,
+slot cleanup/visibility/costs/indicators, all six bars and message protocol,
+L1 context/bank/mailbox/view, personal defaults/F8 choices, Save Only/catalogs,
+help and actual controller status. Updated the older status test's missing L1/
+message-service fixtures to match the current runtime; no new runtime status
+failure was found. AHK message/gesture/filter/client/trace simulations and seven
+AHK lexical/include/function-link checks pass. AHK runtime files are unchanged.
+
+## User decisions and deferred work
+
+User approved chooser repair and render trace. Transparency until layout settles
+is a candidate fix, not implemented before evidence. R3 F8 stays; /focusnpc is
+not adopted. Public DirectLink port belongs in the user's separate conversation.
+L1 menu-context scrolling, direct /sack, Lua-owned shoulder gestures, other
+readers, Mute-held bank and success-confirmed quickswitch remain proposals.
+Broad menu_open is not specific menu identity. Transport acknowledgment means
+Lua accepted input, not that the game/server completed Sic or another action.
+No packet observation/injection or automatic action retry is introduced.
+
+Reviewed current shared NPCMirror WORKFLOW and project AGENTS/WORKFLOW before
+editing. Author A; tests/source records are preserved below. This delivery is a
+development checkpoint, not a replacement for the frozen live-tested snapshot.
+
+---
+
 # DirectLink chooser cancellation repair — October 17, 2026 (America/Chicago)
 
 Author A. development/directlink, based on c8f198ab. Repair the missing

@@ -8,7 +8,7 @@ settings = config.load(defaults)
 local player = require('player')
 
 local ui = {}
-local geometry = require('ui_geometry').new()
+local geometry = require('ui_geometry').new('crossbar')
 local prim = geometry:prim()
 ui.geometry = geometry
 ui.autoattack = require('autoattack').new(os.clock)
@@ -577,6 +577,10 @@ function ui:load(theme_options)
             self.hotbars[h].slot_text[i] = new_text(text_setup)
             self.hotbars[h].slot_cost[i] = new_text(right_text_setup)
             self.hotbars[h].slot_recast_text[i] = new_text(right_text_setup)
+            local trace=require('ui/render_trace')
+            trace.track(self.hotbars[h].slot_text[i],nil,'crossbar','bar'..h..'.slot'..i..'.caption')
+            trace.track(self.hotbars[h].slot_cost[i],nil,'crossbar','bar'..h..'.slot'..i..'.cost')
+            trace.track(self.hotbars[h].slot_recast_text[i],nil,'crossbar','bar'..h..'.slot'..i..'.recast')
             self.hotbars[h].slot_icon[i]:size(40, 40)
 
             setup_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')

@@ -5,6 +5,7 @@
 local geometry = {}
 geometry.__index = geometry
 local rounded_bar = require('ui/rounded_bar')
+local trace = require('ui/render_trace')
 
 local function draw_primitive(g, name, p)
     if p.rounded then
@@ -31,9 +32,9 @@ local function primitive_color(g, name, p)
     else windower.prim.set_color(name,alpha,c[2],c[3],c[4]) end
 end
 
-function geometry.new()
+function geometry.new(owner)
     return setmetatable({scale = 1, x = 0, y = 0, screen_x = 0, screen_y = 0,
-        opacity=1, retired={}, surfaces = setmetatable({}, {__mode = 'k'}), primitives = {}}, geometry)
+        opacity=1, owner=owner or 'geometry', retired={}, surfaces = setmetatable({}, {__mode = 'k'}), primitives = {}}, geometry)
 end
 
 function geometry:point(x, y, right)
@@ -77,6 +78,7 @@ local function draw_surface(g, object, m)
     end
     if m.center_x then
         local width=object:extents()
+        if trace.enabled then trace.call(object,'center-measure',m.center_x,m.center_y,width,g.scale) end
         if width and width>0 then
             m.x,m.y=m.center_x-width/g.scale/2,m.center_y
             draw_position(g,object,m,m.x,m.y)
@@ -298,6 +300,7 @@ function geometry:surface(object, kind, options)
     -- caption changes so short and long aliases share the same visual center.
     function methods:center(x, y)
         m.center_x, m.center_y = x, y
+        if trace.enabled then trace.call(object,'center-request',x,y) end
         draw_surface(g, object, m)
     end
     function methods:text(value)
@@ -351,6 +354,7 @@ function geometry:surface(object, kind, options)
             -- Keep a closing menu's visible rows alive just through the fade.
             -- Ordinary page changes still release their objects immediately.
             g.retired[#g.retired+1] = m
+            if trace.enabled then trace.event('retire',object) end
         else object:destroy() end
     end
     setmetatable(proxy, {__index = function(_, key)
@@ -362,6 +366,7 @@ function geometry:surface(object, kind, options)
         return method
     end})
     self.surfaces[proxy] = m
+    trace.alias(proxy,object,g.owner)
     draw_opacity(self, m)
     if kind == 'image' then proxy:fit(false); proxy:size(40, 40) end
     return proxy
