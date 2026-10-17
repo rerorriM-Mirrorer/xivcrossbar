@@ -1,3 +1,13 @@
+# DirectLink — Unbound, Snapshot 1
+
+The current development identity is **XIVCrossbar DirectLink — Unbound**.
+See [the snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md) and current README/TESTING.
+Preserve `snapshot/directlink-unbound-20261016`; continue on `development/directlink`.
+Runtime files remain the live-tested Personal Test 6 without modification.
+The chronological Personal notes below remain historical provenance.
+
+---
+
 # Personal 9 Test 6 — message-based controller experiment
 
 Runtime personal9-l1test6; Controls=9.5-messages. Restart Lua AND the wrapper.

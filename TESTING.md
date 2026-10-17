@@ -1,3 +1,55 @@
+# DirectLink — Unbound, Development Snapshot 1 — October 16, 2026 (America/Chicago)
+
+Author A. Snapshot branch: `snapshot/directlink-unbound-20261016`. Future work: `development/directlink`.
+Exact tested executable baseline: `7e0e25253aa7cb64451e1b3f18ef861b0a90726f`.
+Runtime remains personal9-l1test6; Controls=9.5-messages. Naming/documentation
+only: the snapshot preserves every executable/runtime file from that baseline.
+
+## New live result
+
+User reports the controls work "exactly the same if not better" and requests a
+named development snapshot. The new 30-second capture beginning 2026-10-17
+04:48:22 UTC (October 16, 11:48:22 p.m. Chicago), appended to
+controller-input-trace(1).log, identifies Controls=9.5-messages. It contains
+81 message downs, 80 message ups, two cancels, and zero ordinary Apps/F-key
+transport emissions. Earlier capture data in that same file remains historical.
+
+Franklet_2026.10.16.log reports active route messages, 706 cumulative events
+received, zero rejected and no write error. The received count includes protocol
+events; it is not a gameplay success count. R2's trace message is followed by
+Lua context changing to crossbar. console(20261017-044954).log records Test 6
+loading successfully at 23:39:43. The old wrapper lacks the new message record
+generation function. These independently observed records confirm that the
+message route ran in-game. The user's subjective response is positive; no
+controlled latency improvement is claimed.
+
+## Preservation and remaining checks
+
+The snapshot is named **XIVCrossbar DirectLink — Unbound**: keyboard-free ordinary
+controller transport. Personal shortcuts/native key outputs and the optional
+legacy route still exist. The status modifier field still says apps for the
+fallback; active mode is Button route=messages. No status/runtime cleanup is
+folded into this checkpoint. See [the snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md).
+
+The snapshot branch is for recovery/reference. Continue on development/directlink.
+Original Personal and RC3-based New Personal are retained as historical lines;
+the last keyboard-first comparison checkpoint is f92c0b86f3d79de5542062ee9ad9d4027bbb3c46.
+The public RC3 branch is untouched.
+
+Verification for this documentation-only checkpoint compares the complete Git
+trees: all files except the named Markdown records must retain identical blob
+SHAs/modes. No runtime tests are represented as newly rerun. Earlier source/
+simulated verification belongs to Test 6 below. Initial live operation is now
+confirmed; exhaustive six-bar/menu/multibox/lifecycle/disconnect/low-frame-rate
+acceptance remains pending. Earlier pending statements below describe their
+original delivery state and are preserved rather than silently removed.
+
+Supplied trace/chat/console files are evidence references, not runtime files to
+ship or private material to commit. No new installer is required to keep using
+this exact tested runtime. Snapshot documentation is committed on the new line.
+
+---
+
 # Personal 9 L1 Test 6 — October 16, 2026 (America/Chicago)
 
 Author A. Branch personal/ps5extended. Baseline published Test 5:

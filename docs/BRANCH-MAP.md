@@ -1,3 +1,28 @@
+# Current development line — XIVCrossbar DirectLink — Unbound
+
+Named October 16, 2026, America/Chicago. Author A.
+
+| Line | Reference | Role |
+| --- | --- | --- |
+| DirectLink — Unbound, Snapshot 1 | `snapshot/directlink-unbound-20261016` | Preserve the first live-confirmed message transport; no runtime changes from Test 6 |
+| DirectLink ongoing development | `development/directlink` | Continue future work here |
+| New Personal, keyboard-first comparison | `f92c0b86f3d79de5542062ee9ad9d4027bbb3c46` | Personal 9 Test 5 comparison baseline |
+| New Personal historical development branch | `personal/ps5extended` at `7e0e25253aa7cb64451e1b3f18ef861b0a90726f` | Retained Test 6 fork point; do not silently treat it as older keyboard-only code |
+| Original Personal | Historical pre-RC3 packages/source | Older Batch-era line; no current ref invented |
+| Public RC3 | `public/rc3-maintenance` | Separate public development; unchanged by this snapshot |
+
+Read [SNAPSHOT-DIRECTLINK-UNBOUND-1.md](SNAPSHOT-DIRECTLINK-UNBOUND-1.md) for exact source identity,
+live evidence, remaining checks and the meaning of keyboard-free transport.
+This snapshot labels the existing live-tested executable code; it does not
+rename the installed addon or its commands, and introduces no behavior change.
+
+The older branch map and handoff sections below are historical. Their references
+to current Personal Test 1/2 or shared Apps transport do not describe DirectLink.
+Preserve them as provenance. Future agents should begin with this section,
+current README and the newest TESTING entry.
+
+---
+
 # XIVCrossbar branch map and shared working rules
 
 Current personal continuation: personal9-l1test2 / Controls=9.1-diag, x profile

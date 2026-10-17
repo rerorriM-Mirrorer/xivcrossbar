@@ -1,3 +1,17 @@
+# Current continuation — DirectLink — Unbound, Snapshot 1
+
+The continuing message-based line is now **XIVCrossbar DirectLink — Unbound**.
+Preserved reference: `snapshot/directlink-unbound-20261016`; future work: `development/directlink`.
+The exact executable baseline remains `7e0e25253aa7cb64451e1b3f18ef861b0a90726f`
+(Personal 9 L1 Test 6 / Controls=9.5-messages), now confirmed in a first live test.
+
+See [the snapshot record](SNAPSHOT-DIRECTLINK-UNBOUND-1.md), [BRANCH-MAP.md](BRANCH-MAP.md), root README
+and the newest TESTING entry. Runtime files are identical to the tested baseline.
+Original Personal and RC3-based New Personal remain historical names. Public RC3
+is separate and unchanged. Earlier continuation sections below are historical.
+
+---
+
 # Current continuation — Personal 9 L1 Test 2 (October 16, 2026)
 
 personal9-l1test2 / Controls=9.1-diag: x alias, tighter themed companion slots and

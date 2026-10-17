@@ -1,7 +1,16 @@
-# XIVCrossbar — Personal 9 L1 Test 6
+# XIVCrossbar DirectLink — Unbound
+
+**Development Snapshot 1 · October 16, 2026 · keyboard-free controller transport.**
+
+Preserved checkpoint: `snapshot/directlink-unbound-20261016`.
+Future work: `development/directlink`. See the [snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md)
+and [branch map](docs/BRANCH-MAP.md) to distinguish the two older Personal lines.
+The executable baseline remains the live-tested Personal 9 Test 6; naming and
+preservation introduce no runtime changes.
 
 Runtime: **0.4.0-a.20261017.personal9-l1test6**; shared wrapper Controls **9.5-messages**.
-Author: A. Personal development branch; native Windows/FFXI acceptance pending.
+Author: A. DirectLink development line. Initial live message-transport operation
+is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
 ## Message-based controller experiment
 
@@ -29,8 +38,9 @@ an interrupted writer; held input clears after 350 ms without one. Focus changes
 logout, restart and cutscenes cancel the message session. Overdue unacknowledged
 input is cancelled, and route/client changes require neutral before new presses.
 Native menu detection still hides both L1 companions while ordinary menu input
-remains available. This is a live experiment: source/simulated checks pass, and
-Windows delivery, responsiveness and low-frame-rate behavior need in-game checks.
+remains available. This is a live experiment: source/simulated checks pass, and initial in-game
+message delivery is confirmed. Broader responsiveness, lifecycle and low-frame-rate
+acceptance still needs testing.
 
 ## Input handoff repair and F8 acquisition
 
@@ -409,6 +419,12 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### DirectLink — Unbound, Snapshot 1 — October 16, 2026
+
+- Name and preserve the first live-confirmed message-transport checkpoint.
+- Separate snapshot and future development branches from the two older Personal lines.
+- Record live trace/status evidence and its limits; executable sources remain unchanged.
 
 ### Personal 9 L1 Test 6 — October 16, 2026 (America/Chicago)
 
