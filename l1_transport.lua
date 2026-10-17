@@ -1,8 +1,8 @@
 -- A: acknowledged mailbox protocol, separate from Apps/F-key gameplay input.
--- A fresh token invalidates queued input on focus/context/mode/identity changes.
+-- A fresh token invalidates queued input on focus/context/identity changes.
 -- Complete snapshots retain unacknowledged edges, including quick tap sequences.
-local M={version='l1-mailbox1'}
-local valid={show=true,release=true,cancel=true,tap=true,slot=true}
+local M={version='l1-mailbox2'}
+local valid={show=true,bank=true,release=true,cancel=true,slot=true}
 function M.new(options)
     local self={options=options,ack=0,epoch=0,received=0,rejected=0,key=nil,token=nil}
     function self:reset()
@@ -40,9 +40,6 @@ function M.new(options)
             -- never cause this event to run twice in the current session.
             self.ack=event[1];self.received=self.received+1
             self.options.event(event[2],event[3])
-            -- Stop at a mode change. Subsequent old-mode input is discarded by
-            -- the new context token, never interpreted in the new bank.
-            if event[2]=='tap' then break end
         end
         return #events>0
     end

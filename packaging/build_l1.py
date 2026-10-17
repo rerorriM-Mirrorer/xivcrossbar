@@ -23,12 +23,12 @@ assert git('branch','--show-current')=='personal/ps5extended'
 assert re.fullmatch('[0-9a-f]{40}',args.published)
 assert not args.output.exists(), 'Do not overwrite an existing delivery.'
 local=git('rev-parse','HEAD')
-header=(f'Complete personal L1 Test 2; branch: personal/ps5extended\n'
+header=(f'Complete personal L1 Test 3; branch: personal/ps5extended\n'
         f'Local source commit: {local}\nPublished source commit: {args.published}\n'
-        'Runtime: personal9-l1test2; Controls=9.1-diag\n'
+        'Runtime: personal9-l1test3; Controls=9.2-layers\n'
         'TrustMovement 0.1.1 companion: unchanged receiver from TrustMovement-v0.1.1-Quiet.zip\n\n').encode()
-entries={'TESTING.md':header+(root/'TESTING.md').read_bytes(),
-         'WORKFLOW.md':(root/'WORKFLOW.md').read_bytes()}
+entries={'xivcrossbar/TESTING.md':header+(root/'TESTING.md').read_bytes(),
+         'xivcrossbar/WORKFLOW.md':(root/'WORKFLOW.md').read_bytes()}
 for name in git('ls-files').splitlines():
     if name in ('TESTING.md','WORKFLOW.md') or name.startswith(('.', 'data/','tests/','packaging/')):
         continue
@@ -52,7 +52,7 @@ assert companion_hash=='1b9d83d33244bd3c0cf6088e7d0e276702b612d4eed69be567658fa0
 required=['l1_bank.lua','l1_transport.lua','l1_view.lua','personal_controls.lua','personal_controls.ahk',
           'personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk','ffxi_directinput.ahk',
           'images/icons/iconpacks/default/icon_list.txt','images/setup/gamepad-directinput.jpg',
-          'themes/ffxiv/notice.png','LICENSE','NOTICE']
+          'themes/ffxiv/notice.png','set_labels.lua','WORKFLOW.md','TESTING.md','LICENSE','NOTICE']
 for name in required: assert 'xivcrossbar/'+name in entries, name
 for name in entries:
     assert '/data/' not in name and not name.lower().endswith(('.xml','.ini','.log','.bak','.lease','.l1')),name

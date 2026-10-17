@@ -2,9 +2,9 @@
 -- and dragging are independent of the main trigger bars and their autohide.
 local bank=require('l1_bank')
 local M={}
--- Centers use the main crossbar's 40px slots + 6px spacing. The second
--- diamond begins after a single empty center, rather than a wide panel gap.
-local layout={{30,82},{76,128},{122,82},{76,36},{168,82},{214,128},{260,82},{214,36}}
+-- Same 40px slots, horizontal slot spacing and half hotbar spacing as compact
+-- XIVCrossbar. Coordinates describe columns/rows, not an independent layout.
+local layout={{0,1},{1,2},{2,1},{1,0},{3,1},{4,2},{5,1},{4,0}}
 -- These bundled artwork suffixes use b=Square and x=Circle, not Xbox semantics.
 local icons={'dpad_playstation_left','dpad_playstation_down','dpad_playstation_right','dpad_playstation_up',
     'facebuttons_playstation_b','facebuttons_playstation_a','facebuttons_playstation_x','facebuttons_playstation_y'}
@@ -40,9 +40,17 @@ function M.new(options)
             self.slots[i]={background=background,icon=icon,frame=frame,number=text(8),alias=text(9)}
         end
     end
-    function self:bounds()
+    function self:metrics()
         local d=options.bank:settings()
-        return {x=d.X,y=d.Y,width=292*d.Scale,height=182*d.Scale}
+        local settings=options.settings or {};local style=settings.Style or {}
+        local s=d.FollowCrossbar and (tonumber(settings.CrossbarScale) or 1) or d.Scale
+        local horizontal=40+(tonumber(style.SlotSpacing) or 6)
+        local vertical=(tonumber(style.HotbarSpacing) or 56)/2
+        return s,horizontal,vertical,60+5*horizontal,92+2*vertical
+    end
+    function self:bounds()
+        local d=options.bank:settings();local s,_,_,w,h=self:metrics()
+        return {x=d.X,y=d.Y,width=w*s,height=h*s}
     end
     function self:clamp(width,height)
         local d=options.bank:settings();local b=self:bounds()
@@ -57,30 +65,31 @@ function M.new(options)
             if self.visible~=false then for _,o in ipairs(self.objects) do o:hide() end end
             self.visible=false;return
         end
-        local d=options.bank:settings();local s,x,y=d.Scale,d.X,d.Y
+        local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=d.X,d.Y
         local alpha=math.floor(255*self.opacity+.5)
-        local labels,parts={},{d.Mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha)}
+        local mode=options.bank:mode()
+        local labels,parts={},{mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha),tostring(horizontal),tostring(vertical)}
         for i=1,8 do
             local entry=d['Slot'..i]
-            local label=d.Mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
+            local label=mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
             if #label>10 then label=label:sub(1,9)..'~' end
             labels[i]=label;parts[#parts+1]=string.format('%q',label)
         end
         local key=table.concat(parts,'|')
-        -- A persistent companion is mostly static. Do not repeat native
+        -- A held companion is mostly static. Do not repeat native
         -- position/size/font/show calls on every render of every client.
         -- Retry deferred native glyph measurements before allowing the cache.
         if self.visible and self.render_key==key and not self.needs_measurement then return end
         self.visible=true;self.render_key=key;self.needs_measurement=false
-        self.bg:pos(x,y);self.bg:size(292*s,182*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
-        local title='L1  '..(d.Mode=='bank' and 'Action Bank' or 'Keyboard Shortcuts')..(d.Locked and '' or '  [drag]')
+        self.bg:pos(x,y);self.bg:size(w*s,h*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
+        local title=(mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts')..(d.Locked and '' or '  [drag]')
         self.title:text(title);self.title:size(math.max(6,math.floor(11*s+.5)));self.title:pos(x+10*s,y+8*s)
         self.title:alpha(alpha);self.title:stroke_alpha(math.floor(alpha*.7));self.title:show()
         for i,slot in ipairs(self.slots) do
-            local px,py=layout[i][1],layout[i][2]
+            local px,py=30+layout[i][1]*horizontal,36+layout[i][2]*vertical
             slot.background:pos(x+(px-20)*s,y+py*s);slot.background:size(40*s,40*s)
             slot.background:alpha(math.floor(alpha*.6));slot.background:show()
-            slot.icon:pos(x+(px-18)*s,y+(py+2)*s);slot.icon:size(36*s,36*s);slot.icon:alpha(alpha);slot.icon:show()
+            slot.icon:pos(x+(px-20)*s,y+py*s);slot.icon:size(40*s,40*s);slot.icon:alpha(alpha);slot.icon:show()
             slot.frame:pos(x+(px-20)*s,y+py*s);slot.frame:size(40*s,40*s);slot.frame:alpha(alpha);slot.frame:show()
             slot.number:text(tostring(i));slot.number:size(math.max(4,math.floor(8*s+.5)));slot.number:pos(x+(px-18)*s,y+(py+1)*s)
             local label=labels[i]

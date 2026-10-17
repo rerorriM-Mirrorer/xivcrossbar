@@ -295,7 +295,7 @@ WriteTransportStatus(force := false) {
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
     global PC
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.1-diag`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=" . PC.navigation.ctrl . "`nalt_pair=" . PC.navigation.alt . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.2-layers`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
     global TM
     contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
     global IT

@@ -28,25 +28,27 @@ local function packet(body,token)
     files[path]='token='..(token or bridge.token)..'\nstamp=100\n'..body..'END\n'
 end
 step();local keyboard_token=bridge.token
-packet('1,show,0\n2,release,0\n3,tap,0\n4,slot,1\n');step()
-assert(bank:mode()=='bank' and bridge.token~=keyboard_token and #sent==0)
-assert(env_lease.mode=='bank' and env_lease.token==bridge.token and env_lease.ack==0)
+packet('1,show,0\n2,bank,0\n3,slot,1\n4,release,0\n');step()
+assert(bank:mode()=='bank' and bridge.token==keyboard_token and #sent==0)
+assert(env_lease.mode=='bank' and env_lease.token==bridge.token and env_lease.ack==4)
 assert(bank:command({'1','Test','input','/echo','hello'}))
-packet('1,show,0\n2,slot,1\n3,release,0\n');step();assert(#sent==1 and not bank.held)
+packet('5,bank,0\n6,slot,1\n7,release,0\n');step();assert(#sent==1 and not bank.held)
 step();assert(#sent==1,'same mailbox replayed')
 local prior=bridge.token
-packet('4,show,0\n5,slot,1\n');info.menu_open=true;step()
+packet('8,bank,0\n9,slot,1\n');info.menu_open=true;step()
 assert(bridge.token==nil and #sent==1)
 info.menu_open=false;step();assert(bridge.token~=prior and #sent==1)
 prior=bridge.token
-packet('1,show,0\n2,slot,1\n');focused=false;step()
+packet('1,bank,0\n2,slot,1\n');focused=false;step()
 focused=true;step();assert(bridge.token~=prior and #sent==1)
 prior=bridge.token
-packet('1,show,0\n2,slot,1\n');now=now+1;step()
+packet('1,bank,0\n2,slot,1\n');now=now+1;step()
 assert(bridge.token~=prior and #sent==1,'render stall replayed pending input')
-context='crossbar';step();assert(bridge.token==nil)
-context='gameplay';step();packet('1,show,0\n2,slot,1\n');character.status=4;step()
+prior=bridge.token
+files[path]=nil;context='crossbar';step();assert(bridge.token==prior,'ordinary trigger transition reset session')
+context='gameplay';step();assert(bridge.token==prior)
+packet('1,bank,0\n2,slot,1\n');character.status=4;step()
 assert(bridge.token==nil and #sent==1)
 info.chat_open=true;context='gameplay';character.status=0;step()
 assert(env_context=='text' and bridge.token==nil)
-print('Actual root L1 bridge: mode acknowledgments, once-only dispatch, menu/chat/focus/cutscene/trigger guards and render-stall invalidation passed.')
+print('Actual root L1 bridge: ordered layers, stable ordinary-trigger sessions, once-only dispatch and menu/chat/focus/cutscene/stall guards passed.')

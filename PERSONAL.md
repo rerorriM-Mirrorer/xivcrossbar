@@ -1,4 +1,35 @@
-# Personal 9 Test 2 — compact slots and controller diagnosis
+# Personal 9 Test 3 — current momentary layers
+
+Runtime personal9-l1test3; Controls=9.2-layers. Read README and TESTING for the
+current mapping and pending native acceptance. AHK wrapper restart is required.
+
+| Gesture | Current behavior |
+| --- | --- |
+| L1 held / released | Shortcut companion visible / hidden; no bare-press toggle |
+| L1 then L2 | Saved action bank in the same location; no native modifier latch |
+| Release L2, keep L1 | Reveal shortcuts; held slots do not execute on reveal |
+| Release L1, keep L2 | Hide and consume L2 until release |
+| L2 then L1, or same sampled press | Ordinary L2 crossbar priority |
+| R1+R2 | Ordinary R2 crossbar; no Alt latch |
+| R1 / L1+R1 / PS | F8 on unused release / Tab / application focus toggle |
+| R3 | Existing R on release; ordered click zoom retained; no new F8 |
+
+Existing L1 shortcuts and eight saved bank entries are retained. Main is a
+display alias for default Basic; internal basic keys, file scope and fallbacks
+are unchanged. Companion 40px PS icon slots use the main compact coordinates and
+follow its CrossbarScale by default. Position/lock persist; numeric l1 scale can
+opt out, and l1 scale crossbar restores following. Bank execution goes from AHK
+events directly to Lua console commands, without extra gameplay keybindings.
+
+Sticky input remains unresolved; no current trace was supplied in this request.
+See README for the AHK/Lua route table and ps5/x comparison. Inventory remaps,
+R1 action bar, R2 targeting and R3 split-press ideas remain proposals.
+
+The chronological records below describe their own historical deliveries.
+
+---
+
+# Historical Personal 9 Test 2 — compact slots and controller diagnosis
 
 Runtime personal9-l1test2, Controls=9.1-diag. x aliases ps5-extended; ps5extended
 remains accepted. The standard ps5 profile uses the same base wrapper without

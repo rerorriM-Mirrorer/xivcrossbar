@@ -1,3 +1,93 @@
+# Personal 9 L1 Test 3 — October 16, 2026 (America/Chicago)
+
+Author A. Branch personal/ps5extended. Baseline published Test 2:
+c5aa53c8d9b72adf5b14bdec76ce47d3cff477d5. The package header identifies exact
+delivery commits. Runtime personal9-l1test3; wrapper Controls=9.2-layers.
+
+## Install and first live checks — pending
+
+1. Stop the wrapper and unload all clients; back up the personal installation.
+   Install complete xivcrossbar/ and restore its data/, config.ini and custom
+   icons. Unchanged TrustMovement 0.1.1 is included alongside it; retain existing
+   settings/quiet overlays and AddonManager loading. No user state is shipped.
+2. Start with neutral controls. Check personal9-l1test3 / Controls=9.2-layers.
+   Restarting Lua alone cannot update the running AHK script.
+3. Tap/release L1 several times: exactly one shortcut companion appears only
+   while held; no mode changes, client switching or release action.
+4. Hold L1, add L2: one action companion replaces it at the same location.
+   Existing bank entries persist. Test //xb l1 1 Test input /echo L1-bank,
+   then L1, L2, Left: exactly one echo per fresh Left press; empty slots no-op.
+5. Release L2 while holding L1: shortcut companion returns. Hold a face/direction
+   through this transition: no new action until released and pressed again.
+   Release L1 first instead: hide and consume remaining L2 until released.
+6. L2 first, then L1: ordinary L2 crossbar remains. Release L2 while holding
+   L1: shortcut companion appears. Same-poll L1/L2 favors ordinary L2. Recheck all
+   six ordinary L2/R2 bars, including the normal dual-trigger and double presses.
+7. L1+L2 and R1+R2 no longer hold native Ctrl/Alt. R1+R2 keeps ordinary R2.
+   Individual L1 Ctrl shortcuts still work. Recheck R1 arrows/Cross Enter/Circle
+   Escape/Triangle Ctrl+NumpadPlus; bare R1 F8; L1+R1 Tab; PS/touch/L3/R3/zoom.
+   R3 F8 on press + R on release is NOT installed; it conflicts with zoom onset.
+8. Confirm main compact and companion slots/icons have equal size and spacing at
+   main scales .5/1/1.5. //xb l1 scale crossbar follows it; numeric .8 opts out.
+   Drag unlocked preview, lock, reload, resetpos; verify both layers share position.
+9. Basic displays as Main in chooser, binder title and switch destinations.
+   Switch Main -> Default/All Jobs Default -> Main through existing bound slots.
+   Saved key remains basic, with unchanged fallback/XML/SMN return semantics.
+10. Switch clients, enter menus/chat/cutscenes, disconnect/reconnect and restart
+    mid-chord. New personal action requires neutral; no held-slot replay. Preserve
+    TrustMovement's existing one-signal-per-newly-piloted-client behavior.
+11. Recheck Save Only return, scoped catalog edits and ordinary confirm/cancel.
+    Holding L1 consumes Circle by design (reserved shortcut or bank slot);
+    bare Circle routes through Lua, whereas R1+Circle sends AHK Escape directly.
+
+## Available verification
+
+80 Lua sources parsed via temporary Windower syntax normalization under Lua 5.4.
+No Lua 5.1/luajit/luacheck executable is available here; this is not native Lua
+5.1-aware verification. Actual bank/mailbox/root bridge tests cover ordered
+layers, same-session ordinary-trigger transitions, once-only actions, retired
+toggle rejection, preserved assignments and menu/chat/focus/cutscene/stall guards.
+Actual main coordinate methods verify matching compact coordinates/40px icons;
+42 fixed companion surfaces, scale following, 24 resolution/scale clamps, 300
+hide/reveal cycles, render cache invalidation and teardown pass. Actual binder
+tests verify Main display with basic key round trips and Save Only behavior.
+Existing catalogs/XML/locks/defaults/profile/menu-resource regressions pass.
+
+32 actual pure-AHK gesture/source-routing scenarios pass through narrow JS
+translation, including both press/release orders, simultaneous samples, L2 tail,
+R2 priority and unchanged touch/zoom/focus behavior. Six AHK files pass lexical,
+include and function-link checks; shared lifecycle and trace-helper simulations
+pass. These do NOT establish Windows timer/file/key delivery or in-game rendering.
+No debounce, native key-delay, controller threshold or poll interval was changed.
+
+## Evidence, choices and delivery register
+
+The user requested momentary layers, same-location L1+L2 reveal, main compact
+dimensions, Main naming without functional changes, input-route clarification,
+and review of the current NPCMirror WORKFLOW. The shared workflow was read at
+Git blob bc17a173c779a7b921aed1d4bf8c539368aa3730; it and the AGENTS entry point
+were adopted, with TESTING/WORKFLOW now inside xivcrossbar/ in test ZIPs.
+
+Existing L1 shortcut mappings form the first layer; existing saved bank entries
+form the second. This is the stated interpretation, not a newly specified
+inventory/R1 schema. Bare R1 and R3 retain their prior roles. R2 targeting pulses,
+R1 replacement bank, Sack/Wardrobe remapping and other addons remain proposals.
+
+The reported severe stickiness on Frank's PC remains unresolved. No current
+controller-input-trace.log was attached or resolved by exact filename search in
+this request. Do not describe an older transport log as this new capture. Compare
+ps5 and x with the same sequence; use //xb controller trace on/off, then share
+data/controller-input-trace.log plus the failed physical gesture. New captures
+include layer transitions. This patch removes old modifier latches and toggle
+rearming intentionally; it is not a proven fix for general sticky input.
+
+Complete delivery: XIVCrossbar-Personal9-L1-Test3-Complete.zip. Source is committed
+and published on the personal development branch; exact commits appear in the
+generated package header. Public branch and TrustMovement receiver unchanged.
+Earlier records below are preserved; their current/pending language is historical.
+
+---
+
 # Personal 9 L1 Test 2 — October 16, 2026
 
 Author A. Branch personal/ps5extended. Baseline published L1 commit

@@ -36,12 +36,6 @@ function clicks() {
   };
 }
 function check(name, run) {run();cases++;}
-check('bare L1 switches immediately on release',()=>{
-  const s=shoulder('switch');assert.equal(s(true),'');assert.equal(s(false),'switch');assert.equal(s(false),'');
-});
-check('two completed L1 taps switch twice; no double mode or delay',()=>{
-  const s=shoulder('switch');s(true);assert.equal(s(false),'switch');s(true);assert.equal(s(false),'switch');
-});
 check('bare R1 keeps F8 on release',()=>{const s=shoulder();s(true);assert.equal(s(false),'F8');});
 check('combinations consume shoulder single',()=>{
   const s=shoulder('switch');s(true);s(true,true);assert.equal(s(false),'');
@@ -105,26 +99,29 @@ check('focus loss clears held zoom output',()=>{
   const c=clicks();c(true,false);c(true,true);assert.equal(c(true,true,true),'');
   assert.equal(c(false,false),'');
 });
-function pair() {
-  const g={ctrl:false,alt:false};
-  return (l1=false,l2=false,r1=false,r2=false,allowed=true)=>context.PersonalModifierStep(g,l1,l2,r1,r2,allowed);
+function layer() {
+  const g={phase:'idle'};
+  return (l1=false,l2=false,r1=false,r2=false)=>context.PersonalLayerStep(g,l1,l2,r1,r2);
 }
-check('Ctrl starts on L1+L2 without an arrow',()=>{const p=pair();assert.equal(p(true,true),'ctrl');});
-check('Alt starts on R1+R2 without an arrow',()=>{const p=pair();assert.equal(p(false,false,true,true),'alt');});
-check('single buttons never start modifiers',()=>{
-  for(let i=0;i<4;i++){const a=[false,false,false,false];a[i]=true;assert.equal(pair()(...a),'');}
+check('bare L1 reveals only while held and taps never toggle',()=>{
+  const p=layer();for(let i=0;i<3;i++){assert.equal(p(true),'keyboard');assert.equal(p(),'');}
 });
-check('Ctrl survives either first release until both released',()=>{
-  for(const a of [[true,false],[false,true]]) {const p=pair();p(true,true);assert.equal(p(...a),'ctrl');assert.equal(p(),'');}
+check('L1 first reveals bank; L2 release reveals keyboard again',()=>{
+  const p=layer();p(true);assert.equal(p(true,true),'bank');assert.equal(p(true,true),'bank');
+  assert.equal(p(true,false),'keyboard');assert.equal(p(),'');
 });
-check('Alt survives either first release until both released',()=>{
-  for(const a of [[true,false],[false,true]]) {const p=pair();p(false,false,true,true);assert.equal(p(false,false,...a),'alt');assert.equal(p(),'');}
+check('L2 first remains ordinary until L2 releases',()=>{
+  const p=layer();assert.equal(p(false,true),'ordinary');assert.equal(p(true,true),'ordinary');
+  assert.equal(p(true,false),'keyboard');assert.equal(p(),'');
 });
-check('pairs can overlap and release independently',()=>{
-  const p=pair();assert.equal(p(true,true,true,true),'both');assert.equal(p(false,false,true,false),'alt');assert.equal(p(),'');
+check('same sample L1+L2 preserves ordinary crossbar',()=>{assert.equal(layer()(true,true),'ordinary');});
+check('releasing L1 first consumes remaining L2 without opening ordinary bar',()=>{
+  const p=layer();p(true);p(true,true);assert.equal(p(false,true),'tail');
+  assert.equal(p(true,true),'tail');assert.equal(p(true,false),'keyboard');
 });
-check('focus/menu loss clears both modifiers immediately',()=>{
-  const p=pair();p(true,true,true,true);assert.equal(p(true,true,true,true,false),'');assert.equal(p(),'');
+check('R2 takes ordinary priority and shoulder pairs never create modifiers',()=>{
+  const p=layer();p(true);p(true,true);assert.equal(p(true,true,false,true),'ordinary');
+  assert.equal(p(false,false,true,true),'ordinary');assert.equal(p(false,false,true,false),'');
 });
 check('POV centered/invalid is neutral',()=>{for(const v of [-1,65535,40000])assert.equal(context.PersonalPovDirection(v,1),0);});
 check('POV cardinals and diagonal rolls retain one adjacent direction',()=>{
@@ -142,40 +139,28 @@ const shortcuts=vm.runInNewContext('({'+controls.match(/shortcuts := \{([^}]+)\}
 check('L1 keys match the requested physical-button mapping',()=>{
   assert.deepEqual(JSON.parse(JSON.stringify(shortcuts)),{1:'i',2:'m',3:'e',4:'j',5:'Space',6:'q',7:'',8:'s'});
 });
-check('navigation releases Apps before modifier down and masks transport buttons',()=>{
-  const begin=controls.indexOf('if (navigation != "")');const end=controls.indexOf('if (PC.navigationActive)',begin+30);
-  const body=controls.slice(begin,end);
-  assert(body.indexOf('ReleaseTransport(true)')<body.indexOf('PersonalKey("LControl"'));
-  assert(body.includes('Loop, 12')&&body.includes('return PersonalFilter(states, raw)'));
+check('layer reveal releases Apps first and consumes held buttons; bank masks L2',()=>{
+  const body=controls.slice(controls.indexOf('if (layerChanged)'),controls.indexOf('taps := []'));
+  assert(body.indexOf('ReleaseTransport(true)')<body.indexOf('PersonalL1Event(layer'));
+  assert(body.includes('PersonalL1Block(raw)')&&body.includes('states[11] := false'));
+  assert(controls.includes('if (!layerChanged and raw[i] and !PC.previous[i])'));
+  assert(!controls.includes('PersonalModifierStep')&&!controls.includes('PersonalKey("LAlt", PC.'));
 });
 check('PS is one focus toggle per down edge, with no hold threshold',()=>{
   const ps=controls.slice(controls.indexOf('\nPersonalPS('),controls.indexOf('\nPersonalActivate('));
   assert(ps.includes('PC.previous.ps')&&ps.includes('PersonalClientTarget(0)'));
   assert(!ps.includes('500')&&!ps.includes('WinMinimize'));
 });
-check('unused L1 toggles once on release, with no double-tap delay',()=>{
-  const g=shoulder('l1mode');assert.equal(g(true),'');assert.equal(g(true),'');
-  assert.equal(g(false),'l1mode');assert.equal(g(false),'');
-  assert.equal(g(true),'');assert.equal(g(false),'l1mode');
-});
-check('L1 combination consumes toggle in either release order',()=>{
-  for(const releaseFirst of [true,false]){
-    const g=shoulder('l1mode');g(true);g(true,true);
-    if(releaseFirst)assert.equal(g(false,true),'');else assert.equal(g(true,false),'');
-    assert.equal(g(false),'');
-  }
-});
 check('L1 bank uses existing slot order and does not emit native Ctrl keys',()=>{
   const sequence=controls.match(/slots := \[([^\]]+)\]/)[1].split(',').map(Number);
   assert.deepEqual(sequence,[4,3,2,1,6,5,7,8]);
-  assert(controls.includes('else if (PC.l1.mode = "keyboard" and key != "")'));
-  assert(controls.includes('key:"l1mode"')&&!controls.includes('key:"switch"'));
+  assert(controls.includes('else if (layer = "keyboard" and key != "")'));
+  assert(!controls.includes('key:"l1mode"')&&!controls.includes('PersonalL1Event("tap")'));
 });
-check('mode tap waits for ack/new token and neutral; old chords stay blocked',()=>{
-  const wait=controls.slice(controls.indexOf('if (PC.l1.waiting)'),controls.indexOf('neutral := !raw.l1'));
-  assert(wait.includes('PC.ready := false')&&wait.includes('PersonalL1Block(raw)'));
+check('only context changes require neutral, not layer changes',()=>{
+  assert(!controls.includes('PC.l1.waiting'));
   const lease=controls.slice(controls.indexOf('\nPersonalL1Lease('),controls.indexOf('\nPersonalL1Block('));
-  assert(lease.includes('PC.ready := false')&&lease.includes('PC.l1.ack >= PC.l1.waiting'));
+  assert(lease.includes('PC.ready := false')&&lease.includes('PC.l1.token != token1'));
 });
 console.log(`${cases} personal gesture/routing scenarios passed; Windows delivery remains a live check.`);
 

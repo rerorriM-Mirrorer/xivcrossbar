@@ -4,10 +4,10 @@ PersonalInit(selected, prefix) {
     global PC
     PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
         , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
-        , touch:{phase:"idle"}, clicks:{phase:"idle"}, navigation:{ctrl:false, alt:false}
-        , shoulders:{l1:{phase:"idle", key:"l1mode"}, r1:{phase:"idle", key:"F8"}}
-        , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false, waiting:0}
-        , clients:[], lastClient:0, lastOther:0, navigationActive:false}
+        , touch:{phase:"idle"}, clicks:{phase:"idle"}
+        , shoulders:{r1:{phase:"idle", key:"F8"}}, layer:{phase:"idle"}, layerVisible:""
+        , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
+        , clients:[], lastClient:0, lastOther:0}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
@@ -50,13 +50,6 @@ PersonalPoll(states, active) {
     PC.context := mode
     contextAllowed := active and (mode = "gameplay" or mode = "crossbar") and !raw[9] and !raw[10]
     allowed := contextAllowed and mode = "gameplay" and !raw[11] and !raw[12] and !appsOwned
-    if (PC.l1.waiting) {
-        PC.ready := false
-        PC.previous := raw
-        if (allowed)
-            PersonalL1Block(raw)
-        return PersonalFilter(states, raw)
-    }
     neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
     Loop, 12
         if (raw[A_Index])
@@ -80,60 +73,47 @@ PersonalPoll(states, active) {
     }
 
     arrows := ["Up", "Right", "Down", "Left"]
-    navigation := PersonalModifierStep(PC.navigation, raw.l1, raw[11], raw.r1, raw[12], contextAllowed)
-    if (navigation != "") {
-        if (!PC.navigationActive) {
-            PersonalRelease(false)
-            ; Release Apps/F11/F12 before native modifiers: no Apps+Ctrl+arrow
-            ; and no crossbar action from the same physical chord.
-            ReleaseTransport(true)
-            PC.navigationActive := true
-        }
-        Loop, 12 {
-            i := A_Index
-            if (raw[i]) {
-                PC.blocked[i] := i <= 4 ? arrows[i] : ""
-                if (!PC.previous[i] and i <= 4)
-                    PC.suppressed.Delete(i)
-                else if (i <= 4 and !PC.keys.HasKey(arrows[i]))
-                    PC.suppressed[i] := true
-            }
-        }
-        PersonalKey("LControl", PC.navigation.ctrl)
-        PersonalKey("LAlt", PC.navigation.alt)
-        Loop, 4 {
-            i := A_Index
-            PersonalKey(arrows[i], raw[i] and !PC.suppressed.HasKey(i))
-        }
-        PC.previous := raw
-        return PersonalFilter(states, raw)
-    }
-    if (PC.navigationActive) {
+    layer := PersonalLayerStep(PC.layer, raw.l1, raw[11], raw.r1, raw[12])
+    layerChanged := layer != PC.layerVisible
+    if (layerChanged) {
         PersonalRelease(false)
-        PC.navigationActive := false
+        if (layer = "keyboard" or layer = "bank") {
+            ; Release the old ordinary transport before revealing L1. A held
+            ; slot is consumed on reveal, never executed in the new layer.
+            ReleaseTransport(true)
+            PersonalL1Block(raw)
+            PersonalL1Event(layer = "bank" ? "bank" : "show")
+        } else
+            PersonalL1Event("release")
+        PC.layerVisible := layer
+        InputTraceRecord("layer " . layer)
     }
+    if (layer = "bank" or layer = "tail")
+        states[11] := false
+    if (layer = "tail") {
+        Loop, 12
+            if (raw[A_Index])
+                PC.blocked[A_Index] := ""
+    }
+    allowed := contextAllowed and layer != "ordinary" and layer != "tail" and !raw[12] and !appsOwned
     if (!allowed) {
         PersonalRelease(false)
         PC.previous := raw
         return PersonalFilter(states, raw)
     }
 
-    if (raw.l1 and !PC.previous.l1 and !raw.r1)
-        PersonalL1Event("show")
-    if (!raw.l1 and PC.previous.l1)
-        PersonalL1Event("release")
     taps := []
     ; Each assigned Ctrl shortcut fires once. Empty L1 slots are reserved and
     ; consume their button rather than leaking native confirm/cancel.
-    if (raw.l1 and !raw.r1) {
+    if ((layer = "keyboard" or layer = "bank") and !raw.r1) {
         shortcuts := {1:"i", 2:"m", 3:"e", 4:"j", 5:"Space", 6:"q", 7:"", 8:"s"}
         for i, key in shortcuts {
-            if (raw[i] and !PC.previous[i]) {
+            if (!layerChanged and raw[i] and !PC.previous[i]) {
                 PC.blocked[i] := key
-                if (PC.l1.available and PC.l1.mode = "bank") {
+                if (PC.l1.available and layer = "bank") {
                     slots := [4, 3, 2, 1, 6, 5, 7, 8]
                     PersonalL1Event("slot", slots[i])
-                } else if (PC.l1.mode = "keyboard" and key != "")
+                } else if (layer = "keyboard" and key != "")
                     taps.Push({key:key, modifier:"LControl"})
             }
         }
@@ -204,10 +184,7 @@ PersonalPoll(states, active) {
         other := name = "l1" ? raw.r1 : raw.l1
         consumed := busy or other or raw.touch or raw.l3 or raw.r3
         event := PersonalShoulderStep(gesture, raw[name], PC.previous[name], consumed)
-        if (event = "l1mode") {
-            PersonalL1Event("tap")
-            PC.ready := false
-        } else if (event != "")
+        if (event != "")
             PersonalChord(event, "", now)
     }
     PC.previous := raw
@@ -259,8 +236,8 @@ PersonalContext(hwnd) {
 ; edges. No F13/media-key experiment, synthetic menu keys or process IPC hook.
 PersonalL1Lease(lease, contextPath) {
     global PC
-    ; Native menu toggles still use keyboard shortcuts in keyboard mode. Only
-    ; bank/toggle events need an executable gameplay token; text is blocked by
+    ; Native menu toggles still use keyboard shortcuts on the L1 layer. Only
+    ; bank events need an executable play token; text is blocked by
     ; the ordinary context gate above.
     if RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
         PC.l1.mode := mode1
@@ -268,12 +245,11 @@ PersonalL1Lease(lease, contextPath) {
         or !RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
         or !RegExMatch(lease, "m)^l1ack=(\d+)\r?$", ack)) {
         PC.l1.available := false
-        PC.l1.waiting := 0
         return
     }
     if (PC.l1.token != token1) {
         PC.l1 := {token:token1, mode:mode1, seq:0, ack:0, pending:[], available:true
-            , path:RegExReplace(contextPath, "\.ini$", ".l1"), showing:false, waiting:0}
+            , path:RegExReplace(contextPath, "\.ini$", ".l1"), showing:false}
         PC.ready := false
     }
     PC.l1.available := true, PC.l1.mode := mode1, PC.l1.ack := ack1 + 0
@@ -282,8 +258,6 @@ PersonalL1Lease(lease, contextPath) {
         if (event.seq > PC.l1.ack)
             retained.Push(event)
     PC.l1.pending := retained
-    if (PC.l1.waiting and PC.l1.ack >= PC.l1.waiting)
-        PC.l1.waiting := 0
 }
 
 PersonalL1Block(raw) {
@@ -303,12 +277,10 @@ PersonalL1Event(kind, slot := 0) {
     PC.l1.seq += 1
     event := {seq:PC.l1.seq, kind:kind, slot:slot}
     PC.l1.pending.Push(event)
-    if (kind = "show")
+    if (kind = "show" or kind = "bank")
         PC.l1.showing := true
-    else if (kind = "release" or kind = "cancel" or kind = "tap")
+    else if (kind = "release" or kind = "cancel")
         PC.l1.showing := false
-    if (kind = "tap")
-        PC.l1.waiting := PC.l1.seq
     stamp := A_NowUTC
     EnvSub, stamp, 19700101000000, Seconds
     contents := "token=" . PC.l1.token . "`nstamp=" . stamp . "`n"
@@ -386,7 +358,10 @@ PersonalRelease(reset := true) {
     global PC
     if (!IsObject(PC) or !PC.enabled)
         return
-    PersonalL1Event("cancel")
+    if (reset) {
+        PersonalL1Event("cancel")
+        PC.layer.phase := "idle", PC.layerVisible := ""
+    }
     keys := []
     for key in PC.keys
         keys.Push(key)
@@ -402,10 +377,6 @@ PersonalRelease(reset := true) {
         PC.ready := false
     PC.touch.phase := "cancelled"
     PC.clicks.phase := "cancelled"
-    if (reset) {
-        PC.navigation.ctrl := false, PC.navigation.alt := false
-        PC.navigationActive := false
-    }
     for _, gesture in PC.shoulders
         gesture.phase := "cancelled"
 }

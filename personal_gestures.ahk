@@ -35,22 +35,36 @@ PersonalTouchStep(g, pressed, previous, consumed, now) {
     return ""
 }
 
-PersonalModifierStep(g, l1, l2, r1, r2, allowed) {
-    if (!allowed) {
-        g.ctrl := false, g.alt := false
-        return ""
+; A: order owns the chord. Same-sample presses choose ordinary L2 safely.
+; The tail consumes L2 after releasing L1, so it cannot open a second bar.
+PersonalLayerStep(g, l1, l2, r1, r2) {
+    if (r2 or r1) {
+        g.phase := l2 ? "ordinary" : "idle"
+        return l2 or r2 ? "ordinary" : ""
     }
-    if (!l1 and !l2)
-        g.ctrl := false
-    else if (l1 and l2)
-        g.ctrl := true
-    if (!r1 and !r2)
-        g.alt := false
-    else if (r1 and r2)
-        g.alt := true
-    if (g.ctrl and g.alt)
-        return "both"
-    return g.ctrl ? "ctrl" : (g.alt ? "alt" : "")
+    if (g.phase = "tail") {
+        if (l2)
+            return "tail"
+        g.phase := "idle"
+    }
+    if (g.phase = "ordinary") {
+        if (l2)
+            return "ordinary"
+        g.phase := l1 ? "keyboard" : "idle"
+    } else if (g.phase = "bank") {
+        if (!l1)
+            g.phase := l2 ? "tail" : "idle"
+        else if (!l2)
+            g.phase := "keyboard"
+    } else if (g.phase = "keyboard") {
+        if (!l1)
+            g.phase := l2 ? "ordinary" : "idle"
+        else if (l2)
+            g.phase := "bank"
+    } else {
+        g.phase := l2 ? "ordinary" : (l1 ? "keyboard" : "idle")
+    }
+    return g.phase = "idle" ? "" : g.phase
 }
 
 PersonalClicksStep(g, l3, r3, previousL3, previousR3, consumed) {

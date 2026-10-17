@@ -1,94 +1,106 @@
-# XIVCrossbar — Personal 9 L1 Test 2
+# XIVCrossbar — Personal 9 L1 Test 3
 
-Runtime: **0.4.0-a.20261016.personal9-l1test2**; shared wrapper Controls **9.1-diag**.
-Built on the new RC3 personal line, not the legacy Batch-era line. Public RC3 is
-unchanged by this development. Author: A. Native Windows/FFXI acceptance pending.
+Runtime: **0.4.0-a.20261017.personal9-l1test3**; shared wrapper Controls **9.2-layers**.
+Author: A. Personal development branch; native Windows/FFXI acceptance pending.
 
-## Controller comparison and compact companion update
+## Momentary L1 layers
 
-`//xb controller profile x` now selects PS5 Extended. `ps5extended` and the full
-name still work. `xinput` remains a different reader; x is not its abbreviation.
-`//xb controller profile ps5` selects the ordinary PS5 profile. Both profiles use
-our shared AHK reader; ps5 skips the extended personal-control layer. Wait for
-the selected/running profile to match in `//xb controller status` before comparing.
-The wrapper is shared across clients: use one testing client to request switches.
+| Input | Behavior |
+| --- | --- |
+| Hold L1 | Reveal keyboard-shortcut companion; release hides it |
+| L1, then add L2 | Reveal the saved action bank in the same position |
+| Release L2 while L1 remains held | Return to the shortcut companion |
+| L2, then add L1 | Keep the ordinary L2 crossbar; release L2 to reveal L1 |
+| L1 and L2 in the same sampled poll | Prefer the ordinary L2 crossbar |
+| Release L1 first from the bank | Hide; consume the remaining L2 until release |
+| R2 during a companion gesture | Ordinary R2 crossbar takes priority |
 
-The L1 companion now uses a tighter two-diamond layout with 40px slots and 6px
-spacing, PS symbols inside the installed slot background/frame themes, and aliases
-underneath. Its own position/scale/drag lock and existing bank assignments persist.
-Static companion frames reuse their prior drawing state instead of resubmitting
-native drawing calls every render; fades, dragging and label edits still redraw.
-No mode-switching, native modifier, D-pad or shoulder-order changes in this update.
+Bare L1 no longer toggles modes or switches clients. There are no held native
+Ctrl/Alt shoulder-pair modifiers in this test. R1+R2 uses the ordinary R2 crossbar.
+L1 shortcuts still send their individual Ctrl combinations; R1 arrows, confirm,
+cancel, bare-release F8, L1+R1 Tab, PS focus toggle, touchpad and stick clicks retain
+their existing roles. R3 remains R on release; F8-down/R-up is a proposal only.
 
-For the reported sticky input on Frank's PC, `//xb controller trace on` requests
-a 30-second wrapper capture; off stops early. The log is
-`xivcrossbar/data/controller-input-trace.log`, buffered until stop/expiry/size limit.
-Capture the same bare D-pad taps/holds, face presses and trigger actions first
-with ps5, then with x. The log separates physical AHK button readings from routed
-states and emitted keys, and reports poll/read/personal-handler timing and lease
-misses. No chat text is recorded. `//xb controller status` also shows lifetime
-maxima and miss counters for this wrapper process. Maxima include startup/focus
-events; correlate a trace with the actual sticky action instead of treating a
-large maximum as proof. Trace overhead may affect timing while enabled.
+A newly revealed layer never executes a button already held. Release and press
+that slot again. Context/focus loss still requires neutral before personal
+gestures resume; ordinary trigger changes no longer reset the companion session.
+Native/addon menus, chat and cutscenes suppress executable bank actions.
 
-If ps5 is clean and x sticky, the personal layer becomes the next investigation
-target. If both are sticky, the common wrapper/Lua path, native duplicate input,
-device/driver and client timing remain candidates. Neither outcome alone proves
-a cause. No generic debounce, key-delay change or sticky-input fix is claimed.
-
-Save Only is already present from Test 1. User confirmed L1+Left echo and mode
-switching live; general stickiness remains unresolved. See TESTING for the queued
-shoulder-order, Ctrl/Alt/R1 and combat-bar design, which is not installed here.
-
-## First L1 prototype
-
-PS5 Extended only. An unused L1 tap now switches modes on release instead of
-cycling FFXI clients. In **keyboard** mode, L1 combinations retain the current
-Ctrl shortcuts; a small upper-left two-diamond reference fades after release.
-In **bank** mode, L1 plus a direction/face button executes its saved command
-once on press. The companion remains visible, but ordinary buttons without L1
-remain normal gameplay input. Empty slots do nothing; no default actions ship.
-
-Mode and all eight slots save per character through Windower config. The bank
-is independent of the main trigger-bar sets/jobs. L1+R1 Tab, native L1+L2 Ctrl
-and R1+R2 Alt pairs retain priority. Menus/text entry suppress bank execution;
-keyboard-mode Ctrl shortcuts still open/close native menus; native chat blocks
-personal gestures.
-focus/context changes require a new neutral input before personal gestures.
-There is no separate L1 addon, automatic Trust loader or new F/media-key mapping.
+The companion now matches the main compact layout's 40px icon slots, horizontal
+slot spacing, half-hotbar vertical spacing and saved CrossbarScale. Its location
+and drag lock remain independent. Existing bank entries are retained; old saved
+Mode is ignored. Following the main scale is the new default for existing and new
+settings. An explicit numeric companion scale remains available.
 
 ```
 //xb l1 help
 //xb l1 status
 //xb l1 1 Hello input /echo L1-left
-//xb l1 6 Hello input /echo L1-cross
+//xb l1 6 Heal input /ma "Cure III" <p1>
 //xb l1 append 6 input /echo Second-command
-//xb l1 mode bank
 //xb l1 clear 6
+//xb l1 preview bank
+//xb l1 preview keyboard
+//xb l1 scale crossbar
+//xb l1 scale 0.8
 //xb l1 unlock
 //xb l1 lock
-//xb l1 scale 0.8
 //xb l1 resetpos
-//xb l1 preview
 ```
 
 Slots: **1 Left, 2 Down, 3 Right, 4 Up, 5 Square, 6 Cross, 7 Circle, 8 Triangle**.
-Quote a multiword alias. Native spell/item names keep their grouping, for example
-`//xb l1 6 Heal input /ma "Cure III" <p1>`. Use append for a semicolon chain.
-This first editor is command-based; catalog/menu binding and multiple banks are
-not included. Commands are under `//xb l1`; no global `//l1` alias is installed.
+These commands edit the L1-then-L2 bank; assignments save per character. Empty
+bank slots do nothing. The old `l1 mode` command is retired. Preview is an explicit
+six-second editing aid, not a persistent physical mode.
 
-The companion has its own position/scale/drag lock and hides during native/addon
-menus, text entry and cutscenes. Default mode is keyboard; default position is
-24,70, scale 0.8, locked. Inactive/background bank displays may remain visible;
-only the foreground client can receive a valid bank event.
+## Main label and input routing
+
+The default Basic set displays as **Main** in the chooser, binding title and
+switch-destination picker. Its internal `basic` key, XML identity, fallback order,
+existing switch actions and Summoner return behavior remain unchanged. Custom
+set names and existing action aliases are retained. Console commands still use
+the key, for example `//xb bar basic`.
+
+| Function | Current route |
+| --- | --- |
+| Bare D-pad and face buttons | AHK Apps+F-key signal → Lua ownership → native setkey or addon action |
+| Bare Cross / Circle | Lua sends Enter / Escape, unless an addon UI owns the signal |
+| Bare Triangle / Square | Lua sends main-menu Numpad Minus / active-window Numpad Plus, according to saved mapping |
+| L1 shortcuts | AHK sends the individual Ctrl shortcut; L1 Circle is reserved and consumed |
+| R1+Cross / R1+Circle | AHK directly sends Enter / Escape |
+| PS focus toggle | AHK activates the chosen application window |
+| L1-then-L2 bank | AHK publishes ordered events → Lua executes the saved console command |
+
+Lua consumes the synthetic Apps/F-key signals before they reach normal FFXI
+keyboard handling. It does not cancel the hardware controller's native duplicate
+bindings; keep the existing FFXI GAMEPAD Config precautions below. The bank bridge
+already needs no extra in-game shortcut key assignments.
+
+## Controller comparison and sticky input
+
+`//xb controller profile x` selects PS5 Extended; ps5extended and its full name
+remain accepted. `//xb controller profile ps5` selects the same shared reader
+without personal controls. Wait for selected/running profiles to match in status.
+This is not a comparison with the untouched upstream AHK script.
+
+The reported stickiness on Frank's PC is unresolved. No current Test 2 controller
+trace was available with this request. Use `//xb controller trace on` for a bounded
+30-second capture, reproduce a short sequence, then off. Records are buffered in
+`xivcrossbar/data/controller-input-trace.log`; tracing may affect timing. Capture
+the same bare buttons, L1 chords and ordinary L2/R2 inputs with ps5 and x, recording
+which physical press failed. Traces include raw/routed masks, native output edges,
+layer transitions, context misses and timing. No chat text is captured.
+
+Save Only / Save Changes already returns to the selected custom-action record.
+TrustMovement remains included unchanged; Pathfinder, Sparks and NPCMirror are
+separate projects.
 
 ## Updating this test build
 
 Stop `//xb controller stop`, then unload XIVCrossbar on **all** clients. Back up
 the personal installation. Install the complete xivcrossbar/ folder and restore
 its personal data/, config.ini and custom icons. Restart with all buttons and
-sticks neutral; verify `//xb controller status` reports Controls=9.1-diag. Lua
+sticks neutral; verify `//xb controller status` reports Controls=9.2-layers. Lua
 reload alone does not update a running AHK wrapper. Run one variant/wrapper per PC.
 
 The testing ZIP also includes the unchanged **TrustMovement 0.1.1** companion
@@ -314,6 +326,20 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Personal 9 L1 Test 3 — October 16, 2026
+
+- Replace unused-L1 mode toggling with momentary, ordered shortcut/action layers;
+  preserve L2-first ordinary bars and reveal L1 when L2 releases. Consume held
+  slots on reveal and remaining L2 after L1-first release. Remove native modifier
+  pair latches; individual Ctrl shortcuts remain.
+- Follow the main compact layout's actual coordinates, icon size and crossbar
+  scale by default, preserving position, drag lock and bank assignments.
+- Display Basic as Main without renaming saved keys or fallback providers.
+- Keep trigger transitions in one companion play session, retaining focus/menu/
+  chat/cutscene and render-stall invalidation. Log layer changes in opt-in tracing.
+- Adopt current shared workflow and agent entry point; testing documents now ship
+  inside xivcrossbar/. Windows acceptance and general stickiness remain pending.
 
 ### Personal 9 L1 Test 2 — October 16, 2026
 

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261016.personal9-l1test2'
+_addon.version = '0.4.0-a.20261017.personal9-l1test3'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1053,7 +1053,7 @@ function display_help_menu()
     help.command('ca alias <label>','Set the alias in the active draft (a).')
     help.command('ca command <command>','Set the command in the active draft (c).')
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
-    help.command('l1 [help|status]','Personal L1 modes, saved eight-slot bank, position and scale.')
+    help.command('l1 [help|status]','Momentary L1 layers, saved eight-slot bank, position and scale.')
     help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
@@ -1842,9 +1842,11 @@ publish_personal_context = function()
     local now=l1_clock()
     if l1_last_tick>0 and now-l1_last_tick>.5 then l1_epoch=l1_epoch+1 end
     l1_last_tick=now
-    local eligible=context=='gameplay' and windower.has_focus() and not info.chat_open and not info.menu_open
+    local eligible=(context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not info.menu_open
         and character and character.status~=4
-    local key=table.concat({player.server or '',player.name or '',context,l1_bank:mode(),tostring(l1_epoch)},':')
+    -- Ordinary trigger transitions share one play session: releasing L2 while
+    -- holding L1 can reveal the companion without a forced neutral rearm.
+    local key=table.concat({player.server or '',player.name or '',eligible and 'play' or context,tostring(l1_epoch)},':')
     l1_bridge:context(key,eligible)
     if l1_bridge.token and now>=l1_next_read then
         l1_next_read=now+.02
@@ -1852,9 +1854,6 @@ publish_personal_context = function()
         if f then
             local contents=f:read(4097);f:close();l1_bridge:accept(contents)
         end
-        -- A tap changes the saved mode: invalidate any further old-mode edges.
-        local updated=table.concat({player.server or '',player.name or '',context,l1_bank:mode(),tostring(l1_epoch)},':')
-        if updated~=key then l1_bridge:context(updated,eligible) end
     end
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack})
