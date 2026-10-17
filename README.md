@@ -1,9 +1,38 @@
-# XIVCrossbar — Personal 9 L1 Test 5
+# XIVCrossbar — Personal 9 L1 Test 6
 
-Runtime: **0.4.0-a.20261017.personal9-l1test5**; shared wrapper Controls **9.4-input**.
+Runtime: **0.4.0-a.20261017.personal9-l1test6**; shared wrapper Controls **9.5-messages**.
 Author: A. Personal development branch; native Windows/FFXI acceptance pending.
 
-## Input handoff repair and optional F8 acquisition
+## Message-based controller experiment
+
+**PS5 Extended now defaults to messages. Restart both Lua and the AHK wrapper.**
+L2/R2, their combinations and double taps use the existing Lua bar logic.
+The twelve ordinary buttons share one ordered stream, so a face-button press
+cannot overtake its trigger in a separate keyboard channel. These messages emit
+no Apps or F1–F12 keystrokes. Native gameplay outputs still use the existing
+Lua translation; personal L1/R1/touch/click/targeting shortcuts keep their paths.
+
+```
+//xb messages status
+//xb messages off
+//xb messages on
+//xb controller status
+```
+
+Bare `//xb messages` toggles. The setting saves per character. Return buttons to
+neutral after a switch; status reports the active wrapper route and sent/ack
+counts. Off restores Apps/F-key transport. Other controller profiles retain it.
+
+Complete, sequenced snapshots preserve quick taps and reject duplicates, partial
+writes, stale sessions and another client's input. An advancing heartbeat detects
+an interrupted writer; held input clears after 350 ms without one. Focus changes,
+logout, restart and cutscenes cancel the message session. Overdue unacknowledged
+input is cancelled, and route/client changes require neutral before new presses.
+Native menu detection still hides both L1 companions while ordinary menu input
+remains available. This is a live experiment: source/simulated checks pass, and
+Windows delivery, responsiveness and low-frame-rate behavior need in-game checks.
+
+## Input handoff repair and F8 acquisition
 
 The supplied trace catches brief context-file misses that disarm L1 until neutral,
 and a filter-enumeration defect that can leak a held button for one poll. Test 4
@@ -39,7 +68,8 @@ Independent targeting controls remain available:
 //xb controller target both off
 ```
 
-A fresh unmodified R2 emits plain F8 down/up before Apps+F12. A fresh unmodified
+A fresh unmodified R2 emits plain F8 down/up before its ordinary trigger event
+(Apps+F12 only in keyboard mode). A fresh unmodified
 R3 emits F8 on press and retains R on unused release. Guards skip acquisition in
 reported menus/chat/cutscenes or existing capture/combos/held keyboard modifiers.
 Same-poll R2+face skips F8 and retains its ordinary combo. R3-first zoom also gets
@@ -379,6 +409,17 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Personal 9 L1 Test 6 — October 16, 2026 (America/Chicago)
+
+- Add a per-character, default-on PS5 Extended message experiment, with
+  messages on/off/status and the existing keyboard route as a comparison.
+- Feed all twelve ordinary buttons through one ordered, acknowledged stream
+  into the shared Lua router; preserve all six bar-selection rules.
+- Add advancing heartbeats, cancellation of queued stale actions, neutral
+  handoffs, writer restart acknowledgment recovery and focus/lifecycle cleanup.
+- Preserve personal shortcut paths and native-menu companion hiding. Validate
+  actual AHK decisions and Lua bar routing; native acceptance remains pending.
 
 ### Personal 9 L1 Test 5 — October 17, 2026 (UTC)
 

@@ -1,3 +1,106 @@
+# Personal 9 L1 Test 6 — October 16, 2026 (America/Chicago)
+
+Author A. Branch personal/ps5extended. Baseline published Test 5:
+f92c0b86f3d79de5542062ee9ad9d4027bbb3c46. Exact new local/published commits are
+in the generated package header. Runtime personal9-l1test6; Controls=9.5-messages.
+
+## First live checks — native Windows/FFXI pending
+
+1. Stop the AHK wrapper and unload all clients before replacing the complete
+   xivcrossbar folder. Preserve data/, config.ini, personal icons and existing
+   Trust settings/quiet overlays. Unchanged TrustMovement 0.1.1 is alongside it.
+   Restart BOTH Lua and AHK. Lua alone cannot update the running script.
+2. Use //xb x if needed; return all buttons to neutral. //xb controller status
+   should show personal9-l1test6 via addon status, Controls=9.5-messages, button
+   route=messages and no write error. Sent/ack advances with button gestures.
+   A fresh setting defaults to messages ON; any later explicit choice persists.
+3. Try L2, R2, L2→R2, R2→L2, double-L2 hold and double-R2 hold. Test every face/
+   D-pad slot, quick taps between frames and trigger+face sampled together. Each
+   gesture should select the same one of six bars and execute once per fresh
+   press. Circle in a crossbar must not leak Escape; confirm/cancel outside it
+   should retain their previous behavior. Real F-keys must remain keyboard keys.
+4. Test L1, L1→L2, L2→L1, release orders and R2 priority; personal shortcuts,
+   R1 arrows/confirm/cancel/Trust shortcut, touch peek, PS focus, H/R and zoom.
+   Both L1 companions should still hide in native menus. Ordinary message input
+   stays available there; this does not change the native setkey IJKL behavior.
+5. In the addon editor/chooser, test navigation, L2/R2 page releases, Options
+   press/release and Escape/Enter ownership. Keep draft text during focus changes.
+   Recheck Save Only, action-switch destinations and empty/changed caption redraw.
+6. Hold a trigger/face while changing clients, disconnecting, stopping/restarting
+   the wrapper, logging out, entering a cutscene or restarting Lua. Held state
+   should cancel, and another client must require neutral before a new gesture.
+   A missing advancing heartbeat clears Lua-held input after 350 ms. Source
+   writer backlog cancellation uses 350 ms too; native Windows timing needs
+   checking. A lease that disappears completely can return the old login route
+   only at neutral after 2.5 s since the last valid read. No hot fallback mid-hold.
+7. Compare //xb messages off versus on, returning neutral after each command.
+   Bare toggles; status reports the saved choice, controller status the active
+   wrapper route. Off restores Apps/F-key transport. Other profiles retain their
+   old route. Compare focused one-client and multibox feel at the same settings.
+8. If input differs, //xb controller trace on captures 30 seconds. Include addon
+   status and controller status. Trace distinguishes message down/up/cancel from
+   emitted F-key events. InputTest remains available for dummy-action checking.
+
+## Implemented scope
+
+The experiment moves the twelve ordinary logical buttons into one ordered
+physical-event stream, so the trigger and its face/D-pad slot cannot overtake
+each other through different input channels. AHK emits no Apps/F1–F12 events for
+that stream. A shared Lua router feeds the original bar/menu/slot logic; direct
+native gameplay translation still uses Lua setkey. Personal shortcuts and the
+Trust movement receiver are retained; no general Lua→AHK keyboard service or
+inventory/wardrobe/Trust remap is installed. R3-only targeting and bare R1 free
+remain from Test 5. Target acquisition guards now also recognize message holds.
+
+Each client leases an independent token and saved transport mode. Complete
+snapshots carry ordered edges, acknowledgments and an advancing heartbeat.
+Malformed/partial/gapped/old-token input is rejected before dispatch; duplicates
+are acknowledged without replay. A cancel supersedes earlier queued actions in
+its snapshot. Focus, lifecycle, prolonged render stalls and heartbeat expiry
+invalidate held state. Route/client/writer changes require neutral. A restarted
+writer resumes above Lua's ack and sends cancellation before new downs. Write
+failures stay owned by the message path; they never inject keyboard duplicates.
+Native file operations and scheduling remain unverified here.
+
+## Verification performed here
+
+86 Lua sources parse using the documented Lua 5.4 Windower-syntax normalization
+fallback; no native Lua 5.1/Windower execution is claimed. Actual message receiver
+checks cover atomic validation, ordered batches, duplicates, sequence gaps,
+partial writes, stale timestamps/tokens, cancellation preemption, unchanged-file
+heartbeat expiry, client isolation and command persistence/validation.
+
+Actual root router and original bar-selection function receive real decoded
+messages in a simulated environment: all six bars, both orders, batched double
+taps, once-only slots, native confirm/cancel, held-face ownership, addon menu
+routing, keyboard F-key isolation and legacy fallback pass. Actual publication
+checks preserve a separate message session while native menus revoke L1's bank
+session; focus/render-stall/toggle cleanup passes.
+
+Actual AHK lease/poll/queue/cancel functions run through a narrow JS translation:
+neutral handoffs, trigger-before-slot order, release order, held dedup, uncertain
+lease suppression, overdue backlog cancellation, writer-ack resumption, client
+handoff, logout fallback and no-key-injection branch ownership pass. Native AHK
+parsing, Windows FileMove/keyboard delivery and live FFXI acceptance are pending.
+Seven AHK lexical/include/function-link checks pass. Existing 30 personal gesture
+checks, prefire/filter/lifecycle/trace helpers, bank/view/lease guards, Save Only,
+catalog/XML/default/profile, caption replacement and menu-resource checks pass.
+
+## Delivery and user record
+
+User explicitly requested the message-based L2/R2 experiment after understanding
+that show/physical-button messages can replace transport keys. Kept it switchable
+and personal, with all twelve ordinary buttons ordered to prevent cross-channel
+races. The latest live feedback remains that the preceding controls feel good;
+Test 6 itself has not been tested in FFXI. Complete package includes README,
+WORKFLOW and this cumulative TESTING inside xivcrossbar/, plus the unchanged
+TrustMovement receiver beside it. No saved settings/catalogs/bindings are shipped.
+Source is committed/pushed to the personal branch before delivery; public is
+untouched. Shared NPCMirror WORKFLOW reviewed at unchanged bc17a173 blob.
+Historical releases below remain the record of their own verification.
+
+---
+
 # Personal 9 L1 Test 5 — October 17, 2026 (UTC)
 
 Author A. Branch personal/ps5extended. Baseline published Test 4:

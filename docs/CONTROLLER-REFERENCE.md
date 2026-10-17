@@ -1,6 +1,6 @@
-# Controller reference — Personal 9 Test 5
+# Controller reference — Personal 9 Test 6
 
-Author A. Runtime personal9-l1test5; wrapper Controls=9.4-input. This describes
+Author A. Runtime personal9-l1test6; wrapper Controls=9.5-messages. This describes
 the delivered source, including the momentary L1 layers from Test 3. Saved face
 roles, D-pad mode, bar actions and companion assignments remain per-character.
 
@@ -27,10 +27,25 @@ Both enables both unless both are already on, in which case it disables both.
 All these profiles use this project's shared AHK reader. Selecting ps5 does
 not run the untouched upstream PS5 script.
 
+## Message controls and status
+
+`//xb messages` toggles; on/off set explicitly; status reports the saved setting.
+`//xb controller status` reports the wrapper route, sent/ack and write errors.
+Each client publishes its own transport selection. Tokens/neutral handoffs prevent
+old held gestures from carrying into a new client or route. Complete snapshots
+retain unacknowledged edges; heartbeat advances every 100 ms and Lua clears held
+input after 350 ms without advancement. A stale queue cancels before actions are
+replayed. An unloaded/logged-out client may return to the keyboard route only at
+neutral after its lease expires. Native AHK/file timing is still a live check.
+
 ## Common button transport
 
-AHK holds Apps while sending logical F1–F12 button edges. Lua consumes those
-synthetic signals, then chooses gameplay, addon navigation or an action slot.
+PS5 Extended defaults to ordered button messages in Test 6. AHK sends no Apps
+or F-keys for these twelve buttons. Lua feeds the messages into the same router,
+choosing gameplay, addon navigation or a slot. The table below describes the
+legacy signal/physical mapping. `//xb messages off` restores that route; other
+profiles keep it. Return neutral when switching, and restart Lua AND AHK on install.
+With keyboard transport, AHK holds Apps while sending the logical F1–F12 edges.
 Plain keyboard F-keys remain available. Older optional Ctrl transport exists;
 Apps is the intended default to avoid native macro palettes.
 
@@ -88,10 +103,11 @@ The keyboard companion's Ctrl shortcuts are separate outputs on fresh slot press
 Lua explicitly checks info.menu_open and info.chat_open before rendering either
 companion. Native menus also revoke the bank execution token. This behavior remains.
 
-Ordinary buttons already use neutral Apps+F-number transport. Lua consumes that
-signal and decides native gameplay versus addon menu versus crossbar action.
+Ordinary buttons now use an ordered message stream by default on profile x.
+The existing Apps+F-number route remains selectable. Lua decides native gameplay
+versus addon menu versus crossbar action in a shared routing function.
 Personal shortcuts still make some decisions in AHK. Moving those meanings into
-Lua would consolidate routing; it is a future change, not a Test 5 rewrite.
+Lua would consolidate routing; that consolidation is still a future change. Test 6 changes ordinary button transport.
 
 ## PS5 Extended personal layer
 
@@ -182,7 +198,7 @@ later commands. Bare R1 never sends F8. Shared defaults off for new settings;
 explicit saved Shared choices are retained.
 
 R2 trial: a fresh, unmodified R2 from gameplay emits plain F8 down/up first,
-then the ordinary Apps+F12 signal. R3 trial: a fresh, unmodified R3 emits F8 on
+then the ordinary R2 event (Apps+F12 only with keyboard transport). R3 trial: a fresh, unmodified R3 emits F8 on
 press; an otherwise unused R3 still sends R on release. No repeat while held.
 Settings save separately per character and reach the shared wrapper through the
 current client's lease. Changing them requires a neutral rearm.
@@ -202,14 +218,14 @@ an immediately following slot action; native acceptance remains pending.
 ## Why AHK and Lua both participate
 
 AHK reads the hardware, owns native injected keys and handles application focus.
-Lua owns the addon UI, binding tables, fallback/action rules and which synthetic
-button edges may reach native gameplay. The companion already communicates by
-ordered events rather than extra gameplay keybindings.
+Lua owns the addon UI, binding tables, fallback/action rules and which button
+events may reach native gameplay. Both the ordinary message route and companion
+communicate without extra gameplay keybindings.
 
 A future direct face-button AHK route could use Lua's context and saved mapping,
 and might serve Trust's keyboard UI more consistently. It must choose one owner
 on key-down, retain that owner through key-up, and never also forward the same
-press as an Apps/F-key action. Moving the sender does not remove that decision
+press as a message or Apps/F-key action. Moving the sender does not remove that decision
 or guarantee lower latency; it adds dependence on the context channel. Trust's
 keyboard.lua listens to Windower keyboard events. Whether native setkey follows
 the same route needs a controlled in-game comparison. R1+Cross/Circle may become
@@ -230,7 +246,7 @@ These fix observed failure paths; they do not establish the cause of every
 sticky input on Frank's desktop. The trace has slow polls up to 125 ms.
 
 `//xb controller trace on` captures 30 s; off stops early. The appended buffered
-log is data/controller-input-trace.log. Captures now identify Controls=9.4-input
+log is data/controller-input-trace.log. Captures now identify Controls=9.5-messages
 and log pauses/prefires. Compare off first, then R2, then R3 on the same client.
 
 Sources: current personal source; supplied controller-input-trace.log;

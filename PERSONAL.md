@@ -1,4 +1,26 @@
-# Personal 9 Test 5 — current controls
+# Personal 9 Test 6 — message-based controller experiment
+
+Runtime personal9-l1test6; Controls=9.5-messages. Restart Lua AND the wrapper.
+PS5 Extended defaults to messages; //xb messages off restores Apps/F-keys after
+neutral, and on restores messages. Bare toggles; status reports configuration.
+//xb controller status reports active route, sent/ack, write failures and version.
+
+The twelve ordinary buttons, including L2/R2 and face/D-pad slots, share one
+ordered stream into existing Lua routing. No Apps/F-key signals are emitted in
+this mode. Native Lua key translation and personal L1/R1/touch/click/targeting
+paths remain. Both trigger orders and double-tap bars are retained; companions
+still hide in native menus. No inventory/wardrobe remap is included.
+
+Queued taps are acknowledged; advancing heartbeats distinguish a live writer
+from an unchanged file. Focus/lifecycle/timeout changes cancel held input.
+Route/client/writer changes require neutral. Source and simulated validation
+passes; native responsiveness, Windows file operations and FFXI acceptance are
+pending. The prior Test 5 complete installer remains a comparison build.
+
+---
+
+# Historical Personal 9 Test 5 — controls
+
 
 Runtime personal9-l1test5; Controls=9.4-input. Restart Lua and the shared wrapper.
 The user reports controllers feeling good and likes native menus hiding both L1
