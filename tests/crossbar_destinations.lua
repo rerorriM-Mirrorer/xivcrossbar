@@ -4,6 +4,10 @@ local choices=require('crossbar_destinations')
 local bars={basic={name='Basic'},default={name='Default'},['job-default']={name='Job Default'},
     ['all-jobs-default']={name='Universal'},['all-warps']={name='Warps'},shared={name='Shared'}}
 local entries=choices.build(bars)
+assert(require('set_labels').display('basic','Basic')=='Main')
+assert(require('set_labels').display('basic','My setup')=='My setup')
+assert(require('set_labels').display('main','Main')=='Main')
+assert(bars.basic.name=='Basic' and bars.main==nil,'display renamed the internal key')
 assert(entries[1].key=='default' and entries[2].key=='job-default' and entries[3].key=='all-jobs-default')
 assert(entries[3].name=='Universal' and bars['all-jobs-default'].name=='Universal')
 assert(#entries==6 and choices.build({})[1]==nil)
@@ -40,6 +44,7 @@ player.is_valid_environment=function(_,key)return bars[key]~=nil end
 local options=require('theme').apply(require('defaults'));options.button_layout='playstation'
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},env.set_hotkey,function()end,
     options,function()return choices.build(bars)end)
+binder:show_set_title('Assign');assert(binder.title:text():find('Main Crossbar',1,true))
 local function pick(key,quick)
     binder.action_type=quick and 40 or 31 -- QUICK_SWITCH_CROSSBARS / SWITCH_CROSSBARS
     binder.state=2 -- SELECT_ACTION
@@ -52,7 +57,7 @@ local function pick(key,quick)
     end
     assert(found,'destination omitted: '..key)
     local selected=binder.selector:get_selected_option()
-    assert(selected.text==bars[key].name and selected.data.action_name==key)
+    assert(selected.text==require('set_labels').display(key,bars[key].name) and selected.data.action_name==key)
     assert(io.open('images/icons/iconpacks/default/ui/facebuttons_playstation.png','rb')):close()
     binder:submit_selected_option()
     binder.active_crossbar,binder.hotkey=2,7
@@ -87,3 +92,4 @@ assert(binder.action_alias==nil and binder.action_command==nil and binder.action
 binder:hide();binder:reset_state()
 require('ui/resources').destroy_all()
 print('Default destinations, renamed labels, actual binder/slot save, same-slot round trips and quick-switch return passed.')
+

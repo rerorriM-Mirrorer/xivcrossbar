@@ -1787,7 +1787,7 @@ function action_binder:show_set_title(label)
     self.set_title_base = label
     local key = player_data.hotbar_settings.active_environment
     local bar = player_data.hotbar[key]
-    local name = bar and (bar.name or key) or key or ''
+    local name = require('set_labels').display(key,bar and bar.name)
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
     local color = defaults[key] and '\\cs(0,128,255)' or '\\cs(255,255,255)'
     local scope = self.state == states.EDIT_CUSTOM_ACTION_REVIEW and self.custom_action_draft and

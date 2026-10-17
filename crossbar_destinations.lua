@@ -4,7 +4,7 @@ local M = {}
 function M.build(hotbar)
     local entries = {}
     for key, bar in pairs(hotbar or {}) do
-        if type(bar) == 'table' then entries[#entries+1]={key=key,name=bar.name or key} end
+        if type(bar) == 'table' then entries[#entries+1]={key=key,name=require('set_labels').display(key,bar.name)} end
     end
     local rank={default=1,['job-default']=2,['all-jobs-default']=3}
     table.sort(entries,function(a,b)

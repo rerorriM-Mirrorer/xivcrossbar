@@ -320,18 +320,23 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
     self.should_close_at = os.time()
 
     local environments = self:get_player_environments(player_hotbar)
+    local display_names={}
+    for key,bar in pairs(player_hotbar) do
+        display_names[bar]=require('set_labels').display(key,bar.name)
+    end
     self.environment_count=#environments
     if anchor_x then self:set_anchor(anchor_x,anchor_bottom) end
 
     for i, environment in ipairs(environments) do
         local index = (#environments - i) + 1 -- put first environment at the top instead of bottom
+        local display_name=display_names[environment] or environment.name
         if (default_hotbars[kebab_casify(environment.name)]) then
             self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,128,255)' .. HIDDEN_SPACE .. environment.name)
         elseif (environment.name == ADD_NEW_SET) then
             self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. environment.name)
             self.indexof_add_new_set = index
         else
-            self.environments[index].name_text:text(HAIRLINE .. '\\cs(255,255,255)' .. HIDDEN_SPACE .. environment.name)
+            self.environments[index].name_text:text(HAIRLINE .. '\\cs(255,255,255)' .. HIDDEN_SPACE .. display_name)
         end
         self.environments[index].name_text:pos(self:get_name_x(index), self:get_name_y(index))
         self.environments[index].name_text:show()
