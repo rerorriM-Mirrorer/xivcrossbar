@@ -4,7 +4,7 @@ PersonalInit(selected, prefix) {
     global PC
     PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
         , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
-        , touch:{phase:"idle"}, clicks:{phase:"idle"}
+        , touch:{phase:"idle"}, clicks:{phase:"idle"}, r1:{phase:"idle"}
         , layer:{phase:"idle"}, layerVisible:""
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
@@ -55,6 +55,8 @@ PersonalPoll(states, active) {
             InputTraceRecord("context pause; no new downs")
         }
         PC.contextPaused := true, PC.context := "updating"
+        ; An uncertain lease must not authorize a deferred R on its recovery.
+        PC.r1.phase := "cancelled"
         ; Keep existing transport holds only while still physically held. New
         ; downs wait for a verified current lease; releases are never delayed.
         Loop, 12 {
@@ -83,7 +85,7 @@ PersonalPoll(states, active) {
     if (!PC.ready) {
         if (allowed and neutral) {
             PC.ready := true
-            PC.touch.phase := "idle", PC.clicks.phase := "idle"
+            PC.touch.phase := "idle", PC.clicks.phase := "idle", PC.r1.phase := "idle"
         }
         if (allowed)
             PersonalL1Block(raw)
@@ -200,9 +202,24 @@ PersonalPoll(states, active) {
     if (clickEvent = "h" or clickEvent = "r")
         PersonalChord(clickEvent, "", now)
 
-    ; A: bare R1 is unassigned; R1 combinations above remain available.
+    PersonalR1Tap(raw, busy or raw.l1 or raw.l3 or raw.r3 or raw.touch, now)
     PC.previous := raw
     return states
+}
+
+PersonalR1Tap(raw, consumed, now) {
+    global PC
+    ; Preserve physical keyboard ownership and avoid modified R shortcuts.
+    if (PC.keys.Count())
+        consumed := true
+    for _, key in ["Control", "Alt", "Shift", "LWin", "RWin", "AppsKey", "r"]
+        if GetKeyState(key, "P")
+            consumed := true
+    event := PersonalR1Step(PC.r1, raw.r1, PC.previous.r1, consumed)
+    if (event = "r") {
+        InputTraceRecord("r1 unused release -> r")
+        PersonalChord("r", "", now)
+    }
 }
 
 PersonalFilter(states, raw) {
@@ -435,6 +452,7 @@ PersonalRelease(reset := true) {
         PC.ready := false
     PC.touch.phase := "cancelled"
     PC.clicks.phase := "cancelled"
+    PC.r1.phase := "cancelled"
 }
 
 PersonalOtherWindow(hwnd) {

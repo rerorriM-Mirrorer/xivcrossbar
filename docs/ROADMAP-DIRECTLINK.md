@@ -4,7 +4,8 @@ Reviewed October 17, 2026, America/Chicago. Author A.
 Initial review source: 86b50f103425d1ed871d7612735d2d4fa6e3126c.
 Updated after the authorized diagnostic checkpoint based on c8f198a, on
 development/directlink. Chooser repair and render trace are now implemented;
-their live acceptance is pending. Controller mappings are unchanged.
+their live acceptance is pending. The following R1 checkpoint adds R on unused
+R1 release; other controller mappings remain unchanged.
 Snapshot 1 remains preserved on snapshot/directlink-unbound-20261016.
 
 Sources: current README/PERSONAL/TESTING, current rendering/router/binder source,
@@ -87,7 +88,7 @@ No opacity change is included before a capture identifies the affected path.
 | Idea | Latest constraint / status |
 | --- | --- |
 | L1 inventory/item cluster | Shapes could open the most-used inventory/menu actions, including Sack. Final map not chosen; do not auto-install custom Windower bindings. |
-| R1 equipment/wardrobe cluster | Shapes could open equipment/wardrobes. Bare R1 is currently free; R was suggested, not assigned. |
+| R1 equipment/wardrobe cluster | Shapes could open equipment/wardrobes. Bare R1 now sends R on unused release; existing chords consume the hold. Further remapping remains undecided. |
 | L1 directional scrolling | Proposed only while native menu_open is true: Left/Right = Alt+Left/Right; Up/Down = Ctrl+Left/Right. Closed menus retain existing shortcuts. Companion remains hidden in native menus. Not implemented; no remap installed. |
 | R1 and R1→R2 companions | An R1 reference and an upper-right R1→R2 action bar remain ideas. Existing R1 direct arrows/Enter/Escape/Trust shortcut remain. |
 | R2 directional quick menus | Temporary magic/ability/item/combat choices were brainstormed; no agreed state machine or bindings yet. |

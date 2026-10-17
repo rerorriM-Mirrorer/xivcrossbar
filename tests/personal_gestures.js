@@ -28,6 +28,13 @@ function clicks() {
     l=nl;r=nr;return value;
   };
 }
+function r1() {
+  const g={phase:'idle'};let previous=false;
+  return (pressed,consumed=false)=>{
+    const value=context.PersonalR1Step(g,pressed,previous,consumed);
+    previous=pressed;return value;
+  };
+}
 function check(name, run) {run();cases++;}
 check('brief unknown lease pauses without authorizing actions; stale/lost sessions do not pause',()=>{
   assert.equal(context.PersonalLeasePause('unknown',1015,1000,true),true);
@@ -38,10 +45,33 @@ check('brief unknown lease pauses without authorizing actions; stale/lost sessio
   for(const mode of ['stale','text','menu:1','unfocused','gameplay'])
     assert.equal(context.PersonalLeasePause(mode,1015,1000,true),false);
 });
-check('bare R1 has no sender; combinations remain',()=>{
+check('bare R1 uses a release gesture; combinations remain',()=>{
   const controls=fs.readFileSync('personal_controls.ahk','utf8');
   assert(!controls.includes('PC.shoulders') && !controls.includes('PersonalShoulderStep'));
+  assert(controls.includes('PersonalR1Tap(raw, busy or raw.l1 or raw.l3 or raw.r3 or raw.touch, now)'));
   assert(controls.includes('raw.r1 and !raw.l1'));
+});
+check('R1 emits R once on unused release, with no hold repeat',()=>{
+  const r=r1();assert.equal(r(true),'');assert.equal(r(true),'');
+  assert.equal(r(false),'r');assert.equal(r(false),'');
+  r(true);assert.equal(r(false),'r');
+});
+check('R1 chord consumption persists after its other button releases',()=>{
+  const r=r1();r(true);r(true,true);r(true);assert.equal(r(false),'');
+  r(true);assert.equal(r(false),'r');
+});
+check('R1 released together with a chord button stays consumed',()=>{
+  const r=r1();r(true);assert.equal(r(false,true),'');assert.equal(r(false),'');
+});
+check('R1 pressed during another action cannot arm later in the same hold',()=>{
+  const r=r1();r(true,true);r(true);assert.equal(r(false),'');
+});
+check('R1 held across a lost context cannot fire on release',()=>{
+  const g={phase:'idle'};context.PersonalR1Step(g,true,false,false);
+  g.phase='cancelled';assert.equal(context.PersonalR1Step(g,false,true,false),'');
+});
+check('R1 release without an observed fresh press does nothing',()=>{
+  const r=r1();assert.equal(r(false),'');assert.equal(r(false),'');
 });
 check('bare touchpad tap backtick only on release',()=>{
   const t=touch();assert.equal(t(true,100),'');assert.equal(t(false,300),'vkC0sc029');assert.equal(t(false,700),'');

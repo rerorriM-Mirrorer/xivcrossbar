@@ -3,12 +3,25 @@
 The current development identity is **XIVCrossbar DirectLink — Unbound**.
 See [the snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md) and current README/TESTING.
 Preserve `snapshot/directlink-unbound-20261016`; continue on `development/directlink`.
-Runtime files remain the live-tested Personal Test 6 without modification.
+The snapshot preserves the live-tested Personal Test 6. Current development
+adds chooser/render diagnostics and the R1 behavior below; see README/TESTING.
 The chronological Personal notes below remain historical provenance.
 
 ---
 
-# Personal 9 Test 6 — message-based controller experiment
+# DirectLink R1 checkpoint 1
+
+Runtime directlink1-r1test1; Controls=9.6-r1-r. Restart Lua AND the shared wrapper.
+Bare R1 sends R once on unused release. Any controller chord consumes the hold,
+even if the other button releases before R1. Existing R1 arrows/confirm/cancel/
+Trust shortcut and L1+R1 Tab remain. Focus/context/lease loss cancels a pending tap;
+physical modifiers/R and outstanding generated keys suppress it. R3 keeps its
+F8-on-press / R-on-unused-release behavior. No L1 remap or transport change.
+Source/simulated checks pass; live Windows/FFXI acceptance is pending.
+
+---
+
+# Historical Personal 9 Test 6 — message-based controller experiment
 
 Runtime personal9-l1test6; Controls=9.5-messages. Restart Lua AND the wrapper.
 PS5 Extended defaults to messages; //xb messages off restores Apps/F-keys after

@@ -1,6 +1,6 @@
 # Controller reference — Personal 9 Test 6
 
-Author A. Runtime personal9-l1test6; wrapper Controls=9.5-messages. This describes
+Author A. Runtime directlink1-r1test1; wrapper Controls=9.6-r1-r. This describes
 the delivered source, including the momentary L1 layers from Test 3. Saved face
 roles, D-pad mode, bar actions and companion assignments remain per-character.
 
@@ -131,7 +131,7 @@ R3=12, PS=13, touchpad=14, mute=15.
 | R1+Cross / Circle | AHK Enter / Escape directly |
 | R1+Triangle | AHK Ctrl+Numpad Plus |
 | R1+Square | Ordinary Square signal; no special personal binding |
-| Bare R1 press / release | No output; combinations remain assigned |
+| Bare R1 press / unused release | No output on press; R once on release. Any chord consumes the hold |
 | R1+R2 | Ordinary R2 crossbar; no Alt latch |
 | Bare L3 release | H |
 | Bare R3 release | R |
@@ -147,7 +147,8 @@ observes the movement axes for TrustMovement's existing takeover signal; it does
 not replace their movement. With the companion loaded, that signal fires once
 per newly piloted FFXI client, not after every return to stick center.
 
-Bare R1 has no release action. Touch/click shortcuts
+R1 sends R only on an unused release. Chords, focus/context loss, uncertain leases
+and physical modifiers/R cancel the pending tap. Touch/click shortcuts
 are suppressed by shoulders and other active combos. A newly revealed companion
 never executes a direction/face button already held. Focus, menu/text/setup,
 disconnect and stale-context loss cancel personal gestures and require neutral.
@@ -246,7 +247,7 @@ These fix observed failure paths; they do not establish the cause of every
 sticky input on Frank's desktop. The trace has slow polls up to 125 ms.
 
 `//xb controller trace on` captures 30 s; off stops early. The appended buffered
-log is data/controller-input-trace.log. Captures now identify Controls=9.5-messages
+log is data/controller-input-trace.log. Current captures identify Controls=9.6-r1-r
 and log pauses/prefires. Compare off first, then R2, then R3 on the same client.
 
 Sources: current personal source; supplied controller-input-trace.log;

@@ -6,9 +6,11 @@ Preserved checkpoint: `snapshot/directlink-unbound-20261016`.
 Future work: `development/directlink`. See the [snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md)
 and [branch map](docs/BRANCH-MAP.md) to distinguish the two older Personal lines.
 Snapshot 1 preserves the live-tested Personal 9 Test 6. This working branch adds
-chooser cancellation repairs and opt-in render diagnostics; live checks are pending.
+chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
+release; live checks are pending.
 
-Runtime: **0.4.0-a.20261017.directlink1-trace1**; shared wrapper Controls **9.5-messages**.
+Runtime: **0.4.0-a.20261017.directlink1-r1test1**; shared wrapper Controls **9.6-r1-r**.
+Restart Lua AND the shared AHK wrapper after installing this checkpoint.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
@@ -87,7 +89,8 @@ not yet proven resolved; laptop Franklet is reported much smoother. The native
 sender's key delay, polling interval and device thresholds are unchanged.
 
 Target acquisition now defaults to **R3 on, R2 off**. Test 5 adopts that choice
-once for existing settings; later explicit choices persist. Bare R1 is unassigned.
+once for existing settings; later explicit choices persist. An unused R1 release
+sends R once; any controller chord consumes that hold and prevents the release R.
 Shared is disabled for fresh settings; existing explicit Shared preferences remain.
 
 Private testing shortcuts (long forms remain available):
@@ -142,7 +145,7 @@ Bare L1 no longer toggles modes or switches clients. There are no held native
 Ctrl/Alt shoulder-pair modifiers in this test. R1+R2 uses the ordinary R2 crossbar.
 L1 shortcuts still send their individual Ctrl combinations; R1 arrows, confirm,
 cancel, L1+R1 Tab, PS focus toggle, touchpad and stick clicks retain
-their existing roles. Bare R1 sends nothing. R3 sends F8 on press and R on an
+their existing roles. Bare R1 sends R on unused release. R3 sends F8 on press and R on an
 unused release by default, subject to the acquisition guards above.
 
 A newly revealed layer never executes a button already held. Release and press
@@ -450,6 +453,15 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### DirectLink R1 checkpoint 1 — October 17, 2026
+
+- Send R once on an unused R1 release. Chords consume the hold, even if their
+  other button releases first. R1 combinations and R3 F8/R behavior remain.
+- Cancel pending R1 taps on focus/context loss, uncertain leases, physical
+  modifiers/R or another active generated key. No transport/timing change.
+- Controls=9.6-r1-r; restart both Lua and the shared wrapper. Source/simulated
+  checks pass; Windows/FFXI acceptance is pending.
 
 ### DirectLink diagnostic checkpoint 1 — October 17, 2026
 

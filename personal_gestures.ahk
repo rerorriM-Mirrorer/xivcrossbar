@@ -6,6 +6,23 @@ PersonalLeasePause(mode, now, seen, ready) {
     return ready and mode = "unknown" and seen > 0 and now >= seen and now - seen <= 100
 }
 
+; A: defer R until release so every R1 chord can consume the whole hold. Once
+; consumed, releasing the other button cannot revive that same R1 tap.
+PersonalR1Step(g, pressed, previous, consumed) {
+    if (consumed) {
+        g.phase := pressed ? "cancelled" : "idle"
+        return ""
+    }
+    if (pressed and !previous and g.phase = "idle")
+        g.phase := "armed"
+    if (!pressed) {
+        phase := g.phase, g.phase := "idle"
+        if (previous and phase = "armed")
+            return "r"
+    }
+    return ""
+}
+
 PersonalTouchStep(g, pressed, previous, consumed, now) {
     if (consumed) {
         g.phase := pressed ? "cancelled" : "idle"

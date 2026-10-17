@@ -1,3 +1,54 @@
+# DirectLink R1 checkpoint 1 — October 17, 2026 (America/Chicago)
+
+Author A. Branch development/directlink; base f04f790d4836df0cee4c9761c7be871222abcdcd.
+Runtime 0.4.0-a.20261017.directlink1-r1test1; Controls=9.6-r1-r.
+User returned to the thread asking for R1 to become R. Implement an unused-release
+gesture, preserving existing R1 chords and R3 F8/R. Public RC3 and the frozen
+Unbound snapshot are unchanged. This checkpoint is committed/pushed for testing;
+its exact commit is recorded in Git history and delivery feedback.
+
+## First live checks — pending
+
+1. Stop the shared wrapper and unload Lua in all clients. Preserve installed
+   data/, config.ini, icons and Trust settings. Update the existing DirectLink
+   folder, reload Lua and restart the wrapper. Verify directlink1-r1test1 and
+   Controls=9.6-r1-r via //xb inputstatus and //xb controller status. Lua reload
+   alone cannot update AHK. No settings migration or companion replacement.
+2. Tap bare R1: no R on press; exactly one R on release. Holding R1 produces no
+   repeat. Check the native action corresponding to R with the current keymap.
+3. Hold R1 and use each D-pad/face combination, L1+R1, R1+L2/R2, touch/click/PS.
+   Existing commands should work; releasing R1 must not also emit R. Test both
+   release orders, especially releasing the chord's other button first.
+4. Hold R1 through focus/client handoff, disconnect, addon text/menu context or
+   wrapper stop/restart. Release must not produce delayed R; return neutral and
+   make a fresh tap. Test physical Ctrl/Alt/Shift/Win/Apps/R ownership too.
+5. R3 still sends eligible F8 on press and R on unused release. Both ordered
+   click zooms, L1 order/companions, DirectLink bars and ordinary keyboard keys
+   retain existing behavior. If diagnosing, controller trace includes the new
+   Controls version and the explicit r1 unused release -> r marker.
+
+## Implementation and local checks
+
+Pure R1 state machine: idle -> armed on a fresh unused down; R on armed release;
+another controller action consumes the hold until release. This prevents R from
+firing when a chord ends. The sender preserves physical modifier/R ownership and
+suppresses overlap with outstanding generated keys. Context cleanup and even a
+brief uncertain lease cancel the deferred tap. No polling/key-delay change,
+held-R behavior, automatic repeats, L1 remap or message protocol change.
+
+36 actual-AHK gesture scenarios run under the existing narrow JS translation.
+Actual R1 sender/filter/F8 checks cover single release, consumed holds, physical
+modifiers/R, pending generated keys and cancellation wiring. Message transport,
+client lifecycle, input trace and AHK lexical/include/function-link regressions
+also pass. Lua static checking uses the documented Lua 5.4 normalization fallback;
+native Lua 5.1/Windower and Windows/AHK execution are unavailable. Live acceptance
+is pending; these are source/simulated results, not in-game success claims.
+
+Reviewed current project AGENTS/WORKFLOW/TESTING and the unchanged shared
+NPCMirror WORKFLOW reference before editing. Cumulative records follow verbatim.
+
+---
+
 # DirectLink diagnostic checkpoint 1 — October 17, 2026 (America/Chicago)
 
 Author A. Branch development/directlink; base c8f198ab2de20bad07678ce23c5f5c134e467ca7.

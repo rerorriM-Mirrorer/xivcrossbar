@@ -4,7 +4,11 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const source=fs.readFileSync('personal_controls.ahk','utf8');
 function extract(name){const start=source.indexOf('\n'+name+'(')+1;assert(start>0);
   const end=source.indexOf('\n}\n',start)+2;assert(end>start);return source.slice(start,end);}
-let code=['PersonalFilter','PersonalTargetTrial'].map(extract).join('\n');
+const gestures=fs.readFileSync('personal_gestures.ahk','utf8');
+const r1Start=gestures.indexOf('\nPersonalR1Step(')+1;
+assert(r1Start>0);
+let code=gestures.slice(r1Start,gestures.indexOf('\n}\n',r1Start)+2)+'\n'+
+  ['PersonalFilter','PersonalTargetTrial','PersonalR1Tap'].map(extract).join('\n');
 code=code.replace(/^\s*global .*$/gm,'').replace(/;[^\n]*/g,'');
 code=code.replace(/"(?:[^"]|"")*"|[^"\n]+/g,t=>t.startsWith('"')?t:t
   .replace(/ \. /g,' + ').replace(/:=/g,'@ASSIGN@').replace(/(?<![<>!:=])=(?!=)/g,'===')
@@ -13,7 +17,7 @@ code=code.replace(/for (\w+), (\w+) in ([^\n{]+)(\{)?/g,
   (_,k,v,e,brace)=>`for (const [${k},${v}] of ahkEnum(${e.trim()})) ${brace||''}`)
   .replace(/Loop, (\d+)\s*\n/g,(_,n)=>`for(let A_Index=1;A_Index<=${n};A_Index++)\n`)
   .replace(/if GetKeyState\(([^)\n]+)\)/g,'if (GetKeyState($1))')
-  .replace(/^(Personal\w+\([^\n]+\)) \{/gm,'function $1 { let retired, source;');
+  .replace(/^(Personal\w+\([^\n]+\)) \{/gm,'function $1 { let retired, source, event, phase;');
 function* ahkEnum(o){let index=0;while(true){
   if(Array.isArray(o)){if(index>=o.length)return;yield [++index,o[index-1]];}
   else{const keys=Object.keys(o).map(Number).sort((a,b)=>a-b);if(index>=keys.length)return;
@@ -24,10 +28,11 @@ function object(values){return Object.defineProperties(values,{
 const emitted=[],physical=new Set();
 const context={ahkEnum,PC:{},appsOwned:false,GetKeyState:k=>physical.has(k),
   messageHeld:false,ControllerMessageAnyHeld:()=>context.messageHeld,
-  PersonalKey:(key,down)=>emitted.push([key,down]),InputTraceRecord:()=>{}};
+  PersonalKey:(key,down)=>emitted.push([key,down]),
+  PersonalChord:(key,modifier,now)=>emitted.push(['chord',key,modifier,now]),InputTraceRecord:()=>{}};
 vm.createContext(context);vm.runInContext('Array.prototype.Push=Array.prototype.push;\n'+code,context);
 function fresh(){context.PC={blocked:object({}),suppressed:object({}),keys:object({}),
-  l1:{available:true},previous:{},clicks:{phase:'idle'},targetR2:false,targetR3:false};
+  l1:{available:true},previous:{},clicks:{phase:'idle'},r1:{phase:'idle'},targetR2:false,targetR3:false};
   context.appsOwned=false;context.messageHeld=false;emitted.length=0;physical.clear();}
 fresh();context.PC.blocked=object({1:'i',2:'m',6:'q',8:'s'});
 context.PC.suppressed=object({1:true,6:true});
@@ -68,3 +73,19 @@ const pause=source.slice(source.indexOf('if (PersonalLeasePause('),source.indexO
 assert(pause.includes('previous[A_Index] or ControllerMessageHeld(A_Index)')&&pause.includes('states[A_Index] and held')&&pause.includes('return PersonalFilter(states, raw)'));
 assert(!pause.includes('PersonalRelease()')&&!pause.includes('PC.previous := raw'));
 console.log('Actual AHK filter: adjacent-entry deletion regression fixed. F8 R2/R3 ordering, fresh edges, defaults-off and context/combo/physical-key guards pass; gap quarantine has no new downs.');
+function shoulder(down,consumed=false){
+  context.PersonalR1Tap({r1:down},consumed,100);
+  context.PC.previous.r1=down;
+}
+fresh();shoulder(true);assert.deepEqual(emitted,[]);shoulder(true);shoulder(false);
+assert.deepEqual(emitted,[['chord','r','',100]]);shoulder(false);assert.equal(emitted.length,1);
+fresh();shoulder(true);shoulder(true,true);shoulder(true);shoulder(false);assert.deepEqual(emitted,[]);
+for(const key of ['Control','Alt','Shift','LWin','RWin','AppsKey','r']){
+  fresh();shoulder(true);physical.add(key);shoulder(true);physical.clear();shoulder(false);
+  assert.deepEqual(emitted,[],key+' turned R1 into a keyboard chord');
+}
+fresh();shoulder(true);context.PC.keys=object({Enter:1});shoulder(true);
+context.PC.keys=object({});shoulder(false);assert.deepEqual(emitted,[]);
+assert(pause.includes('PC.r1.phase := "cancelled"'),'uncertain lease kept pending R');
+assert(extract('PersonalRelease').includes('PC.r1.phase := "cancelled"'),'release cleanup kept pending R');
+console.log('Actual AHK R1 sender: fresh release once, consumed hold, physical modifier/R ownership, outstanding generated keys and context-cancellation wiring passed.');
