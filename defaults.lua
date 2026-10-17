@@ -9,9 +9,10 @@ defaults.iconpack = 'default'
 -- A: personal builds start with the extended profile; public defaults stay separate.
 defaults.ControllerProfile = 'ps5-extended'
 defaults.ControllerDevice = 1
--- A: targeting trials stay off for an unchanged-input comparison first.
+-- A: the personal target button is R3; R2 remains the ordinary trigger.
 defaults.ControllerTargetR2 = false
-defaults.ControllerTargetR3 = false
+defaults.ControllerTargetR3 = true
+defaults.PersonalTargetR3Migrated = false
 -- A: migrate older base-PS5 selections once; later explicit choices persist.
 defaults.PersonalProfileMigrated = false
 defaults.on_logout_unload_addon = false
@@ -25,7 +26,7 @@ defaults.AllowSTPCForSelfTargetedActions = true
 defaults.AutoCreateXML = true
 defaults.UseAltLayout = false
 defaults.AutoHideExtraBars = true
-defaults.UseSharedSet = true
+defaults.UseSharedSet = false
 
 defaults.SkillchainIndicator = {}
 defaults.SkillchainIndicator.Opacity = 220

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.personal9-l1test4'
+_addon.version = '0.4.0-a.20261017.personal9-l1test5'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1058,7 +1058,9 @@ function display_help_menu()
     help.command('ca command <command>','Set the command in the active draft (c).')
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
     help.command('l1 [help|status]','Momentary L1 layers, saved eight-slot bank, position and scale.')
-    help.command('controller target [r2|r3|both] [on|off]','Optional F8 before unmodified R2/R3; off by default.')
+    help.command('controller target [r2|r3|both] [on|off]','F8 before unmodified R2/R3; personal default R3 only.')
+    help.command('x [device]','Personal shortcut: select PS5 Extended.')
+    help.command('r2|r3|both [on|off|status]','Personal F8 shortcuts; bare toggles the named button(s).')
     help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
@@ -1241,6 +1243,18 @@ windower.register_event('addon command', function(command, ...)
         l1_bank:command({...})
         l1_epoch=l1_epoch+1
         if publish_personal_context then publish_personal_context() end
+        return
+    elseif command == 'x' then
+        select_controller_profile('x', (...))
+        return
+    elseif command == 'r2' or command == 'r3' or command == 'both' then
+        local changed=require('controller_target').shortcut(settings,command,(...),
+            function() config.save(settings) end,
+            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+        if changed then
+            l1_epoch=l1_epoch+1
+            if publish_personal_context then publish_personal_context() end
+        end
         return
     elseif command == 'controller' then
         local mode, name, device = ...

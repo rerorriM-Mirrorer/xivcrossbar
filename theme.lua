@@ -16,7 +16,7 @@ theme.apply = function (settings)
     options.UseAltLayout = settings.UseAltLayout
     options.AutoHideExtraBars = settings.AutoHideExtraBars
     if settings.UseSharedSet == nil then
-        options.UseSharedSet = true
+        options.UseSharedSet = false
     else
         options.UseSharedSet = settings.UseSharedSet
     end

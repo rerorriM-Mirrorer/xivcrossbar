@@ -6,20 +6,6 @@ PersonalLeasePause(mode, now, seen, ready) {
     return ready and mode = "unknown" and seen > 0 and now >= seen and now - seen <= 100
 }
 
-PersonalShoulderStep(g, pressed, previous, consumed) {
-    if (consumed) {
-        g.phase := pressed ? "cancelled" : "idle"
-        return ""
-    }
-    if (pressed and !previous)
-        g.phase := "single"
-    if (!pressed and previous) {
-        phase := g.phase, g.phase := "idle"
-        return phase = "single" ? g.key : ""
-    }
-    return ""
-}
-
 PersonalTouchStep(g, pressed, previous, consumed, now) {
     if (consumed) {
         g.phase := pressed ? "cancelled" : "idle"

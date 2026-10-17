@@ -3,6 +3,11 @@ assert(defaults.ControllerProfile=='ps5-extended')
 assert(defaults.GameplayDPad=='ijkl' and defaults.VisibilityMode=='oninput')
 assert(defaults.iscompact and defaults.enable_superwarp_all and defaults.on_unload_killahk)
 assert(defaults.Hotbar.Number==6 and defaults.AutoHideExtraBars==true)
+assert(defaults.UseSharedSet==false)
+assert(require('theme').apply(defaults).UseSharedSet==false)
+local explicit={};for key,value in pairs(defaults) do explicit[key]=value end
+explicit.UseSharedSet=true;assert(require('theme').apply(explicit).UseSharedSet==true)
+explicit.UseSharedSet=nil;assert(require('theme').apply(explicit).UseSharedSet==false)
 assert(require('theme').apply(defaults).hotbar_number==6)
 local profiles=require('controller_profiles')
 assert(profiles.validate(defaults.ControllerProfile,defaults.ControllerDevice)=='ps5-extended')
@@ -32,3 +37,4 @@ mapper.profile_options.default_profile='ps5-directinput'
 mapper:display_profile_selector()
 assert(mapper.profile_buttons[1].id=='ps5-directinput','public selection changed or old ID retained')
 print('Fresh personal defaults, persistent shutdown preference and private/public setup choices passed.')
+

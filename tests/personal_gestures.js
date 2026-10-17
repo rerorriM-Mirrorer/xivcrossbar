@@ -14,13 +14,6 @@ const context = {};
 vm.createContext(context);
 vm.runInContext(source, context, {filename:'translated-personal_gestures.ahk'});
 let cases = 0;
-function shoulder(key='F8') {
-  const g={phase:'idle', key}; let previous=false;
-  return (down,consumed=false) => {
-    const value=context.PersonalShoulderStep(g,down,previous,consumed);
-    previous=down; return value;
-  };
-}
 function touch() {
   const g={phase:'idle'}; let previous=false;
   return (down,time,consumed=false) => {
@@ -45,15 +38,10 @@ check('brief unknown lease pauses without authorizing actions; stale/lost sessio
   for(const mode of ['stale','text','menu:1','unfocused','gameplay'])
     assert.equal(context.PersonalLeasePause(mode,1015,1000,true),false);
 });
-check('bare R1 keeps F8 on release',()=>{const s=shoulder();s(true);assert.equal(s(false),'F8');});
-check('combinations consume shoulder single',()=>{
-  const s=shoulder('switch');s(true);s(true,true);assert.equal(s(false),'');
-});
-check('context loss cannot switch on release',()=>{
-  const s=shoulder('switch');s(true);s(true,true);assert.equal(s(false,true),'');assert.equal(s(false),'');
-});
-check('holding a shoulder does not repeat',()=>{
-  const s=shoulder('switch');s(true);assert.equal(s(true),'');assert.equal(s(true),'');assert.equal(s(false),'switch');
+check('bare R1 has no sender; combinations remain',()=>{
+  const controls=fs.readFileSync('personal_controls.ahk','utf8');
+  assert(!controls.includes('PC.shoulders') && !controls.includes('PersonalShoulderStep'));
+  assert(controls.includes('raw.r1 and !raw.l1'));
 });
 check('bare touchpad tap backtick only on release',()=>{
   const t=touch();assert.equal(t(true,100),'');assert.equal(t(false,300),'vkC0sc029');assert.equal(t(false,700),'');

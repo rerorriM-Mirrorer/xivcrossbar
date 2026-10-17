@@ -5,7 +5,7 @@ PersonalInit(selected, prefix) {
     PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
         , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
         , touch:{phase:"idle"}, clicks:{phase:"idle"}
-        , shoulders:{r1:{phase:"idle", key:"F8"}}, layer:{phase:"idle"}, layerVisible:""
+        , layer:{phase:"idle"}, layerVisible:""
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
         , targetR2:false, targetR3:false}
@@ -82,8 +82,6 @@ PersonalPoll(states, active) {
         if (allowed and neutral) {
             PC.ready := true
             PC.touch.phase := "idle", PC.clicks.phase := "idle"
-            for _, gesture in PC.shoulders
-                gesture.phase := "idle"
         }
         if (allowed)
             PersonalL1Block(raw)
@@ -200,13 +198,7 @@ PersonalPoll(states, active) {
     if (clickEvent = "h" or clickEvent = "r")
         PersonalChord(clickEvent, "", now)
 
-    for name, gesture in PC.shoulders {
-        other := name = "l1" ? raw.r1 : raw.l1
-        consumed := busy or other or raw.touch or raw.l3 or raw.r3
-        event := PersonalShoulderStep(gesture, raw[name], PC.previous[name], consumed)
-        if (event != "")
-            PersonalChord(event, "", now)
-    }
+    ; A: bare R1 is unassigned; R1 combinations above remain available.
     PC.previous := raw
     return states
 }
@@ -440,8 +432,6 @@ PersonalRelease(reset := true) {
         PC.ready := false
     PC.touch.phase := "cancelled"
     PC.clicks.phase := "cancelled"
-    for _, gesture in PC.shoulders
-        gesture.phase := "cancelled"
 }
 
 PersonalOtherWindow(hwnd) {

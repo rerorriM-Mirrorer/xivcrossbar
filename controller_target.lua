@@ -1,5 +1,14 @@
--- A: per-character opt-in controls; AHK owns pulse ordering and native keys.
+-- A: per-character targeting controls; AHK owns pulse ordering and native keys.
 local M={}
+-- Private short forms toggle when bare; long forms retain their status behavior.
+function M.shortcut(settings,source,mode,save,say)
+    if mode==nil then
+        local enabled=source=='both' and settings.ControllerTargetR2 and settings.ControllerTargetR3 or
+            source=='r2' and settings.ControllerTargetR2 or source=='r3' and settings.ControllerTargetR3
+        mode=enabled and 'off' or 'on'
+    elseif type(mode)=='string' and mode:lower()=='status' then mode=nil end
+    return M.command(settings,source,mode,save,say)
+end
 function M.command(settings,source,mode,save,say)
     source=type(source)=='string' and source:lower() or 'status'
     mode=type(mode)=='string' and mode:lower() or nil
