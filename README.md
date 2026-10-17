@@ -12,6 +12,12 @@ Runtime: **0.4.0-a.20261017.personal9-l1test6**; shared wrapper Controls **9.5-m
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
+## Development roadmap
+
+The [current roadmap and render-diagnostic proposal](docs/ROADMAP-DIRECTLINK.md)
+separates open repairs, controller ideas, older optional work and completed features.
+The proposed rendertrace commands are not implemented yet.
+
 ## Message-based controller experiment
 
 **PS5 Extended now defaults to messages. Restart both Lua and the AHK wrapper.**

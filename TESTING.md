@@ -1,3 +1,37 @@
+# DirectLink history and render-diagnostic review — October 17, 2026 (America/Chicago)
+
+Author A. Documentation-only review on development/directlink, based on
+86b50f103425d1ed871d7612735d2d4fa6e3126c. Snapshot 1 is unchanged.
+
+Reviewed the current shared NPCMirror WORKFLOW (bc17a173) and root WORKFLOW/
+AGENTS; substantive instructions match. Reviewed current render geometry,
+caption layout, resource ownership, action binder/router, chronological testing/
+personal notes and retrieved older conversation summaries. Current source and
+latest user choices supersede stale TODOs. Historical summaries remain leads,
+not proof a feature is still missing.
+
+Added docs/ROADMAP-DIRECTLINK.md with:
+- A proposed bounded, quiet render trace covering frame/context, caption revisions,
+  measured extents, placement/font/visibility changes and object lifecycle.
+  No rendertrace command is implemented by this review.
+- The source-supported hypothesis of deferred extent/centering corrections,
+  distinguished from the unproven cause of the visible jump.
+- A confirmed chooser-cancel call to a missing binder method, matching an older
+  uploaded console error; it is queued for repair, not fixed here.
+- Active, optional, completed and superseded controller/UI work, and separate
+  adjacent projects. Four earlier public ports are present in dc5e02e despite
+  older retained NOT PUBLISHED wording in that branch's TESTING.
+- Continued first-live-confirmed DirectLink status, with broader acceptance and
+  visual/desktop/native crash questions still open.
+
+Documentation verification compares complete repository trees and permits only
+the new roadmap plus README/TESTING updates. No runtime test is claimed rerun
+and no code, bindings, settings, runtime version or preserved snapshot changes.
+The uploaded trace/chat/console files are not copied into source control.
+Historical testing entries follow unchanged.
+
+---
+
 # DirectLink — Unbound, Development Snapshot 1 — October 16, 2026 (America/Chicago)
 
 Author A. Snapshot branch: `snapshot/directlink-unbound-20261016`. Future work: `development/directlink`.
