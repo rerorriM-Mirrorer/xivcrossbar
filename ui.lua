@@ -918,7 +918,9 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
     local LV_1_SP_ABILITY_RECAST_ID = 0
     local LV_96_SP_ABILITY_RECAST_ID = 254
 
-    self:clear_slot(hotbar, slot)
+    -- A: replace a populated caption directly. Blanking it first needlessly
+    -- invalidates native glyphs even when two sets share the same action.
+    self:clear_slot(hotbar, slot, true)
 
     local icon_overridden = false
 
@@ -928,6 +930,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
 
         -- if default crossbar slot is empty, then hide the slot
         if (action == nil) then
+            self.hotbars[hotbar].slot_text[slot]:text('')
             if self.theme.hide_empty_slots == true then
                 self.hotbars[hotbar].slot_background[slot]:hide()
             else
@@ -1119,7 +1122,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
 end
 
 -- reset slot
-function ui:clear_slot(hotbar, slot)
+function ui:clear_slot(hotbar, slot, preserve_caption)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
     self.hotbars[hotbar].slot_frame[slot]:hide()
     self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
@@ -1129,7 +1132,7 @@ function ui:clear_slot(hotbar, slot)
     self.hotbars[hotbar].slot_element[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
     self.hotbars[hotbar].slot_element[slot]:alpha(255)
     self.hotbars[hotbar].slot_element[slot]:hide()
-    self.hotbars[hotbar].slot_text[slot]:text('')
+    if not preserve_caption then self.hotbars[hotbar].slot_text[slot]:text('') end
     self.hotbars[hotbar].slot_cost[slot]:alpha(255)
     self.hotbars[hotbar].slot_cost[slot]:text('')
 end

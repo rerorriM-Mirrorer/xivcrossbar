@@ -1,6 +1,6 @@
-# XIVCrossbar — Personal 9 L1 Test 4
+# XIVCrossbar — Personal 9 L1 Test 5
 
-Runtime: **0.4.0-a.20261017.personal9-l1test4**; shared wrapper Controls **9.3-input**.
+Runtime: **0.4.0-a.20261017.personal9-l1test5**; shared wrapper Controls **9.4-input**.
 Author: A. Personal development branch; native Windows/FFXI acceptance pending.
 
 ## Input handoff repair and optional F8 acquisition
@@ -16,7 +16,20 @@ These repair observed failure paths. General stickiness on Frank's desktop is
 not yet proven resolved; laptop Franklet is reported much smoother. The native
 sender's key delay, polling interval and device thresholds are unchanged.
 
-Two independent **off-by-default** targeting trials are available:
+Target acquisition now defaults to **R3 on, R2 off**. Test 5 adopts that choice
+once for existing settings; later explicit choices persist. Bare R1 is unassigned.
+Shared is disabled for fresh settings; existing explicit Shared preferences remain.
+
+Private testing shortcuts (long forms remain available):
+
+| Command | Effect |
+| --- | --- |
+| `//xb x [device]` | Select PS5 Extended, optional device |
+| `//xb r2` / `//xb r3` | Toggle F8 acquisition on that button |
+| `//xb both` | Enable both unless both are on; then disable both |
+| `//xb r2 on` / `//xb r3 off` | Set explicitly; also accepts `status` |
+
+Independent targeting controls remain available:
 
 ```
 //xb controller target
@@ -38,6 +51,10 @@ output ordering does not confirm the game's target update has completed.
 See the [complete controller reference](docs/CONTROLLER-REFERENCE.md) for every
 profile, mapping, trigger bank, routing distinction and diagnostic limitation.
 
+Switching sets replaces populated action labels directly, without clearing them
+first. Identical labels therefore reuse the native glyph cache. This addresses
+one source of transient redraws; live switching/recentering still needs checking.
+
 ## Momentary L1 layers
 
 | Input | Behavior |
@@ -53,8 +70,9 @@ profile, mapping, trigger bank, routing distinction and diagnostic limitation.
 Bare L1 no longer toggles modes or switches clients. There are no held native
 Ctrl/Alt shoulder-pair modifiers in this test. R1+R2 uses the ordinary R2 crossbar.
 L1 shortcuts still send their individual Ctrl combinations; R1 arrows, confirm,
-cancel, bare-release F8, L1+R1 Tab, PS focus toggle, touchpad and stick clicks retain
-their existing roles. R3 remains R on release, with the optional F8 trial above.
+cancel, L1+R1 Tab, PS focus toggle, touchpad and stick clicks retain
+their existing roles. Bare R1 sends nothing. R3 sends F8 on press and R on an
+unused release by default, subject to the acquisition guards above.
 
 A newly revealed layer never executes a button already held. Release and press
 that slot again. Context/focus loss still requires neutral before personal
@@ -361,6 +379,16 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Personal 9 L1 Test 5 — October 17, 2026 (UTC)
+
+- Default Shared off; retain explicit saved preferences.
+- Adopt R3-only F8 once, preserve subsequent changes; remove bare R1 output.
+- Add private x/r2/r3/both shortcuts, including deterministic bare toggles.
+- Replace populated captions without clearing them first; unchanged labels
+  retain their native glyphs during set changes. Native visual acceptance pending.
+- Preserve native-menu companion hiding and current L1/R1 combinations. Record
+  user feedback that controllers and L1 now feel good; broader remaps remain ideas.
 
 ### Personal 9 L1 Test 4 — October 16, 2026
 

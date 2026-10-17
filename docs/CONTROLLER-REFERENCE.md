@@ -1,6 +1,6 @@
-# Controller reference — Personal 9 Test 4
+# Controller reference — Personal 9 Test 5
 
-Author A. Runtime personal9-l1test4; wrapper Controls=9.3-input. This describes
+Author A. Runtime personal9-l1test5; wrapper Controls=9.4-input. This describes
 the delivered source, including the momentary L1 layers from Test 3. Saved face
 roles, D-pad mode, bar actions and companion assignments remain per-character.
 
@@ -21,6 +21,9 @@ clients. DirectInput devices are 1–16; XInput devices are 1–4.
 
 `x` always means PS5 Extended, not XInput. The private personal profile is
 accepted even though the ordinary `controller profiles` list omits it.
+Private `//xb x [device]` selects the extended profile. `//xb r2`, `//xb r3`
+and `//xb both` toggle acquisition; append on/off/status for explicit control.
+Both enables both unless both are already on, in which case it disables both.
 All these profiles use this project's shared AHK reader. Selecting ps5 does
 not run the untouched upstream PS5 script.
 
@@ -76,6 +79,20 @@ requires the matching FFXI Menu/Target Cursor assignments shown in README.
 Setup, login, addon menus and crossbar activation own the signals differently.
 Native menu Escape remains useful: it backs out of the native menu.
 
+## L1 rendering and routing
+
+Bare L1 emits no native keyboard key. AHK publishes a show event through the
+personal companion mailbox; Lua updates the layer and draws its surfaces. Release
+publishes release/hide. L1 then L2 publishes bank instead, in the same location.
+The keyboard companion's Ctrl shortcuts are separate outputs on fresh slot presses.
+Lua explicitly checks info.menu_open and info.chat_open before rendering either
+companion. Native menus also revoke the bank execution token. This behavior remains.
+
+Ordinary buttons already use neutral Apps+F-number transport. Lua consumes that
+signal and decides native gameplay versus addon menu versus crossbar action.
+Personal shortcuts still make some decisions in AHK. Moving those meanings into
+Lua would consolidate routing; it is a future change, not a Test 5 rewrite.
+
 ## PS5 Extended personal layer
 
 These apply to profile x only. Physical Joy numbers are L1=5, R1=6, L3=11,
@@ -98,7 +115,7 @@ R3=12, PS=13, touchpad=14, mute=15.
 | R1+Cross / Circle | AHK Enter / Escape directly |
 | R1+Triangle | AHK Ctrl+Numpad Plus |
 | R1+Square | Ordinary Square signal; no special personal binding |
-| Bare R1 release | F8, only if its press was not used in another gesture |
+| Bare R1 press / release | No output; combinations remain assigned |
 | R1+R2 | Ordinary R2 crossbar; no Alt latch |
 | Bare L3 release | H |
 | Bare R3 release | R |
@@ -114,7 +131,7 @@ observes the movement axes for TrustMovement's existing takeover signal; it does
 not replace their movement. With the companion loaded, that signal fires once
 per newly piloted FFXI client, not after every return to stick center.
 
-Shoulder combinations consume the bare R1 release action. Touch/click shortcuts
+Bare R1 has no release action. Touch/click shortcuts
 are suppressed by shoulders and other active combos. A newly revealed companion
 never executes a direction/face button already held. Focus, menu/text/setup,
 disconnect and stale-context loss cancel personal gestures and require neutral.
@@ -150,7 +167,7 @@ Default fallbacks when applicable. Main displays the internal basic set; it is
 not an additional provider to other sets. Trigger paging in an addon menu uses
 that menu's page controls rather than executing the corresponding gameplay bar.
 
-## Optional acquisition trials — off by default
+## Target acquisition — R3 only by default
 
 ```
 //xb controller target
@@ -159,6 +176,10 @@ that menu's page controls rather than executing the corresponding gameplay bar.
 //xb controller target both on
 //xb controller target both off
 ```
+
+Test 5 adopts R3 on / R2 off once for existing saved settings, then respects
+later commands. Bare R1 never sends F8. Shared defaults off for new settings;
+explicit saved Shared choices are retained.
 
 R2 trial: a fresh, unmodified R2 from gameplay emits plain F8 down/up first,
 then the ordinary Apps+F12 signal. R3 trial: a fresh, unmodified R3 emits F8 on
@@ -209,7 +230,7 @@ These fix observed failure paths; they do not establish the cause of every
 sticky input on Frank's desktop. The trace has slow polls up to 125 ms.
 
 `//xb controller trace on` captures 30 s; off stops early. The appended buffered
-log is data/controller-input-trace.log. Captures now identify Controls=9.3-input
+log is data/controller-input-trace.log. Captures now identify Controls=9.4-input
 and log pauses/prefires. Compare off first, then R2, then R3 on the same client.
 
 Sources: current personal source; supplied controller-input-trace.log;

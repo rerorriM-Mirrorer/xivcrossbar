@@ -1,3 +1,64 @@
+# Personal 9 L1 Test 5 — October 17, 2026 (UTC)
+
+Author A. Branch personal/ps5extended. Baseline published Test 4:
+0d8888fdc5ae74ff4e9626cd8365445b1fa45cfa. Exact new local/published commits are
+in the generated package header. Runtime personal9-l1test5; Controls=9.4-input.
+
+## Current checks — native Windows/FFXI pending
+
+1. Stop the wrapper/unload clients. Install complete xivcrossbar/, retaining
+   data/config.ini/custom icons. Restart Lua AND AHK; verify both version strings.
+   Unchanged TrustMovement 0.1.1 remains alongside the addon; preserve its data.
+2. On first load, existing settings adopt R3 F8 on / R2 F8 off once. Bare R3
+   gives F8 on press, R on unused release. Bare R2 gives only its ordinary bar.
+   Bare R1 gives no F8 or R; R1 arrows/Enter/Escape/Trust shortcut and L1+R1 Tab
+   remain. Check both ordered zoom gestures and all existing L1/L2 orders.
+3. //xb x selects PS5 Extended; //xb r2, r3, both toggle their acquisition flags.
+   Both enables both unless both are on, then disables both. Explicit on/off
+   is idempotent; status only reports. Long target commands keep status behavior.
+   Use //xb r2 off and //xb r3 on to restore requested selection. Restart/relog:
+   later explicit settings must persist without the one-time adoption repeating.
+4. Fresh settings have Shared disabled; explicit saved preferences survive.
+   Both companions hide in native menus and chat, using existing guards. Verify
+   menu shortcuts remain usable. No broad inventory/wardrobe/Trust remap is added.
+5. Repeatedly switch sets, including shared aliases, changed captions and empty
+   destinations. Populated captions now replace directly; unchanged native text
+   is not rewritten. Empty/explicit clears still clear. Watch for the reported
+   flicker/recentering, especially at small resolutions. This removes one source
+   of redraws, not a claim that all native rendering causes have been identified.
+
+## User feedback and scope
+
+User reports controllers now feel really good, L1 looks good, and native-menu
+companion hiding is welcome. This is live feedback on the preceding installed
+build; it is not acceptance of Test 5. Desktop/controller comparison remains
+unreported. Preserve timing, menu guards and established gestures. Future L1
+inventory/R1 wardrobe/Trust changes remain brainstorming. Actual user shortcuts:
+Ctrl+I/M/E/J = Item/Magic/Equipment/Job Ability; Ctrl+Space/Q/S/1/2/3 = jump/quest/
+sack/wardrobe/wardrobe2/wardrobe3. Do not silently install those custom bindings.
+
+## Verification performed here
+
+Actual target handlers/default/profile normalization pass R3-only adoption-once,
+persistent later choices, aliases/toggles/status and invalid-input checks. Source
+routing and pure AHK gesture checks confirm bare R1 sender removal while keeping
+combinations. Actual ui load/clear methods with real geometry text caching verify
+100 unchanged caption reloads emit no native writes, changed captions replace
+without blank, and empty/explicit clears remove old labels. Existing bank/lease,
+menu ownership, profile, Save Only and catalog checks are included in validation.
+Lua parsing uses the documented Lua 5.4 normalization fallback; AHK checks are
+lexical/simulated. Native AHK/FFXI loading, feel and visual acceptance are pending.
+
+## Delivery register
+
+Complete Test 5 includes source, README, WORKFLOW and this cumulative TESTING
+inside xivcrossbar/, plus the unchanged TrustMovement receiver alongside it.
+No saved data/catalog/bindings are included. Source is committed and pushed on
+the personal development branch; public branch is untouched. Historical entries
+below remain the record of their own releases.
+
+---
+
 # Personal 9 L1 Test 4 — October 16, 2026 (America/Chicago)
 
 Author A. Branch personal/ps5extended. Baseline published Test 3:

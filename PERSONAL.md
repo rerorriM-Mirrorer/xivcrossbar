@@ -1,4 +1,24 @@
-# Personal 9 Test 4 — current input routing
+# Personal 9 Test 5 — current controls
+
+Runtime personal9-l1test5; Controls=9.4-input. Restart Lua and the shared wrapper.
+The user reports controllers feeling good and likes native menus hiding both L1
+companions. Preserve that behavior and the current combinations.
+
+R3 F8 on press / R on unused release is the personal default. R2 F8 is off; bare
+R1 is unassigned. Existing settings adopt R3-only once, then later choices persist.
+Shared defaults off, retaining explicit saved choices. Private //xb x selects
+PS5 Extended; //xb r2, //xb r3, //xb both toggle acquisition. Explicit on/off/status
+and all long forms remain. Both enables both unless both were already on.
+
+Set changes no longer clear populated captions before replacement; identical
+labels reuse native text. This source/simulated fix still needs native visual
+acceptance. No timing or broad inventory/wardrobe/Trust remap is installed.
+See docs/CONTROLLER-REFERENCE.md for the complete current map and routing.
+
+---
+
+# Historical Personal 9 Test 4 — input routing
+
 
 Runtime personal9-l1test4; Controls=9.3-input. All Test 3 momentary layers and
 Main/compact changes remain. See docs/CONTROLLER-REFERENCE.md for the complete
