@@ -21,6 +21,11 @@ separates open repairs, controller ideas, older optional work and completed feat
 Chooser Cancel now reaches the configured face button correctly. Controller
 status labels the requested/active route separately from its legacy key modifier.
 
+The [folder audit and cleanup plan](docs/FOLDER-STRUCTURE.md) identifies runtime
+asset paths and proposed module moves. No runtime files have been relocated.
+[Optional templates and presets](examples/README.md) now include the recovered
+Cioara and Franklet/Lionstag All Jobs Default bars with their paired catalog.
+
 ## Quiet text/layout diagnosis
 
 ```
@@ -453,6 +458,14 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Folder audit and preset examples — October 17, 2026
+
+- Inventory path-dependent artwork, all 50 root Lua modules and development-folder
+  provenance; record a staged cleanup plan that preserves saved paths and guards.
+- Index examples and include the previously prepared Fenrir bindings/catalog pack
+  with provenance and deliberate installation instructions. No automatic import.
+- Runtime, image/theme paths, controller mappings and native-menu guard unchanged.
 
 ### DirectLink R1 checkpoint 1 — October 17, 2026
 

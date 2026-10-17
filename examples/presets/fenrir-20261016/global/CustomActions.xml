@@ -1,0 +1,236 @@
+<custom_actions>
+    <action>
+        <name>Client - Previous</name>
+        <id>a-template-20261014:1</id>
+        <alias>Previous</alias>
+        <command>switch p</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Next</name>
+        <id>a-template-20261014:2</id>
+        <alias>Next</alias>
+        <command>switch n</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Cioara</name>
+        <id>a-template-20261014:3</id>
+        <alias>Cioara</alias>
+        <command>switch to Cioara</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Myrr</name>
+        <id>a-template-20261014:4</id>
+        <alias>Myrr</alias>
+        <command>switch to Myrr</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Clairvaux</name>
+        <id>a-template-20261014:5</id>
+        <alias>Clairvaux</alias>
+        <command>switch to Clairvaux</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Killala</name>
+        <id>a-template-20261014:6</id>
+        <alias>Killala</alias>
+        <command>switch to Killala</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Franklet</name>
+        <id>a-template-20261014:7</id>
+        <alias>Franklet</alias>
+        <command>switch to Franklet</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Lionstag</name>
+        <id>a-template-20261014:8</id>
+        <alias>Lionstag</alias>
+        <command>switch to Lionstag</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Client - Kil prefix</name>
+        <id>a-template-20261014:9</id>
+        <alias>Kil</alias>
+        <command>switch to Kil</command>
+        <icon>party-member</icon>
+    </action>
+    <action>
+        <name>Party - Assistance</name>
+        <id>a-template-20261014:10</id>
+        <alias>Assistance</alias>
+        <command>send @others trust start; input /echo Asked party to stand ready!</command>
+        <icon>assist</icon>
+    </action>
+    <action>
+        <name>Self - Trust Toggle</name>
+        <id>a-template-20261014:11</id>
+        <alias>Toggle</alias>
+        <command>trust toggle; trust follow stop</command>
+        <icon>custom_actions</icon>
+    </action>
+    <action>
+        <name>Party - Start Others</name>
+        <id>a-template-20261014:12</id>
+        <alias>Party</alias>
+        <command>send @others trust start; input /echo Asked party to start!</command>
+    </action>
+    <action>
+        <name>Party - Stand Down</name>
+        <id>a-template-20261014:13</id>
+        <alias>Stand Down</alias>
+        <command>send @all trust stop; input /echo Asked party to stand down!</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>Party - Stop Following</name>
+        <id>a-template-20261014:14</id>
+        <alias>Stop Follow</alias>
+        <command>trust follow stopall</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>Party - Target NPC and Report</name>
+        <id>a-template-20261014:15</id>
+        <alias>Target</alias>
+        <command>send @all input /targetnpc; wait 1; sat alltargetreport</command>
+        <icon>targetnpc</icon>
+    </action>
+    <action>
+        <name>Dialogue - Toggle Slow Enter</name>
+        <id>a-template-20261014:16</id>
+        <alias>Enter</alias>
+        <command>send @all slowenter toggle</command>
+    </action>
+    <action>
+        <name>Dialogue - Raw Enter</name>
+        <id>a-template-20261014:17</id>
+        <alias>All Confirm</alias>
+        <command>send @all slowenter on; input /echo Sending all SlowEnter on; send @all slowenter once</command>
+        <icon>custom_actions</icon>
+    </action>
+    <action>
+        <name>Dialogue - Stop Slow Enter</name>
+        <id>a-template-20261014:18</id>
+        <alias>Stop Enter</alias>
+        <command>send @all slowenter off</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>Dialogue - Raw Cancel</name>
+        <id>a-template-20261014:19</id>
+        <alias>All Cancel</alias>
+        <command>send @all slowenter off; send @all setkey escape down; wait 0.1; send @all setkey escape up; input /echo Canceling slow enter on all clients.</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>NPCMirror - Interact</name>
+        <id>a-template-20261014:20</id>
+        <alias>NPC Interact</alias>
+        <command>npcmirror interact</command>
+        <icon>targetnpc</icon>
+    </action>
+    <action>
+        <name>NPCMirror - Enter</name>
+        <id>a-template-20261014:21</id>
+        <alias>NPC Enter</alias>
+        <command>npcmirror enter</command>
+        <icon>custom_actions</icon>
+    </action>
+    <action>
+        <name>NPCMirror - Escape</name>
+        <id>a-template-20261014:22</id>
+        <alias>NPC Escape</alias>
+        <command>npcmirror esc</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>NPCMirror - Status</name>
+        <id>a-template-20261014:23</id>
+        <alias>NPC Status</alias>
+        <command>npcmirror status</command>
+    </action>
+    <action>
+        <name>NPCMirror - Stop Session</name>
+        <id>a-template-20261014:24</id>
+        <alias>NPC Stop</alias>
+        <command>npcmirror stop</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>NPCMirror - Call Others</name>
+        <id>a-template-20261014:25</id>
+        <alias>NPC Call</alias>
+        <command>npcmirror call</command>
+        <icon>assist</icon>
+    </action>
+    <action>
+        <name>Utility - Bow</name>
+        <id>a-template-20261014:26</id>
+        <alias>Bow</alias>
+        <command>input /bow</command>
+    </action>
+    <action>
+        <name>Utility - Follow Target</name>
+        <id>a-template-20261014:27</id>
+        <alias>Follow</alias>
+        <command>input /follow &lt;t&gt;</command>
+        <icon>assist</icon>
+    </action>
+    <action>
+        <name>Utility - Attack</name>
+        <id>a-template-20261014:28</id>
+        <alias>Attack</alias>
+        <command>input /attack &lt;t&gt;</command>
+        <icon>attack</icon>
+    </action>
+    <action>
+        <name>Utility - Check</name>
+        <id>a-template-20261014:29</id>
+        <alias>Check</alias>
+        <command>input /check</command>
+        <icon>check</icon>
+    </action>
+    <action>
+        <name>Utility - Ranged Attack</name>
+        <id>a-template-20261014:30</id>
+        <alias>Ranged</alias>
+        <command>input /ra &lt;t&gt;</command>
+        <icon>attack</icon>
+    </action>
+    <action>
+        <name>Utility - Last Synthesis</name>
+        <id>a-template-20261014:31</id>
+        <alias>Last Synth</alias>
+        <command>input /lastsynth</command>
+        <icon>synth</icon>
+    </action>
+    <action>
+        <name>Utility - View Map</name>
+        <id>a-template-20261014:32</id>
+        <alias>Map</alias>
+        <command>input /map</command>
+        <icon>map</icon>
+    </action>
+    <action>
+        <name>Utility - Instant Warp</name>
+        <id>a-template-20261014:33</id>
+        <alias>Instant Warp</alias>
+        <command>input /item "Instant Warp" &lt;me&gt;</command>
+        <icon>home-point</icon>
+    </action>
+    <action>
+        <name>Warp - Windurst Walls</name>
+        <id>a-template-20261014:34</id>
+        <alias>Windurst Walls</alias>
+        <command>sw hp all Windurst Walls</command>
+        <icon>home-point</icon>
+    </action>
+</custom_actions>

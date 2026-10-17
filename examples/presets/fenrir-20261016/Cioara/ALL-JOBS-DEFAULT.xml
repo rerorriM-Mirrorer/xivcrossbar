@@ -1,0 +1,396 @@
+<hotbar>
+    <all-jobs-default>
+        <hotbar_l>
+            <slot_ld>
+                <action>switch to Killala</action>
+                <alias>Killala</alias>
+                <catalog_id>a-template-20261014:6</catalog_id>
+                <catalog_last_action>switch to Killala</catalog_last_action>
+                <catalog_last_alias>Killala</catalog_last_alias>
+                <catalog_last_icon>party-member</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Client - Killala</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>party-member</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_ld>
+            <slot_ll>
+                <action>switch to Myrr</action>
+                <alias>Myrr</alias>
+                <catalog_id>a-template-20261014:4</catalog_id>
+                <catalog_last_action>switch to Myrr</catalog_last_action>
+                <catalog_last_alias>Myrr</catalog_last_alias>
+                <catalog_last_icon>party-member</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Client - Myrr</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>party-member</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_ll>
+            <slot_lr>
+                <action>switch to Clairvaux</action>
+                <alias>Clairvaux</alias>
+                <catalog_id>a-template-20261014:5</catalog_id>
+                <catalog_last_action>switch to Clairvaux</catalog_last_action>
+                <catalog_last_alias>Clairvaux</catalog_last_alias>
+                <catalog_last_icon>party-member</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Client - Clairvaux</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>party-member</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_lr>
+            <slot_lu>
+                <action>switch to Cioara</action>
+                <alias>Cioara</alias>
+                <catalog_id>a-template-20261014:3</catalog_id>
+                <catalog_last_action>switch to Cioara</catalog_last_action>
+                <catalog_last_alias>Cioara</catalog_last_alias>
+                <catalog_last_icon>party-member</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Client - Cioara</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>party-member</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_lu>
+            <slot_rd>
+                <action>send @others trust start; input /echo Asked party to stand ready!</action>
+                <alias>Assistance</alias>
+                <catalog_id>a-template-20261014:10</catalog_id>
+                <catalog_last_action>send @others trust start; input /echo Asked party to stand ready!</catalog_last_action>
+                <catalog_last_alias>Assistance</catalog_last_alias>
+                <catalog_last_icon>assist</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Party - Assistance</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>assist</icon>
+                <type>ex</type>
+
+            </slot_rd>
+            <slot_rl>
+                <action>send @all input /targetnpc; wait 1; sat alltargetreport</action>
+                <alias>Target</alias>
+                <catalog_id>a-template-20261014:15</catalog_id>
+                <catalog_last_action>send @all input /targetnpc; wait 1; sat alltargetreport</catalog_last_action>
+                <catalog_last_alias>Target</catalog_last_alias>
+                <catalog_last_icon>targetnpc</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Party - Target NPC and Report</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>targetnpc</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_rl>
+            <slot_rr>
+                <action>send @all trust stop; input /echo Asked party to stand down!</action>
+                <alias>Stand Down</alias>
+                <catalog_id>a-template-20261014:13</catalog_id>
+                <catalog_last_action>send @all trust stop; input /echo Asked party to stand down!</catalog_last_action>
+                <catalog_last_alias>Stand Down</catalog_last_alias>
+                <catalog_last_icon>disengage</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Party - Stand Down</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>disengage</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_rr>
+            <slot_ru>
+                <action>trust toggle; trust follow stop</action>
+                <alias>Toggle</alias>
+                <catalog_id>a-template-20261014:11</catalog_id>
+                <catalog_last_action>trust toggle; trust follow stop</catalog_last_action>
+                <catalog_last_alias>Toggle</catalog_last_alias>
+                <catalog_last_icon>custom_actions</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Self - Trust Toggle</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>custom_actions</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_ru>
+            <slot_zz></slot_zz>
+
+        </hotbar_l>
+        <hotbar_ll>
+            <slot_ld>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ld>
+            <slot_ll>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ll>
+            <slot_lr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lr>
+            <slot_lu>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lu>
+            <slot_rd>
+                <action>send @all slowenter on; input /echo Sending all SlowEnter on; send @all slowenter once</action>
+                <alias>All Confirm</alias>
+                <catalog_id>a-template-20261014:17</catalog_id>
+                <catalog_last_action>send @all slowenter on; input /echo Sending all SlowEnter on; send @all slowenter once</catalog_last_action>
+                <catalog_last_alias>All Confirm</catalog_last_alias>
+                <catalog_last_icon></catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Dialogue - Raw Enter</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>custom_actions</icon>
+                <type>ex</type>
+
+            </slot_rd>
+            <slot_rl>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rl>
+            <slot_rr>
+                <action>send @all slowenter off; send @all setkey escape down; wait 0.1; send @all setkey escape up; input /echo Canceling slow enter on all clients.</action>
+                <alias>All Cancel</alias>
+                <catalog_id>a-template-20261014:19</catalog_id>
+                <catalog_last_action>send @all slowenter off; send @all setkey escape down; wait 0.1; send @all setkey escape up; input /echo Canceling slow enter on all clients.</catalog_last_action>
+                <catalog_last_alias>All Cancel</catalog_last_alias>
+                <catalog_last_icon>disengage</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Dialogue - Raw Cancel</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>disengage</icon>
+                <type>ex</type>
+
+            </slot_rr>
+            <slot_ru>
+                <action>npcmirror interact</action>
+                <alias>NPC Interact</alias>
+                <catalog_id>a-template-20261014:20</catalog_id>
+                <catalog_last_action>npcmirror interact</catalog_last_action>
+                <catalog_last_alias>NPC Interact</catalog_last_alias>
+                <catalog_last_icon>targetnpc</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>NPCMirror - Interact</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>targetnpc</icon>
+                <type>ex</type>
+
+            </slot_ru>
+            <slot_zz></slot_zz>
+
+        </hotbar_ll>
+        <hotbar_lr>
+            <slot_ld>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ld>
+            <slot_ll>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ll>
+            <slot_lr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lr>
+            <slot_lu>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lu>
+            <slot_rd>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rd>
+            <slot_rl>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rl>
+            <slot_rr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rr>
+            <slot_ru>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ru>
+            <slot_zz></slot_zz>
+
+        </hotbar_lr>
+        <hotbar_r>
+            <slot_ld>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ld>
+            <slot_ll>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ll>
+            <slot_lr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lr>
+            <slot_lu>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lu>
+            <slot_rd>
+                <action>a</action>
+                <alias>Attack</alias>
+                <icon>attack</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <target>t</target>
+                <type>a</type>
+
+            </slot_rd>
+            <slot_rl>
+                <action>check</action>
+                <alias>Check</alias>
+                <icon>check</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <target>t</target>
+                <type>ct</type>
+
+            </slot_rl>
+            <slot_rr>
+                <action>xb bar Basic</action>
+                <alias>Basic</alias>
+                <icon>/ui/facebuttons_playstation</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_rr>
+            <slot_zz></slot_zz>
+
+        </hotbar_r>
+        <hotbar_rl>
+            <slot_ld>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ld>
+            <slot_ll>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ll>
+            <slot_lr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lr>
+            <slot_lu>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lu>
+            <slot_rd>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rd>
+            <slot_rl>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rl>
+            <slot_rr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rr>
+            <slot_ru>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ru>
+            <slot_zz></slot_zz>
+
+        </hotbar_rl>
+        <hotbar_rr>
+            <slot_ld>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ld>
+            <slot_ll>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_ll>
+            <slot_lr>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lr>
+            <slot_lu>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_lu>
+            <slot_rd>
+                <action>npcmirror enter</action>
+                <alias>NPC Enter</alias>
+                <catalog_id>a-template-20261014:21</catalog_id>
+                <catalog_last_action>npcmirror enter</catalog_last_action>
+                <catalog_last_alias>NPC Enter</catalog_last_alias>
+                <catalog_last_icon>custom_actions</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>NPCMirror - Enter</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>custom_actions</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_rd>
+            <slot_rl>
+                <source_environment>all-jobs-default</source_environment>
+
+            </slot_rl>
+            <slot_rr>
+                <action>send @all slowenter off; send @all setkey escape down; wait 0.1; send @all setkey escape up; input /echo Canceling slow enter on all clients.</action>
+                <alias>All Cancel</alias>
+                <catalog_id>a-template-20261014:19</catalog_id>
+                <catalog_last_action>send @all slowenter off; send @all setkey escape down; wait 0.1; send @all setkey escape up; input /echo Canceling slow enter on all clients.</catalog_last_action>
+                <catalog_last_alias>All Cancel</catalog_last_alias>
+                <catalog_last_icon>disengage</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>Dialogue - Raw Cancel</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>disengage</icon>
+                <source_environment>all-jobs-default</source_environment>
+                <type>ex</type>
+
+            </slot_rr>
+            <slot_ru>
+                <action>npcmirror interact</action>
+                <alias>NPC Interact</alias>
+                <catalog_id>a-template-20261014:20</catalog_id>
+                <catalog_last_action>npcmirror interact</catalog_last_action>
+                <catalog_last_alias>NPC Interact</catalog_last_alias>
+                <catalog_last_icon>targetnpc</catalog_last_icon>
+                <catalog_last_linked_action></catalog_last_linked_action>
+                <catalog_last_linked_type></catalog_last_linked_type>
+                <catalog_name>NPCMirror - Interact</catalog_name>
+                <catalog_scope>global</catalog_scope>
+                <icon>targetnpc</icon>
+                <type>ex</type>
+
+            </slot_ru>
+            <slot_zz></slot_zz>
+
+        </hotbar_rr>
+        <name>All Jobs Default</name>
+
+    </all-jobs-default>
+
+</hotbar>

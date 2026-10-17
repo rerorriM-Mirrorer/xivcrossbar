@@ -1,0 +1,37 @@
+<custom_actions>
+    <action>
+        <name>Inventory - Mog Sack</name>
+        <id>a-suggestions-20261017:1</id>
+        <alias>Sack</alias>
+        <command>input /sack</command>
+        <icon>item</icon>
+    </action>
+    <action>
+        <name>Inventory - Wardrobe</name>
+        <id>a-suggestions-20261017:2</id>
+        <alias>Wardrobe</alias>
+        <command>input /wardrobe</command>
+        <icon>item</icon>
+    </action>
+    <action>
+        <name>Party - Stop Everything</name>
+        <id>a-suggestions-20261017:3</id>
+        <alias>Stop All</alias>
+        <command>trust stopall</command>
+        <icon>disengage</icon>
+    </action>
+    <action>
+        <name>Party - Take Over</name>
+        <id>a-suggestions-20261017:4</id>
+        <alias>Take Over</alias>
+        <command>trust follow me; trust assist me</command>
+        <icon>assist</icon>
+    </action>
+    <action>
+        <name>Crossbar - Main</name>
+        <id>a-suggestions-20261017:5</id>
+        <alias>Main</alias>
+        <command>xb bar basic</command>
+        <icon>custom_actions</icon>
+    </action>
+</custom_actions>

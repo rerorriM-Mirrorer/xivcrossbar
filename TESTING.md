@@ -1,3 +1,54 @@
+# Folder audit and example presets — October 17, 2026 (America/Chicago)
+
+Author A. development/directlink, based on bfdf7d693c387dac9782144b0139d466e9c0ccf5.
+Documentation/data-example checkpoint only. Runtime remains directlink1-r1test1;
+Controls=9.6-r1-r. No Lua/AHK, theme/image, runtime profile, cache, saved settings,
+module path, loader or native-menu policy is changed. Public RC3 and preserved
+Unbound snapshot remain untouched.
+
+Reviewed current AGENTS/WORKFLOW/TESTING and the current shared NPCMirror WORKFLOW
+(same substantive instructions). Compared the current tree to upstream master,
+still 15d8381dfad0f9efdb84fe2d24655afc150faec4 on October 17. Upstream has no
+docs/tests/packaging/examples directories; its theme tree contains the same nine
+image paths. The fork's test fixture explicitly credits Windower source.
+
+Added docs/FOLDER-STRUCTURE.md: structural and content asset dependencies,
+generated/cache and persisted-icon constraints, a complete classification of all
+50 root Lua files, AHK-root anchoring, developer-folder origins, an optional
+images/themes migration and a staged loader/path/packaging validation plan.
+These are proposed moves; source paths are preserved by this checkpoint.
+
+Added examples index and presets/fenrir-20261016, recovering seven files
+byte-for-byte from the previously prepared bindings Test1 ZIP. Includes Cioara's
+unchanged supplied October 15 bar, Franklet/Lionstag copies clearing only its
+four L2 D-pad nodes, the matched 34-record global catalog, original October 14
+catalog reference, reconciliation report and optional suggestions. This is not
+a fresh PC export. The existing generic template remains unchanged. Guides
+explain shared IDs, deliberate catalog merging, dependencies and exact install
+destinations; nothing is auto-installed over data/.
+
+Verification: all example XMLs parse; original member bytes/source SHA256 match;
+adjusted bars are semantically identical except for the four specified nodes;
+Franklet/Lionstag copies are identical; 34 linked current slot values resolve to
+34 unique catalog IDs. The All Confirm last-icon marker is historically blank
+while the current icon/catalog use custom_actions; all three occurrences are
+preserved as original override metadata, not falsely described as identical
+last-icon snapshots. Current values match. Existing template/catalog binding
+regressions are checked; no native FFXI command execution is claimed.
+
+User paused the proposed relaxation of the native-menu guard. Audit confirms
+it hides the companion AND revokes/cancels the L1 bank's executable session,
+while ordinary DirectLink remains available for menus. Keep that default guard;
+future scrolling/NPC navigation must use explicitly scoped behavior. Inventory/
+emote and R1/NPC/Trust layouts remain proposals, not part of folder cleanup.
+
+No runtime testing is needed to infer that unmodified runtime paths remain
+unchanged; complete-tree comparison enforces that scope. A future actual move
+requires loader/resource/packaging and native overlay/fresh-install acceptance.
+Historical testing records follow verbatim.
+
+---
+
 # DirectLink R1 checkpoint 1 — October 17, 2026 (America/Chicago)
 
 Author A. Branch development/directlink; base f04f790d4836df0cee4c9761c7be871222abcdcd.
