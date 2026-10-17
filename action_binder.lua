@@ -466,6 +466,19 @@ function action_binder:clear_controller_input()
     if self.selector then self.selector:page_highlight(nil) end
 end
 
+-- A: gamepad's a/b/x/y are physical slot names, not the printed Xbox labels.
+-- Share this interpretation with the Options chooser; honor every saved layout.
+function action_binder:is_cancel_button(button)
+    local labels = {
+        gamecube={a='a',b='b',x='x',y='y'},
+        playstation={a='cross',b='square',x='circle',y='triangle'},
+        xbox={a='a',b='x',x='b',y='y'},
+        nintendo={a='b',b='y',x='a',y='x'},
+    }
+    local layout = labels[self.button_layout]
+    return layout ~= nil and layout[button] ~= nil and layout[button] == self.cancel_button
+end
+
 function action_binder:create_text(caption, x, y)
     local text_field = ui_resources.text({flags = {draggable = false}})
     text_field:bg_alpha(0)

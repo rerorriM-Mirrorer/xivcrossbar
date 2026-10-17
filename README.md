@@ -426,6 +426,12 @@ See LICENSE and NOTICE. Menu asset attribution, license links and cursor provena
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
 
+### DirectLink chooser cancellation repair — October 17, 2026
+
+- Restore layout-aware Cancel recognition and let face input reach the chooser.
+- Other chooser faces stay consumed; source/simulated checks pass, live acceptance pending.
+
+
 ### DirectLink — Unbound, Snapshot 1 — October 16, 2026
 
 - Name and preserve the first live-confirmed message-transport checkpoint.

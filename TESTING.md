@@ -1,3 +1,18 @@
+# DirectLink chooser cancellation repair — October 17, 2026 (America/Chicago)
+
+Author A. development/directlink, based on c8f198ab. Repair the missing
+layout-aware is_cancel_button helper and remove the earlier router filter that
+prevented chooser faces reaching Cancel. The chooser still consumes every other
+face/D-pad input. All four layouts/saved cancel choices and actual message/router
+cancellation, including a remapped Cross, pass simulated regression checks.
+Native chooser restoration/release acceptance remains pending. No AHK or mapping
+changes; runtime version remains personal9-l1test6 in this isolated fix commit.
+The following diagnostic checkpoint will identify its new version separately.
+Reviewed current NPCMirror WORKFLOW and project AGENTS/WORKFLOW/TESTING.
+Frozen Unbound snapshot and public RC3 remain unchanged. Historical records follow.
+
+---
+
 # DirectLink history and render-diagnostic review — October 17, 2026 (America/Chicago)
 
 Author A. Documentation-only review on development/directlink, based on

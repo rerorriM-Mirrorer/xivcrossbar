@@ -1928,9 +1928,8 @@ message_button = function(dik,pressed,flags,blocked)
     -- menu opens/closes between edges. Slots keep their original owner.
     local transition = item.logical >= 67
     if not pressed and owner ~= context and not transition then return true end
-    -- The base set chooser uses only Up/Down; other slot buttons stay
-    -- owned by that menu and must never fall through to a crossbar action.
-    if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
+    -- The chooser's handler consumes every face/D-pad edge and recognizes the
+    -- configured Cancel button. Do not discard faces before it can see Cancel.
     if context == 'login' then
         local key=transport:login_key(item,buttonmapping)
         if key and pressed then

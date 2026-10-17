@@ -84,4 +84,20 @@ events.keyboard(221,true,0,false);events.keyboard(88,true,0,false)
 events.keyboard(65,true,0,false);events.keyboard(65,false,0,false)
 events.keyboard(88,false,0,false);events.keyboard(221,false,0,false)
 assert(#actions==1 and actions[1].bar==2 and actions[1].slot==7 and #commands==0);empty()
-print('Actual Lua routing: all six bars, ordered trigger pairs, batched double taps, once-only slots, native confirm/cancel, held-button ownership, addon menu routing, focus/watchdog cleanup and real keyboard isolation passed.')
+-- Exercise the real chooser handler with the real binder helper, not a fake
+-- is_cancel_button method that would hide its absence from the installed file.
+local f=assert(io.open('action_binder.lua'));local binder_source=f:read('*a');f:close()
+local first=assert(binder_source:find('function action_binder:is_cancel_button(',1,true))
+local last=assert(binder_source:find('function action_binder:create_text(',first,true))
+assert(load(binder_source:sub(first,last-1),'actual cancel helper','t',
+    setmetatable({action_binder=binder},{__index=_G})))()
+local cancellations=0
+env.finish_set_chooser=function(cancel)assert(cancel);cancellations=cancellations+1;chooser.shown=false end
+binder.button_layout='playstation';binder.cancel_button='circle'
+new_session();chooser.shown=true
+send('down,6','up,6');assert(chooser.shown and cancellations==0 and #actions==0 and #commands==0)
+send('down,7','up,7');assert(not chooser.shown and cancellations==1 and #actions==0 and #commands==0)
+new_session();chooser.shown=true;binder.cancel_button='cross'
+send('down,7','up,7');assert(chooser.shown and cancellations==1)
+send('down,5','up,5');assert(not chooser.shown and cancellations==2 and #commands==0)
+print('Actual Lua routing: all six bars, ordered trigger pairs, batched double taps, once-only slots, native confirm/cancel, held-button ownership, addon menu routing, focus/watchdog cleanup, real keyboard isolation and Options cancellation passed.')

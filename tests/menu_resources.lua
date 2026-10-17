@@ -61,6 +61,21 @@ assert(resources.is_disposed(one) and resources.snapshot().text==0)
 resources.clear(malformed)
 assert(resources.version=='cleanup6')
 local binder=require('action_binder')
+-- Use the real binder method, not a chooser-only stub: the absent method was
+-- the live crash. Every saved cancel choice must map to exactly one slot.
+local cancel_labels={gamecube={'a','b','x','y'},playstation={'cross','square','circle','triangle'},
+    xbox={'a','x','b','y'},nintendo={'b','y','a','x'}}
+for layout,labels in pairs(cancel_labels) do
+    binder.button_layout=layout
+    for expected,label in ipairs(labels) do
+        binder.cancel_button=label
+        for index,button in ipairs({'a','b','x','y'}) do
+            assert(binder:is_cancel_button(button)==(index==expected),layout..' cancel '..label)
+        end
+        assert(not binder:is_cancel_button('invalid'))
+    end
+end
+binder.button_layout='invalid';assert(not binder:is_cancel_button('a'))
 local options=require('theme').apply(require('defaults'))
 options.button_layout='playstation';options.hotbar_number=6
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function()end,function()end,
