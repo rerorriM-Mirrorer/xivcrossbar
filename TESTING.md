@@ -1,3 +1,118 @@
+# Personal 9 L1 Test 4 — October 16, 2026 (America/Chicago)
+
+Author A. Branch personal/ps5extended. Baseline published Test 3:
+dd50529e9a68cd47609d2d102e3c08e656ba1adb. Package header identifies exact new
+commits. Runtime personal9-l1test4; wrapper Controls=9.3-input.
+
+## Current live checks — pending
+
+1. Stop the wrapper and unload all clients. Install the complete xivcrossbar
+   folder, retaining data/config.ini/custom icons. TrustMovement receiver is
+   unchanged and remains alongside it. Restart Lua AND the wrapper; verify
+   personal9-l1test4 and Controls=9.3-input. Old leases lack the new END trailer.
+2. Begin with //xb controller target both off. Recheck L1 shortcut/bank press and
+   release orders, rolling D-pad directions, held buttons during reveals, native
+   menu toggles and all six ordinary trigger bars. Repeat the captured sequence.
+3. //xb controller trace on; capture one focused client for 30 seconds. Expect
+   any brief lease miss to resume without forcing L1 neutral. A genuinely stale
+   lease, changed token/menu/text/focus/disconnect must still cancel and rearm.
+   Status now reports short context pauses; trace includes controls version.
+4. Compare laptop Franklet and desktop Cioara with this same controller, same
+   profile/client load/sequence and trials off first. User reports far less
+   stickiness on laptop Franklet; desktop comparison is not yet reported.
+5. //xb controller target r2 on, return neutral, then fresh bare R2: native F8
+   down/up must precede Apps+F12; no repeat while held. Release and press again.
+   Existing targets can change. Same-poll R2+face, L2/R1/L1 overlaps, native menus,
+   chat, cutscenes, held keyboard modifiers/F8 or active Apps must skip acquisition
+   and retain the existing combo. No target-completion acknowledgment is assumed.
+6. Turn R2 off, then //xb controller target r3 on: fresh bare R3 gives F8 on press,
+   R on unused release. R3-first zoom also gets the first F8; L3-first zoom does
+   not. Enable both only after comparing each; //xb controller target both off
+   restores prior targeting behavior. Settings save per character.
+7. Recheck bare R1 F8, R1 arrows/Enter/Escape/Ctrl+NumpadPlus, PS focus, touch peek,
+   H/R releases, both ordered zoom gestures and movement takeover. Recheck Save
+   Only, catalogs, Main/basic switch round trips and companion geometry/drag.
+8. No direct-AHK bare-face rewrite is installed. Lua still owns ordinary native
+   face routing and addon/crossbar actions. See docs/CONTROLLER-REFERENCE.md for
+   complete readers/mappings and the native-menu versus addon-menu distinction.
+
+## Observed trace and responsibility
+
+User supplied controller-input-trace.log, 67,670 bytes / 735 lines: one 30-second
+ps5-extended capture beginning 2026-10-17 00:23:21 UTC (October 16 19:23:21 Chicago).
+Its header lacks a control-version marker; do not claim the exact installed build.
+Six no-matching-lease misses occur. At ticks 40731281→40731296 the context goes
+unknown then returns gameplay after 15 ms, but personal_ready stays 0 until
+40735687 while L1 is held: approximately 4.4 s of lost personal readiness.
+The source deletes a lease before rename, producing the observed possible gap.
+
+Separate source defect: PersonalFilter deletes PC.blocked entries during its
+for-enumeration. AHK documents possible skipped entries. At tick 40732171,
+Right is routed even though L1 is held/disarmed; the next poll masks it and
+emits its up edge. Additional Triangle/Square one-poll leaks appear. The new
+filter finishes masking before deleting released entries.
+
+The log has 141 slow-poll records (>30 ms), maximum 125 ms; native sends often
+sit 15–16 ms apart. The existing default SendEvent key delay plausibly contributes
+to those multiples; workload, scheduler, file I/O and Lua/game delivery are not
+separated by this capture. No global key-delay/poll-rate/device-threshold tuning
+or complete desktop-stickiness resolution is claimed.
+
+## Implemented behavior
+
+Retry a missing lease scan once without Sleep. Require a complete END trailer.
+An armed session seeing unknown pauses NEW downs for up to 100 ms from its last
+valid observation. Existing physical transport releases pass; no cached lease
+authorizes a new action. Valid current context resumes the previous gesture.
+Actual stale/menu/focus/token changes still cancel and require neutral. Lease
+files still use the existing Windows remove/rename swap; the reader now handles
+its short uncertain interval without treating it as a lost session.
+
+Independent R2/R3 targeting experiments default off. Their guards use the valid
+current gameplay token, hardware edge and absence of other inputs/owned native
+keys/physical keyboard modifiers. Plain F8 is released before continuing R2 or
+click handling, using the existing native sender delay with no extra Sleep.
+Two added sends may add roughly 30 ms on this traced system; live feel and target
+processing order remain tests. R2/R3 hard/light trigger distinctions are not added.
+
+Status parsing now accepts digit-bearing keys (l1_ready, target_r2/target_r3).
+Trace headers identify the wrapper version; pause/prefire transitions are logged.
+All Test 3 momentary layers, Main display alias and compact geometry remain.
+
+## Verification performed here
+
+82 local Lua sources parse under the documented Lua 5.4 normalization fallback.
+Actual command/default/lease/root bridge, bank/mailbox/view, Save Only, catalog/
+XML/lock, profile/default and switch-destination/menu-resource tests pass.
+33 pure-AHK gesture/source-routing scenarios pass via narrow JS translation.
+Actual PersonalFilter and PersonalTargetTrial functions also run under a narrow
+translation with an AHK-style mutation-sensitive enumerator: adjacent held-key
+masking, R2/R3 ordered F8 edges, fresh-press/default-off and context/combo/physical
+modifier guards pass. Source integration verifies pause emits no new downs and
+does not reset the gesture; 100 ms expiry and actual invalid-context guards pass.
+Six AHK lexical/include/function-link checks, lifecycle and trace-helper checks
+pass. Native AHK parsing/Windows key delivery and real FFXI acceptance are pending.
+
+## Bindings companion and delivery register
+
+Separate XIVCrossbar-Franklet-Lionstag-Bindings-Test1.zip uses the latest supplied
+ALL-JOBS-DEFAULT(3).xml (October 15) and CustomActions.xml (October 14). Cioara's
+original bar and the uploaded catalog are retained unchanged as references.
+Franklet/Lionstag copies remove exactly the four L2 D-pad nodes and nothing else.
+A matched 34-record catalog reconciles 16 linked field differences visible in
+the newer bar, preventing the older catalog from rolling those actions back.
+All original IDs remain. Suggested actions/layouts remain optional, separate
+from the copied bar. XML/semantic/link checks pass; native dependency execution
+remains pending. Existing newer global catalogs should be merged, not overwritten.
+
+The complete Test4 installer contains no user binding/catalog/settings data.
+Shared WORKFLOW was re-read at the unchanged bc17a173 blob; documents stay inside
+the addon folder. Personal source is committed/pushed on its development branch;
+public and TrustMovement runtime remain unchanged. Exact commits are generated
+into package headers. Historical records below are preserved.
+
+---
+
 # Personal 9 L1 Test 3 — October 16, 2026 (America/Chicago)
 
 Author A. Branch personal/ps5extended. Baseline published Test 2:

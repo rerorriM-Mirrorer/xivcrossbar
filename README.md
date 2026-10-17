@@ -1,7 +1,42 @@
-# XIVCrossbar — Personal 9 L1 Test 3
+# XIVCrossbar — Personal 9 L1 Test 4
 
-Runtime: **0.4.0-a.20261017.personal9-l1test3**; shared wrapper Controls **9.2-layers**.
+Runtime: **0.4.0-a.20261017.personal9-l1test4**; shared wrapper Controls **9.3-input**.
 Author: A. Personal development branch; native Windows/FFXI acceptance pending.
+
+## Input handoff repair and optional F8 acquisition
+
+The supplied trace catches brief context-file misses that disarm L1 until neutral,
+and a filter-enumeration defect that can leak a held button for one poll. Test 4
+finishes masking before removing released filter entries. Missing leases get one
+immediate retry; a still-unknown observation pauses new downs for at most 100 ms
+before an armed gesture is cancelled. No cached permission executes new actions;
+valid current context resumes. Real stale/menu/focus/token changes still rearm.
+
+These repair observed failure paths. General stickiness on Frank's desktop is
+not yet proven resolved; laptop Franklet is reported much smoother. The native
+sender's key delay, polling interval and device thresholds are unchanged.
+
+Two independent **off-by-default** targeting trials are available:
+
+```
+//xb controller target
+//xb controller target r2 on
+//xb controller target r3 on
+//xb controller target both on
+//xb controller target both off
+```
+
+A fresh unmodified R2 emits plain F8 down/up before Apps+F12. A fresh unmodified
+R3 emits F8 on press and retains R on unused release. Guards skip acquisition in
+reported menus/chat/cutscenes or existing capture/combos/held keyboard modifiers.
+Same-poll R2+face skips F8 and retains its ordinary combo. R3-first zoom also gets
+the initial F8; L3-first zoom does not. Settings save per character; return neutral
+after changing them. The existing native send delay separates F8 down/up, with no
+additional Sleep. Two extra sends can add roughly 30 ms on the traced system;
+output ordering does not confirm the game's target update has completed.
+
+See the [complete controller reference](docs/CONTROLLER-REFERENCE.md) for every
+profile, mapping, trigger bank, routing distinction and diagnostic limitation.
 
 ## Momentary L1 layers
 
@@ -19,7 +54,7 @@ Bare L1 no longer toggles modes or switches clients. There are no held native
 Ctrl/Alt shoulder-pair modifiers in this test. R1+R2 uses the ordinary R2 crossbar.
 L1 shortcuts still send their individual Ctrl combinations; R1 arrows, confirm,
 cancel, bare-release F8, L1+R1 Tab, PS focus toggle, touchpad and stick clicks retain
-their existing roles. R3 remains R on release; F8-down/R-up is a proposal only.
+their existing roles. R3 remains R on release, with the optional F8 trial above.
 
 A newly revealed layer never executes a button already held. Release and press
 that slot again. Context/focus loss still requires neutral before personal
@@ -83,8 +118,8 @@ remain accepted. `//xb controller profile ps5` selects the same shared reader
 without personal controls. Wait for selected/running profiles to match in status.
 This is not a comparison with the untouched upstream AHK script.
 
-The reported stickiness on Frank's PC is unresolved. No current Test 2 controller
-trace was available with this request. Use `//xb controller trace on` for a bounded
+The supplied capture has six context misses and slow polls up to 125 ms. Use
+`//xb controller trace on` for a bounded
 30-second capture, reproduce a short sequence, then off. Records are buffered in
 `xivcrossbar/data/controller-input-trace.log`; tracing may affect timing. Capture
 the same bare buttons, L1 chords and ordinary L2/R2 inputs with ps5 and x, recording
@@ -100,7 +135,7 @@ separate projects.
 Stop `//xb controller stop`, then unload XIVCrossbar on **all** clients. Back up
 the personal installation. Install the complete xivcrossbar/ folder and restore
 its personal data/, config.ini and custom icons. Restart with all buttons and
-sticks neutral; verify `//xb controller status` reports Controls=9.2-layers. Lua
+sticks neutral; verify `//xb controller status` reports Controls=9.3-input. Lua
 reload alone does not update a running AHK wrapper. Run one variant/wrapper per PC.
 
 The testing ZIP also includes the unchanged **TrustMovement 0.1.1** companion
@@ -326,6 +361,19 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+### Personal 9 L1 Test 4 — October 16, 2026
+
+- Repair deletion during AHK button-filter enumeration; handle brief unknown
+  lease reads with a bounded no-new-downs pause and immediate retry. Require a
+  complete lease trailer; preserve real context/focus/token cancellation.
+- Add per-character, independently gated R2/R3 F8 acquisition trials, default off;
+  release F8 before existing signals, retaining the native sender/key delay.
+- Parse digit-bearing status fields, report trial/pause state and version traces.
+- Add complete controller/routing reference and a separate builder for recovered
+  Cioara catalogs/bars with only Franklet/Lionstag L2 D-pad entries cleared.
+- Document actual trace evidence and source/simulated checks; Windows/FFXI
+  acceptance and the broader desktop stickiness report remain pending.
 
 ### Personal 9 L1 Test 3 — October 16, 2026
 

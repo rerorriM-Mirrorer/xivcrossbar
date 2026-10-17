@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.personal9-l1test3'
+_addon.version = '0.4.0-a.20261017.personal9-l1test4'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -350,6 +350,10 @@ local function report_controller_status()
                 ' | Controls='..(status.personal_version or 'older wrapper; stop/start required')..
                 ' | PS='..(status.ps_action or status.ps_hold or 'unknown')..
                 ' | Ctrl/Alt pairs='..(status.ctrl_pair or '0')..'/'..(status.alt_pair or '0'))
+            windower.add_to_chat(0,'[XIVCrossbar] F8 trials configured R2/R3='..
+                tostring(settings.ControllerTargetR2)..'/'..tostring(settings.ControllerTargetR3)..
+                ' | active wrapper='..(status.target_r2 or '0')..'/'..(status.target_r3 or '0')..
+                ' | short context pauses='..(status.context_pauses or '0'))
         end
         if status.poll_max_ms then
             windower.add_to_chat(0,'[XIVCrossbar] Input diagnosis: trace='..tostring(status.input_trace)..
@@ -1054,6 +1058,7 @@ function display_help_menu()
     help.command('ca command <command>','Set the command in the active draft (c).')
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
     help.command('l1 [help|status]','Momentary L1 layers, saved eight-slot bank, position and scale.')
+    help.command('controller target [r2|r3|both] [on|off]','Optional F8 before unmodified R2/R3; off by default.')
     help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
@@ -1246,6 +1251,14 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'profile' then select_controller_profile(name, device)
         elseif mode == 'status' then report_controller_status()
         elseif mode == 'trace' then request_controller_trace(name)
+        elseif mode == 'target' then
+            local changed=require('controller_target').command(settings,name,device,
+                function() config.save(settings) end,
+                function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+            if changed then
+                l1_epoch=l1_epoch+1
+                if publish_personal_context then publish_personal_context() end
+            end
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
                 local profile = controller_profiles.profiles[id]
@@ -1856,7 +1869,8 @@ publish_personal_context = function()
         end
     end
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
-        settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack})
+        settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
+            target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- Own Escape through key-up after closing: neither repeats nor release

@@ -36,6 +36,15 @@ function clicks() {
   };
 }
 function check(name, run) {run();cases++;}
+check('brief unknown lease pauses without authorizing actions; stale/lost sessions do not pause',()=>{
+  assert.equal(context.PersonalLeasePause('unknown',1015,1000,true),true);
+  assert.equal(context.PersonalLeasePause('unknown',1100,1000,true),true);
+  assert.equal(context.PersonalLeasePause('unknown',1101,1000,true),false);
+  assert.equal(context.PersonalLeasePause('unknown',1015,1000,false),false);
+  assert.equal(context.PersonalLeasePause('unknown',1015,0,true),false);
+  for(const mode of ['stale','text','menu:1','unfocused','gameplay'])
+    assert.equal(context.PersonalLeasePause(mode,1015,1000,true),false);
+});
 check('bare R1 keeps F8 on release',()=>{const s=shoulder();s(true);assert.equal(s(false),'F8');});
 check('combinations consume shoulder single',()=>{
   const s=shoulder('switch');s(true);s(true,true);assert.equal(s(false),'');

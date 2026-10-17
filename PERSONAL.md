@@ -1,4 +1,29 @@
-# Personal 9 Test 3 — current momentary layers
+# Personal 9 Test 4 — current input routing
+
+Runtime personal9-l1test4; Controls=9.3-input. All Test 3 momentary layers and
+Main/compact changes remain. See docs/CONTROLLER-REFERENCE.md for the complete
+current controller list and mapping. Wrapper AND Lua restart are required.
+
+The supplied log identifies missing-lease disarming and AHK filter enumeration
+leaks. Test 4 masks before deleting filter entries; uncertain lease reads get a
+retry/short no-new-downs pause, preserving a valid session without authorizing
+actions from stale context. True stale/menu/focus/token changes still cancel.
+This is not a claim that every desktop input problem has been solved.
+
+//xb controller target r2 on and r3 on enable independent, default-off F8 trials.
+Both off restores prior targeting. R2 emits F8 down/up before Apps+F12; R3 emits
+F8 on press, retaining R on unused release. Only fresh unmodified gameplay presses
+qualify. R3-first zoom also gets F8, L3-first zoom does not. Native send delay is
+retained, so extra sends have a measurable cost to compare live. No direct-AHK
+bare-face rewrite or pressure-sensitive trigger mapping is installed.
+
+The separate binding pack preserves Cioara's supplied bar, clears only L2 D-pad
+for Franklet/Lionstag, and reconciles the older global catalog against newer
+linked slot values. Optional inventory/party actions stay separate.
+
+---
+
+# Historical Personal 9 Test 3 — momentary layers
 
 Runtime personal9-l1test3; Controls=9.2-layers. Read README and TESTING for the
 current mapping and pending native acceptance. AHK wrapper restart is required.

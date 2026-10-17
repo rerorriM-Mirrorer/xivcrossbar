@@ -7,12 +7,13 @@ PersonalInit(selected, prefix) {
         , touch:{phase:"idle"}, clicks:{phase:"idle"}
         , shoulders:{r1:{phase:"idle", key:"F8"}}, layer:{phase:"idle"}, layerVisible:""
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
-        , clients:[], lastClient:0, lastOther:0}
+        , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
+        , targetR2:false, targetR3:false}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
 PersonalPoll(states, active) {
-    global PC, appsOwned
+    global PC, appsOwned, previous
     if (!PC.enabled)
         return states
     foreground := WinExist("A")
@@ -48,6 +49,24 @@ PersonalPoll(states, active) {
     PersonalReleaseDue(now)
     mode := PersonalContext(active)
     PC.context := mode
+    if (PersonalLeasePause(mode, now, PC.contextSeen, PC.ready)) {
+        if (!PC.contextPaused) {
+            PC.contextPauses += 1
+            InputTraceRecord("context pause; no new downs")
+        }
+        PC.contextPaused := true, PC.context := "updating"
+        ; Keep existing transport holds only while still physically held. New
+        ; downs wait for a verified current lease; releases are never delayed.
+        Loop, 12
+            states[A_Index] := states[A_Index] and previous[A_Index]
+        PersonalL1Block(raw)
+        return PersonalFilter(states, raw)
+    }
+    if (PC.contextPaused)
+        InputTraceRecord("context resume=" . mode)
+    PC.contextPaused := false
+    if (mode = "gameplay" or mode = "crossbar")
+        PC.contextSeen := now
     contextAllowed := active and (mode = "gameplay" or mode = "crossbar") and !raw[9] and !raw[10]
     allowed := contextAllowed and mode = "gameplay" and !raw[11] and !raw[12] and !appsOwned
     neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
@@ -73,6 +92,7 @@ PersonalPoll(states, active) {
     }
 
     arrows := ["Up", "Right", "Down", "Left"]
+    PersonalTargetTrial(raw, mode)
     layer := PersonalLayerStep(PC.layer, raw.l1, raw[11], raw.r1, raw[12])
     layerChanged := layer != PC.layerVisible
     if (layerChanged) {
@@ -193,14 +213,22 @@ PersonalPoll(states, active) {
 
 PersonalFilter(states, raw) {
     global PC
+    if (!PC.blocked.Count())
+        return states
+    retired := []
     for i, key in PC.blocked {
         states[i] := false
         if (!raw[i]) {
             if (i <= 4)
                 PersonalKey(key, false)
-            PC.blocked.Delete(i)
-            PC.suppressed.Delete(i)
+            retired.Push(i)
         }
+    }
+    ; AHK enumerators can skip the next entry if the current key is deleted.
+    ; Finish masking every held button before retiring released entries.
+    for _, i in retired {
+        PC.blocked.Delete(i)
+        PC.suppressed.Delete(i)
     }
     return states
 }
@@ -212,22 +240,27 @@ PersonalContext(hwnd) {
     WinGetTitle, title, ahk_id %hwnd%
     now := A_NowUTC
     EnvSub, now, 19700101000000, Seconds
-    Loop, Files, %A_ScriptDir%\data\personal-controls\*.ini
-    {
-        FileRead, lease, %A_LoopFileFullPath%
-        if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name))
-            continue
-        if (!RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))
-            continue
-        if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", stamp)
-            or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", mode))
-            return InputTraceContextMiss("malformed")
-        age := now - stamp1
-        if (age >= -1 and age <= 2) {
-            PersonalL1Lease(lease, A_LoopFileFullPath)
-            return mode1
+    ; Retry the directory read once without sleeping: Lua's remove/rename
+    ; publication may complete between scans. Never reuse cached permission.
+    Loop, 2 {
+        Loop, Files, %A_ScriptDir%\data\personal-controls\*.ini
+        {
+            FileRead, lease, %A_LoopFileFullPath%
+            if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name))
+                continue
+            if (!RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))
+                continue
+            if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", stamp)
+                or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", mode)
+                or !RegExMatch(lease, "m)^END\r?$"))
+                return InputTraceContextMiss("malformed")
+            age := now - stamp1
+            if (age >= -1 and age <= 2) {
+                PersonalL1Lease(lease, A_LoopFileFullPath)
+                return mode1
+            }
+            return InputTraceContextMiss("stale")
         }
-        return InputTraceContextMiss("stale")
     }
     return InputTraceContextMiss("no-matching-lease")
 }
@@ -245,6 +278,7 @@ PersonalL1Lease(lease, contextPath) {
         or !RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
         or !RegExMatch(lease, "m)^l1ack=(\d+)\r?$", ack)) {
         PC.l1.available := false
+        PC.targetR2 := false, PC.targetR3 := false
         return
     }
     if (PC.l1.token != token1) {
@@ -253,6 +287,8 @@ PersonalL1Lease(lease, contextPath) {
         PC.ready := false
     }
     PC.l1.available := true, PC.l1.mode := mode1, PC.l1.ack := ack1 + 0
+    PC.targetR2 := RegExMatch(lease, "m)^target_r2=1\r?$") ? true : false
+    PC.targetR3 := RegExMatch(lease, "m)^target_r3=1\r?$") ? true : false
     retained := []
     for _, event in PC.l1.pending
         if (event.seq > PC.l1.ack)
@@ -321,6 +357,32 @@ PersonalKey(key, down) {
     }
 }
 
+; A: isolated opt-in acquisition experiment. Use the existing sender's key
+; delay between F8 down/up; add no Sleep or global SetKeyDelay change. F8 is
+; fully released before the ordinary Apps+F12 signal or stick-click handling.
+PersonalTargetTrial(raw, mode) {
+    global PC, appsOwned
+    if (mode != "gameplay" or !PC.l1.available or appsOwned or PC.keys.Count()
+        or raw.l1 or raw.r1 or raw.l3 or raw.touch or raw.ps or raw.mute)
+        return
+    Loop, 11
+        if (raw[A_Index])
+            return
+    source := ""
+    if (PC.targetR2 and raw[12] and !PC.previous[12] and !raw.r3)
+        source := "R2"
+    else if (PC.targetR3 and raw.r3 and !PC.previous.r3 and !raw[12] and PC.clicks.phase = "idle")
+        source := "R3"
+    if (source = "")
+        return
+    for _, key in ["Control", "Alt", "Shift", "LWin", "RWin", "AppsKey", "F8"]
+        if GetKeyState(key, "P")
+            return
+    InputTraceRecord("target prefire=" . source)
+    PersonalKey("F8", true)
+    PersonalKey("F8", false)
+}
+
 PersonalTap(key, now) {
     global PC
     PersonalKey(key, true)
@@ -361,6 +423,7 @@ PersonalRelease(reset := true) {
     if (reset) {
         PersonalL1Event("cancel")
         PC.layer.phase := "idle", PC.layerVisible := ""
+        PC.contextSeen := 0, PC.contextPaused := false
     }
     keys := []
     for key in PC.keys

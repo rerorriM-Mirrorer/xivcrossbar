@@ -49,7 +49,10 @@ function M.read_status(path, now)
     if not f then return nil end
     local contents = f:read('*a'); f:close()
     local result = {}
-    for key, value in contents:gmatch('([%a_]+)=([^\r\n]*)') do result[key] = value end
+    for line in contents:gmatch('[^\r\n]+') do
+        local key,value=line:match('^([%a_][%w_]*)=(.*)$')
+        if key then result[key]=value end
+    end
     local timestamp = tonumber(result.timestamp)
     if not timestamp or not result.profile or not result.state then return nil end
     local age = (now or os.time()) - timestamp

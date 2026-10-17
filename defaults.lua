@@ -9,6 +9,9 @@ defaults.iconpack = 'default'
 -- A: personal builds start with the extended profile; public defaults stay separate.
 defaults.ControllerProfile = 'ps5-extended'
 defaults.ControllerDevice = 1
+-- A: targeting trials stay off for an unchanged-input comparison first.
+defaults.ControllerTargetR2 = false
+defaults.ControllerTargetR3 = false
 -- A: migrate older base-PS5 selections once; later explicit choices persist.
 defaults.PersonalProfileMigrated = false
 defaults.on_logout_unload_addon = false

@@ -1,5 +1,11 @@
 ; A: gesture decisions contain no keyboard/Windows calls. The wrapper applies
 ; their results only to the current FFXI owner, and cancels them on context loss.
+; A: a missing file during a complete lease swap is an uncertain observation,
+; not permission to emit a new action and not yet a lost controller session.
+PersonalLeasePause(mode, now, seen, ready) {
+    return ready and mode = "unknown" and seen > 0 and now >= seen and now - seen <= 100
+}
+
 PersonalShoulderStep(g, pressed, previous, consumed) {
     if (consumed) {
         g.phase := pressed ? "cancelled" : "idle"

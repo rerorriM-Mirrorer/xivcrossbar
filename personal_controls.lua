@@ -22,10 +22,12 @@ function M.new(options)
         if self.path~=path then self:close();self.create_dir(directory);self.path=path end
         local now=self.clock()
         l1=l1 or {}
-        local payload='\nl1token='..(l1.token or '')..'\nl1mode='..(l1.mode or 'keyboard')..'\nl1ack='..(l1.ack or 0)..'\n'
+        local payload='\nl1token='..(l1.token or '')..'\nl1mode='..(l1.mode or 'keyboard')..'\nl1ack='..(l1.ack or 0)..
+            '\ntarget_r2='..(l1.target_r2 and '1' or '0')..'\ntarget_r3='..(l1.target_r3 and '1' or '0')..'\nEND\n'
         if self.mode==mode and self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.25
-        -- Partial reads are safe: AHK requires name/mode/timestamp before use.
+        -- AHK validates the name/mode/timestamp and complete END trailer.
+        -- Its bounded uncertain-read pause handles the Windows swap gap below.
         -- Publish complete leases, not a half-written gameplay/menu context.
         local temporary=path..'.tmp'
         local f=self.open(temporary,'w')
