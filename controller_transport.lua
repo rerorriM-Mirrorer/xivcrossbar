@@ -1,4 +1,5 @@
--- A: Apps-gated F1-F12 signals; plain keyboard F-keys pass through.
+-- A: logical controller identifiers shared by message and Apps/F-key routes.
+-- The keyboard route gates these with Apps; ordinary keyboard F-keys pass through.
 local M = {down = {}}
 M.signals = {
     [59] = {name='D-pad Up', logical=59, arrow='up'},       -- F-key transport

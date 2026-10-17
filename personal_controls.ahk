@@ -1,5 +1,5 @@
 ; A: isolated, optional PS5 personal controls. No output in ordinary profiles.
-; This include owns its keys; base Apps/F1-F12 routing stays in the wrapper.
+; This include owns its keys; ordinary button transport stays in the wrapper.
 PersonalInit(selected, prefix) {
     global PC
     PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
@@ -57,8 +57,10 @@ PersonalPoll(states, active) {
         PC.contextPaused := true, PC.context := "updating"
         ; Keep existing transport holds only while still physically held. New
         ; downs wait for a verified current lease; releases are never delayed.
-        Loop, 12
-            states[A_Index] := states[A_Index] and previous[A_Index]
+        Loop, 12 {
+            held := previous[A_Index] or ControllerMessageHeld(A_Index)
+            states[A_Index] := states[A_Index] and held
+        }
         PersonalL1Block(raw)
         return PersonalFilter(states, raw)
     }
@@ -248,6 +250,7 @@ PersonalContext(hwnd) {
                 return InputTraceContextMiss("malformed")
             age := now - stamp1
             if (age >= -1 and age <= 2) {
+                ControllerMessageLease(lease, A_LoopFileFullPath)
                 PersonalL1Lease(lease, A_LoopFileFullPath)
                 return mode1
             }
@@ -354,7 +357,7 @@ PersonalKey(key, down) {
 ; fully released before the ordinary Apps+F12 signal or stick-click handling.
 PersonalTargetTrial(raw, mode) {
     global PC, appsOwned
-    if (mode != "gameplay" or !PC.l1.available or appsOwned or PC.keys.Count()
+    if (mode != "gameplay" or !PC.l1.available or appsOwned or ControllerMessageAnyHeld() or PC.keys.Count()
         or raw.l1 or raw.r1 or raw.l3 or raw.touch or raw.ps or raw.mute)
         return
     Loop, 11

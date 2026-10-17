@@ -1,6 +1,6 @@
 #Requires AutoHotkey v1.1.33+
 ; A: shared controller transport; physical readers are selected at startup.
-; All twelve buttons send consistent F1-F12 signals, with Apps capture.
+; Ordinary profiles use Apps/F1-F12; the extended profile can use messages.
 #SingleInstance ignore
 #Persistent
 ; A: physical modifier checks must distinguish our injected key-down.
@@ -59,6 +59,7 @@ ready := false
 appsOwned := false
 Loop, 12
     previous[A_Index] := false
+ControllerMessageInit()
 PersonalInit(profile, joystickPrefix)
 WrapperClientsInit()
 ; A: movement has its own per-focus latch; button neutral never rearms it.
@@ -132,6 +133,12 @@ if (!ready) {
     InputTraceFinish(pollStart)
     return
 }
+; A: the experiment bypasses Apps and F-keys completely. Lua uses the same
+; controller router; this branch also owns uncertain/neutral handoff intervals.
+if (ControllerMessagePoll(states)) {
+    InputTraceFinish(pollStart)
+    return
+}
 if (anyDown and !appsOwned) {
     appsOwned := true
     InputTraceRecord("emit " . captureKey . " down")
@@ -194,6 +201,7 @@ ReleaseTransport(preservePersonal := false) {
     global keys, previous, owner, appsOwned, captureKey
     InputTraceRecord("transport release owner=" . owner . " preserve_personal=" . preservePersonal)
     MovementRelease()
+    ControllerMessageCancel()
     if (!preservePersonal)
         PersonalRelease()
     Loop, 12 {
@@ -295,8 +303,10 @@ WriteTransportStatus(force := false) {
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
     global PC
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.4-input`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.5-messages`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
             . "target_r2=" . PC.targetR2 . "`ntarget_r3=" . PC.targetR3 . "`ncontext_pauses=" . PC.contextPauses . "`n"
+    global CM
+    contents .= "button_protocol=1`nbutton_route=" . CM.phase . "`nbutton_sent=" . CM.seq . "`nbutton_ack=" . CM.ack . "`nbutton_error=" . CM.error . "`n"
     global TM
     contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
     global IT
@@ -339,7 +349,7 @@ InputTraceStart(now) {
     if (request = "on") {
         InputTraceClose()
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
-        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.4-input")
+        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.5-messages")
     } else if (request = "off") {
         InputTraceRecord("capture manually stopped")
         InputTraceClose()
@@ -417,6 +427,7 @@ InputTraceContextMiss(reason) {
     return reason = "stale" ? "stale" : "unknown"
 }
 
+#Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\personal_controls.ahk
 #Include %A_ScriptDir%\personal_gestures.ahk
 

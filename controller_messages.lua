@@ -1,0 +1,92 @@
+-- A: ordered physical-button messages. The existing router owns their meaning.
+-- Complete, acknowledged snapshots retain taps between frames; session tokens
+-- prevent another client or an old focus session from replaying those taps.
+local M={version='buttons1',diks={59,60,61,62,63,64,65,66,67,68,87,88}}
+function M.command(settings,mode,save,say)
+    mode=type(mode)=='string' and mode:lower() or nil
+    if mode and mode~='on' and mode~='off' and mode~='status' then
+        say('Use //xb messages [on|off|status].');return false
+    end
+    if mode~='status' then
+        settings.ControllerMessages=mode and mode=='on' or mode==nil and not settings.ControllerMessages
+        save()
+    end
+    say('Controller messages '..(settings.ControllerMessages and 'ON' or 'OFF')..
+        '. PS5 Extended; return controls to neutral for handoff.')
+    return mode~='status'
+end
+function M.new(options)
+    local self={token=nil,key=nil,epoch=0,ack=0,received=0,rejected=0,held={},captured=false,last_seen=0}
+    local function cancel()
+        self.held={};self.captured=false
+        options.cancel()
+    end
+    function self:reset()
+        local active=self.token~=nil
+        self.token,self.key=nil,nil;self.ack=0;self.last_seen=0;self.last_beat=nil
+        if active then cancel() end
+    end
+    function self:context(key,enabled)
+        if not enabled then self:reset();return end
+        if self.key~=key then
+            local active=self.token~=nil
+            self:reset()
+            -- Initial activation also releases keys owned by the legacy route.
+            if not active then cancel() end
+            self.epoch=self.epoch+1;self.key=key
+            self.token=options.session..'-buttons-'..self.epoch
+        end
+    end
+    function self:watchdog()
+        if self.captured and options.clock()-self.last_seen>.35 then
+            self:reset();return true
+        end
+        return false
+    end
+    function self:accept(contents)
+        if not self.token or type(contents)~='string' or #contents>8192 then return false end
+        contents=contents:gsub('\r\n','\n')
+        local token,stamp,beat,body=contents:match('^token=([%w%-]+)\nstamp=(%d+)\nbeat=(%d+)\n(.*)$')
+        if token~=self.token or body:sub(-4)~='END\n' then return false end
+        local age=options.wallclock()-tonumber(stamp)
+        if age< -1 or age>1 then self.rejected=self.rejected+1;return false end
+        local events,next_seq,last_cancel={},self.ack+1,0
+        for line in body:sub(1,-5):gmatch('[^\n]+') do
+            local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
+            seq,button=tonumber(seq),tonumber(button)
+            if not seq or not button or not ((kind=='down' or kind=='up') and button>=1 and button<=12 or
+                kind=='cancel' and button==0) then self.rejected=self.rejected+1;return false end
+            if seq>self.ack then
+                if seq~=next_seq then self.rejected=self.rejected+1;return false end
+                events[#events+1]={seq,kind,button};next_seq=next_seq+1
+                if kind=='cancel' then last_cancel=#events end
+            end
+        end
+        beat=tonumber(beat)
+        if self.last_beat and beat<self.last_beat then return false end
+        if beat~=self.last_beat then self.last_seen=options.clock();self.last_beat=beat end
+        for index,event in ipairs(events) do
+            self.ack=event[1];self.received=self.received+1
+            -- Cancellation invalidates queued actions too. Never briefly execute
+            -- earlier downs from the same snapshot before seeing its cancel.
+            if index>=last_cancel then
+                local kind,button=event[2],event[3]
+                if kind=='cancel' then cancel()
+                elseif kind=='down' and not self.held[button] then
+                    if not self.captured then self.captured=true;options.capture(true) end
+                    self.held[button]=true
+                    options.event(M.diks[button],true)
+                elseif kind=='up' and self.held[button] then
+                    self.held[button]=nil
+                    options.event(M.diks[button],false)
+                    if not next(self.held) then self.captured=false;options.capture(false) end
+                end
+            end
+            -- An executed command can unload or change the route mid-batch.
+            if self.token~=token then break end
+        end
+        return #events>0
+    end
+    return self
+end
+return M

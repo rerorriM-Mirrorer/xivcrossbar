@@ -1,5 +1,5 @@
 -- A: private per-character context lease for the optional PS5 extended wrapper.
--- AHK still reads hardware and sends keys; Lua reports when menu/text owns input.
+-- AHK reads hardware; Lua publishes context and the selected button transport.
 local M={}
 function M.new(options)
     options=options or {}
@@ -10,6 +10,8 @@ function M.new(options)
             self.remove(self.path)
             self.remove(self.path:gsub('%.ini$','.l1'))
             self.remove((self.path:gsub('%.ini$','.l1'))..'.tmp')
+            self.remove(self.path:gsub('%.ini$','.buttons'))
+            self.remove((self.path:gsub('%.ini$','.buttons'))..'.tmp')
             self.remove(self.path..'.tmp')
         end
         self.path,self.mode,self.next_write,self.payload=nil,nil,nil,nil
@@ -23,7 +25,8 @@ function M.new(options)
         local now=self.clock()
         l1=l1 or {}
         local payload='\nl1token='..(l1.token or '')..'\nl1mode='..(l1.mode or 'keyboard')..'\nl1ack='..(l1.ack or 0)..
-            '\ntarget_r2='..(l1.target_r2 and '1' or '0')..'\ntarget_r3='..(l1.target_r3 and '1' or '0')..'\nEND\n'
+            '\ntarget_r2='..(l1.target_r2 and '1' or '0')..'\ntarget_r3='..(l1.target_r3 and '1' or '0')..'\nbutton_mode='..(l1.messages and 'messages' or 'keys')..'\nbutton_token='..(l1.button_token or '')..
+            '\nbutton_ack='..(l1.button_ack or 0)..'\nEND\n'
         if self.mode==mode and self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.25
         -- AHK validates the name/mode/timestamp and complete END trailer.

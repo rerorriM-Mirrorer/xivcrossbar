@@ -26,7 +26,7 @@ for path,source in sources.items():
     assert not quoted and not stack,path
 wrapper=sources[root/'ffxi_directinput.ahk']
 includes=re.findall(r'^#Include %A_ScriptDir%\\(.+)$',wrapper,re.M)
-assert set(includes)=={'personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk'}
+assert set(includes)=={'personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk','controller_messages.ahk'}
 for name in includes:assert (root/name).is_file()
 assert wrapper.index('instanceMutex := AcquireWrapperMutex()')<wrapper.index('OnExit, TransportExit')
 controls=sources[root/'personal_controls.ahk']
@@ -38,12 +38,13 @@ assert 'Mod(index - 1 + direction + ordered.Length(), ordered.Length())' in cont
 assert 'PC.owner != WinActive("ahk_class FFXiClass")' in controls
 assert 'ControlSend,,' in controls
 functions=[]
-for name in ['personal_controls.ahk','personal_gestures.ahk']:
-    functions += re.findall(r'^(Personal\w+)\([^\n]*\) \{',sources[root/name],re.M)
+for name in ['personal_controls.ahk','personal_gestures.ahk','controller_messages.ahk']:
+    functions += re.findall(r'^((?:Personal|ControllerMessage)\w+)\([^\n]*\) \{',sources[root/name],re.M)
 assert len(functions)==len(set(functions)), 'duplicate function'
-calls=set(re.findall(r'\b(Personal\w+)\(',wrapper+controls+sources[root/'personal_gestures.ahk']))
+calls=set(re.findall(r'\b((?:Personal|ControllerMessage)\w+)\(',wrapper+controls+sources[root/'personal_gestures.ahk']+sources[root/'controller_messages.ahk']))
 assert calls<=set(functions),calls-set(functions)
 probe=sources[root/'tools/keyprobe/keyboard_probe.ahk']
 assert 'OnExit, ProbeExit' in probe and 'ProbeReleaseKeys()' in probe
 assert 'WinActive("ahk_class FFXiClass") != probeOwner' in probe
 print(f'{len(sources)} AHK files: balanced literals/delimiters, includes, hidden gating, cleanup and function links checked.')
+

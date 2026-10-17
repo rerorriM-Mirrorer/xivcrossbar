@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.personal9-l1test5'
+_addon.version = '0.4.0-a.20261017.personal9-l1test6'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -65,6 +65,9 @@ local transport = require('controller_transport')
 local text_input_guard = require('text_input_guard')
 local personal_controls = require('personal_controls').new()
 local publish_personal_context
+local controller_message_bridge
+local message_capture, message_button, message_cancel
+local message_epoch=0
 local visibility = require('visibility')
 local storage = require('storage')
 local player = require('player')
@@ -112,6 +115,11 @@ local l1_bank=require('l1_bank').new({settings=settings,clock=l1_clock,
 local l1_bridge=require('l1_transport').new({session=require('windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
 local l1_view=require('l1_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
+controller_message_bridge=require('controller_messages').new({session=require('windows_file').new().session_id,
+    clock=l1_clock,wallclock=os.time,
+    capture=function(pressed) if message_capture then message_capture(pressed) end end,
+    event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
+    cancel=function() if message_cancel then message_cancel() end end})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui_drag').new({
     enabled=function() return l1_view.opacity>.01 and not l1_bank:settings().Locked end,
@@ -342,7 +350,12 @@ local function report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Controller change: ' .. controller_switcher.pending.phase)
     end
     local status = controller_status()
+    windower.add_to_chat(207,'[XIVCrossbar] Controller messages configured='..tostring(settings.ControllerMessages)..
+        ' | received='..controller_message_bridge.received..' | rejected='..controller_message_bridge.rejected)
     if status and status.running then
+        if settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' and status.button_protocol~='1' then
+            windower.add_to_chat(123,'[XIVCrossbar] Restart the AHK wrapper for controller messages (Controls 9.5 required).')
+        end
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
             ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if status.profile=='ps5-extended' then
@@ -354,6 +367,10 @@ local function report_controller_status()
                 tostring(settings.ControllerTargetR2)..'/'..tostring(settings.ControllerTargetR3)..
                 ' | active wrapper='..(status.target_r2 or '0')..'/'..(status.target_r3 or '0')..
                 ' | short context pauses='..(status.context_pauses or '0'))
+        end
+        if status.button_route then
+            windower.add_to_chat(207,'[XIVCrossbar] Button route='..status.button_route..' | sent/ack='..
+                (status.button_sent or '?')..'/'..(status.button_ack or '?')..' | write error='..(status.button_error or '?'))
         end
         if status.poll_max_ms then
             windower.add_to_chat(0,'[XIVCrossbar] Input diagnosis: trace='..tostring(status.input_trace)..
@@ -1059,6 +1076,7 @@ function display_help_menu()
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
     help.command('l1 [help|status]','Momentary L1 layers, saved eight-slot bank, position and scale.')
     help.command('controller target [r2|r3|both] [on|off]','F8 before unmodified R2/R3; personal default R3 only.')
+    help.command('messages [on|off|status]','Experimental controller message stream; bare toggles.')
     help.command('x [device]','Personal shortcut: select PS5 Extended.')
     help.command('r2|r3|both [on|off|status]','Personal F8 shortcuts; bare toggles the named button(s).')
     help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
@@ -1134,6 +1152,7 @@ local function graceful_restart(unload)
     restart_pending = true
     xivcrossbar.ready = false
     crossbar_drag:finish()
+    controller_message_bridge:reset()
     l1_drag:finish();l1_bridge:reset()
     controller_switcher:cancel()
     if env_chooser.is_setup then env_chooser:close() end
@@ -1184,6 +1203,7 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    controller_message_bridge:reset()
     l1_drag:finish();l1_bridge:reset();l1_view:destroy();personal_controls:close()
     profile_gate:reset()
     xivcrossbar.ready = false
@@ -1211,6 +1231,7 @@ windower.register_event('unload',function()
     if client_registry then client_registry:close(settings.on_unload_killahk) end
     ui.autoattack:set_enabled(false)
     personal_controls:close()
+    controller_message_bridge:reset()
     l1_drag:finish();l1_bridge:reset();l1_view:destroy()
     controller_switcher:cancel()
     crossbar_drag:finish()
@@ -1243,6 +1264,16 @@ windower.register_event('addon command', function(command, ...)
         l1_bank:command({...})
         l1_epoch=l1_epoch+1
         if publish_personal_context then publish_personal_context() end
+        return
+    elseif command == 'messages' then
+        local changed=require('controller_messages').command(settings,(...),
+            function() config.save(settings) end,
+            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+        if changed then
+            message_epoch=message_epoch+1
+            controller_message_bridge:reset()
+            if publish_personal_context then publish_personal_context() end
+        end
         return
     elseif command == 'x' then
         select_controller_profile('x', (...))
@@ -1858,16 +1889,96 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
+-- A: both transports call this router. The source determines how a physical
+-- edge arrives; menu ownership, native translation and slot execution stay here.
+message_capture = function(pressed)
+    if not pressed then
+        release_gameplay_keys()
+        transport:reset()
+        gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
+        gamepad_state.minus_button=false;gamepad_state.plus_button=false
+        gamepad_state.active_bar=0
+    end
+    handle_controller_key(controller_capture_dik,pressed,0,false)
+end
+message_button = function(dik,pressed,flags,blocked)
+    local signal=transport.signals[dik]
+    if not signal then return end
+    -- The wizard bootstraps button configuration and can be visible before
+    -- hotbar initialization finishes. Gameplay still requires readiness.
+    if restart_pending then return true end
+    if blocked and pressed and input_context() ~= 'text' and not action_binder.chooser_active then
+        if settings.InputTrace then windower.add_to_chat(123, '[XIVCrossbar test] BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
+        return true
+    end
+    local context = input_context()
+    local item, edge, owner = transport:edge(dik, pressed, context)
+    if edge == 'repeat' then return true end
+    if settings.InputTrace then
+        local role = item.name
+        if item.button == buttonmapping.confirm_button then role = role .. ' / Confirm' end
+        if item.button == buttonmapping.cancel_button then role = role .. ' / Back' end
+        windower.add_to_chat(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
+    end
+    if gameplay_down[dik] and not pressed then
+        windower.send_command('setkey ' .. gameplay_down[dik] .. ' up')
+        gameplay_down[dik] = nil
+    end
+    -- Triggers and menu buttons must finish their transition even when the
+    -- menu opens/closes between edges. Slots keep their original owner.
+    local transition = item.logical >= 67
+    if not pressed and owner ~= context and not transition then return true end
+    -- The base set chooser uses only Up/Down; other slot buttons stay
+    -- owned by that menu and must never fall through to a crossbar action.
+    if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
+    if context == 'login' then
+        local key=transport:login_key(item,buttonmapping)
+        if key and pressed then
+            gameplay_down[dik]=key
+            windower.send_command('setkey '..key..' down')
+        end
+        return true
+    end
+    if item.logical <= 66 and context == 'gameplay' then
+        local key = transport:gameplay_key(item, buttonmapping, settings.GameplayDPad)
+        if settings.InputTest then
+            if pressed then windower.add_to_chat(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
+        elseif key and pressed then
+            gameplay_down[dik] = key
+            windower.send_command('setkey ' .. key .. ' down')
+        end
+        return true
+    end
+    if pressed and transition then release_gameplay_keys() end
+    handle_controller_key(item.logical, pressed, flags, blocked)
+    return true
+end
+message_cancel = function()
+    local chooser_held=set_chooser_button_down or action_binder.chooser_active
+    release_gameplay_keys();transport:reset()
+    for _,key in ipairs({'capturing','left_trigger','right_trigger','minus_button','plus_button',
+        'left_trigger_doublepress','right_trigger_doublepress'}) do gamepad_state[key]=false end
+    gamepad_state.active_bar=0
+    close_left_doublepress_window();close_right_doublepress_window()
+    if action_binder.chooser_active then finish_set_chooser(true) end
+    set_chooser_button_down=false
+    action_binder:clear_controller_input()
+    if chooser_held and env_chooser:is_showing() and not env_chooser.capturing then env_chooser:close() end
+    ui_dirty=true
+end
+
 publish_personal_context = function()
     if settings.ControllerProfile~='ps5-extended' or not windower.ffxi.get_info().logged_in then
-        l1_bridge:reset();personal_controls:close();return
+        l1_bridge:reset();controller_message_bridge:reset();personal_controls:close();return
     end
     local context = (restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
     local info=windower.ffxi.get_info()
     local character=windower.ffxi.get_player()
     if info.chat_open then context='text' end
     local now=l1_clock()
-    if l1_last_tick>0 and now-l1_last_tick>.5 then l1_epoch=l1_epoch+1 end
+    if l1_last_tick>0 and now-l1_last_tick>.5 then
+        l1_epoch=l1_epoch+1;message_epoch=message_epoch+1
+    end
     l1_last_tick=now
     local eligible=(context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not info.menu_open
         and character and character.status~=4
@@ -1882,9 +1993,23 @@ publish_personal_context = function()
             local contents=f:read(4097);f:close();l1_bridge:accept(contents)
         end
     end
+    local message_enabled=settings.ControllerMessages==true and xivcrossbar.ready and not restart_pending
+        and windower.has_focus() and character and character.status~=4
+    controller_message_bridge:context(table.concat({player.server or '',player.name or '',tostring(message_epoch)},':'),message_enabled)
+    if controller_message_bridge.token then
+        -- Check the heartbeat before accepting a replacement file. A recovered
+        -- writer must rearm, rather than reviving an expired held gesture.
+        if not controller_message_bridge:watchdog() then
+            local f=io.open(windower.addon_path..'data/personal-controls/'..player.name..'.buttons','rb')
+            if f then local contents=f:read(8193);f:close();controller_message_bridge:accept(contents) end
+        end
+    end
+    context=(restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
+    if info.chat_open then context='text' end
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
-            target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true})
+            target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
+            messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- Own Escape through key-up after closing: neither repeats nor release
@@ -1921,69 +2046,15 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
             ' blocked=' .. tostring(blocked == true))
     end
     if dik == controller_capture_dik then
-        if not pressed then
-            release_gameplay_keys()
-            transport:reset()
-            gamepad_state.left_trigger = false
-            gamepad_state.right_trigger = false
-            gamepad_state.minus_button = false
-            gamepad_state.plus_button = false
-            gamepad_state.active_bar = 0
-        end
-        handle_controller_key(dik, pressed, flags, blocked)
+        if controller_message_bridge.token then return false end
+        message_capture(pressed)
         publish_personal_context()
         return true
     end
     local signal = transport.signals[dik]
     -- Consume owned releases even if capture was lost; no orphan game key-ups.
-    if signal and (gamepad_state.capturing or transport.down[dik]) then
-        -- The wizard bootstraps button configuration and can be visible before
-        -- hotbar initialization finishes. Gameplay still requires readiness.
-        if restart_pending then return true end
-        if blocked and pressed and input_context() ~= 'text' and not action_binder.chooser_active then
-            if settings.InputTrace then windower.add_to_chat(123, '[XIVCrossbar test] BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
-            return true
-        end
-        local context = input_context()
-        local item, edge, owner = transport:edge(dik, pressed, context)
-        if edge == 'repeat' then return true end
-        if settings.InputTrace then
-            local role = item.name
-            if item.button == buttonmapping.confirm_button then role = role .. ' / Confirm' end
-            if item.button == buttonmapping.cancel_button then role = role .. ' / Back' end
-            windower.add_to_chat(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
-        end
-        if gameplay_down[dik] and not pressed then
-            windower.send_command('setkey ' .. gameplay_down[dik] .. ' up')
-            gameplay_down[dik] = nil
-        end
-        -- Triggers and menu buttons must finish their transition even when the
-        -- menu opens/closes between edges. Slots keep their original owner.
-        local transition = item.logical >= 67
-        if not pressed and owner ~= context and not transition then return true end
-        -- The base set chooser uses only Up/Down; other slot buttons stay
-        -- owned by that menu and must never fall through to a crossbar action.
-        if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
-        if context == 'login' then
-            local key=transport:login_key(item,buttonmapping)
-            if key and pressed then
-                gameplay_down[dik]=key
-                windower.send_command('setkey '..key..' down')
-            end
-            return true
-        end
-        if item.logical <= 66 and context == 'gameplay' then
-            local key = transport:gameplay_key(item, buttonmapping, settings.GameplayDPad)
-            if settings.InputTest then
-                if pressed then windower.add_to_chat(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
-            elseif key and pressed then
-                gameplay_down[dik] = key
-                windower.send_command('setkey ' .. key .. ' down')
-            end
-            return true
-        end
-        if pressed and transition then release_gameplay_keys() end
-        handle_controller_key(item.logical, pressed, flags, blocked)
+    if not controller_message_bridge.token and signal and (gamepad_state.capturing or transport.down[dik]) then
+        message_button(dik,pressed,flags,blocked)
         publish_personal_context()
         return true
     end
@@ -2005,6 +2076,7 @@ local frame = 0
 -- local controller ownership without submitting or discarding menu drafts.
 local focus_release_keys = {}
 local function clear_controller_input(regained)
+    message_epoch=message_epoch+1;controller_message_bridge:reset()
     l1_epoch=l1_epoch+1;l1_bridge:reset();l1_bank:cancel();l1_drag:finish()
     set_chooser_button_down=false
     menu_escape_down=false

@@ -9,6 +9,8 @@ defaults.iconpack = 'default'
 -- A: personal builds start with the extended profile; public defaults stay separate.
 defaults.ControllerProfile = 'ps5-extended'
 defaults.ControllerDevice = 1
+-- A: Personal Test 6 compares direct messages with the existing keyboard route.
+defaults.ControllerMessages = true
 -- A: the personal target button is R3; R2 remains the ordinary trigger.
 defaults.ControllerTargetR2 = false
 defaults.ControllerTargetR3 = true

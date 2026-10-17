@@ -23,11 +23,12 @@ function object(values){return Object.defineProperties(values,{
   Delete:{value:k=>delete values[k]},Count:{value:()=>Object.keys(values).length}});}
 const emitted=[],physical=new Set();
 const context={ahkEnum,PC:{},appsOwned:false,GetKeyState:k=>physical.has(k),
+  messageHeld:false,ControllerMessageAnyHeld:()=>context.messageHeld,
   PersonalKey:(key,down)=>emitted.push([key,down]),InputTraceRecord:()=>{}};
 vm.createContext(context);vm.runInContext('Array.prototype.Push=Array.prototype.push;\n'+code,context);
 function fresh(){context.PC={blocked:object({}),suppressed:object({}),keys:object({}),
   l1:{available:true},previous:{},clicks:{phase:'idle'},targetR2:false,targetR3:false};
-  context.appsOwned=false;emitted.length=0;physical.clear();}
+  context.appsOwned=false;context.messageHeld=false;emitted.length=0;physical.clear();}
 fresh();context.PC.blocked=object({1:'i',2:'m',6:'q',8:'s'});
 context.PC.suppressed=object({1:true,6:true});
 let states={1:false,2:true,6:false,8:true},raw={2:true,8:true};
@@ -58,11 +59,12 @@ for(const key of ['Control','Alt','Shift','LWin','RWin','AppsKey','F8']){
 fresh();assert.deepEqual(trial('R2'),[]);assert.deepEqual(trial('R3'),[]);
 fresh();context.PC.targetR2=true;context.PC.l1.available=false;assert.deepEqual(trial('R2'),[]);
 fresh();context.PC.targetR2=true;context.appsOwned=true;assert.deepEqual(trial('R2'),[]);
+fresh();context.PC.targetR3=true;context.messageHeld=true;assert.deepEqual(trial('R3'),[]);
 fresh();context.PC.targetR3=true;context.PC.clicks.phase='l3';assert.deepEqual(trial('R3'),[]);
 fresh();context.PC.targetR3=true;context.PC.previous.r3=true;assert.deepEqual(trial('R3'),[]);
 assert(source.indexOf('PersonalTargetTrial(raw, mode)')<source.indexOf('layer := PersonalLayerStep'));
 assert(!/Sleep,|SetKeyDelay,|SendEvent|AppsKey.*down/.test(extract('PersonalTargetTrial')));
 const pause=source.slice(source.indexOf('if (PersonalLeasePause('),source.indexOf('contextAllowed :='));
-assert(pause.includes('states[A_Index] and previous[A_Index]')&&pause.includes('return PersonalFilter(states, raw)'));
+assert(pause.includes('previous[A_Index] or ControllerMessageHeld(A_Index)')&&pause.includes('states[A_Index] and held')&&pause.includes('return PersonalFilter(states, raw)'));
 assert(!pause.includes('PersonalRelease()')&&!pause.includes('PC.previous := raw'));
 console.log('Actual AHK filter: adjacent-entry deletion regression fixed. F8 R2/R3 ordering, fresh edges, defaults-off and context/combo/physical-key guards pass; gap quarantine has no new downs.');

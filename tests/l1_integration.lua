@@ -10,6 +10,9 @@ local bridge=require('l1_transport').new({session='integration',wallclock=functi
 local context,focused='gameplay',true
 local info={logged_in=true};local character={status=0}
 local env=setmetatable({settings=settings,l1_clock=function()return now end,l1_bank=bank,l1_bridge=bridge,
+    message_epoch=0,controller_message_bridge=require('controller_messages').new({session='buttons-test',
+        clock=function()return now end,wallclock=function()return 100 end,
+        cancel=function()end,capture=function()end,event=function()end}),
     l1_epoch=0,l1_last_tick=0,l1_next_read=0,restart_pending=false,xivcrossbar={ready=true},
     player={server='Fenrir',name='Test'},input_context=function()return context end,
     personal_controls={close=function()end,update=function(_,directory,name,profile,mode,l1)env_lease=l1;env_context=mode end},
@@ -51,4 +54,16 @@ packet('1,bank,0\n2,slot,1\n');character.status=4;step()
 assert(bridge.token==nil and #sent==1)
 info.chat_open=true;context='gameplay';character.status=0;step()
 assert(env_context=='text' and bridge.token==nil)
+-- The ordinary message stream has its own token: native menus suppress the
+-- companion but must not disable controller menu navigation or trigger releases.
+settings.ControllerMessages=true;info.chat_open=false;info.menu_open=false;character.status=0
+step();local messages=env.controller_message_bridge;local message_token=messages.token
+assert(env_lease.messages and env_lease.button_token==message_token)
+info.menu_open=true;step();assert(bridge.token==nil and messages.token==message_token)
+files['addon/data/personal-controls/Test.buttons']='token='..message_token..'\nstamp=100\nbeat=10\n1,down,11\nEND\n'
+step();assert(messages.captured and env_lease.button_ack==1)
+focused=false;step();assert(messages.token==nil and not messages.captured)
+focused=true;step();assert(messages.token~=message_token and not messages.captured)
+message_token=messages.token;now=now+1;step();assert(messages.token~=message_token and messages.ack==0)
+settings.ControllerMessages=false;step();assert(not env_lease.messages and messages.token==nil)
 print('Actual root L1 bridge: ordered layers, stable ordinary-trigger sessions, once-only dispatch and menu/chat/focus/cutscene/stall guards passed.')

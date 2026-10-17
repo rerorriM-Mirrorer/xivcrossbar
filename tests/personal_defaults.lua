@@ -1,5 +1,6 @@
 local defaults=require('defaults')
 assert(defaults.ControllerProfile=='ps5-extended')
+assert(defaults.ControllerMessages==true)
 assert(defaults.GameplayDPad=='ijkl' and defaults.VisibilityMode=='oninput')
 assert(defaults.iscompact and defaults.enable_superwarp_all and defaults.on_unload_killahk)
 assert(defaults.Hotbar.Number==6 and defaults.AutoHideExtraBars==true)
