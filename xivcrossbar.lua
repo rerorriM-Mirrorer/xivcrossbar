@@ -675,6 +675,23 @@ function switch_crossbars_command(args)
     end
 end
 
+-- Switch to a named set, accepting display names containing spaces.
+-- Normalize once so validation and selection use the same stored key.
+function switch_environment_command(args)
+    if not args[1] then
+        print('XIVCROSSBAR: Invalid arguments: switch <crossbar_set>')
+        return
+    end
+
+    local name = table.concat(args, ' ')
+    local environment = kebab_casify(name)
+    if is_valid_environment(environment) then
+        set_active_environment(environment)
+    else
+        print('XIVCROSSBAR: "' .. name .. '" is not a valid crossbar set.')
+    end
+end
+
 -- command to set an action in a hotbar
 function set_action_command(args)
     if not args[5] then
@@ -683,14 +700,6 @@ function set_action_command(args)
     end
 
     local environment = args[1]:lower()
-
-    if (args[2] == nil) then
-        if (is_valid_environment(args[2])) then
-            set_active_environment(args[2])
-        else
-            print('XIVCROSSBAR: "' .. args[2] .. '" is not a valid crossbar set.')
-        end
-    end
 
     local hotbar = gamepad_converter:convert_to_crossbar(args[2]) or 0
     local slot = gamepad_converter:convert_to_slot(args[3]) or 0
@@ -761,7 +770,7 @@ function copy_action_command(args, is_moving)
     local to_hotbar = gamepad_converter:convert_to_crossbar(args[5]) or 0
     local to_slot = gamepad_converter:convert_to_slot(args[6]) or 0
 
-    if hotbar < 1 or hotbar > 3 or to_hotbar < 1 or to_hotbar > 3 then
+    if hotbar < 1 or hotbar > theme_options.hotbar_number or to_hotbar < 1 or to_hotbar > theme_options.hotbar_number then
         print('XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
         return
     end
@@ -788,7 +797,7 @@ function update_alias_command(args)
     local slot = gamepad_converter:convert_to_slot(args[3]) or 0
     local alias = args[4]
 
-    if hotbar < 1 or hotbar > 7 then
+    if hotbar < 1 or hotbar > theme_options.hotbar_number then
         print('XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
         return
     end
@@ -815,7 +824,7 @@ function update_icon_command(args)
     local slot = gamepad_converter:convert_to_slot(args[3]) or 0
     local icon = args[4]
 
-    if hotbar < 1 or hotbar > 3 then
+    if hotbar < 1 or hotbar > theme_options.hotbar_number then
         print('XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
         return
     end
@@ -1357,11 +1366,8 @@ windower.register_event('addon command', function(command, ...)
         custom_action_field_command(args)
     elseif command == 'n' or command == 'new' then
         new_environment_command(args)
-    elseif #args > 0 and command == 'sw' or command == 'switch' then
-		local to = table.concat(args, ' ')
-        if is_valid_environment(to) then
-			set_active_environment(args[1]:lower())
-		end
+    elseif command == 'sw' or command == 'switch' then
+        switch_environment_command(args)
     elseif command == 'remap' then
         remap()
     elseif command == 'regenerate' then
@@ -1956,17 +1962,6 @@ windower.register_event('prerender',function()
     ui_dirty = false
 end)
 
--- ON ACTIONS (filtered to Job Abilities)
-windower.register_event('action', function(actor_id, category)
-    -- Skip while initialize() hasn't run yet (e.g. addon loaded before
-    -- the player is logged in). The login event will set ready=true once
-    -- a character has been selected.
-    if (not xivcrossbar.ready) then return end
-    if (actor_id == player:get_id() and category == 6) then -- category 6 = Job Ability
-        player:update_current_spells()
-    end
-end)
-
 -- EVERY VANA'DIEL MINUTE
 windower.register_event('time change', function(actor_id, category)
     if (not xivcrossbar.ready) then return end
@@ -2071,6 +2066,12 @@ windower.register_event('action', function(act)
     local windower_player = windower.ffxi.get_player()
     if (act.actor_id ~= windower_player.id) then
         return
+    end
+
+    -- Windower supplies one action table; refresh spell availability after
+    -- this character's job ability, including arts/addendum transitions.
+    if act.category == CATEGORY_JOB_ABILITY and act.actor_id == player:get_id() then
+        player:update_current_spells()
     end
 
     if (act.category == CATEGORY_MELEE and act.actor_id == player.id) then
