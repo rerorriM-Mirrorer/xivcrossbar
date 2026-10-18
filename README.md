@@ -2,6 +2,8 @@
 
 Current branch verification, last live-confirmed behavior and outstanding tests:
 [Current Development Status](TESTING.md#current-development-status--october-18-2026-americachicago).
+For the current complete installation, use the short
+[DirectLink live-test guide](docs/LIVE-TEST-DIRECTLINK.md).
 
 **Development branch · October 18, 2026 · keyboard-free controller transport.**
 
@@ -299,12 +301,11 @@ separate projects.
 Stop `//xb controller stop`, then unload XIVCrossbar on **all** clients. Back up
 the personal installation. Install the complete xivcrossbar/ folder and restore
 its personal data/, config.ini and custom icons. Restart with all buttons and
-sticks neutral; verify `//xb controller status` reports Controls=9.3-input. Lua
-reload alone does not update a running AHK wrapper. Run one variant/wrapper per PC.
-
-The testing ZIP also includes the unchanged **TrustMovement 0.1.1** companion
-folder, not its old wrapper/Trust overlays. Keep it managed by AddonManager and
-preserve existing Trust quiet patches. L1 does not require TrustMovement.
+sticks neutral; verify `//xb controller status` reports **Controls=9.8-r1-menus**.
+Lua reload alone does not update a running AHK wrapper. Run one variant/wrapper
+per PC. The current DirectLink test ZIP includes only `xivcrossbar/`; it does
+not replace TrustMovement, Trust or their installed overlays. Keep existing
+companion addons managed separately. L1 does not require TrustMovement.
 
 The older RC3 introduction below is historical, superseded by this section.
 

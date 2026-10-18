@@ -2,12 +2,41 @@
 
 - **Repository / branch:** `rerorriM-Mirrorer/xivcrossbar` / `development/directlink`. Integration baseline: published `92a1710d872b246d15792f6c472ea39e424df8e6`, including the new R1 Trust-menu checkpoint; earlier shared-fix work began at `a30638d`.
 - **Runtime:** `0.4.0-a.20261018.directlink1-r1menus1`; AHK `Controls=9.8-r1-menus`. This shared-maintenance pass does not modify controller protocols, wrapper or personal mappings.
-- **Current change:** Repaired legacy `sw`/`switch` argument handling and multiword set keys; made `copy`/`move`, `alias` and `icon` obey `Hotbar.Number`; removed unreachable `set` logic; consolidated the mis-signed action callback so own job abilities refresh spell availability. Added source-executing regressions and the final-status workflow rule without removing the independently published R1 additions.
+- **Current change:** The integrated R1/shared-fixes source is unchanged. Prepared a complete DirectLink live-test package, a short in-game checklist, and a packaging audit that verifies the local source tree against the published GitHub commit. Corrected the README's obsolete wrapper-version/install wording.
 - **Last user-confirmed live behavior:** Initial DirectLink Unbound ordinary-message routing worked on Franklet; `snapshot/directlink-unbound-20261016` preserves that evidence. R1 Trust menu, optional real IJKL and text settling are newer simulated checkpoints awaiting live acceptance.
 - **Verification:** All 45 top-level Lua regression files passed on this integrated tree with `python3 tests/run_lua.py tests/*.lua`, including the independent R1 Trust-menu and shared-fix tests; all 115 Lua sources parsed using the documented Lua 5.4 normalization fallback. All current JavaScript AHK-routing regressions and `tests/check_ahk.py` passed. These are source/simulated checks, not native Lua 5.1/Windows/Windower/FFXI execution.
 - **Still to test in FFXI:** Shared CLI switching and JA spell refresh; new R1+Triangle/Square Trust open/close; optional real IJKL; text settling; chooser, six-bar routing, client focus handoffs and multiresolution/multiclient lifecycle. Detailed checklists below remain authoritative.
-- **Next development:** Live-accept the integrated checkpoint, then continue L1/R1/L1→L2/R1→R2 bank and input-ownership unification without altering the frozen snapshot or public defaults.
-- **Delivery:** Source-and-test checkpoint only; no testing ZIP or live FFXI run in this pass. Final pushed commit is reported in GitHub handoff, not self-referenced in this tracked file.
+- **Next development:** Install the complete DirectLink package and live-accept the R1/Trust, L1/trigger, menu/text and client-focus smoke tests. Then continue L1/R1/L1→L2/R1→R2 bank/input-ownership unification without altering the frozen snapshot or public defaults.
+- **Delivery:** Complete DirectLink testing ZIP is prepared from the final verified/published source tree after this documentation-only batch. No native FFXI run has occurred. Final pushed commit and ZIP checksum are reported in the handoff, not self-referenced in this tracked file.
+
+---
+
+# Integrated DirectLink complete test package 1 — October 18, 2026 (America/Chicago)
+
+Author A. `development/directlink`, starting at published source checkpoint
+`55571f7a782a3509d15e1722b7da29f1129f3cad`. Runtime stays
+`0.4.0-a.20261018.directlink1-r1menus1`, AHK `Controls=9.8-r1-menus`.
+No Lua, AHK, controller mapping, stored data, transport or Trust source changes.
+The packaging script verifies its local committed tree is the exact tree of the
+GitHub checkpoint supplied at delivery; it rejects dirty/unpublished variants,
+omits test/example/config/data/XML files, includes complete assets and runtime,
+and tests every ZIP entry against its audited bytes. The ZIP has a single
+installable `xivcrossbar/` directory with README, WORKFLOW, cumulative TESTING,
+the short `docs/LIVE-TEST-DIRECTLINK.md` and a source-commit manifest inside.
+
+**Installation:** Back up the personal addon folder and preserve installed
+`data/`, `config.ini` and custom art. Stop wrapper, unload XIVCrossbar in all
+clients, update `xivcrossbar/`, reload Lua, restart AHK, return controls to
+neutral. Trust and TrustMovement remain separately installed and unchanged; R1
+Trust-open testing requires compatible Trust Menu options Test 4 plus its
+explicit-Open addendum (`17d0f9cc1e8dd400c70ae8411e4ff805d9868129`).
+The package is not a public RC3 or a backup of personal settings. The focused
+short checklist precedes the cumulative tests below; it does not replace them.
+
+**Verification:** Re-run all actual-source Lua regressions, all AHK-routing JS
+checks and AHK lexical/include checks before publishing. These are simulated/
+static checks. Windows, native Lua 5.1, Windower, Trust and FFXI live acceptance
+remain pending. The full archive SHA-256 is delivered separately with the file.
 
 ---
 
