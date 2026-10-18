@@ -1,3 +1,12 @@
+# Current Development Status — 2026-10-18 (attribution normalization)
+
+- **Branch / starting source:** `test/trust-movement-20261015` / `6d8f68c851808b40edde53b41f1764d878280621`.
+- **Change:** Standardize the companion addon author field and controller-experiment comments as **A**. Controller behavior, signal format and previous testing history remain unchanged.
+- **Verification:** Text-only diff and exact-word search; no new Windows, Windower or FFXI live test.
+- **Next:** Preserve the existing movement integration test sequence and verify the published branch head.
+
+---
+
 # Publication record — 2026-10-15
 
 Source, tests and documentation are published on `test/trust-movement-20261015`.

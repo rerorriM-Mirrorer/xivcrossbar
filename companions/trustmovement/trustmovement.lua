@@ -1,6 +1,6 @@
--- Awake: isolated movement receiver; Trust supports scoped --quiet feedback.
+-- A: isolated movement receiver; Trust supports scoped --quiet feedback.
 _addon.name = 'TrustMovement'
-_addon.author = 'Awake'
+_addon.author = 'A'
 _addon.version = '0.1.1'
 _addon.commands = {'trustmovement', 'tm'}
 
