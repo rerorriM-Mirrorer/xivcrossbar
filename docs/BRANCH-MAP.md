@@ -1,5 +1,10 @@
 # XIVCrossbar branch map and shared working rules
 
+**October 18, 2026 correction:** The October 16 blocked-publication note below
+records an earlier attempt. The public Maintenance 2 branch was later published
+at `dc5e02e`. The top of root `TESTING.md` now holds the current branch status;
+use its tested-source baseline and check the remote head for the latest commit.
+
 Checkpoint: October 16, 2026, America/Chicago. Collaborative author: A.
 
 Maintenance 2 public additions are committed locally but NOT published: the

@@ -1,5 +1,8 @@
 # XIVCrossbar — PUBLIC RC3 maintenance complete testing installation
 
+Current branch verification, last live-confirmed behavior and outstanding tests:
+[Current Development Status](TESTING.md#current-development-status--october-18-2026-americachicago).
+
 This is a **complete installation**, including required images/themes. It is
 not an update patch. Maintenance 2 adds four public-candidate improvements for
 live testing. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and

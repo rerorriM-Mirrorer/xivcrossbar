@@ -1,11 +1,28 @@
+# Current Development Status — October 18, 2026 (America/Chicago)
+
+- **Repository / branch:** `rerorriM-Mirrorer/xivcrossbar` / `public/rc3-maintenance`; working source began at published `dc5e02efa05fdbb3ac75a66887744fc24fb61535`.
+- **Runtime:** `0.4.0-a.20261016.public-rc3-maintenance2`; public Apps-key AHK remains unchanged. No DirectLink transport or personal bindings are added in this pass.
+- **Current change:** Repaired legacy `sw`/`switch` handling and multiword set keys; made `copy`/`move`, `alias` and `icon` respect `Hotbar.Number`; removed unreachable `set` code; consolidated the mis-signed action callback so own job abilities refresh spell availability. Added regression coverage, the final-status workflow rule and the missing `AGENTS.md` entry point. Aligned package-document placement with the canonical shared convention (inside the installable addon folder).
+- **Last user-confirmed live behavior:** Original RC3 setup and controller routing, startup fade, restart and Icons1 were reported working. Maintenance 1 public ports and Maintenance 2 remain pending dedicated live regression.
+- **Verification:** All 11 top-level Lua regression files passed with `python3 tests/run_lua.py tests/*.lua`. All 61 Lua sources parsed with the documented Lua 5.4 normalization fallback. This is source/simulated verification, not native Lua 5.1/Windower/FFXI acceptance.
+- **Still to test in FFXI:** `sw`/`switch` with empty/multiword names; CLI edits with three and six bars; job-ability spell refresh; all public Maintenance 2 pagination, identity, destinations and save-return cases; multi-client wrapper, menu and resolution regressions.
+- **Next development:** Live-test the complete public Maintenance 2 candidate, then consider selective generic DirectLink architecture ports before promotion to `master` or a public tagged release.
+- **Publication correction:** The October 16 initial push was blocked, but a later authorized push succeeded. The public branch had reached `dc5e02e` before this task. Earlier dated notes below preserve the original failed-attempt history; they are not the current remote state.
+- **Delivery:** Source-and-test checkpoint only; no new ZIP, upstream pull request, community announcement or live FFXI run. Final pushed commit is reported in the GitHub handoff.
+
+---
+
 # Public RC3 Maintenance 2 — complete testing installation — October 16, 2026
 
 Runtime: `0.4.0-a.20261016.public-rc3-maintenance2`.
 Branch: `public/rc3-maintenance`. Package header records the final local commit.
 GitHub source baseline: `2c41936a5b095b73f3615b3ba241e413ae846126`.
-**NOT PUBLISHED:** the environment approval check denied the first push. No
+~~**NOT PUBLISHED:** the environment approval check denied the first push. No
 alternative push mechanism was attempted. Ask Max to confirm publishing these
-commits to the existing public branch. Do not describe this delivery as pushed.
+commits to the existing public branch. Do not describe this delivery as pushed.~~
+**October 18 correction:** This was true for the initial October 16 attempt;
+the branch was subsequently published through the authorized GitHub workflow,
+with `dc5e02e` as its verified pre-maintenance source head.
 
 ## Request, workflow and source baseline
 

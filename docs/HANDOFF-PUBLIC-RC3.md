@@ -1,5 +1,11 @@
 # XIVCrossbar Public — RC3 maintenance and release handoff
 
+**October 18, 2026 publication correction:** The initial October 16 push denial
+described below was superseded by an authorized publication. Maintenance 2 is
+present on `public/rc3-maintenance` at `dc5e02e` before the current shared
+maintenance pass. Read the current status at the top of root `TESTING.md` and
+the latest remote branch head before using the historical handoff checkpoints.
+
 Updated October 16, 2026, America/Chicago. Author: A.
 
 ## Maintenance 2 current checkpoint
