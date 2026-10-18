@@ -1,4 +1,4 @@
--- Contributing author: Awake — custom actions, UI movement/visibility, consolidation.
+-- Contributing author: A — custom actions, UI movement/visibility, consolidation.
 -- Addon description
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'

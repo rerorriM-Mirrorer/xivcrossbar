@@ -1,4 +1,4 @@
--- Contributing author: Awake — native opacity/state are tested separately
+-- Contributing author: A — native opacity/state are tested separately
 -- from visibility preferences, using the same real geometry as the addon.
 local stub = dofile('tests/helpers/windower_stub.lua')
 local now = 0

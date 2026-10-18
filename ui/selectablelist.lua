@@ -1,4 +1,4 @@
--- Contributing author: Awake — bounded selector resources and asset diagnostics.
+-- Contributing author: A — bounded selector resources and asset diagnostics.
 require("lists")
 require("tables")
 texts = require('texts')

@@ -1,4 +1,4 @@
--- Contributing author: Awake — geometry, texture reuse and whole-panel opacity.
+-- Contributing author: A — geometry, texture reuse and whole-panel opacity.
 -- Keep layout calculations in the original 40-pixel units. Only the final
 -- drawing calls change scale, so recast crops, controller hints and labels
 -- follow exactly the same transform. Other addons' Windower objects are untouched.

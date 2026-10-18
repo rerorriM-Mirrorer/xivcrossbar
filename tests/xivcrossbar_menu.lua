@@ -1,4 +1,4 @@
--- Contributing author: Awake — cover the entry path used by a controller,
+-- Contributing author: A — cover the entry path used by a controller,
 -- not just the command shortcut into the custom-action editor.
 local stub = dofile('tests/helpers/windower_stub.lua')
 local binder = stub.binder()

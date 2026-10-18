@@ -1,4 +1,4 @@
--- Contributing author: Awake — elapsed-time fades that reverse without jumping.
+-- Contributing author: A — elapsed-time fades that reverse without jumping.
 local fade = {}
 fade.__index = fade
 

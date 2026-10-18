@@ -1,4 +1,4 @@
--- Contributing author: Awake — custom-action editing, safe menus and diagnostics.
+-- Contributing author: A — custom-action editing, safe menus and diagnostics.
 require("lists")
 require("strings")
 require("tables")

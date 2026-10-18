@@ -1,4 +1,4 @@
--- Contributing author: Awake — clean global preferences and diagnostics.
+-- Contributing author: A — clean global preferences and diagnostics.
 local defaults = {}
 
 defaults.buttonbackgroundalpha = 150

@@ -1,4 +1,4 @@
--- Contributing author: Awake — scaled presentation, drag feedback and fades.
+-- Contributing author: A — scaled presentation, drag feedback and fades.
 local icon_extractor = require('ui/icon_extractor')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')

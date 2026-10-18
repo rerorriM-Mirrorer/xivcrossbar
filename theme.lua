@@ -1,4 +1,4 @@
--- Contributing author: Awake — global defaults and presentation settings.
+-- Contributing author: A — global defaults and presentation settings.
 local theme = {}
 
 theme.apply = function (settings)
