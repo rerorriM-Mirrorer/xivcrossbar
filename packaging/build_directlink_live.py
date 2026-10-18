@@ -71,9 +71,9 @@ def build():
         assert "xivcrossbar/" + dependency in contents, f"Missing AHK include {dependency}"
 
     version = re.search(r"_addon.version = '([^']+)'", (ROOT / "xivcrossbar.lua").read_text())
-    assert version and version.group(1) == "0.4.0-a.20261018.directlink1-banks1"
+    assert version and version.group(1) == "0.4.0-a.20261018.directlink1-banks2"
     contents["xivcrossbar/PACKAGE-INFO.txt"] = (
-        "XIVCrossbar DirectLink companion banks test 1 complete installation\n"
+        "XIVCrossbar DirectLink companion banks test 2 complete installation\n"
         "Branch: development/directlink\n"
         f"Published source commit: {args.published}\n"
         f"Verified source tree: {local_tree}\n"

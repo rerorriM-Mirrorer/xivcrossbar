@@ -80,7 +80,7 @@ collectgarbage();collectgarbage();assert(weak[1]==nil)
 print('Render trace: native call parity on/off, stale/zero/current widths, shared IDs/revisions, context dedup, bounded chronological ring, markers, no capture-time disk I/O, per-character saves/errors and weak lifetime passed.')
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
 local first=assert(source:find("    elseif command == 'rendertrace' then",1,true))
-local last=assert(source:find("    elseif command == 'bank' or command == 'l1' then",first,true))
+local last=assert(source:find("    elseif command == 'bank' or command == 'l1' or",first,true))
 local routed
 local env=setmetatable({player={name='Franklet'},windower={addon_path='addon/',add_to_chat=function()end},
     render_trace={command=function(mode,path)routed={mode,path}end}},{__index=_G})

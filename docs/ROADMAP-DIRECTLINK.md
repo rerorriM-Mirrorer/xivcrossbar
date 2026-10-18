@@ -1,12 +1,13 @@
 # DirectLink development roadmap and render diagnostics
 
 October 18 update: full companion banks are now implemented on
-development/directlink, runtime directlink1-banks1 / Controls 9.9-banks. See
+development/directlink, runtime directlink1-banks2 / Controls 9.9-banks. See
 [the current bank guide](SHOULDER-BANKS.md) for saved L1/L1L2/R1/R1R2 definitions,
 context maps, native key service and editing. The earlier roadmap below is a
 historical planning record: unified ownership/key delivery is implemented and
-simulated-tested. Live acceptance is next. Graphical/catalog assignment, chosen
-NPC commands, success-confirmed switches, icon/folder restructuring and other
+simulated-tested. NPCMirror/SlowEnter factory commands, short bank editors and
+default restoration are implemented. Live/event access acceptance is next.
+Graphical/catalog assignment, success-confirmed switches, icon/folder restructuring and other
 controller profiles remain future work. Existing text/shared fixes carry forward.
 
 Reviewed October 17, 2026, America/Chicago. Author A.

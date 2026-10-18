@@ -1,6 +1,6 @@
 # DirectLink — Unbound, Snapshot 1
 
-Current working checkpoint: directlink1-banks1 / Controls 9.9-banks. Four saved
+Current working checkpoint: directlink1-banks2 / Controls 9.9-banks. Four saved
 companion banks and their native-key service are now implemented; see
 [the current map and commands](docs/SHOULDER-BANKS.md). Live acceptance is pending.
 The checkpoint descriptions below retain their original chronology.

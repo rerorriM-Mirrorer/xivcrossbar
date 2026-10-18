@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261018.directlink1-banks1'
+_addon.version = '0.4.0-a.20261018.directlink1-banks2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1131,6 +1131,7 @@ function display_help_menu()
     help.command('ca command <command>','Set the command in the active draft (c).')
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
     help.command('bank <layer> [help|status]','Edit L1, L1L2, R1 or R1R2; separate menu entries, shared side panels.')
+    help.command('r1|r1r2|l1l2 [bank arguments]','Short bank editors; bare shows status. Use default/defaults to restore.')
     help.command('l1 [help|status]','Compatibility editor for L1L2; bank l1 edits bare L1.')
     help.command('controller target [r2|r3|both] [on|off]','F8 before unmodified R2/R3; personal default R3 only.')
     help.command('messages [on|off|status]','Experimental controller message stream; bare toggles.')
@@ -1319,8 +1320,9 @@ windower.register_event('addon command', function(command, ...)
         local name=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
         return render_trace.command((...),windower.addon_path..'data/render-trace-'..name..'.log',
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
-    elseif command == 'bank' or command == 'l1' then
+    elseif command == 'bank' or command == 'l1' or require('companion_banks').aliases[command] then
         local args={...}
+        if require('companion_banks').aliases[command] then table.insert(args,1,command);command='bank' end
         local operation=args[1] or 'help'
         if command=='bank' then operation=(args[2]=='menu' and args[3] or args[2]) or 'status' end
         if not xivcrossbar.ready and operation~='help' and operation~='status' then

@@ -1,4 +1,86 @@
-# Companion banks — implemented checkpoint 1
+# Companion banks — current checkpoint 2
+
+October 18, 2026. Author A. Runtime directlink1-banks2, unchanged Controls 9.9-banks.
+Starting source: 549e5d86df4919eb82e4c5085aed892b6db9f775.
+
+Short forms `//xb r1r2`, `//xb r1` and `//xb l1l2` route to the same bank editor;
+all arguments are identical, and bare reports status. `//xb l1` remains the
+legacy L1L2 editor. Use `//xb bank l1` for the bare L1 bank.
+
+| R1→R2 button | Shipped console command |
+| --- | --- |
+| Triangle | `npcmirror interact` |
+| Square | `npcmirror stop` |
+| Cross | `npcmirror enter` (guarded session step) |
+| Circle | `npcmirror esc` (guarded session recovery) |
+| Up | `slowenter all once` (raw Enter, same-PC clients, initiator last) |
+| Down | `slowenter all once esc` (raw Escape, same ordering) |
+| Left | `npcmirror call` |
+| Right | `npcmirror status` |
+
+The shipped map is the same in Closed and Menu contexts. NPCMirror/SlowEnter
+own execution and their respective safeguards; no Send wrapper or simulated
+shortcut is added here. Raw SlowEnter taps bypass its choice/chat/target guards.
+SlowEnter v1.4.0+ must be installed on each participating client. This only binds
+the existing commands; it does not resolve the reported raw-all-client delivery
+issue. Existing status-4 cutscene input suppression remains: this checkpoint
+does not enable the bank inside every NPC event. Test ordinary gameplay/native
+menu use first; event access needs a separate, deliberately scoped input path.
+
+## Overwrite, clear and restore
+
+```
+//xb r1r2 triangle "My action" input /echo custom
+//xb r1r2 default triangle
+//xb r1r2 defaults
+//xb r1r2 menu defaults
+//xb r1r2 clear triangle
+//xb r1r2 status
+```
+
+Assignments create saved overrides. `default <button>` removes that override
+and follows the hardcoded action AND label again. `defaults` restores eight
+slots in the selected context only. `menu defaults` restores Menu entries.
+Clear deliberately suppresses that slot, including future factory changes.
+Restoration never changes positions/scale/lock or the other bank/context.
+L1L2's factory entries are empty; its migrated personal commands remain overrides
+until explicitly reset. `append` materializes an inherited console command as
+an override before adding to it. Status marks every entry default/override.
+
+CompanionBanks v2 stores Kind=default for inherited entries. Version-1 migration
+recognizes unchanged shipped L1/R1 entries and converts them to inheritance;
+custom assignments and explicitly cleared L1/R1 slots remain overrides. Empty
+v1 R1R2 slots adopt the newly requested NPC defaults once. Because v1 did not
+record whether an empty R1R2 slot was unused or explicitly cleared, both adopt;
+use clear again to suppress it permanently under v2. The old L1 recovery section
+and all panel preferences remain untouched. A fresh XML reload preserves both
+inheritance and clear/override choices.
+
+## Original crossbar binding syntax
+
+```
+//xb set <set> <bar> <slot> <type> <action> [target] [alias] [icon]
+//xb set basic r2r2 triangle ex "input /jump"
+//xb set basic r2l2 circle ex "npcmirror esc"
+```
+
+The set is explicit; basic is the internal key for Main. `ex` executes console
+text. The new explicit bar aliases map l2=1, r2=2, r2l2=3, l2r2=4, l2l2=5,
+r2r2=6; l/r/rl/lr/ll/rr and numbers still work. Shape names use the selected
+controller layout, and numeric or ll/ld/lr/lu/rl/rd/rr/ru slot names also remain.
+These are aliases within the original set API, not new top-level trigger-bank
+editors. Bare //xb r2 remains the existing F8 test toggle. Direct assignment of
+original job bars through the companion-style label/command API remains future
+work, since those bars also carry set, action type, target, icon and metadata.
+
+Command verification sources: NPCMirror main aab69c26d068d409754cc9c9f2e0ffc5a9bc3163,
+npcmirror.lua/README; SlowEnter dev/se-toggle dc8341dd8b932c87e33b04c92d358f71f2d17f04,
+slowenter.lua/README; current root set_action_command and gamepad_converter.
+All tests are simulated/static; dependency/native game success is not inferred.
+
+---
+
+# Historical companion banks — implemented checkpoint 1
 
 Author A. October 18, 2026. Development source baseline f13829a7a5ca9f6715ee1337a77722bc078dae38.
 Runtime `0.4.0-a.20261018.directlink1-banks1`, Controls `9.9-banks`.

@@ -15,8 +15,8 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261018.directlink1-banks1**; shared wrapper Controls **9.9-banks**.
-Reload Lua AND restart the shared AHK wrapper for companion banks.
+Runtime: **0.4.0-a.20261018.directlink1-banks2**; shared wrapper Controls **9.9-banks**.
+From banks1, reload Lua; AHK is unchanged. Older installs require both updates.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
@@ -26,11 +26,29 @@ The [shoulder-bank guide](docs/SHOULDER-BANKS.md) records the implemented bank
 system, saved-setting migration, editing commands and pending live tests.
 
 Four editable layers now share Lua input ownership and per-character settings:
-L1 inventory, L1→L2 utility/testing, R1 Trust and R1→R2 NPC (initially empty).
+L1 inventory, L1→L2 utility/testing, R1 Trust and R1→R2 NPCMirror/SlowEnter.
 L1 changes to menu scrolling/emotes while a native menu is open. Companions stay
 hidden over native menus, independently of whether their menu actions may run.
 Native keys use an acknowledged Lua→AHK service; commands dispatch directly.
 Existing L1→L2 entries migrate once; their old L1 section remains for recovery.
+
+Short editors: `//xb r1r2 ...`, `//xb r1 ...`, `//xb l1l2 ...` equal their
+`//xb bank <layer> ...` forms; bare shows status. `//xb l1` retains its older
+L1L2 meaning, so use `//xb bank l1` for bare L1. Assignments are saved overrides.
+`//xb r1 default triangle` restores that slot's shipped action/label;
+`//xb r1 defaults` restores Closed entries; `//xb r1 menu defaults` restores Menu
+entries. `clear` remains deliberately empty. These resets preserve panel layout.
+
+R1→R2 now ships with Triangle Interact, Square Stop NPCMirror, Cross guarded
+NPC Enter, Circle guarded NPC Escape; Left Call party, Right NPC status,
+Up SlowEnter raw Enter all, Down raw Escape all. These defaults apply in both
+native-menu contexts. Updating v1 adopts unchanged L1/R1 defaults and fills
+empty R1R2 slots once; custom assignments remain. The old empty v1 slot cannot
+distinguish an unused slot from an explicit clear; clear it again after adoption
+to reserve it permanently. Status labels resolved entries default/override.
+SlowEnter raw taps bypass choice/chat guards and require v1.4.0 on participating
+same-PC clients. Their previously reported live reliability issue remains open.
+The existing status-4 cutscene input guard also remains in force.
 
 Current new shortcuts: R1+Square sends `trust menu close`; R1+Triangle sends
 `trust menu open` directly through Windower. Use profile x with messages ON;
@@ -226,7 +244,7 @@ one source of transient redraws; live switching/recentering still needs checking
 | Release L1 first from the bank | Hide; consume the remaining L2 until release |
 | R2 during a companion gesture | Ordinary R2 crossbar takes priority |
 | Hold R1 | Reveal Trust/navigation companion at the upper right |
-| R1, then add R2 | Reveal the separate NPC bank in the same right-side position |
+| R1, then add R2 | Reveal the NPCMirror/SlowEnter bank in the same right-side position |
 | R2, then add R1 | Keep ordinary R2; release R2 to reveal R1 |
 | Release R2 while R1 remains held | Return to the Trust companion |
 | Release R1 first from its bank | Consume remaining R2 until release |
@@ -255,8 +273,11 @@ settings. An explicit numeric companion scale remains available.
 //xb bank l1l2 left Hello input /echo L1L2-left
 //xb bank l1 menu key up "List previous" ctrl+left
 //xb bank r1 triangle "Open Trust" trust menu open
-//xb bank r1r2 clear cross
-//xb bank r1r2 preview
+//xb r1r2 clear cross
+//xb r1r2 default cross
+//xb r1r2 defaults
+//xb r1r2 menu defaults
+//xb r1r2 preview
 //xb bank r1 scale crossbar
 //xb bank r1 unlock
 //xb bank r1 lock
@@ -272,6 +293,19 @@ reserved and consumed. The old `l1 mode` command is retired. Preview is an expli
 six-second editing aid, not a persistent physical mode.
 
 ## Main label and input routing
+
+The original slot-binding command remains:
+
+```
+//xb set <set> <bar> <slot> <type> <action> [target] [alias] [icon]
+//xb set basic r2r2 triangle ex "input /jump"
+```
+
+`ex` runs literal console command text; spell/ability types keep their existing
+syntax. Bar names now also accept l2, r2, r2l2, l2r2, l2l2 and r2r2 (bars 1–6).
+The older l/r/rl/lr/ll/rr and numeric forms remain. Shape/direction names work
+for slots. This adds explicit bar arguments to the existing API; top-level
+`//xb r2r2` is not a new editor, and `//xb r2` retains its F8 trial meaning.
 
 The default Basic set displays as **Main** in the chooser, binding title and
 switch-destination picker. Its internal `basic` key, XML identity, fallback order,
@@ -893,3 +927,14 @@ quick taps and cancels stale output. L1 has inventory/scroll/emote maps; R1 has
 Trust navigation/open/close and unused-release R. R1R2 starts empty. Both shoulder
 orders, release orders, held ownership, settings reload and six-bar regression
 checks pass locally. Requires Lua and Controls 9.9; native acceptance is pending.
+
+### DirectLink companion banks checkpoint 2
+
+Adds factory inheritance with default/defaults restoration, short r1/r1r2/l1l2
+editors and shipped NPCMirror/SlowEnter R1R2 mappings. Existing custom entries
+remain; empty v1 R1R2 entries adopt the new defaults once. Clear remains an
+explicit empty override. Restoring actions keeps panel coordinates/scale/lock.
+The original set API also accepts l2/r2/r2l2/l2r2/l2l2/r2r2 bar names. Actual
+root alias/set routing, both menu maps, migration and persistence checks pass.
+AHK remains Controls 9.9; NPC dialogue/cutscene and SlowEnter native acceptance
+remain pending. Companion addons are not installed or modified by this package.

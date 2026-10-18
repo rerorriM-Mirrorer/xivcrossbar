@@ -3,12 +3,40 @@
 local M={buttons={'Left','Down','Right','Up','Square','Cross','Circle','Triangle'}}
 local slot_for={[4]=1,[3]=2,[2]=3,[1]=4,[6]=5,[5]=6,[7]=7,[8]=8}
 local layers={l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}
+M.aliases={l1l2=true,r1=true,r1r2=true} -- l1 retains its older L1L2 editor meaning
 local function clone(t) local r={};for k,v in pairs(t) do r[k]=type(v)=='table' and clone(v) or v end;return r end
 local function action(label,kind,value,hold)
     return {Alias=label,Kind=kind,Command=kind=='command' and value or '',Key=kind=='key' and value or '',Hold=hold==true}
 end
 local function empty() return action('','command','') end
 local function finite(n) return type(n)=='number' and n==n and math.abs(n)<math.huge end
+local function inherited() return {Alias='',Kind='default',Command='',Key='',Hold=false} end
+local factory={}
+factory.l1={Closed={action('Wardrobe','command','input /wardrobe'),action('Wardrobe 2','command','input /wardrobe2'),
+    action('Equipment','key','ctrl+e'),action('Items','key','ctrl+i'),action('Sack','command','input /sack'),
+    action('Jump','command','input /jump'),action('Satchel','command','input /satchel'),action('Case','command','input /case')},
+    Menu={action('Previous','key','alt+left'),action('List next','key','ctrl+right'),
+    action('Next','key','alt+right'),action('List previous','key','ctrl+left'),action('Bow','command','input /bow'),
+    action('Jump','command','input /jump'),action('Nod','command','input /yes'),action('Wave','command','input /wave')}}
+factory.r1={Closed={action('Left','key','left',true),action('Down','key','down',true),action('Right','key','right',true),
+    action('Up','key','up',true),action('Close Trust','command','trust menu close'),action('Confirm','key','enter'),
+    action('Back','key','escape'),action('Open Trust','command','trust menu open')}}
+factory.r1.Menu=factory.r1.Closed
+-- Guarded NPC steps stay on Confirm/Back. Raw all-client taps are deliberately
+-- separate D-pad actions; they bypass SlowEnter's dialogue/choice guards.
+factory.r1r2={Closed={action('Call party','command','npcmirror call'),action('Raw Esc all','command','slowenter all once esc'),
+    action('NPC status','command','npcmirror status'),action('Raw Enter all','command','slowenter all once'),
+    action('Stop NPC','command','npcmirror stop'),action('NPC Enter','command','npcmirror enter'),
+    action('NPC Escape','command','npcmirror esc'),action('Interact','command','npcmirror interact')}}
+factory.r1r2.Menu=factory.r1r2.Closed
+function M.factory(layer,slot,menu)
+    local bank=factory[layer];local entries=bank and bank[menu and 'Menu' or 'Closed']
+    return clone(entries and entries[slot] or empty())
+end
+local function same(a,b)
+    for _,field in ipairs({'Alias','Kind','Command','Key','Hold'}) do if a[field]~=b[field] then return false end end
+    return true
+end
 function M.defaults()
     -- Windower config lowercases XML tags and restores their spelling from
     -- defaults. Declare the whole shape, including empty strings/booleans, so
@@ -28,39 +56,35 @@ end
 function M.ensure(settings)
     local d=settings.CompanionBanks
     if type(d)~='table' then d={Version=0};settings.CompanionBanks=d end
-    local migrate=d.Version~=1
-    local closed={action('Wardrobe','command','input /wardrobe'),action('Wardrobe 2','command','input /wardrobe2'),
-        action('Equipment','key','ctrl+e'),action('Items','key','ctrl+i'),action('Sack','command','input /sack'),
-        action('Jump','command','input /jump'),action('Satchel','command','input /satchel'),action('Case','command','input /case')}
-    local menu={action('Previous','key','alt+left'),action('List next','key','ctrl+right'),
-        action('Next','key','alt+right'),action('List previous','key','ctrl+left'),action('Bow','command','input /bow'),
-        action('Jump','command','input /jump'),action('Nod','command','input /yes'),action('Wave','command','input /wave')}
-    local r1={action('Left','key','left',true),action('Down','key','down',true),action('Right','key','right',true),
-        action('Up','key','up',true),action('Close Trust','command','trust menu close'),action('Confirm','key','enter'),
-        action('Back','key','escape'),action('Open Trust','command','trust menu open')}
-    for _,name in pairs(layers) do
+    local version=tonumber(d.Version) or 0
+    local migrate=version<2
+    for layer,name in pairs(layers) do
         if type(d[name])~='table' then d[name]={} end
         for _,context in ipairs({'Closed','Menu'}) do
             if type(d[name][context])~='table' then d[name][context]={} end
             for i=1,8 do
                 local key='Slot'..i
                 local current=d[name][context][key]
-                if type(current)~='table' or migrate and current.Kind=='' and current.Alias=='' and current.Command=='' and current.Key=='' then
-                    local entry
-                    if migrate then
-                        if name=='L1' then entry=(context=='Menu' and menu or closed)[i]
-                        elseif name=='R1' then entry=r1[i]
-                        elseif name=='L1L2' and context=='Closed' then
+                if type(current)~='table' or current.Kind=='' and current.Alias=='' and current.Command=='' and current.Key=='' then
+                    local entry=inherited()
+                    if version==0 then
+                        if name=='L1L2' and context=='Closed' then
                             local old=type(settings.L1)=='table' and settings.L1[key]
-                            if type(old)=='table' then entry=action(old.Alias or '', 'command',old.Command or '') end
+                            if type(old)=='table' and ((old.Alias or '')~='' or (old.Command or '')~='') then
+                                entry=action(old.Alias or '', 'command',old.Command or '')
+                            end
                         end
                     end
-                    d[name][context][key]=clone(entry or empty())
+                    d[name][context][key]=entry
                 end
                 local e=d[name][context][key]
                 for _,field in ipairs({'Alias','Command','Key'}) do if type(e[field])~='string' then e[field]='' end end
-                if e.Kind~='key' and e.Kind~='command' then e.Kind='command' end
+                if e.Kind~='key' and e.Kind~='command' and e.Kind~='default' then e.Kind='command' end
                 e.Hold=e.Hold==true
+                if version==1 and ((name=='L1' or name=='R1') and same(e,M.factory(layer,i,context=='Menu'))
+                    or name=='R1R2' and e.Kind=='command' and e.Alias=='' and e.Command=='' and e.Key=='') then
+                    d[name][context][key]=inherited()
+                end
             end
         end
     end
@@ -77,7 +101,7 @@ function M.ensure(settings)
         p.FollowCrossbar=p.FollowCrossbar~=false;p.Locked=p.Locked~=false
         p.Initialized=true
     end
-    d.Version=1
+    d.Version=2
     return d,migrate
 end
 function M.new(options)
@@ -89,7 +113,11 @@ function M.new(options)
         if normalized~=options.settings.CompanionBanks then normalized=M.ensure(options.settings) end
         return normalized
     end
-    function self:entry(layer,slot,menu) return self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot] end
+    function self:stored_entry(layer,slot,menu) return self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot] end
+    function self:entry(layer,slot,menu)
+        local e=self:stored_entry(layer,slot,menu)
+        return e.Kind=='default' and M.factory(layer,slot,menu) or e
+    end
     function self:release_slots()
         local retained={}
         for button,owner in pairs(self.owners) do
@@ -206,17 +234,20 @@ function M.new(options)
             {'bank <layer> [menu] <button> <label> <command...>','Assign a console command; layer: l1, l1l2, r1, r1r2.'},
             {'bank <layer> [menu] key <button> <label> <key> [hold]','Native key, e.g. ctrl+i or alt+left; pulse by default.'},
             {'bank <layer> [menu] clear <button>','Reserve a slot without executing anything.'},
+            {'bank <layer> [menu] default <button>','Remove one override; use its shipped action and label.'},
+            {'bank <layer> [menu] defaults','Restore all eight actions in that context; keep panel layout.'},
             {'bank <layer> preview|lock|unlock|resetpos','Preview for six seconds or change the shared side panel.'},
             {'bank <layer> scale crossbar|<0.4-2>','Follow main crossbar scale, or set a panel scale.'},
             {'bank <layer> pos <x> <y>','Move the shared left/right panel.'},
         }) do options.help(row[1],row[2]) end
     end
     function self:status(layer)
-        options.say('Banks v1 | layer='..(self.layer~='' and self.layer or 'ordinary')..' | native menu='..tostring(self.menu)..
+        options.say('Banks v2 | layer='..(self.layer~='' and self.layer or 'ordinary')..' | native menu='..tostring(self.menu)..
             ' | executed='..self.executed..' | empty='..self.empty..' | native ack='..self.output.ack..'/'..self.output.seq)
         for _,context in ipairs({'Closed','Menu'}) do
             local entries={}
-            for i,name in ipairs(M.buttons) do local e=self:entry(layer,i,context=='Menu');entries[#entries+1]=name..'='..e.Alias..' ['..(e.Kind=='key' and e.Key..(e.Hold and ' hold' or '') or e.Command)..']' end
+            for i,name in ipairs(M.buttons) do local e=self:entry(layer,i,context=='Menu');local source=self:stored_entry(layer,i,context=='Menu').Kind=='default' and 'default' or 'override'
+                entries[#entries+1]=name..'='..e.Alias..' ['..(e.Kind=='key' and e.Key..(e.Hold and ' hold' or '') or e.Command)..'; '..source..']' end
             options.say(layer..' '..context..': '..table.concat(entries,'; '))
         end
     end
@@ -229,6 +260,9 @@ function M.new(options)
         local changed=false
         if op=='help' then self:help();return
         elseif op=='status' then self:status(layer);return
+        elseif op=='defaults' and not args[3+offset] then
+            for i=1,8 do self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..i]=inherited() end
+            changed=true
         elseif op=='preview' then self.previews[side]={layer=layer,until_time=options.clock()+6};return
         elseif op=='lock' or op=='unlock' then p.Locked=op=='lock';changed=true
         elseif op=='resetpos' then p.X,p.Y=side=='Left' and 24 or 1000000,70;changed=true
@@ -240,18 +274,22 @@ function M.new(options)
             local x,y=tonumber(args[3+offset]),tonumber(args[4+offset])
             if finite(x) and finite(y) then p.X,p.Y=x,y;changed=true end
         else
-            local special=op=='key' or op=='clear' or op=='append'
+            local special=op=='key' or op=='clear' or op=='append' or op=='default'
             local index=2+offset+(special and 1 or 0)
             local button=(args[index] or ''):lower();local slot=tonumber(button)
             for i,name in ipairs(M.buttons) do if button==name:lower() then slot=i end end
             if slot and slot==math.floor(slot) and slot>=1 and slot<=8 then
-                local e=self:entry(layer,slot,menu)
-                if op=='clear' and not args[index+1] then
+                local e=self:stored_entry(layer,slot,menu)
+                if op=='default' and not args[index+1] then
+                    self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot]=inherited();changed=true
+                elseif op=='clear' and not args[index+1] then
                     self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot]=empty();changed=true
                 elseif op=='key' and args[index+1] and args[index+2] and (not args[index+3] or args[index+3]=='hold') and not args[index+4] then
                     local _,_,key=require('companion_keys').parse(args[index+2])
                     if key then e.Alias=args[index+1];e.Kind='key';e.Key=key;e.Command='';e.Hold=args[index+3]=='hold';changed=true end
-                elseif op=='append' and e.Kind=='command' and args[index+1] then
+                elseif op=='append' and self:entry(layer,slot,menu).Kind=='command' and args[index+1] then
+                    e=clone(self:entry(layer,slot,menu))
+                    self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot]=e
                     local text=require('l1_bank').command_text(args,index+1)
                     e.Command=(e.Command~='' and e.Command..'; ' or '')..text;changed=true
                 elseif not special and args[index+1] and args[index+2] then

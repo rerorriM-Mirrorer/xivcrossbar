@@ -5,6 +5,9 @@ function gamepad_converter:setup(button_layout)
 end
 
 local TRIGGERS_TO_CROSSBAR = {
+    ['L2'] = 1, ['R2'] = 2,
+    ['R2L2'] = 3, ['L2R2'] = 4,
+    ['L2L2'] = 5, ['R2R2'] = 6,
     ['L'] = 1,
     ['LEFT'] = 1,
     ['LEFTTRIGGER'] = 1,

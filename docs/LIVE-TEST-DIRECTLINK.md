@@ -1,4 +1,4 @@
-# DirectLink companion banks test 1 — October 18, 2026
+# DirectLink companion banks test 2 — October 18, 2026
 
 This is the short in-game guide for the **complete personal DirectLink** test
 package. It incorporates the shared command fixes, four companion banks,
@@ -25,7 +25,7 @@ The cumulative record and detailed edge cases remain in `TESTING.md`.
    //xb controller status
    ```
 
-   Expect runtime `0.4.0-a.20261018.directlink1-banks1` and wrapper
+   Expect runtime `0.4.0-a.20261018.directlink1-banks2` and wrapper
    `Controls=9.9-banks`, banks protocol=1/enabled=1 and receiver=true after
    neutral. If the wrapper version
    is older, stop here and restart it before judging controller behavior.
@@ -46,7 +46,7 @@ buttons between different tests. Simple observations are enough.
    face buttons, D-pad, and R3 targeting. Check for missed, repeated, or stuck
    inputs. Reveal and hide the L1 bank; try L1 then L2 and release in both
    orders. Existing saved L1L2 commands should still work. R1 then R2 reveals
-   the initially empty NPC bank at the right; R2 then R1 stays ordinary. Empty
+   the NPCMirror/SlowEnter bank at the right; R2 then R1 stays ordinary. Cleared
    slots must not leak native face actions. Releasing a bank trigger first
    returns to its bare shoulder; releasing its shoulder first consumes the tail.
 2. **R1 + Trust:** Hold R1 then press Triangle to open Trust. Press Triangle
@@ -76,6 +76,18 @@ buttons between different tests. Simple observations are enough.
    Preview/unlock/drag/lock each side; both layers on a side share its position
    and scale. Confirm compact spacing and label settling at small resolutions.
    The old L1 settings section remains for recovery, not ongoing bank editing.
+7. **NPC defaults/short editors:** `//xb r1r2 status` shows the resolved map and
+   default/override source. Triangle Interact, Square NPC stop, Cross guarded
+   NPC Enter, Circle guarded NPC Escape; Left Call, Right Status, Up raw Enter
+   all, Down raw Escape all. Use compatible NPCMirror and SlowEnter v1.4.0+ on
+   the same PC. Raw taps can choose highlighted menu options and bypass guards;
+   the earlier reported all-client reliability issue remains unresolved. The
+   status-4 cutscene feed guard still applies; event access is not added here.
+8. **Restore:** Override one harmless slot, then `//xb r1r2 default triangle`.
+   `//xb r1r2 defaults` resets Closed only; `//xb r1r2 menu defaults` resets Menu
+   only. Clear a slot and reload: it must remain empty. Defaults must preserve
+   both panel layouts and unrelated bank/context overrides. Upgrading v1 fills
+   empty R1R2 entries once; re-clear any you intentionally want reserved.
 
 ### Optional comparisons
 

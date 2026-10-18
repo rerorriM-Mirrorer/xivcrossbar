@@ -15,13 +15,13 @@ local function tap(b)press(b);release(b)end
 local function reset()
     bank:cancel();menu=false;allowed=true;bank:refresh();commands={};ordinary={}
 end
-assert(bank.migrated and settings.CompanionBanks.Version==1)
+assert(bank.migrated and settings.CompanionBanks.Version==2)
 assert(bank:entry('l1l2',1,false).Command=='input /wardrobe4')
 assert(settings.L1.Slot1.Command=='input /wardrobe4' and settings.CompanionBanks.LeftPanel.X==37)
 assert(bank:entry('l1',4,false).Key=='ctrl+i' and bank:entry('l1',3,false).Key=='ctrl+e')
 assert(bank:entry('l1',2,false).Command=='input /wardrobe2')
 assert(bank:entry('l1',7,true).Command=='input /yes','Nod uses the native yes emote')
-for i=1,8 do assert(bank:entry('r1r2',i,false).Command=='' and bank:entry('l1l2',i,true).Command=='') end
+for i=1,8 do assert(bank:entry('r1r2',i,false).Command==Banks.factory('r1r2',i,false).Command and bank:entry('l1l2',i,true).Command=='') end
 assert(bank:command({'l1l2','clear','left'}));Banks.ensure(settings)
 assert(bank:entry('l1l2',1,false).Command=='' and settings.L1.Slot1.Command=='input /wardrobe4','migration reseeded a cleared slot')
 assert(bank:legacy({'1','Legacy alias','input /echo compatible'}))

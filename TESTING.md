@@ -1,5 +1,70 @@
 # Current Development Status — October 18, 2026 (America/Chicago)
 
+- **Repository / branch:** rerorriM-Mirrorer/xivcrossbar / development/directlink. Tested source baseline 549e5d86df4919eb82e4c5085aed892b6db9f775.
+- **Runtime / companions:** directlink1-banks2; unchanged Controls 9.9-banks. From banks1 only Lua reload is required. NPCMirror/Trust/SlowEnter remain separate; raw all-client taps need SlowEnter v1.4.0+ on participating same-PC clients.
+- **Current change:** NPCMirror/SlowEnter R1R2 factory mappings, v2 factory inheritance, default/defaults restoration, short r1/r1r2/l1l2 editors, and explicit trigger names in the original set API. Nonempty personal overrides, legacy L1 recovery and panel layout are preserved. Empty v1 R1R2 entries adopt the requested defaults once; v1 could not distinguish a deliberate clear from unused space.
+- **Last confirmed live behavior:** Initial DirectLink ordinary routing on Franklet remains the last confirmed live baseline. Banks1 and this followup remain simulated checkpoints.
+- **Verification:** All 48 top-level Lua regressions passed; all 122 Lua sources parsed via the documented Lua 5.4 Windower normalization fallback. All seven JS/AHK-routing scripts and AHK structural checks passed. New tests exercise actual root alias/set dispatch, all eight NPC defaults, v1 adoption, per-context reset, explicit clears, append immutability and settings reload. No native Windows/AHK/Windower/FFXI test is claimed.
+- **Known live limitations:** The existing status-4 cutscene controller-feed guard is unchanged, so these mappings do not enable the bank in every NPC event. The user's earlier SlowEnter all-client delivery issue is not repaired by binding those commands. Native responsiveness, menu/Trust interception, NPC session behavior and raw batch delivery still need acceptance.
+- **Next:** Live-test aliases/restores, preserved custom assignments and NPC bank outside cutscenes; then design scoped event access and investigate SlowEnter's raw delivery with controlled traces. No companion addon source or public/frozen branch is changed here.
+- **Delivery:** Complete banks2 ZIP built from the confirmed published tree, excluding installed state. Commit and archive integrity are reported in the handoff. Preserve data/settings.xml and custom art when updating.
+
+---
+
+# Companion banks checkpoint 2 — October 18, 2026
+
+Author A. Starting at published 549e5d86df4919eb82e4c5085aed892b6db9f775,
+tree 9097aece111fd752042654d33010ac324f1780e3. Reviewed current AGENTS,
+WORKFLOW/TESTING and NPCMirror's current shared workflow. Source verification:
+NPCMirror main aab69c26d068d409754cc9c9f2e0ffc5a9bc3163 (npcmirror.lua/README);
+SlowEnter dev/se-toggle dc8341dd8b932c87e33b04c92d358f71f2d17f04
+(slowenter.lua/README), runtime 1.4.0. Used canonical npcmirror/slowenter names;
+no assumption that the requested npc short alias already exists.
+
+R1R2 Closed and Menu factory maps: Triangle npcmirror interact; Square npcmirror
+stop; Cross npcmirror enter; Circle npcmirror esc; Left npcmirror call; Right
+npcmirror status; Up slowenter all once; Down slowenter all once esc. Raw taps
+are separate from guarded session steps, bypass SlowEnter guards, and can select
+native choices. No Send-all wrapper, new key signal or companion code is added.
+The existing feed/cutscene policy is retained and explicitly documented.
+
+CompanionBanks v2 records Kind=default for inherited factory actions. Runtime
+labels and execution resolve the same hardcoded definition. Setting a command/
+key creates a saved override; clear creates an explicit empty override. Default
+removes one override; defaults resets eight entries in the selected context.
+Neither operation changes panel coordinates/scale/lock, another bank or the
+other context. Append materializes an inherited command before changing it.
+Old default-valued L1/R1 snapshots adopt inheritance; custom entries and clear
+L1/R1 slots remain. Empty v1 R1R2 entries adopt new NPC defaults once, including
+old explicit empty clears that v1 did not distinguish; re-clear to reserve them.
+Legacy imported L1L2 commands remain overrides until explicitly reset.
+
+Short editors r1/r1r2/l1l2 route through the actual bank branch with identical
+arguments. Bare reports status; l1 retains its published legacy L1L2 meaning.
+Original //xb set remains set/bar/slot/type/action/target/alias/icon. Its bar
+converter gains l2/r2/r2l2/l2r2/l2l2/r2r2 aliases, preserving old numeric and
+l/r/rl/lr/ll/rr names. No top-level r2r2 editor or r2 target-command replacement.
+
+Verification: python3 tests/run_lua.py tests/*.lua (48 top-level tests, 122
+parsed sources); all seven JS routing scripts and tests/check_ahk.py; git diff
+--check. Meaningful new cases cover actual root alias/ready guards, exact factory
+dispatch, per-context resets, invalid syntax, custom preservation, durable clear,
+same-default adoption, append immutability, panel preservation and actual original
+set dispatch with old/new bar names. Prior ownership/native-key/render/shared
+regressions pass. These checks are simulated/static; no OS/client/game success
+is inferred from command dispatch. Docs and installation guide are updated.
+
+Live acceptance: Back up settings; install/reload Lua (AHK unchanged from banks1).
+Check //xb r1r2 status and preview. Use a safe area to verify the mappings, with
+raw taps only on intended clients/choices. Test default one slot, defaults Closed,
+menu defaults, clear then reload, custom override then reload and panel retention.
+NPCMirror and SlowEnter behavior remain their own integration tests. Preserve
+the previous banks1 package for rollback; do not delete installed data.
+
+---
+
+# Historical development status — companion banks 1, October 18, 2026
+
 - **Repository / branch:** `rerorriM-Mirrorer/xivcrossbar` / `development/directlink`. Tested starting/source checkpoint: `f13829a7a5ca9f6715ee1337a77722bc078dae38` (integrated shared fixes/R1/text settling).
 - **Runtime / wrapper:** `0.4.0-a.20261018.directlink1-banks1`; Controls `9.9-banks`. Both Lua reload and shared AHK restart are required. Trust remains separate: compatible Menu options Test 4 plus explicit Open addendum `17d0f9cc1e8dd400c70ae8411e4ff805d9868129`, or a compatible later development.
 - **Implemented:** Saved/versioned L1/L1L2/R1/R1R2 definitions, legacy L1L2 migration, contextual L1 inventory/scroll/emote defaults, R1 Trust layer, ordered R1R2 empty NPC bank, named-button editor, shared compact panels and acknowledged native-key service. Public RC3 and the frozen Unbound snapshot are untouched.
