@@ -153,6 +153,8 @@ defaults.Texts.Stroke.Alpha = 200
 defaults.Texts.Stroke.Red = 20
 defaults.Texts.Stroke.Green = 20
 defaults.Texts.Stroke.Blue = 20
+-- A: measure unfamiliar centered captions transparently; comparison: textsettle off.
+defaults.TextSettling = true
 
 
 -- A: this transport test prints actions instead of executing slot commands.

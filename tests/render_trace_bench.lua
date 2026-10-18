@@ -12,24 +12,28 @@ texts={new=function()
 end}
 local trace=require('ui/render_trace')
 local resources=require('ui/resources')
-local geometry=require('ui_geometry').new('benchmark')
-local labels={}
-for i=1,48 do
-    local t=geometry:surface(resources.text({}),'text')
-    t:text('caption');t:center(i*10,20);t:show();labels[i]=t
-end
+local measure=require('ui/text_measure')
 local function run(enabled)
-    for _,t in ipairs(labels) do t:text('caption') end
+    measure.clear_cache()
+    local geometry=require('ui_geometry').new('benchmark')
+    local labels={}
+    for i=1,48 do
+        local t=geometry:surface(resources.text({}),'text')
+        t:text('caption');t:center(i*10,20);t:show();labels[i]=t
+    end
     if enabled then trace.start() end
     calls=0;local started=os.clock()
     for frame=1,600 do
+        measure.begin_frame()
         if trace.enabled then trace.begin_frame(frame/60) end
         if frame%20==0 then
             for _,t in ipairs(labels) do t:text(frame%40==0 and 'caption' or 'longer caption') end
         end
         geometry:tick()
     end
-    return os.clock()-started,calls
+    local elapsed,native_calls=os.clock()-started,calls
+    geometry:shutdown();resources.destroy_all()
+    return elapsed,native_calls
 end
 local off,native_off=run(false)
 local on,native_on=run(true)
@@ -38,4 +42,4 @@ local s=trace.status()
 assert(s.count<=trace.capacity)
 print(string.format('Simulated 600-frame/48-label workload: off=%.6fs on=%.6fs; native calls each=%d; retained=%d overwritten=%d. Native Windows performance remains unmeasured.',
     off,on,native_on,s.count,s.dropped))
-trace.stop();geometry:shutdown();resources.destroy_all()
+trace.stop()

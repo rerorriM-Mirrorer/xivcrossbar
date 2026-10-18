@@ -21,6 +21,28 @@ simulated/live results, and use small development changes.
 
 ## Immediate work
 
+### Text settling checkpoint 1
+
+Implemented on development/directlink after realkeys1; native acceptance pending.
+ui/text_measure counts render frames, ignores same-frame extents after a caption/
+style change, and accepts matching positive widths on two later frames. A bounded
+512-entry cache holds only caption/font/pixel-size/padding/style keys and widths.
+ui/resources preserves requested glyph/stroke/background alpha while pending;
+centering/font fitting finish before commit restores it. Hide releases ownership
+so a text object reused outside its former centering helper cannot stay invisible.
+
+L1 labels, ui_geometry centers and ui/text_layout binder captions use this path.
+L1's render cache remains invalid while measurement is pending, including stale
+positive widths. Eight frames bound missing/unstable measurements with a fixed
+position fallback that is not cached. No new timers or drawing objects. Matching
+widths are a heuristic: Windower does not return the caption revision with extents.
+Verify alpha-zero extent updates, first/repeated reveals and low-frame-rate cases
+live; //xb textsettle off provides a comparison. TextSettling defaults ON and is
+refreshed with per-character config. Trace adds text-settle state transitions.
+Actual-source tests replay the captured 0->73 and 211->416 width sequences,
+font fit, scale/fade/dimming, rapid replacements, cache bounds and lifecycle.
+The sequence below remains the preceding plan; item 2 now awaits live acceptance.
+
 ### October 17 update: input ownership before new banks
 
 The opt-in real-IJKL comparison is implemented on development/directlink,
@@ -71,7 +93,7 @@ receiver remains separate; only the old standalone L1 addon is redundant.
 | Item | State and intended result |
 | --- | --- |
 | Quiet render trace | Implemented, local checks pass; live capture needed. Default OFF, 6,000-event memory ring, explicit save, no overlay or extra native measurements. |
-| Text flicker/recentering | Still reported. Test 5 stopped clearing populated labels before replacing them, but that is not proof the visible hop is fixed. |
+| Text flicker/recentering | Shared settling comparison implemented after the supplied trace; local replay checks pass. Native alpha-zero measurements and visual acceptance remain pending. Earlier blank-caption prevention alone did not resolve it. |
 | Options chooser cancel error | Repaired missing layout-aware binder helper and earlier face-button discard in shared router. Actual-source regression checks pass; full live chooser restoration still needs acceptance. |
 | Active-route status wording | Implemented: requested/active route and key fallback modifier are labelled separately. Live status check pending. |
 | DirectLink acceptance | First live operation is confirmed; all six bars, modifier orders, fast rolling inputs, addon/native menus, focus/client handoffs, disconnect/restart, cutscenes and low-frame-rate behavior still need systematic acceptance. |

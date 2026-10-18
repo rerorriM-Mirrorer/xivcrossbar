@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.directlink1-realkeys1'
+_addon.version = '0.4.0-a.20261017.directlink1-text1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -22,6 +22,7 @@ local defaults = require('defaults')
 local render_trace = require('ui/render_trace')
 -- Register before UI modules so their existing measurements share this frame ID.
 windower.register_event('prerender',function()
+    require('ui/text_measure').begin_frame()
     if render_trace.enabled then render_trace.begin_frame(require('socket').gettime()) end
 end)
 local settings = config.load(defaults)
@@ -31,6 +32,7 @@ local client_registry
 local controller_profiles = require('controller_profiles')
 local personal_profile = require('personal_profile')
 local function normalize_controller_settings()
+    require('ui/text_measure').enabled=settings.TextSettling~=false
     local changed,notice = personal_profile.normalize(settings,defaults,controller_profiles)
     if notice then windower.add_to_chat(123,'[XIVCrossbar] '..notice) end
     if changed then config.save(settings) end
@@ -1104,6 +1106,7 @@ function display_help_menu()
     help.command('autohide [on|off]','Set trigger visibility; bare toggles.')
     help.command('fade [on|off]','Enable/disable gameplay fades; bare toggles.')
     help.command('textfade [on|off|status]','Fade labels with bars or show them at fade endpoints.')
+    help.command('textsettle [on|off|status]','Settle centered captions before reveal; default ON, bare toggles.')
     help.command('autoattack [on|off|status]','Enable/stop swing estimation independently of opacity.')
     help.command('inputtest [on|off]','Enable input test messages; bare toggles.')
     help.command('inputtrace [on|off]','Enable input diagnostics; bare toggles.')
@@ -1282,6 +1285,11 @@ windower.register_event('addon command', function(command, ...)
         l1_bank:command({...})
         l1_epoch=l1_epoch+1
         if publish_personal_context then publish_personal_context() end
+        return
+    elseif command == 'textsettle' then
+        require('ui/text_measure').command(settings,(...),
+            function() config.save(settings) end,
+            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
         return
     elseif command == 'realkeys' then
         local changed=require('controller_realkeys').command(settings,(...),

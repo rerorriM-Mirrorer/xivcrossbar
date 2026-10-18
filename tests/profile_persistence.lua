@@ -27,6 +27,8 @@ fixture.ControllerProfile='ps5-directinput';fixture.PersonalProfileMigrated=true
 refresh();assert(fixture.ControllerProfile=='ps5-directinput' and saved==2,'explicit later base selection overwritten')
 fixture.ControllerProfile='xinput';fixture.ControllerDevice=2;fixture.PersonalProfileMigrated=false
 refresh();assert(fixture.ControllerProfile=='xinput' and fixture.ControllerDevice==2,'alternate reader changed')
+fixture.TextSettling=false;refresh();assert(not require('ui/text_measure').enabled)
+fixture.TextSettling=true;refresh();assert(require('ui/text_measure').enabled)
 local profiles=require('controller_profiles')
 local policy=require('personal_profile')
 -- Isolate profile adoption from the later, independently tested target migration.

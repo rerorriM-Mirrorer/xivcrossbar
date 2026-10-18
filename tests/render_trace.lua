@@ -3,6 +3,7 @@ local now,clock_reads=100,0
 package.loaded.socket={gettime=function()clock_reads=clock_reads+1;return now end}
 local trace=require('ui/render_trace')
 local resources=require('ui/resources')
+local measure=require('ui/text_measure')
 local native_calls={}
 local widths={0,24,72,72}
 texts={new=function()
@@ -19,14 +20,17 @@ texts={new=function()
 end}
 local function draw(enabled)
     native_calls={}
+    measure.clear_cache()
     if enabled then trace.start() end
     local text=resources.text({})
     local g=require('ui_geometry').new('test-panel')
     local proxy=g:surface(text,'text')
     trace.track(proxy,nil,'test-panel','heading')
     proxy:text('Short');proxy:size(12);proxy:center(150,20);proxy:show()
-    proxy:text('Longer label');now=now+.016;trace.begin_frame(now);g:tick()
-    now=now+.016;trace.begin_frame(now);g:tick()
+    proxy:text('Longer label')
+    for _=1,5 do
+        now=now+.016;measure.begin_frame();trace.begin_frame(now);g:tick()
+    end
     local a,b,c=text:special();assert(a=='one' and b==nil and c=='three','proxy return arity changed')
     proxy:hide();proxy:destroy();g:shutdown()
     return table.concat(native_calls,'\n')

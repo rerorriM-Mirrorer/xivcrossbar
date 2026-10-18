@@ -1,3 +1,75 @@
+# Text settling checkpoint 1 — October 17, 2026 (America/Chicago)
+
+Author A. development/directlink, based on 6a0052fe23e83157f62f9abfefd2731dbf1d559c.
+Runtime 0.4.0-a.20261017.directlink1-text1; unchanged Controls=9.7-realkeys.
+Continues the unfinished rendering work from the supplied Franklet capture.
+Default ON with //xb textsettle off comparison. Exact checkpoint is identified
+by its Git commit/delivery. Public RC3 and frozen Unbound snapshot are preserved.
+
+## Install and native acceptance — pending
+
+1. Preserve installed data/settings/artwork. Update Lua sources, including the
+   new ui/text_measure.lua, and reload XIVCrossbar. This batch changes no AHK.
+   Updating from before realkeys1 still requires that checkpoint's AHK restart
+   to test real IJKL. Confirm directlink1-text1 via //xb inputstatus.
+2. //xb textsettle status should report ON. Reveal L1 and L1->L2 repeatedly,
+   change aliases and scale, switch sets/pages quickly and visit binder headings.
+   A new label may appear a few rendered frames after the surrounding art;
+   repeated known labels should be immediately positioned. Commands respond on
+   their existing input route and do not wait for caption settling.
+3. Confirm native extents update with glyph/outline/background alpha zero. If
+   labels consistently appear only after the eight-frame fallback or the delay
+   feels wrong, compare //xb textsettle off. Neither local mocks nor the trace
+   alone proves which final pixels Windower draws. Matching widths across frames
+   are a heuristic, not an explicit native caption-revision acknowledgment.
+4. Check long titles/font fitting, fade reversal, chooser title/overlay dimming,
+   hidden/reused menus, drag/scale and unload/reload at 960x540, 1280x720 and the
+   desktop resolution. No leaked outlines/background, permanently invisible
+   caption, delayed resurfacing or recentering after reveal is intended.
+5. //xb rendertrace on; reproduce; mark and save promptly. New text-settle events
+   report pending/ready/fallback/bypass; native alpha/pos/extents retain the same
+   observation semantics. Capture OFF/ON comparisons and note first-use versus
+   repeated captions. //xb textsettle on/off is saved per character and follows
+   configuration refresh. Off restores immediate measurement; return On to retry.
+
+## Implementation and verification
+
+Read AGENTS, current project/shared NPCMirror WORKFLOW and TESTING. All 2,266
+local blobs matched the published starting tree. Reviewed current Windower texts
+API source: extents forwards get_extents, while alpha setters maintain native
+text settings; no guarantee about transparent native measurement is inferred.
+Capture evidence: Ctrl+Space at frame 334 width 0/x238/alpha255, then frame 335
+width73/x201.5; a changed binder heading also returned 211 then 416 for the same
+caption revision. The latter defeats a zero-width-only retry policy.
+
+New ui/text_measure provides distinct-frame sampling and a 512-entry FIFO cache
+keyed by caption, actual pixel font size/font arguments, padding and relevant
+style. Unknown widths stay pending until two matching positive samples on later
+frames. An eight-frame failure uses width zero at a fixed anchor and is never
+cached; it stays fixed rather than hopping when a late width finally appears.
+No clocks, timers, extra drawing objects or per-frame disk writes are added.
+ui/resources owns temporary transparency and preserves requested alpha/stroke/
+background through fade/chooser changes. Owners commit only after position/fit.
+Hide releases measurement ownership; disposal retains existing resource cleanup.
+The helper is shared by L1, geometry centers and binder caption layout. L1 caches
+only after settling; known styles reuse widths. Root advances measurement frames
+before UI updates and refreshes the comparison preference with character config.
+
+Actual-source tests replay the zero/stale-positive sequences, reject repeated
+same-frame calls as progress, reuse/evict cache entries, fit fonts, scale/drag,
+preserve changed opacity, cancel hidden/disposed/superseded text, release ordinary
+reuse, bound missing widths and exercise the real companion/static cache and
+comparison commands. Existing render-trace tests now advance render frames and
+start both observer comparisons with equal cache state; the benchmark also uses
+fresh equivalent objects/caches. Trace OFF/ON preserves native call sequences.
+All 43 Lua test files pass; 113 sources parse using the documented Lua 5.4
+normalization fallback. Controller message/ownership regressions and AHK static
+checks pass. This is source/simulated verification; Windows/Windower/FFXI visual
+acceptance remains pending. No new bank mappings, Trust changes or directory/
+asset migrations are included. Historical records follow unchanged.
+
+---
+
 # Real IJKL comparison checkpoint 1 — October 17, 2026 (America/Chicago)
 
 Author A. development/directlink, based on a9b2486937ec3bbeacd545ec505d9920e0381f75.

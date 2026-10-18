@@ -97,10 +97,12 @@ function M.new(options)
             local font_size=math.max(4,math.floor(9*s+.5))
             if slot.caption~=label then slot.alias:text(label);slot.caption=label end
             if slot.font_size~=font_size then slot.alias:size(font_size);slot.font_size=font_size end
-            local extents=slot.alias:extents()
-            local width_text=type(extents)=='number' and extents or 0
-            if width_text<=0 then self.needs_measurement=true end
-            slot.alias:pos(x+px*s-width_text/2,y+(py+40)*s)
+            local width_text=slot.alias:measure_width()
+            if width_text==nil then self.needs_measurement=true
+            else
+                slot.alias:pos(x+px*s-width_text/2,y+(py+40)*s)
+                slot.alias:commit_measurement()
+            end
             for _,t in ipairs({slot.number,slot.alias}) do
                 t:alpha(alpha);t:stroke_alpha(math.floor(alpha*.7));t:show()
             end

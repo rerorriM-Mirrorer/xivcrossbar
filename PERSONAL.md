@@ -9,6 +9,21 @@ The chronological Personal notes below remain historical provenance.
 
 ---
 
+# DirectLink text settling checkpoint 1
+
+Runtime directlink1-text1; unchanged Controls=9.7-realkeys. Reload Lua after
+updating; an older-than-realkeys1 wrapper still needs its own restart for IJKL.
+Centered companion/geometry/binder text now waits transparently for matching
+widths on two later frames, with immediate reuse of known caption/font/style
+measurements. Current fade/dimming alpha, stroke and background are restored
+after positioning. Eight frames bound a missing measurement; a fixed fallback
+position remains readable. //xb textsettle off provides immediate measurement
+for comparison; on is the default. This does not change button timing or mappings.
+Source/simulated regressions pass; native alpha-zero extent updates and visual
+acceptance remain pending. R1/R3 and opt-in real-IJKL behavior are retained.
+
+---
+
 # DirectLink real IJKL checkpoint 1
 
 Runtime directlink1-realkeys1; Controls=9.7-realkeys. Restart Lua AND the wrapper.

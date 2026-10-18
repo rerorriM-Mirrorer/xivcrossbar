@@ -16,9 +16,9 @@ end
 
 function layout:update_text(text, entry)
     if entry.resizing then entry.resizing=nil; return end
-    local width = text:extents()
+    local width = text:measure_width()
     if trace.enabled then trace.call(text,'caption-measure',entry.x,entry.y,entry.max_width,width) end
-    if not width or width <= 0 then return end
+    if width==nil then return end
     if entry.max_width and width > entry.max_width then
         local size = text:size()
         local fitted = math.max(8, math.floor(size * entry.max_width / width))
@@ -31,6 +31,7 @@ function layout:update_text(text, entry)
     end
     local x = entry.x - width / 2
     if x ~= entry.last_x then text:pos(x, entry.y); entry.last_x=x end
+    text:commit_measurement()
 end
 
 function layout:update()

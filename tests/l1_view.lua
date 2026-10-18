@@ -6,7 +6,9 @@ local function object()
         assert(alive[self],'disposed surface reused')
         calls=calls+1
         if key=='pos' or key=='size' then self['last_'..key]={...} end
-        if key=='extents' then return measurement_ready and 42 or 0,10 end
+        -- This layout fixture supplies an already-settled measurement. Deferred
+        -- rendering is exercised with real resources in text_settle.lua.
+        if key=='extents' or key=='measure_width' then return measurement_ready and 42 or nil,10 end
         if key=='destroy' then alive[self]=nil end
     end end})
 end

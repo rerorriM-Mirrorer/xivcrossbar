@@ -8,9 +8,11 @@ and [branch map](docs/BRANCH-MAP.md) to distinguish the two older Personal lines
 Snapshot 1 preserves the live-tested Personal 9 Test 6. This working branch adds
 chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
+The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261017.directlink1-realkeys1**; shared wrapper Controls **9.7-realkeys**.
-Restart Lua AND the shared AHK wrapper after installing this checkpoint.
+Runtime: **0.4.0-a.20261017.directlink1-text1**; shared wrapper Controls **9.7-realkeys**.
+Reload Lua for this rendering update. Updating from before realkeys1 also requires
+restarting the shared AHK wrapper for the IJKL experiment.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
@@ -57,6 +59,24 @@ Trust must separately recognize **and block** IJKL to prevent game leakage; no
 Trust code is changed here. Native AHK/FFXI/Trust acceptance remains pending.
 
 ## Quiet text/layout diagnosis
+
+Centered companion labels, crossbar captions and binder headings now share a
+bounded measurement cache. An unfamiliar caption stays transparent, including
+outline/background, until its width agrees across two later render frames.
+Its final position is applied before restoring the current requested opacity.
+Known caption/font/style widths can be reused immediately. Font fitting and
+scale changes invalidate the appropriate width; dragging only changes position.
+
+`//xb textsettle [on|off|status]` controls this comparison (default ON; bare
+toggles). OFF bypasses the settling/cache and restores immediate measurement.
+The setting follows character configuration refreshes. If native measurements
+never arrive, an eight-frame limit reveals the label at a fixed fallback
+position rather than leaving it invisible. Matching widths are a settling
+heuristic, not a renderer acknowledgment; native verification is pending.
+Test first-use/repeated reveals, long titles, quick page/set switches and fades.
+In particular, verify that fully transparent text still receives fresh extents
+in Windower. Compare OFF if labels appear late or use the fallback position.
+Render trace includes `text-settle` pending/ready/fallback/bypass transitions.
 
 ```
 //xb rendertrace on
@@ -808,3 +828,12 @@ face DirectLink and existing personal chords intact. Includes lease permission,
 old-wrapper diagnostics, neutral handoff and actual-source local regressions.
 No Trust, rendering, bank-map, icon-path or module-directory changes. Restart
 Lua and AHK; live Windows/FFXI/Trust verification is pending.
+
+### DirectLink text settling checkpoint 1
+
+Centered labels now use shared frame-based settling, bounded width reuse and
+temporary glyph/outline/background transparency. Position and optional font fit
+finish before current fade/dimming opacity is restored. Companion caching retries
+stale positive widths too. Adds default-ON //xb textsettle comparison and trace
+states, with actual-source regressions replaying the supplied measurements.
+Lua update only relative to realkeys1; native Windower/FFXI acceptance is pending.
