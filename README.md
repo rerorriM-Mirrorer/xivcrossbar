@@ -1,6 +1,9 @@
 # XIVCrossbar DirectLink — Unbound
 
-**Development branch · October 17, 2026 · keyboard-free controller transport.**
+Current branch verification, last live-confirmed behavior and outstanding tests:
+[Current Development Status](TESTING.md#current-development-status--october-18-2026-americachicago).
+
+**Development branch · October 18, 2026 · keyboard-free controller transport.**
 
 Preserved checkpoint: `snapshot/directlink-unbound-20261016`.
 Future work: `development/directlink`. See the [snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md)

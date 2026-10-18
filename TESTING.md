@@ -1,3 +1,16 @@
+# Current Development Status — October 18, 2026 (America/Chicago)
+
+- **Repository / branch:** `rerorriM-Mirrorer/xivcrossbar` / `development/directlink`. Integration baseline: published `92a1710d872b246d15792f6c472ea39e424df8e6`, including the new R1 Trust-menu checkpoint; earlier shared-fix work began at `a30638d`.
+- **Runtime:** `0.4.0-a.20261018.directlink1-r1menus1`; AHK `Controls=9.8-r1-menus`. This shared-maintenance pass does not modify controller protocols, wrapper or personal mappings.
+- **Current change:** Repaired legacy `sw`/`switch` argument handling and multiword set keys; made `copy`/`move`, `alias` and `icon` obey `Hotbar.Number`; removed unreachable `set` logic; consolidated the mis-signed action callback so own job abilities refresh spell availability. Added source-executing regressions and the final-status workflow rule without removing the independently published R1 additions.
+- **Last user-confirmed live behavior:** Initial DirectLink Unbound ordinary-message routing worked on Franklet; `snapshot/directlink-unbound-20261016` preserves that evidence. R1 Trust menu, optional real IJKL and text settling are newer simulated checkpoints awaiting live acceptance.
+- **Verification:** All 45 top-level Lua regression files passed on this integrated tree with `python3 tests/run_lua.py tests/*.lua`, including the independent R1 Trust-menu and shared-fix tests; all 115 Lua sources parsed using the documented Lua 5.4 normalization fallback. All current JavaScript AHK-routing regressions and `tests/check_ahk.py` passed. These are source/simulated checks, not native Lua 5.1/Windows/Windower/FFXI execution.
+- **Still to test in FFXI:** Shared CLI switching and JA spell refresh; new R1+Triangle/Square Trust open/close; optional real IJKL; text settling; chooser, six-bar routing, client focus handoffs and multiresolution/multiclient lifecycle. Detailed checklists below remain authoritative.
+- **Next development:** Live-accept the integrated checkpoint, then continue L1/R1/L1→L2/R1→R2 bank and input-ownership unification without altering the frozen snapshot or public defaults.
+- **Delivery:** Source-and-test checkpoint only; no testing ZIP or live FFXI run in this pass. Final pushed commit is reported in GitHub handoff, not self-referenced in this tracked file.
+
+---
+
 # R1 Trust menu checkpoint 1 — October 18, 2026 (America/Chicago)
 
 Author A. development/directlink, based on a30638dd1475fab9a7b8f094578c596eba3eb38e.

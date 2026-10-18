@@ -256,4 +256,18 @@ Apply these conventions to new addons and to existing addons as they are develop
 
 **Principle:** Make each addon feel like a natural extension of FFXI. Reuse proven patterns without adding complexity that serves no purpose.
 
+---
+
+### Final Verification & Current Development Status
+
+At the end of every coherent development or documentation delivery, complete this sequence: **review -> verify -> update status -> commit/push -> confirm the published state**.
+
+1. **Review:** Re-read the request and inspect the complete diff against the starting branch. Check for unrelated edits, incomplete work, misleading comments, and unintended changes to defaults or saved data.
+2. **Verify:** Run available static, smoke, regression and live checks as appropriate. Record what actually ran, which environment was used, failures and limitations. Do not describe a simulated check as a Windows/Windower/FFXI pass.
+3. **Update the status:** Place a concise **Current Development Status** at the very beginning of root `TESTING.md`, before its cumulative dated history. State the repository/branch, runtime and external companion version (if relevant), tested source baseline, most recent user-confirmed live behavior, current automated checks, unresolved problems/live tests, and the next development step. Update the README's short status pointer when needed.
+4. **Preserve history:** Add a dated testing entry for the delivery. Keep earlier observations intact; correct superseded publication or test claims with an explicit dated correction rather than silently rewriting them.
+5. **Publish and confirm:** Commit coherent code/test/documentation changes, push to the intended working branch, and verify the remote branch head. Report the actual published commit, the tests performed, and remaining live acceptance. A test package must match that identifiable source checkpoint.
+
+The tracked status cannot contain its own final commit hash: changing the file changes that hash. Identify the tested **starting/source checkpoint** in `TESTING.md`, then give the final published head SHA in the handoff and GitHub history. Do not confuse an older baseline or local-only commit with the remote branch head. Never promote unverified working branches to `main`/`master` merely to refresh status.
+
 
