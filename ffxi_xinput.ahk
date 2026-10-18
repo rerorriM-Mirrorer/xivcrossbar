@@ -605,7 +605,7 @@ Loop {
                 }
             }
         } else {
-            ; Awake: a disconnected controller must release any Shift owned
+            ; A: a disconnected controller must release any Shift owned
             ; by its shoulder hold and cancel an armed L3 window switch.
             AExtrasDisconnect(A_Index)
         }

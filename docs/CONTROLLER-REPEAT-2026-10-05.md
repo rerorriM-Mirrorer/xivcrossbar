@@ -83,5 +83,5 @@ sampling cannot be exercised in this workspace and still need the live check.
 The earlier live passes for menu paging, the XML binds, and shoulder taps are
 retained as observations; they do not certify the new repeat or solo toggle.
 
-Contributing author: **Awake**. New code comments explain timing, modifier
+Contributing author: **A**. New code comments explain timing, modifier
 ownership, focus cancellation, and disconnect cleanup.

@@ -1,4 +1,4 @@
-; Contributing author: Awake. Controller extras revision 2026-10-05.1.
+; Contributing author: A. Controller extras revision 2026-10-05.1.
 ; Shared by the root AutoHotkey v1 DirectInput and XInput wrappers.
 ; Tap a shoulder once; hold for a configurable delay to repeat. L3 acts on release.
 #InstallKeybdHook
