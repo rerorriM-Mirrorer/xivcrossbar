@@ -1,4 +1,109 @@
-# Shoulder banks: current storage and proposed unification
+# Companion banks — implemented checkpoint 1
+
+Author A. October 18, 2026. Development source baseline f13829a7a5ca9f6715ee1337a77722bc078dae38.
+Runtime `0.4.0-a.20261018.directlink1-banks1`, Controls `9.9-banks`.
+Implementation and simulated verification are complete; Windows/FFXI acceptance
+is pending. The earlier proposal follows as historical context.
+
+## Current saved definitions
+
+`data/settings.xml` holds `CompanionBanks.Version=1`, four banks (`L1`, `L1L2`,
+`R1`, `R1R2`), and `LeftPanel`/`RightPanel`. Each bank has `Closed` and `Menu`
+sections, with Slot1–Slot8 entries containing Alias, Kind, Command, Key and Hold.
+The rendering labels and executor read the same entry. Slot order remains
+Left, Down, Right, Up, Square, Cross, Circle, Triangle; named buttons are easier.
+Panel scale/position/lock are shared by the two layers on that side. The right
+panel starts at the upper-right edge on its first reveal; resetpos recovers it.
+
+Migration copies existing `L1.SlotN` Alias/Command entries into L1L2 Closed only
+once. It retains the entire old L1 section. Cleared/new edits survive reload;
+defaults declare the complete XML shape to preserve Windower's casing/types.
+Settings are character-specific through Windower config. Temporary `.ini`,
+`.buttons` and legacy `.l1` files are communication, never binding storage.
+
+| Button | L1, game menu closed | L1, game menu open | R1, either context |
+| --- | --- | --- | --- |
+| Up | Items: Ctrl+I | Ctrl+Left | Up (held) |
+| Right | Equipment: Ctrl+E | Alt+Right | Right (held) |
+| Down | `input /wardrobe2` | Ctrl+Right | Down (held) |
+| Left | `input /wardrobe` | Alt+Left | Left (held) |
+| Triangle | `input /case` | `input /wave` | `trust menu open` |
+| Square | `input /sack` | `input /bow` | `trust menu close` |
+| Circle | `input /satchel` | Nod: `input /yes` | Escape |
+| Cross | `input /jump` | `input /jump` | Enter |
+
+L1L2 retains migrated Closed commands; its Menu entries start empty. R1R2 starts
+empty in both contexts, reserving all eight slots for chosen NPC commands.
+Native-menu visibility is independent of action permission: both panels hide
+over the game menu while the table's Menu actions remain available. The broad
+menu flag cannot identify individual item/NPC menus. Trust interprets its own
+navigation and validation; its explicit Open/Close support is still required.
+`input /yes` is the native nod emote; no Shortcuts dependency is added.
+
+## Commands
+
+```
+//xb bank l1 status
+//xb bank l1l2 triangle "Test echo" input /echo Bank-test
+//xb bank l1 menu triangle Wave input /wave
+//xb bank l1 menu key up "List previous" ctrl+left
+//xb bank r1 key left Left left hold
+//xb bank r1r2 clear cross
+//xb bank r1r2 preview
+//xb bank r1 scale crossbar
+//xb bank r1 scale 0.8
+//xb bank r1 pos 600 70
+//xb bank r1 unlock
+//xb bank r1 lock
+//xb bank r1 resetpos
+```
+
+`//xb l1` remains the L1L2 compatibility editor, including numeric assignment,
+append/clear and panel controls. `l1 preview keyboard` previews bare L1 and
+`l1 preview bank` previews L1L2. `bank <layer> menu ...` edits only Menu entries;
+omitting menu edits Closed. Empty entries consume the slot. Preview lasts six
+seconds and never arms physical execution. Console commands are literal Windower
+command text, not Lua. Native keys accept a letter/digit, F1–F12, arrows, Enter,
+Escape, Space, Tab or NumpadAdd, optionally prefixed by ctrl+, alt+ or shift+.
+Default key actions pulse; explicit hold lasts until release/cancellation.
+`status` reports both context maps, active layer, counters and native ack progress.
+
+## Routing and cancellation
+
+Updated AHK negotiates bank protocol=1, then reports ordinary buttons plus L1/R1
+in the same sequenced stream. Same-sample trigger downs precede shoulders, then
+slots. L1-first then L2 selects L1L2; L2-first stays ordinary until L2 releases.
+R1/R2 has the same rule. Releasing the trigger first reveals the bare shoulder;
+releasing the shoulder first consumes its remaining bank trigger until release.
+An opposite ordinary trigger takes priority. Held slots are consumed across layer
+or native-menu changes. Existing L1+R1 Tab and unused-release R1 R remain; using
+any R1 chord consumes its release. R3 F8/native click behavior remains in AHK.
+
+Lua chooses console actions directly, or queues native key edges in the existing
+context lease. AHK validates the complete output snapshot and a fixed key
+vocabulary, owns physical-style key delivery and acknowledges IDs in the input
+stream. Quick down/up pairs stay queued and get a nonblocking minimum 40ms hold.
+Output IDs increase across cancellation, so a late acknowledgment cannot retire
+a new action. Held key/modifier owners are reconciled together; physical keyboard
+ownership is preserved. A request acknowledgment proves routing, not game success.
+
+Focus/client/session changes, chat, cutscene, addon editor, disconnect, missing
+leases and overdue output cancel owned keys and pending actions. Communication
+recovery/session changes require neutral; native-menu transitions alone allow
+fresh L1 menu actions while the shoulder stays held. Input cancellation preempts
+earlier commands in the same snapshot. More than 64 queued output edges or an
+unacknowledged output older than 350ms resets the session; no late replay.
+Native key output waits for prior input/cancel acknowledgments. Lua gets its
+native game-menu context each frame/event; it does not infer command success.
+
+Older Lua ignores the new capability; older wrappers retain their old personal
+map and legacy L1 mailbox. Full bank controls require both updated components,
+profile x, messages ON and inputtest OFF. Neither public RC3 nor the frozen
+Unbound snapshot is changed. Graphical/catalog assignment remains future work.
+
+---
+
+# Historical shoulder-bank proposal and previous storage
 
 Author A. October 18, 2026. Current direct-R1 shortcut checkpoint follows
 a30638dd1475fab9a7b8f094578c596eba3eb38e on development/directlink.

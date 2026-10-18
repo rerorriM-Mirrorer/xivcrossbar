@@ -101,3 +101,38 @@ new_session();chooser.shown=true;binder.cancel_button='cross'
 send('down,7','up,7');assert(chooser.shown and cancellations==1)
 send('down,5','up,5');assert(not chooser.shown and cancellations==2 and #commands==0)
 print('Actual Lua routing: all six bars, ordered trigger pairs, batched double taps, once-only slots, native confirm/cancel, held-button ownership, addon menu routing, focus/watchdog cleanup, real keyboard isolation and Options cancellation passed.')
+-- Repeat ordinary six-bar scenarios through the actual new bank owner, using
+-- the root's real context guard and router rather than a copied bar selector.
+local info={logged_in=true,menu_open=false};local character={status=0}
+env.windower.ffxi={get_info=function()return info end,get_player=function()return character end}
+env.windower.has_focus=function()return true end
+env.settings.ControllerProfile='ps5-extended';env.settings.ControllerMessages=true
+binder.cancel_button='circle';chooser.shown=false
+local banks=require('companion_banks').new({settings=env.settings,clock=function()return now end,
+    context=env.companion_context,execute=env.windower.send_command,save=function()end,say=function()end,help=function()end,
+    ordinary=function(button,pressed)env.message_button(require('controller_messages').diks[button],pressed,0,false)end})
+env.companion_banks=banks
+receiver=require('controller_messages').new({session='full-bank-routing',clock=function()return now end,wallclock=function()return 100 end,
+    capture=env.message_capture,physical=function(b,p)banks:edge(b,p)end,cancel=env.message_cancel,
+    ready=function()banks.active=true end,key_ack=function(a)banks.output:accept(a)end})
+for _,case in ipairs({{1,{'down,11','down,7','up,7','up,11'}},{2,{'down,12','down,5','up,5','up,12'}},
+    {3,{'down,12','down,11','down,1','up,1','up,11','up,12'}},
+    {4,{'down,11','down,12','down,6','up,6','up,12','up,11'}},
+    {5,{'down,11','up,11','down,11','down,7','up,7','up,11'}},
+    {6,{'down,12','up,12','down,12','down,7','up,7','up,12'}}}) do
+    new_session();send(table.unpack(case[2]));assert(#actions==1 and actions[1].bar==case[1]);empty()
+end
+new_session();send('down,13','down,11','down,7','up,7','up,11','up,13')
+assert(#actions==0 and #commands==0,'empty L1L2 slot leaked to ordinary crossbar');empty()
+new_session();send('down,11','down,13','down,7','up,7','up,11','up,13')
+assert(#actions==1 and actions[1].bar==1,'L2-first stopped being ordinary');empty()
+new_session();send('down,14','down,8','up,8','down,6','up,6','up,14')
+assert(#actions==0 and commands[1]=='trust menu open' and commands[2]=='trust menu close');empty()
+new_session();info.menu_open=true
+send('down,13','down,1','up,1','down,8','up,8','up,13')
+assert(#actions==0 and #commands==1 and commands[1]=='input /wave')
+local _,native=banks.output:payload('route');assert(native:find('ctrl+left',1,true))
+info.menu_open=false;empty()
+new_session();send('down,13','down,7');assert(commands[1]=='input /satchel')
+send('up,13','up,7');assert(#commands==1,'companion Circle leaked Escape');empty()
+print('Actual bank owner + root router: six bars, both L1/L2 orders, empty-bank isolation, Trust dispatch, native-menu actions and Circle release isolation passed.')

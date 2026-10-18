@@ -33,7 +33,9 @@ controls=sources[root/'personal_controls.ahk']
 assert 'enabled:selected = "ps5-extended"' in controls
 assert not any(x in controls for x in ['JoyR','raw.zoom','nextZoom','zoomArmed'])
 assert 'PersonalR1Menus(raw, mode, now)' in controls
-assert 'NumpadAdd' not in controls
+# The old R1 helper must not fall back to the Trust keyboard binding. The new
+# editable native vocabulary may deliberately include NumpadAdd.
+assert 'NumpadAdd' not in controls.split('PersonalR1Menus(raw, mode, now) {',1)[1].split('\n}',1)[0]
 assert 'raw.r1 and !raw.l1' in controls
 assert 'Mod(index - 1 + direction + ordered.Length(), ordered.Length())' in controls
 assert 'PC.owner != WinActive("ahk_class FFXiClass")' in controls

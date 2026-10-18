@@ -1,5 +1,107 @@
 # Current Development Status — October 18, 2026 (America/Chicago)
 
+- **Repository / branch:** `rerorriM-Mirrorer/xivcrossbar` / `development/directlink`. Tested starting/source checkpoint: `f13829a7a5ca9f6715ee1337a77722bc078dae38` (integrated shared fixes/R1/text settling).
+- **Runtime / wrapper:** `0.4.0-a.20261018.directlink1-banks1`; Controls `9.9-banks`. Both Lua reload and shared AHK restart are required. Trust remains separate: compatible Menu options Test 4 plus explicit Open addendum `17d0f9cc1e8dd400c70ae8411e4ff805d9868129`, or a compatible later development.
+- **Implemented:** Saved/versioned L1/L1L2/R1/R1R2 definitions, legacy L1L2 migration, contextual L1 inventory/scroll/emote defaults, R1 Trust layer, ordered R1R2 empty NPC bank, named-button editor, shared compact panels and acknowledged native-key service. Public RC3 and the frozen Unbound snapshot are untouched.
+- **Last user-confirmed live behavior:** Initial ordinary DirectLink operation on Franklet, preserved by `snapshot/directlink-unbound-20261016`. This new bank/native-output checkpoint has not run in Windows/FFXI here. Prior real IJKL/text settling/shared fixes continue to await their documented live acceptance.
+- **Automated verification:** All 47 top-level Lua regression files passed; all 121 Lua sources parsed via the documented Lua 5.4 Windower-syntax normalization fallback. All seven JavaScript/AHK-routing scripts and AHK lexical/include/function checks passed. Tests exercise actual source modules/functions, with native OS/game/UI services mocked. Windower's actual config merge verifies lowercase XML reload and cleared-slot persistence. No native Lua 5.1, Windows AHK, Windower or FFXI execution is claimed.
+- **Remaining live checks:** Native-key receipt/latency/held-repeat, native menu context transitions, Trust consume/open/close, all trigger orders/tails, quick taps, focus/multibox/disconnect/restart, panel drag/scale and text settling at small resolutions. Use `docs/LIVE-TEST-DIRECTLINK.md` and the current map in `docs/SHOULDER-BANKS.md`.
+- **Next:** Live-accept this bank checkpoint before assigning NPCMirror commands or extending controller profiles. Graphical/catalog bank assignment, success-confirmed switches and icon/folder migration remain future work.
+- **Delivery:** Complete source-audited test ZIP built only after commit/push and remote-head confirmation. Final publication SHA and archive checksum are reported in the handoff; the tracked status identifies its source baseline rather than claiming its own hash.
+
+---
+
+# Companion banks checkpoint 1 — October 18, 2026 (America/Chicago)
+
+Author A. Authorized full L1/R1 bank implementation on development/directlink,
+starting at f13829a7a5ca9f6715ee1337a77722bc078dae38. Reviewed current AGENTS,
+project WORKFLOW/TESTING and the shared NPCMirror WORKFLOW including its final
+review/verify/status/publish/confirm sequence. The materialized starting tree
+was verified byte-for-byte against GitHub tree fdf051a78798fa8fd80e76b4bc179a626bdb7404.
+
+## Installation and first live checks — pending
+
+Back up the personal addon folder and data/settings.xml. Stop the shared wrapper
+and unload XIVCrossbar in all clients. Update the complete xivcrossbar folder
+while preserving data/, config.ini and custom art. Reload Lua, restart AHK and
+return every control to neutral. Confirm profile x, messages ON, inputtest OFF,
+runtime directlink1-banks1, Controls=9.9-banks, banks protocol=1/enabled=1 and
+receiver=true after handshake. Status capability/acks are not game success.
+Trust/TrustMovement are separate and are not installed by this ZIP.
+
+1. Verify L1 closed-menu defaults: Up Items/Ctrl+I, Right Equipment/Ctrl+E,
+   Left Wardrobe, Down Wardrobe 2; Triangle Case, Square Sack, Circle Satchel,
+   Cross Jump. Console actions use input / commands, independent of Shortcuts.
+2. With a native game menu open, both panels hide. L1 Up/Down becomes Ctrl+
+   Left/Right, Left/Right becomes Alt+Left/Right. Shapes become Triangle Wave,
+   Square Bow, Circle Nod (input /yes), Cross Jump. Hold a slot across the
+   context change: release/new press is required before its new action.
+3. L1 first then L2 reveals saved L1L2 in the same left position. Existing
+   commands migrate once; Menu entries start empty. L2 first then L1 stays
+   ordinary. Test both release orders and same-sample priority. Repeat on the
+   right: R1 first then R2 selects the empty NPC bank; R2 first stays ordinary.
+   Empty bank slots cannot leak ordinary face actions. Opposite ordinary
+   triggers take priority. L1+R1 Tab remains; any used R1 hold consumes release R.
+4. R1 holds native arrows; Cross pulses Enter, Circle Escape; Triangle sends
+   trust menu open and Square trust menu close in either native-menu context.
+   Trust's own key consumption/save validation still applies. Open should
+   preserve an existing submenu/draft; Close can refuse an invalid draft.
+5. Test short presses/releases, native repeats, simultaneous directions,
+   physical keyboard modifiers/keys, chat, addon editors/choosers, cutscenes,
+   focus handoff, multibox, disconnect and wrapper/Lua restart. Native keys
+   must release from their original client. Cancellation never produces R.
+   A quick native pulse has a nonblocking 40ms minimum hold; judge the feel.
+6. Assign a harmless echo with //xb bank l1l2 left Test input /echo bank-test,
+   reload, then clear it and reload again. Confirm both changes persist and
+   the old L1 section remains intact. //xb l1 is the L1L2 compatibility editor.
+   Preview/unlock/drag/lock/scale each side; both layers share that side's panel.
+   Repeat text settling and six-bar checks from the integrated live guide.
+
+## Implementation / verification record
+
+CompanionBanks v1 declares its full shape in defaults so Windower's lowercase
+XML parser/merge restores field casing and string/boolean types on a fresh
+process. Migration copies legacy L1 Alias/Command only once and preserves the
+old section. Menu entries are independent; arbitrary migrated commands are
+closed-menu-only. R1R2 stays empty until exact NPC verbs are chosen.
+
+The existing acknowledged input stream negotiates two shoulder edges, bank
+readiness and native acknowledgments. Lua owns layer/context/action selection;
+the ordinary six-bar router is unchanged. Releases finish original owners;
+held slots cannot change meaning after a bank or native-menu transition.
+Trigger-first/same-sample orders preserve ordinary bars. Bank shoulder-first
+release reserves the remaining trigger tail. Readiness is reannounced after
+neutral/uncertain/backpressure recovery, so execution and rendering stay aligned.
+
+Native requests use the existing per-client context lease. AHK validates the
+entire whitelisted snapshot, preserves keyboard ownership, reconciles shared
+modifiers and acknowledges output IDs in the ordered input stream. Quick taps
+retain both edges; cancellation advances the output generation and IDs never
+rewind, preventing a late acknowledgment from retiring a newer request. Native
+output waits for preceding input/cancel acks. Missing/stale leases, context or
+client changes release owned keys; a >350ms unacknowledged output or >64 queued
+edges resets the session rather than delivering stale work.
+
+Available checks passed: python3 tests/run_lua.py tests/*.lua (47 files, 121
+parsed sources); node tests/personal_gestures.js, personal_input.js,
+personal_realkeys.js, companion_native.js, controller_messages.js,
+controller_clients.js and input_trace.js; python3 tests/check_ahk.py;
+git diff --check. The new key-service harness executes actual AHK functions
+under narrow translation, not native Windows AHK. New Lua tests execute the
+actual schema/output/owner and root router/publisher, including all six bars,
+both shoulder orders/releases, menu changes, command dedup/cancel, key queue
+acks, stale cancellation, saved-setting reload and two compact panel lifecycles.
+Existing text-settle, Save Only, shared-fix and resource cleanup regressions pass.
+Vendored Windower merge fixture retains its source attribution/license.
+
+No icon, theme or module path restructuring, Trust source change, movement
+protocol change or public/snapshot promotion is included. Historical records
+follow intact. Final pushed SHA/ZIP integrity are confirmed at delivery.
+
+---
+
+# Historical development status — integrated package, October 18, 2026
+
 - **Repository / branch:** `rerorriM-Mirrorer/xivcrossbar` / `development/directlink`. Integration baseline: published `92a1710d872b246d15792f6c472ea39e424df8e6`, including the new R1 Trust-menu checkpoint; earlier shared-fix work began at `a30638d`.
 - **Runtime:** `0.4.0-a.20261018.directlink1-r1menus1`; AHK `Controls=9.8-r1-menus`. This shared-maintenance pass does not modify controller protocols, wrapper or personal mappings.
 - **Current change:** The integrated R1/shared-fixes source is unchanged. Prepared a complete DirectLink live-test package, a short in-game checklist, and a packaging audit that verifies the local source tree against the published GitHub commit. Corrected the README's obsolete wrapper-version/install wording.

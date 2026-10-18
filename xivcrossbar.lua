@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261018.directlink1-r1menus1'
+_addon.version = '0.4.0-a.20261018.directlink1-banks1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -34,8 +34,9 @@ local personal_profile = require('personal_profile')
 local function normalize_controller_settings()
     require('ui/text_measure').enabled=settings.TextSettling~=false
     local changed,notice = personal_profile.normalize(settings,defaults,controller_profiles)
+    local _,banks_changed=require('companion_banks').ensure(settings)
     if notice then windower.add_to_chat(123,'[XIVCrossbar] '..notice) end
-    if changed then config.save(settings) end
+    if changed or banks_changed then config.save(settings) end
     if client_registry then client_registry:register(settings.on_unload_killahk) end
 end
 normalize_controller_settings()
@@ -74,6 +75,7 @@ local personal_controls = require('personal_controls').new()
 local publish_personal_context
 local controller_message_bridge
 local message_capture, message_button, message_cancel, message_menu
+local companion_banks,companion_context
 local message_epoch=0
 local visibility = require('visibility')
 local storage = require('storage')
@@ -122,20 +124,38 @@ local l1_bank=require('l1_bank').new({settings=settings,clock=l1_clock,
 local l1_bridge=require('l1_transport').new({session=require('windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
 local l1_view=require('l1_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
+companion_banks=require('companion_banks').new({settings=settings,clock=l1_clock,
+    ordinary=function(button,pressed) if message_button then message_button(require('controller_messages').diks[button],pressed,0,false) end end,
+    context=function() if companion_context then return companion_context() end;return false,false end,
+    execute=function(command) windower.send_command(command) end,
+    save=function() config.save(settings) end,
+    say=function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end,
+    help=function(syntax,description) require('chat_help').command(syntax,description) end})
+local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
+local r1_view=require('l1_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion'})
 controller_message_bridge=require('controller_messages').new({session=require('windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
     capture=function(pressed) if message_capture then message_capture(pressed) end end,
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
     menu=function(button) if message_menu then message_menu(button) end end,
+    physical=function(button,pressed) companion_banks:edge(button,pressed) end,
+    ready=function() companion_banks.active=true end,
+    key_ack=function(ack) companion_banks.output:accept(ack) end,
     cancel=function() if message_cancel then message_cancel() end end})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui_drag').new({
-    enabled=function() return l1_view.opacity>.01 and not l1_bank:settings().Locked end,
+    enabled=function() return l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
     bounds=function() return l1_view:bounds() end,
-    offsets=function() local d=l1_bank:settings();return d.X,d.Y end,
-    move=function(x,y) local d=l1_bank:settings();d.X,d.Y=x,y end,
+    offsets=function() local d=l1_view.options.bank:settings();return d.X,d.Y end,
+    move=function(x,y) local d=l1_view.options.bank:settings();d.X,d.Y=x,y end,
     save=function() config.save(settings) end,
 })
+local r1_drag=require('ui_drag').new({
+    enabled=function() return r1_view.opacity>.01 and not companion_right:settings().Locked end,
+    bounds=function() return r1_view:bounds() end,
+    offsets=function() local d=companion_right:settings();return d.X,d.Y end,
+    move=function(x,y) local d=companion_right:settings();d.X,d.Y=x,y end,
+    save=function() config.save(settings) end})
 
 local function move_crossbars(x,y)
     ui:move_to(x,y)
@@ -173,6 +193,7 @@ local function set_compact_mode(mode)
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
 end
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
+    if r1_drag:mouse(kind,x,y,blocked) then return true end
     if l1_drag:mouse(kind,x,y,blocked) then return true end
     return crossbar_drag:mouse(kind,x,y,blocked)
 end)
@@ -369,6 +390,12 @@ local function report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
             ' | active route=' .. (status.button_route or 'keys') .. ' | key fallback=' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if status.profile=='ps5-extended' then
+            windower.add_to_chat(0,'[XIVCrossbar] Banks: wrapper protocol='..(status.bank_protocol or 'absent')..
+                ' | enabled='..(status.banks_enabled or '0')..' | native ack='..(status.bank_native_ack or '0')..
+                ' | receiver='..tostring(companion_banks.active==true))
+            if settings.ControllerMessages and status.bank_protocol~='1' then
+                windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for companion banks (Controls 9.9 required).')
+            end
             windower.add_to_chat(0,'[XIVCrossbar] R1 Trust menu commands: wrapper protocol='..(status.r1_menu_protocol or 'absent')..
                 ' | permission='..(status.r1_menus or '0')..' | requires messages route')
             if settings.ControllerMessages and status.r1_menu_protocol~='1' then
@@ -1103,7 +1130,8 @@ function display_help_menu()
     help.command('ca alias <label>','Set the alias in the active draft (a).')
     help.command('ca command <command>','Set the command in the active draft (c).')
     help.command('catalog [global|character|status]','Choose where new actions save; both catalogs are read.')
-    help.command('l1 [help|status]','Momentary L1 layers, saved eight-slot bank, position and scale.')
+    help.command('bank <layer> [help|status]','Edit L1, L1L2, R1 or R1R2; separate menu entries, shared side panels.')
+    help.command('l1 [help|status]','Compatibility editor for L1L2; bank l1 edits bare L1.')
     help.command('controller target [r2|r3|both] [on|off]','F8 before unmodified R2/R3; personal default R3 only.')
     help.command('messages [on|off|status]','Experimental controller message stream; bare toggles.')
     help.command('x [device]','Personal shortcut: select PS5 Extended.')
@@ -1185,7 +1213,7 @@ local function graceful_restart(unload)
     xivcrossbar.ready = false
     crossbar_drag:finish()
     controller_message_bridge:reset()
-    l1_drag:finish();l1_bridge:reset()
+    l1_drag:finish();r1_drag:finish();l1_bridge:reset()
     controller_switcher:cancel()
     if env_chooser.is_setup then env_chooser:close() end
     if action_binder.selector then
@@ -1236,7 +1264,7 @@ end)
 -- ON LOGOUT
 windower.register_event('logout', function()
     controller_message_bridge:reset()
-    l1_drag:finish();l1_bridge:reset();l1_view:destroy();personal_controls:close()
+    l1_drag:finish();r1_drag:finish();l1_bridge:reset();l1_view:destroy();r1_view:destroy();personal_controls:close()
     profile_gate:reset()
     xivcrossbar.ready = false
     xivcrossbar.initialized = false
@@ -1264,7 +1292,7 @@ windower.register_event('unload',function()
     ui.autoattack:set_enabled(false)
     personal_controls:close()
     controller_message_bridge:reset()
-    l1_drag:finish();l1_bridge:reset();l1_view:destroy()
+    l1_drag:finish();r1_drag:finish();l1_bridge:reset();l1_view:destroy();r1_view:destroy()
     controller_switcher:cancel()
     crossbar_drag:finish()
     text_input_guard:reset_confirmation()
@@ -1291,13 +1319,15 @@ windower.register_event('addon command', function(command, ...)
         local name=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
         return render_trace.command((...),windower.addon_path..'data/render-trace-'..name..'.log',
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
-    elseif command == 'l1' then
-        local operation=(...) or 'help'
+    elseif command == 'bank' or command == 'l1' then
+        local args={...}
+        local operation=args[1] or 'help'
+        if command=='bank' then operation=(args[2]=='menu' and args[3] or args[2]) or 'status' end
         if not xivcrossbar.ready and operation~='help' and operation~='status' then
-            windower.add_to_chat(0,'[XIVCrossbar] Log in and finish setup before changing the L1 bank.');return
+            windower.add_to_chat(0,'[XIVCrossbar] Log in and finish setup before changing companion banks.');return
         end
-        l1_drag:finish()
-        l1_bank:command({...})
+        l1_drag:finish();r1_drag:finish()
+        if command=='bank' then companion_banks:command(args) else companion_banks:legacy(args) end
         l1_epoch=l1_epoch+1
         if publish_personal_context then publish_personal_context() end
         return
@@ -1430,7 +1460,7 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | Text fade: ' .. tostring(settings.Animation.TextFade) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
         windower.add_to_chat(207, '[XIVCrossbar] Autoattack estimate: ' .. tostring(settings.AutoAttackIndicator.Enabled) .. ' | Opacity: ' .. tostring(settings.AutoAttackIndicator.Opacity))
-        l1_bank:status()
+        companion_banks:status('l1')
         windower.add_to_chat(0,'[XIVCrossbar] L1 bridge: received='..l1_bridge.received..' | rejected='..l1_bridge.rejected..' | ack='..l1_bridge.ack)
         windower.add_to_chat(207, '[XIVCrossbar] Ready: ' .. tostring(xivcrossbar.ready == true) ..
             ' | Setup: ' .. tostring(gamepad_mapper.is_showing == true) .. ' (state ' .. tostring(gamepad_mapper.state) ..
@@ -1938,6 +1968,13 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
+companion_context=function()
+    local info=windower.ffxi.get_info();local character=windower.ffxi.get_player();local context=input_context()
+    return not restart_pending and xivcrossbar.ready and settings.ControllerProfile=='ps5-extended'
+        and settings.ControllerMessages and not settings.InputTest and windower.has_focus() and info.logged_in
+        and not info.chat_open and character~=nil and character.status~=4
+        and (context=='gameplay' or context=='crossbar'),info.menu_open==true
+end
 -- A: both transports call this router. The source determines how a physical
 -- edge arrives; menu ownership, native translation and slot execution stay here.
 message_capture = function(pressed)
@@ -2017,6 +2054,7 @@ message_menu = function(button)
 end
 
 message_cancel = function()
+    if companion_banks then companion_banks:cancel();companion_banks.active=false end
     local chooser_held=set_chooser_button_down or action_binder.chooser_active
     release_gameplay_keys();transport:reset()
     for _,key in ipairs({'capturing','left_trigger','right_trigger','minus_button','plus_button',
@@ -2031,6 +2069,7 @@ message_cancel = function()
 end
 
 publish_personal_context = function()
+    if companion_banks then companion_banks:refresh() end
     if settings.ControllerProfile~='ps5-extended' or not windower.ffxi.get_info().logged_in then
         l1_bridge:reset();controller_message_bridge:reset();personal_controls:close();return
     end
@@ -2049,7 +2088,7 @@ publish_personal_context = function()
     -- holding L1 can reveal the companion without a forced neutral rearm.
     local key=table.concat({player.server or '',player.name or '',eligible and 'play' or context,tostring(l1_epoch)},':')
     l1_bridge:context(key,eligible)
-    if l1_bridge.token and now>=l1_next_read then
+    if l1_bridge.token and not (companion_banks and companion_banks.active) and now>=l1_next_read then
         l1_next_read=now+.02
         local f=io.open(windower.addon_path..'data/personal-controls/'..player.name..'.l1','rb')
         if f then
@@ -2069,11 +2108,20 @@ publish_personal_context = function()
     end
     context=(restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
     if info.chat_open then context='text' end
+    local native_token,native,native_base
+    if companion_banks then
+        if companion_banks.output:stale() then
+            -- An unacknowledged native request cannot become a late action.
+            message_epoch=message_epoch+1;controller_message_bridge:reset();companion_banks:cancel()
+        end
+        native_token,native,native_base=companion_banks.output:payload(controller_message_bridge.token)
+    end
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
             realkeys=require('controller_realkeys').enabled(settings,controller_message_bridge.token),
             r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
+            banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
@@ -2142,7 +2190,7 @@ local frame = 0
 local focus_release_keys = {}
 local function clear_controller_input(regained)
     message_epoch=message_epoch+1;controller_message_bridge:reset()
-    l1_epoch=l1_epoch+1;l1_bridge:reset();l1_bank:cancel();l1_drag:finish()
+    l1_epoch=l1_epoch+1;l1_bridge:reset();l1_bank:cancel();l1_drag:finish();r1_drag:finish()
     set_chooser_button_down=false
     menu_escape_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
@@ -2188,10 +2236,12 @@ windower.register_event('prerender',function()
             input_context(),action_binder.state,action_binder.selector and action_binder.selector.current_page,
             env_chooser:is_showing(),l1_info.menu_open,l1_info.chat_open,
             viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res,
-            settings.CrossbarScale,ui_dirty,l1_bank:mode(),controller_message_bridge.ack)
+            settings.CrossbarScale,ui_dirty,companion_banks.active and companion_banks.layer or l1_bank:mode(),controller_message_bridge.ack)
     end
+    l1_view.options.bank=(companion_banks.active or companion_banks:previewing('Left')) and companion_left or l1_bank
     l1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
-    if not l1_display then l1_drag:finish() end
+    r1_view:tick(l1_display and (companion_banks.active or companion_banks:previewing('Right')),viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
+    if not l1_display then l1_drag:finish();r1_drag:finish() end
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then
         next_catalog_refresh=catalog_clock()+1
         local ok,changed=player:refresh_custom_catalogs()

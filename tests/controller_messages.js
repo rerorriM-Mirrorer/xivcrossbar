@@ -9,8 +9,8 @@ code=code.replace(/^\s*global .*$/gm,'').replace(/;[^\n]*/g,'');
 code=code.replace(/"(?:[^"]|"")*"|[^"\n]+/g,t=>t.startsWith('"')?JSON.stringify(t.slice(1,-1)):t
  .replace(/ \. /g,' + ').replace(/:=/g,'@ASSIGN@').replace(/(?<![<>!:=+])=(?!=)/g,'===')
  .replace(/@ASSIGN@/g,'=').replace(/\band\b/g,'&&').replace(/\bor\b/g,'||'));
-code=code.replace(/Loop, 12 (?=\{)/g,'for(let A_Index=1;A_Index<=12;A_Index++) ')
- .replace(/Loop, 12\s*\n/g,'for(let A_Index=1;A_Index<=12;A_Index++)\n')
+code=code.replace(/Loop, (12|14) (?=\{)/g,(_,n)=>`for(let A_Index=1;A_Index<=${n};A_Index++) `)
+ .replace(/Loop, (12|14)\s*\n/g,(_,n)=>`for(let A_Index=1;A_Index<=${n};A_Index++)\n`)
  .replace(/for _, event in CM.pending/g,'for (const event of CM.pending)')
  .replace(/for _, i in (\[[^\n]+\]) \{/g,'for (const i of $1) {')
  // AHK arrays use 1-based indexing; this is the only queue index in the code.
@@ -67,3 +67,13 @@ assert(!/SendEvent|ControlSend/.test(source),'message path injects keyboard sign
 assert(source.includes('CM.seq := requested ? ack1 + 0 : 0'),'writer restart discarded receiver acknowledgment');
 assert(source.includes('ControllerMessageFlush(true)'),'writer restart/cancel did not publish');
 console.log('Actual AHK message functions: legacy bypass, neutral handoffs, trigger-before-slot order, release order, held dedup, uncertain-read suppression, stale backlog cancellation, logout fallback and no key injection passed.');
+init();requested();ctx.CM.expanded=true;poll({13:true});assert.equal(ctx.CM.phase,'neutral');
+poll();assert.deepEqual(edges(),[['banks',0]]);
+poll({11:true,12:true,13:true,14:true,8:true});
+assert.deepEqual(edges().slice(1),[['down',11],['down',12],['down',13],['down',14],['down',8]]);
+poll();assert.deepEqual(edges().slice(6),[['up',8],['up',11],['up',12],['up',13],['up',14]]);
+assert(!ctx.ControllerMessageAnyHeld());
+ctx.CM.phase='backpressure';ctx.CM.pending.length=0;poll();
+assert.equal(ctx.CM.phase,'messages');assert.deepEqual(edges(),[['banks',0]],'backpressure recovery lost bank capability/reveal');
+init();requested();poll();poll({13:true,14:true});assert.equal(ctx.CM.seq,0,'old Lua received unsupported shoulder edges');
+console.log('Actual expanded stream: negotiated readiness, shoulder neutral gate, same-sample trigger priority and complete release order passed.');

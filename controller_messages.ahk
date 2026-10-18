@@ -3,7 +3,7 @@
 ControllerMessageInit() {
     global CM
     CM := {requested:false, token:"", seq:0, ack:0, pending:[], previous:[]
-        , phase:"keys", seen:0, nextWrite:0, path:"", error:false}
+        , phase:"keys", seen:0, nextWrite:0, path:"", error:false, expanded:false}
 }
 
 ControllerMessageLease(lease, contextPath) {
@@ -69,7 +69,7 @@ ControllerMessageCancel() {
 
 ControllerMessageAnyHeld() {
     global CM
-    Loop, 12
+    Loop, 14
         if (CM.previous[A_Index])
             return true
     return false
@@ -104,7 +104,7 @@ ControllerMessageFlush(force := false) {
 ControllerMessagePoll(states) {
     global CM
     neutral := true
-    Loop, 12
+    Loop, 14
         if (states[A_Index])
             neutral := false
     now := DllCall("GetTickCount64", "UInt64")
@@ -119,8 +119,11 @@ ControllerMessagePoll(states) {
         return true
     }
     if (CM.phase = "neutral" or CM.phase = "uncertain") {
-        if (neutral)
+        if (neutral) {
             CM.phase := CM.requested ? "messages" : "keys"
+            if (CM.requested and CM.expanded)
+                ControllerMessageAdd("banks", 0)
+        }
         ControllerMessageFlush()
         return true
     }
@@ -133,23 +136,26 @@ ControllerMessagePoll(states) {
         return true
     }
     if (CM.phase = "backpressure") {
-        if (neutral and !CM.pending.Length())
+        if (neutral and !CM.pending.Length()) {
             CM.phase := "messages"
+            if (CM.expanded)
+                ControllerMessageAdd("banks", 0)
+        }
         ControllerMessageFlush()
         return true
     }
     changed := false
     ; Releases finish the previous gesture. New trigger downs precede new slots
     ; sampled together; a truly simultaneous pair has deterministic L2 priority.
-    Loop, 12 {
+    Loop, 14 {
         i := A_Index
         if (CM.previous[i] and !states[i]) {
             ControllerMessageAdd("up", i)
             CM.previous[i] := false, changed := true
         }
     }
-    for _, i in [11, 12, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8] {
-        if (states[i] and !CM.previous[i]) {
+    for _, i in [11, 12, 13, 14, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8] {
+        if ((i <= 12 or CM.expanded) and states[i] and !CM.previous[i]) {
             ControllerMessageAdd("down", i)
             CM.previous[i] := true, changed := true
         }

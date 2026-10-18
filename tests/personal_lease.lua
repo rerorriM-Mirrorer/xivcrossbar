@@ -27,6 +27,12 @@ assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='
 assert(files[path]:find('dpad_output=ahk\n',1,true),'permission change must publish immediately')
 assert(lease:update('data/','Test','ps5-extended','gameplay',{r1_menus=true}))
 assert(files[path]:find('r1_menus=1\n',1,true))
+local prior=writes
+assert(lease:update('data/','Test','ps5-extended','gameplay',{banks=true,native_token='buttons-1-native-3',
+    native_base=17,native='18,d,ctrl+i|19,u,ctrl+i'}))
+assert(writes==prior+1 and files[path]:find('bank_protocol=1\nbank_native_token=buttons-1-native-3\nbank_native_base=17\nbank_native=18,d,ctrl+i|19,u,ctrl+i\n',1,true))
+assert(lease:update('data/','Test','ps5-extended','gameplay',{banks=true,native_token='buttons-1-native-3',native_base=19,native=''}))
+assert(writes==prior+2,'native acknowledgment/output retirement was throttled')
 fail=true
 assert(not lease:update('data/','Test','ps5-extended','text',{token='two',mode='bank',ack=0}))
 assert(not files[path] and not files[path..'.tmp'])

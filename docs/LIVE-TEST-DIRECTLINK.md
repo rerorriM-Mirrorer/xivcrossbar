@@ -1,7 +1,7 @@
-# DirectLink integrated live test — October 18, 2026
+# DirectLink companion banks test 1 — October 18, 2026
 
 This is the short in-game guide for the **complete personal DirectLink** test
-package. It incorporates the shared command fixes, R1 Trust-menu shortcuts,
+package. It incorporates the shared command fixes, four companion banks,
 optional real IJKL comparison and text settling. It is **not** the public RC3.
 The cumulative record and detailed edge cases remain in `TESTING.md`.
 
@@ -25,8 +25,9 @@ The cumulative record and detailed edge cases remain in `TESTING.md`.
    //xb controller status
    ```
 
-   Expect runtime `0.4.0-a.20261018.directlink1-r1menus1` and wrapper
-   `Controls=9.8-r1-menus`, with R1 protocol support. If the wrapper version
+   Expect runtime `0.4.0-a.20261018.directlink1-banks1` and wrapper
+   `Controls=9.9-banks`, banks protocol=1/enabled=1 and receiver=true after
+   neutral. If the wrapper version
    is older, stop here and restart it before judging controller behavior.
 4. **Trust prerequisite:** The R1 Trust-menu tests require the compatible Trust
    *Menu options Test 4* installation plus its
@@ -44,16 +45,24 @@ buttons between different tests. Simple observations are enough.
 1. **Ordinary input:** Move with the stick. Try L2, R2, both trigger orders,
    face buttons, D-pad, and R3 targeting. Check for missed, repeated, or stuck
    inputs. Reveal and hide the L1 bank; try L1 then L2 and release in both
-   orders. Existing saved L1L2 commands should still work.
+   orders. Existing saved L1L2 commands should still work. R1 then R2 reveals
+   the initially empty NPC bank at the right; R2 then R1 stays ordinary. Empty
+   slots must not leak native face actions. Releasing a bank trigger first
+   returns to its bare shoulder; releasing its shoulder first consumes the tail.
 2. **R1 + Trust:** Hold R1 then press Triangle to open Trust. Press Triangle
    again from inside a submenu; its cursor and unsaved draft should remain.
    R1+Square closes Trust, subject to its usual save/validation rules. Try
    face-first and R1-first order, and release in both orders. No extra R,
    ordinary Square/Triangle, or Ctrl+Numpad action should escape. R1 arrows,
    Cross/Enter, Circle/Escape and unused-R behavior should remain intact.
-3. **Menus and chat:** While the game menu, Trust editor, XIVCrossbar chooser
-   and chat entry are open, try short shoulder/face combinations. Inputs owned
-   by those interfaces should stay there; no surprise gameplay or Trust command.
+3. **L1 inventory and menus:** With the game menu closed, test Up Items,
+   Right Equipment, Left Wardrobe, Down Wardrobe 2; Triangle Case, Square Sack,
+   Circle Satchel, Cross Jump. With a native menu open, panels should hide and
+   L1 directions become Ctrl+Left, Alt+Right, Ctrl+Right, Alt+Left (Up/Right/
+   Down/Left). L1 Triangle/Square/Circle/Cross becomes Wave/Bow/Nod/Jump.
+   Keep a slot held while the menu changes: it must wait for release/new press.
+   Trust's own menu is not necessarily the native-menu flag. R1 navigation
+   should still work. Chat and XIVCrossbar editors/choosers have priority.
 4. **Text settling:** Try `//xb textsettle status` (default ON). Reveal L1,
    change pages/sets, and open the binder. Notice any label that jumps,
    appears late, is incorrectly centered, or remains invisible. Compare with
@@ -61,6 +70,12 @@ buttons between different tests. Simple observations are enough.
 5. **Another client:** With both clients running, switch focus and try a few
    inputs. Nothing should repeat or remain held in the previous client. Then
    stop/restart the wrapper once while both controls are neutral.
+6. **Settings and panels:** `//xb bank l1 status` and `//xb bank r1r2 status`
+   show both contexts. Assign a harmless `input /echo` in an unused L1L2 slot,
+   reload Lua, and confirm it persists. Verify legacy `//xb l1` edits L1L2.
+   Preview/unlock/drag/lock each side; both layers on a side share its position
+   and scale. Confirm compact spacing and label settling at small resolutions.
+   The old L1 settings section remains for recovery, not ongoing bank editing.
 
 ### Optional comparisons
 

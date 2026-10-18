@@ -30,7 +30,7 @@ const ctx={PC:{},CM:{},appsOwned:false,ahkEnum,GetKeyState:k=>physical.has(k),
   WinActive:()=>active,WinExist:()=>active,
   SendEvent:s=>emitted.push(['send',s]),ControlSend:(s,o)=>emitted.push(['control',s,o]),
   InputTraceRecord:s=>traces.push(s),ControllerMessageAdd:(kind,button)=>messages.push([kind,button]),
-  ControllerMessageFlush:()=>true,IsObject:o=>o&&typeof o==='object',PersonalL1Event:()=>{},
+  ControllerMessageFlush:()=>true,IsObject:o=>o&&typeof o==='object',PersonalL1Event:()=>{},PersonalNativeReset:()=>{},
   RegExMatch:(s,pattern)=>new RegExp(pattern.slice(2),'m').test(s)};
 vm.createContext(ctx);vm.runInContext('Array.prototype.Push=Array.prototype.push;Array.prototype.Length=function(){return this.length};\n'+code,ctx);
 function fresh(){ctx.PC={enabled:true,owner:1,ready:true,realDpad:true,keys:object(),releases:object(),
@@ -135,3 +135,4 @@ fresh();Object.assign(ctx.PC,{connected:true,prefix:'',layerVisible:'',r1Menus:t
 assert.equal(poll({r1:true,6:true})[6],false,'waiting-neutral R1 Square leaked');assert.deepEqual(messages,[]);
 assert(!/PersonalChord|PersonalKey|SendEvent|NumpadAdd/.test(extract('PersonalR1Menus')));
 console.log('Actual AHK R1 menu sender: full-poll one-shot masking, face-first suppression, combo/context/transport guards, no native shortcut and old-Lua capability handoff passed.');
+module.exports={ctx,fresh,poll,extract,emitted,messages,traces,physical,object,ahkEnum};

@@ -12,7 +12,7 @@ function M.new(options)
     local self={options=options,objects={},slots={},opacity=0,allocated=false}
     local function text(size)
         local t=options.resources.text({flags={draggable=false}})
-        require('ui/render_trace').track(t,nil,'l1-companion','caption')
+        require('ui/render_trace').track(t,nil,options.owner or 'l1-companion','caption')
         t:bg_alpha(0);t:bg_visible(false)
         t:font('Verdana');t:size(size);t:color(228,231,240)
         t:stroke_width(1);t:stroke_alpha(180);t:hide()
@@ -83,7 +83,7 @@ function M.new(options)
         if self.visible and self.render_key==key and not self.needs_measurement then return end
         self.visible=true;self.render_key=key;self.needs_measurement=false
         self.bg:pos(x,y);self.bg:size(w*s,h*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
-        local title=(mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts')..(d.Locked and '' or '  [drag]')
+        local title=(options.bank.title and options.bank:title(mode) or (mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts'))..(d.Locked and '' or '  [drag]')
         self.title:text(title);self.title:size(math.max(6,math.floor(11*s+.5)));self.title:pos(x+10*s,y+8*s)
         self.title:alpha(alpha);self.title:stroke_alpha(math.floor(alpha*.7));self.title:show()
         for i,slot in ipairs(self.slots) do

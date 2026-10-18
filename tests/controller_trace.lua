@@ -22,7 +22,7 @@ local lines={}
 local status={running=true,profile='ps5-extended',device='1',modifier='apps',state='ready',connected='1',
     button_protocol='1',button_route='messages',personal_version='9.5-messages'}
 local status_env=setmetatable({settings={ControllerProfile='ps5-extended',ControllerDevice=1,ControllerMessages=true},
-    controller_modifier='apps',controller_message_bridge={received=12,rejected=0},
+    controller_modifier='apps',controller_message_bridge={received=12,rejected=0},companion_banks={active=false},
     controller_status=function()return status end,controller_profiles={matches=function()return true end},
     windower={add_to_chat=function(_,s)lines[#lines+1]=s end}},{__index=_G})
 local report=assert(load(text:sub(first,last-1)..'\nreturn report_controller_status','actual route status','t',status_env))()

@@ -1,4 +1,17 @@
-# Controller reference — Personal 9 Test 6
+# Controller reference — DirectLink companion banks 1
+
+Current runtime directlink1-banks1; Controls=9.9-banks. Profile/readers, ordinary
+buttons and R3 F8 below remain applicable. The L1/R1 mapping sections below are
+historical and superseded by [the complete current bank map](SHOULDER-BANKS.md).
+L1 inventory changes to scrolling/emotes in native menus; L1L2 imports saved
+commands; R1 navigates Trust with Triangle Open/Square Close; R1R2 is empty for
+chosen NPC interactions. Both ordered shoulder-first banks are implemented.
+Lua owns these actions, including native-key requests to AHK. The panels share
+compact geometry, hide in native menus and are editable with //xb bank.
+
+---
+
+# Historical controller reference — Personal 9 Test 6
 
 Author A. Runtime directlink1-r1test1; wrapper Controls=9.6-r1-r. This describes
 the delivered source, including the momentary L1 layers from Test 3. Saved face

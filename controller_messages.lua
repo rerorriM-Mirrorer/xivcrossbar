@@ -54,9 +54,10 @@ function M.new(options)
         for line in body:sub(1,-5):gmatch('[^\n]+') do
             local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
             seq,button=tonumber(seq),tonumber(button)
-            if not seq or not button or not ((kind=='down' or kind=='up') and button>=1 and button<=12 or
+            if not seq or not button or not ((kind=='down' or kind=='up') and button>=1 and button<=(options.physical and 14 or 12) or
                 kind=='cancel' and button==0 or kind=='rmenu' and (button==6 or button==8)
-                    and type(options.menu)=='function') then self.rejected=self.rejected+1;return false end
+                    and type(options.menu)=='function' or kind=='banks' and button==0 and type(options.ready)=='function'
+                    or kind=='keyack' and button>=0 and button<=2147483647 and type(options.key_ack)=='function') then self.rejected=self.rejected+1;return false end
             if seq>self.ack then
                 if seq~=next_seq then self.rejected=self.rejected+1;return false end
                 events[#events+1]={seq,kind,button};next_seq=next_seq+1
@@ -74,13 +75,15 @@ function M.new(options)
                 local kind,button=event[2],event[3]
                 if kind=='cancel' then cancel()
                 elseif kind=='rmenu' then options.menu(button)
+                elseif kind=='banks' then options.ready()
+                elseif kind=='keyack' then options.key_ack(button)
                 elseif kind=='down' and not self.held[button] then
                     if not self.captured then self.captured=true;options.capture(true) end
                     self.held[button]=true
-                    options.event(M.diks[button],true)
+                    if options.physical then options.physical(button,true) else options.event(M.diks[button],true) end
                 elseif kind=='up' and self.held[button] then
                     self.held[button]=nil
-                    options.event(M.diks[button],false)
+                    if options.physical then options.physical(button,false) else options.event(M.diks[button],false) end
                     if not next(self.held) then self.captured=false;options.capture(false) end
                 end
             end

@@ -8,7 +8,8 @@ PersonalInit(selected, prefix) {
         , layer:{phase:"idle"}, layerVisible:""
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
-        , targetR2:false, targetR3:false, realDpad:false, r1Menus:false}
+        , targetR2:false, targetR3:false, realDpad:false, r1Menus:false, banks:false
+        , native:{token:"", ack:0, requests:[], active:{}, keys:{}}}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
@@ -100,6 +101,9 @@ PersonalPoll(states, active) {
         PC.previous := raw
         return PersonalFilter(states, raw)
     }
+
+    if (PC.banks)
+        return PersonalBanksPoll(states, raw, mode, now)
 
     arrows := ["Up", "Right", "Down", "Left"]
     PersonalTargetTrial(raw, mode)
@@ -334,6 +338,7 @@ PersonalContext(hwnd) {
             age := now - stamp1
             if (age >= -1 and age <= 2) {
                 ControllerMessageLease(lease, A_LoopFileFullPath)
+                PersonalBankLease(lease)
                 PersonalRealKeyLease(lease)
                 PersonalR1MenuLease(lease)
                 PersonalL1Lease(lease, A_LoopFileFullPath)
@@ -370,6 +375,12 @@ PersonalR1MenuLease(lease) {
 
 PersonalL1Lease(lease, contextPath) {
     global PC
+    if (PC.banks) {
+        PC.l1.available := true
+        PC.targetR2 := RegExMatch(lease, "m)^target_r2=1\r?$") ? true : false
+        PC.targetR3 := RegExMatch(lease, "m)^target_r3=1\r?$") ? true : false
+        return
+    }
     ; Native menu toggles still use keyboard shortcuts on the L1 layer. Only
     ; bank events need an executable play token; text is blocked by
     ; the ordinary context gate above.
@@ -522,6 +533,7 @@ PersonalRelease(reset := true) {
     if (!IsObject(PC) or !PC.enabled)
         return
     if (reset) {
+        PersonalNativeReset()
         PersonalL1Event("cancel")
         PC.layer.phase := "idle", PC.layerVisible := ""
         PC.contextSeen := 0, PC.contextPaused := false
@@ -542,6 +554,168 @@ PersonalRelease(reset := true) {
     PC.touch.phase := "cancelled"
     PC.clicks.phase := "cancelled"
     PC.r1.phase := "cancelled"
+}
+
+; A: negotiated only with Lua's full-bank receiver. Missing fields retain the
+; old wrapper behavior. Changing transport waits for physical neutral.
+PersonalBankLease(lease) {
+    global PC, CM
+    enabled := CM.requested and RegExMatch(lease, "m)^bank_protocol=1\r?$") ? true : false
+    if (enabled != PC.banks) {
+        PersonalRelease()
+        ControllerMessageCancel()
+        PC.banks := enabled, CM.expanded := enabled
+    }
+    if (!enabled)
+        return
+    if (!RegExMatch(lease, "m)^bank_native_token=([A-Za-z0-9-]+)\r?$", token)
+        or !RegExMatch(lease, "m)^bank_native_base=(\d+)\r?$", base)
+        or !RegExMatch(lease, "m)^bank_native=([^\r\n]*)\r?$", payload)) {
+        PersonalNativeReset()
+        return
+    }
+    if (PC.native.token != token1) {
+        PersonalNativeReset()
+        PC.native.token := token1, PC.native.ack := base1 + 0
+    }
+    if (StrLen(payload1) > 4096) {
+        PersonalNativeReset()
+        return
+    }
+    requests := [], expected := PC.native.ack + 1
+    for _, row in StrSplit(payload1, "|") {
+        if (row = "")
+            continue
+        if (!RegExMatch(row, "^(\d+),(d|u),([a-z0-9+]+)$", edge)
+            or !IsObject(PersonalNativeSpec(edge3))) {
+            PersonalNativeReset()
+            return
+        }
+        if (edge1 + 0 > PC.native.ack) {
+            if (edge1 + 0 != expected) {
+                PersonalNativeReset()
+                return
+            }
+            requests.Push({seq:edge1 + 0, kind:edge2, key:edge3})
+            expected += 1
+        }
+    }
+    PC.native.requests := requests
+}
+
+PersonalNativeSpec(value) {
+    if (!RegExMatch(value, "^(?:(ctrl|alt|shift)\+)?([a-z0-9]+)$", part))
+        return false
+    keys := {up:"Up", right:"Right", down:"Down", left:"Left", enter:"Enter", escape:"Escape"
+        , space:"Space", tab:"Tab", numpadadd:"NumpadAdd"}
+    key := keys[part2]
+    if (key = "" and RegExMatch(part2, "^[a-z0-9]$"))
+        key := part2
+    if (key = "" and RegExMatch(part2, "^f([1-9]|1[0-2])$", fn))
+        key := "F" . fn1
+    if (key = "")
+        return false
+    modifiers := {ctrl:"LControl", alt:"LAlt", shift:"LShift"}
+    return {key:key, modifier:modifiers[part1]}
+}
+
+; Reconcile the union of native owners. Releasing one of two slots using the
+; same key/chord must not lift the other's key or modifier.
+PersonalNativeSync() {
+    global PC
+    desired := {}
+    for _, owner in PC.native.active {
+        if (!owner.suppressed) {
+            desired[owner.key] := true
+            if (owner.modifier != "")
+                desired[owner.modifier] := true
+        }
+    }
+    retired := []
+    for key in PC.native.keys
+        if (!desired.HasKey(key))
+            retired.Push(key)
+    for _, key in retired
+        if (key != "LControl" and key != "LAlt" and key != "LShift")
+            PersonalKey(key, false)
+    for _, key in retired
+        if (key = "LControl" or key = "LAlt" or key = "LShift")
+            PersonalKey(key, false)
+    for key in desired
+        if (key = "LControl" or key = "LAlt" or key = "LShift")
+            PersonalKey(key, true)
+    for key in desired
+        if (key != "LControl" and key != "LAlt" and key != "LShift")
+            PersonalKey(key, true)
+    PC.native.keys := desired
+}
+
+PersonalNativeReset() {
+    global PC
+    if (!IsObject(PC.native))
+        return
+    PC.native.active := {}
+    PersonalNativeSync()
+    PC.native := {token:"", ack:0, requests:[], active:{}, keys:{}}
+}
+
+PersonalNativePoll(now) {
+    global PC, CM
+    if (CM.phase != "messages" or now - CM.seen > 100)
+        return PersonalNativeReset()
+    ; Wait for prior input/cancel acknowledgment before adopting a key request.
+    if (CM.pending.Length() or !PC.native.requests.Length())
+        return
+    edge := PC.native.requests[1]
+    if (edge.kind = "d") {
+        spec := PersonalNativeSpec(edge.key)
+        spec.tick := now, spec.suppressed := false
+        for _, key in ["Control", "Alt", "Shift", "LWin", "RWin", "AppsKey", spec.key]
+            if GetKeyState(key, "P")
+                spec.suppressed := true
+        for key in PC.keys
+            if (!PC.native.keys.HasKey(key))
+                spec.suppressed := true
+        PC.native.active[edge.key] := spec
+    } else {
+        owner := PC.native.active[edge.key]
+        ; Hold a short tap long enough for the native client to observe it.
+        ; No Sleep or blocking delay; release/cancellation remains immediate.
+        if (IsObject(owner) and !owner.suppressed and now - owner.tick < 40)
+            return
+        PC.native.active.Delete(edge.key)
+    }
+    PersonalNativeSync()
+    PC.native.ack := edge.seq
+    PC.native.requests.RemoveAt(1)
+    ControllerMessageAdd("keyack", edge.seq)
+    ControllerMessageFlush(true)
+    InputTraceRecord("bank native " . edge.kind . " " . edge.key . " ack=" . edge.seq)
+}
+
+PersonalBanksPoll(states, raw, mode, now) {
+    global PC
+    PersonalTargetTrial(raw, mode)
+    PersonalNativeDPad(states, raw, mode, now)
+    states := PersonalFilter(states, raw)
+    states[13] := raw.l1, states[14] := raw.r1
+    busy := raw.l1 or raw.r1 or raw.ps or raw.mute
+    Loop, 12
+        if (raw[A_Index])
+            busy := true
+    touchEvent := PersonalTouchStep(PC.touch, raw.touch, PC.previous.touch
+        , busy or raw.l3 or raw.r3, now)
+    if (touchEvent != "")
+        PersonalChord(touchEvent, "", now)
+    clickEvent := PersonalClicksStep(PC.clicks, raw.l3, raw.r3
+        , PC.previous.l3, PC.previous.r3, busy or raw.touch)
+    PersonalKey("vkBCsc033", clickEvent = "vkBCsc033")
+    PersonalKey("vkBEsc034", clickEvent = "vkBEsc034")
+    if (clickEvent = "h" or clickEvent = "r")
+        PersonalChord(clickEvent, "", now)
+    PersonalNativePoll(now)
+    PC.previous := raw
+    return states
 }
 
 PersonalOtherWindow(hwnd) {

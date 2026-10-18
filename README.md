@@ -15,22 +15,30 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261018.directlink1-r1menus1**; shared wrapper Controls **9.8-r1-menus**.
-Reload Lua AND restart the shared AHK wrapper for these R1 shortcuts.
+Runtime: **0.4.0-a.20261018.directlink1-banks1**; shared wrapper Controls **9.9-banks**.
+Reload Lua AND restart the shared AHK wrapper for companion banks.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
 ## Development roadmap
 
-The [shoulder-bank design](docs/SHOULDER-BANKS.md) records current storage,
-the L1/R1/ordered-trigger plan and compatible migration to one editable system.
+The [shoulder-bank guide](docs/SHOULDER-BANKS.md) records the implemented bank
+system, saved-setting migration, editing commands and pending live tests.
+
+Four editable layers now share Lua input ownership and per-character settings:
+L1 inventory, L1→L2 utility/testing, R1 Trust and R1→R2 NPC (initially empty).
+L1 changes to menu scrolling/emotes while a native menu is open. Companions stay
+hidden over native menus, independently of whether their menu actions may run.
+Native keys use an acknowledged Lua→AHK service; commands dispatch directly.
+Existing L1→L2 entries migrate once; their old L1 section remains for recovery.
 
 Current new shortcuts: R1+Square sends `trust menu close`; R1+Triangle sends
 `trust menu open` directly through Windower. Use profile x with messages ON;
 controller status reports R1 protocol=1 and permission. Both chords consume the
 face press and the R1 hold, so no ordinary face action or release-R follows.
-Native FFXI menus may remain open; chat, XIVCrossbar editors and trigger bars
-exclude these personal commands. Other R1 arrows/Enter/Escape remain available.
+Native FFXI menus may remain open; chat and XIVCrossbar editors have priority.
+R2-first remains an ordinary bar; R1-first then R2 reveals its separate NPC bank.
+R1 arrows/Enter/Escape remain available through the native service.
 Trust's current menu test branch needs the [explicit-Open addendum](https://github.com/rerorriM-Mirrorer/trust/commit/17d0f9cc1e8dd400c70ae8411e4ff805d9868129)
 supplied with this checkpoint: update only commands/MenuCommands.lua over the
 compatible Test 4 install, reload Trust and check menu status for explicit open.
@@ -67,11 +75,12 @@ press. Triggers, face buttons, existing L1/R1 combinations and other profiles
 retain their routes. Chat, XIVCrossbar editors, triggers, other controller
 buttons and physical modifiers exclude this ordinary-key route. A consumed hold
 stays consumed until release. Native game menus do not disable it; L1's native-
-menu hide guard remains unchanged. This is not a general Lua-to-AHK key service.
+menu hide guard remains unchanged. Companion native keys use their separate
+acknowledged service even when this ordinary-IJKL comparison is OFF.
 
 `//xb realkeys off` restores the existing route after neutral. Bare toggles;
 `status` only reports. OFF is the default; an explicit choice is saved per client.
-Wrapper status must show Controls=9.7-realkeys and realkeys protocol=1. Output
+Wrapper status must show Controls=9.9-banks and realkeys protocol=1. Output
 permission=ahk is permission, not proof a guarded key fired or that Trust consumed
 it. Old wrappers continue the established Lua route and produce a restart warning.
 Trust must separately recognize **and block** IJKL to prevent game leakage; no
@@ -126,7 +135,9 @@ L2/R2, their combinations and double taps use the existing Lua bar logic.
 The twelve ordinary buttons share one ordered stream, so a face-button press
 cannot overtake its trigger in a separate keyboard channel. These messages emit
 no Apps or F1–F12 keystrokes. Native gameplay outputs still use the existing
-Lua translation; personal L1/R1/touch/click/targeting shortcuts keep their paths.
+Lua translation. L1/R1 shoulder and slot edges now share this same stream;
+Lua selects their actions and requests native keys only where needed. Touch,
+stick clicks, PS focus and R3 targeting retain their AHK paths.
 
 ```
 //xb messages status
@@ -203,29 +214,35 @@ Switching sets replaces populated action labels directly, without clearing them
 first. Identical labels therefore reuse the native glyph cache. This addresses
 one source of transient redraws; live switching/recentering still needs checking.
 
-## Momentary L1 layers
+## Momentary companion banks
 
 | Input | Behavior |
 | --- | --- |
-| Hold L1 | Reveal keyboard-shortcut companion; release hides it |
+| Hold L1 | Reveal inventory companion; release hides it |
 | L1, then add L2 | Reveal the saved action bank in the same position |
 | Release L2 while L1 remains held | Return to the shortcut companion |
 | L2, then add L1 | Keep the ordinary L2 crossbar; release L2 to reveal L1 |
 | L1 and L2 in the same sampled poll | Prefer the ordinary L2 crossbar |
 | Release L1 first from the bank | Hide; consume the remaining L2 until release |
 | R2 during a companion gesture | Ordinary R2 crossbar takes priority |
+| Hold R1 | Reveal Trust/navigation companion at the upper right |
+| R1, then add R2 | Reveal the separate NPC bank in the same right-side position |
+| R2, then add R1 | Keep ordinary R2; release R2 to reveal R1 |
+| Release R2 while R1 remains held | Return to the Trust companion |
+| Release R1 first from its bank | Consume remaining R2 until release |
 
 Bare L1 no longer toggles modes or switches clients. There are no held native
-Ctrl/Alt shoulder-pair modifiers in this test. R1+R2 uses the ordinary R2 crossbar.
-L1 shortcuts still send their individual Ctrl combinations; R1 arrows, confirm,
-cancel, L1+R1 Tab, PS focus toggle, touchpad and stick clicks retain
+Ctrl/Alt shoulder-pair modifiers in this test. Lua chooses L1 commands/native
+chords from saved definitions. R1 arrows, confirm, cancel, L1+R1 Tab,
+PS focus toggle, touchpad and stick clicks retain
 their existing roles. Bare R1 sends R on unused release. R3 sends F8 on press and R on an
 unused release by default, subject to the acquisition guards above.
 
 A newly revealed layer never executes a button already held. Release and press
 that slot again. Context/focus loss still requires neutral before personal
 gestures resume; ordinary trigger changes no longer reset the companion session.
-Native/addon menus, chat and cutscenes suppress executable bank actions.
+Native menus select the saved Menu definitions. Chat, addon editors, focus loss
+and cutscenes cancel companion output; client/session changes require neutral.
 
 The companion now matches the main compact layout's 40px icon slots, horizontal
 slot spacing, half-hotbar vertical spacing and saved CrossbarScale. Its location
@@ -234,24 +251,24 @@ Mode is ignored. Following the main scale is the new default for existing and ne
 settings. An explicit numeric companion scale remains available.
 
 ```
-//xb l1 help
-//xb l1 status
-//xb l1 1 Hello input /echo L1-left
-//xb l1 6 Heal input /ma "Cure III" <p1>
-//xb l1 append 6 input /echo Second-command
-//xb l1 clear 6
-//xb l1 preview bank
-//xb l1 preview keyboard
-//xb l1 scale crossbar
-//xb l1 scale 0.8
-//xb l1 unlock
-//xb l1 lock
-//xb l1 resetpos
+//xb bank l1 status
+//xb bank l1l2 left Hello input /echo L1L2-left
+//xb bank l1 menu key up "List previous" ctrl+left
+//xb bank r1 triangle "Open Trust" trust menu open
+//xb bank r1r2 clear cross
+//xb bank r1r2 preview
+//xb bank r1 scale crossbar
+//xb bank r1 unlock
+//xb bank r1 lock
+//xb bank r1 resetpos
+//xb l1 1 Hello input /echo compatibility-editor
 ```
 
 Slots: **1 Left, 2 Down, 3 Right, 4 Up, 5 Square, 6 Cross, 7 Circle, 8 Triangle**.
-These commands edit the L1-then-L2 bank; assignments save per character. Empty
-bank slots do nothing. The old `l1 mode` command is retired. Preview is an explicit
+Use named buttons or those numbers. `bank l1` edits bare L1; `bank l1l2` and the
+legacy `l1` command edit L1-then-L2. Add `menu` to edit native-menu entries.
+Both contexts save under CompanionBanks in data/settings.xml. Empty slots are
+reserved and consumed. The old `l1 mode` command is retired. Preview is an explicit
 six-second editing aid, not a persistent physical mode.
 
 ## Main label and input routing
@@ -264,16 +281,17 @@ the key, for example `//xb bar basic`.
 
 | Function | Current route |
 | --- | --- |
-| Bare D-pad and face buttons | AHK Apps+F-key signal → Lua ownership → native setkey or addon action |
+| Bare D-pad and face buttons | AHK message → Lua ownership → native setkey or addon action; optional real IJKL stays AHK |
 | Bare Cross / Circle | Lua sends Enter / Escape, unless an addon UI owns the signal |
 | Bare Triangle / Square | Lua sends main-menu Numpad Minus / active-window Numpad Plus, according to saved mapping |
-| L1 shortcuts | AHK sends the individual Ctrl shortcut; L1 Circle is reserved and consumed |
-| R1+Cross / R1+Circle | AHK directly sends Enter / Escape |
+| L1/R1 banks | AHK reports physical edges → Lua chooses saved action → console command or acknowledged AHK native key |
+| R1+Cross / R1+Circle | Lua requests native Enter / Escape from AHK |
 | PS focus toggle | AHK activates the chosen application window |
-| L1-then-L2 bank | AHK publishes ordered events → Lua executes the saved console command |
+| Ordered shoulder/trigger banks | Same stream and Lua owner; held slots cannot change meaning |
 
-Lua consumes the synthetic Apps/F-key signals before they reach normal FFXI
-keyboard handling. It does not cancel the hardware controller's native duplicate
+Messages ON uses no Apps/F-key transport. The OFF/older-wrapper route still
+consumes synthetic signals before normal FFXI keyboard handling. Neither cancels
+the hardware controller's native duplicate
 bindings; keep the existing FFXI GAMEPAD Config precautions below. The bank bridge
 already needs no extra in-game shortcut key assignments.
 
@@ -301,7 +319,8 @@ separate projects.
 Stop `//xb controller stop`, then unload XIVCrossbar on **all** clients. Back up
 the personal installation. Install the complete xivcrossbar/ folder and restore
 its personal data/, config.ini and custom icons. Restart with all buttons and
-sticks neutral; verify `//xb controller status` reports **Controls=9.8-r1-menus**.
+sticks neutral; verify `//xb controller status` reports **Controls=9.9-banks**,
+banks protocol=1 and receiver=true after neutral handshake.
 Lua reload alone does not update a running AHK wrapper. Run one variant/wrapper
 per PC. The current DirectLink test ZIP includes only `xivcrossbar/`; it does
 not replace TrustMovement, Trust or their installed overlays. Keep existing
@@ -864,3 +883,13 @@ one-shot face ownership and neutral waiting prevent duplicate keys/commands.
 Removes the Triangle Ctrl+Numpad shortcut; other R1 controls remain. Includes
 the unified-bank proposal/current storage map. Restart Lua and Controls 9.8;
 Windows/FFXI/Trust acceptance remains pending.
+
+### DirectLink companion banks checkpoint 1
+
+Adds versioned L1/L1L2/R1/R1R2 settings, one-time legacy migration, named-button
+editing, separate native-menu actions and shared compact panels. Lua owns ordered
+shoulder/slot meaning; an acknowledged, whitelisted native key service preserves
+quick taps and cancels stale output. L1 has inventory/scroll/emote maps; R1 has
+Trust navigation/open/close and unused-release R. R1R2 starts empty. Both shoulder
+orders, release orders, held ownership, settings reload and six-bar regression
+checks pass locally. Requires Lua and Controls 9.9; native acceptance is pending.

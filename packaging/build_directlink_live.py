@@ -23,6 +23,7 @@ REQUIRED = {
     "xivcrossbar.lua", "ffxi_directinput.ahk", "personal_controls.ahk",
     "controller_messages.ahk", "controller_clients.ahk", "movement_signal.ahk",
     "controller_messages.lua", "personal_controls.lua", "l1_bank.lua",
+    "companion_banks.lua", "companion_keys.lua", "companion_output.lua",
     "l1_transport.lua", "l1_view.lua", "ui/text_measure.lua",
     "images/setup/gamepad-directinput.jpg", "themes/ffxiv/frame.png",
     "README.md", "WORKFLOW.md", "TESTING.md", "AGENTS.md",
@@ -70,14 +71,14 @@ def build():
         assert "xivcrossbar/" + dependency in contents, f"Missing AHK include {dependency}"
 
     version = re.search(r"_addon.version = '([^']+)'", (ROOT / "xivcrossbar.lua").read_text())
-    assert version and version.group(1) == "0.4.0-a.20261018.directlink1-r1menus1"
+    assert version and version.group(1) == "0.4.0-a.20261018.directlink1-banks1"
     contents["xivcrossbar/PACKAGE-INFO.txt"] = (
-        "XIVCrossbar DirectLink integrated live-test complete installation\n"
+        "XIVCrossbar DirectLink companion banks test 1 complete installation\n"
         "Branch: development/directlink\n"
         f"Published source commit: {args.published}\n"
         f"Verified source tree: {local_tree}\n"
         f"Runtime: {version.group(1)}\n"
-        "AHK wrapper: Controls=9.8-r1-menus\n"
+        "AHK wrapper: Controls=9.9-banks\n"
         "Read docs/LIVE-TEST-DIRECTLINK.md before updating.\n"
         "No character data, custom bindings/settings or companion Trust addon included.\n"
         "Windows/FFXI live acceptance remains pending.\n"

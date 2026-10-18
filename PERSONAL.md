@@ -1,5 +1,10 @@
 # DirectLink — Unbound, Snapshot 1
 
+Current working checkpoint: directlink1-banks1 / Controls 9.9-banks. Four saved
+companion banks and their native-key service are now implemented; see
+[the current map and commands](docs/SHOULDER-BANKS.md). Live acceptance is pending.
+The checkpoint descriptions below retain their original chronology.
+
 The current development identity is **XIVCrossbar DirectLink — Unbound**.
 See [the snapshot record](docs/SNAPSHOT-DIRECTLINK-UNBOUND-1.md) and current README/TESTING.
 Preserve `snapshot/directlink-unbound-20261016`; continue on `development/directlink`.

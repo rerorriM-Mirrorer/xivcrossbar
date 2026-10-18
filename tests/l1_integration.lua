@@ -79,3 +79,30 @@ focused=true;character.status=4;step();assert(not env_lease.realkeys)
 character.status=0;step();assert(env_lease.realkeys)
 settings.ControllerRealKeys=false;step();assert(not env_lease.realkeys)
 print('Actual root L1 bridge: ordered layers, stable ordinary-trigger sessions, once-only dispatch and menu/chat/focus/cutscene/stall guards passed.')
+-- Feed the full bank receiver through that same actual publish/read/lease path.
+settings.ControllerMessages=true;settings.InputTest=false;character.status=0;focused=true;info.menu_open=false;context='gameplay'
+local banks=require('companion_banks').new({settings=settings,clock=function()return now end,
+    context=function()return context=='gameplay',info.menu_open end,ordinary=function()end,
+    execute=function(s)sent[#sent+1]=s end,save=function()end,say=function()end,help=function()end})
+env.companion_banks=banks
+env.controller_message_bridge=require('controller_messages').new({session='bank-root-test',clock=function()return now end,
+    wallclock=function()return 100 end,cancel=function()banks:cancel()end,capture=function()end,
+    physical=function(b,p)banks:edge(b,p)end,ready=function()banks.active=true end,key_ack=function(a)banks.output:accept(a)end})
+step();messages=env.controller_message_bridge;message_token=messages.token
+local function buttons(body,beat)
+    files['addon/data/personal-controls/Test.buttons']='token='..messages.token..'\nstamp=100\nbeat='..beat..'\n'..body..'END\n'
+    step()
+end
+buttons('1,banks,0\n2,down,13\n3,down,1\n4,up,1\n5,up,13\n',20)
+assert(env_lease.banks and env_lease.native:find('d,ctrl+i',1,true) and env_lease.native:find('u,ctrl+i',1,true))
+assert(env_lease.native_base==0 and env_lease.button_ack==5)
+local output_token=env_lease.native_token
+info.menu_open=true;step();assert(messages.token==message_token and env_lease.native_token~=output_token)
+assert(env_lease.native=='' and env_lease.native_base==2 and env_lease.banks)
+buttons('6,down,13\n7,down,1\n8,up,1\n9,up,13\n',21)
+assert(env_lease.native:find('d,ctrl+left',1,true),'native-menu context did not reach the leased executor')
+buttons('10,keyack,4\n',22);assert(env_lease.native=='' and env_lease.native_base==4)
+info.menu_open=false;step();buttons('11,down,14\n12,down,1\n',23)
+assert(env_lease.native:find('d,up',1,true))
+now=now+.36;step();assert(messages.token==nil and not env_lease.banks and banks.layer=='','native backlog did not cancel session')
+print('Actual root bank pipeline: ordered mailbox -> Lua map -> native lease, menu-context generation change, output acknowledgment and overdue-session cancellation passed.')

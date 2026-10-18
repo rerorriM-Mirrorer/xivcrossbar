@@ -5,6 +5,7 @@ local function object()
     return setmetatable(o,{__index=function(_,key)return function(self,...)
         assert(alive[self],'disposed surface reused')
         calls=calls+1
+        if key=='text' then self.last_text=(...) end
         if key=='pos' or key=='size' then self['last_'..key]={...} end
         -- This layout fixture supplies an already-settled measurement. Deferred
         -- rendering is exercised with real resources in text_settle.lua.
@@ -59,3 +60,27 @@ measurement_ready=true;view:tick(true,960,540);assert(not view.needs_measurement
 local settled=calls;view:tick(true,960,540);assert(calls==settled)
 view:destroy();assert(next(alive)==nil)
 print('L1 companion: actual main compact coordinates/40px icons, following scale, 42 fixed surfaces, 24 clamps, 300 reveal/hide cycles and teardown passed.')
+-- Both new-bank panels reuse these actual compact coordinates and resources.
+settings.CompanionBanks=require('companion_banks').defaults();settings.CrossbarScale=1
+local native_menu=false
+local banks=require('companion_banks').new({settings=settings,clock=function()return now end,
+    context=function()return true,native_menu end,ordinary=function()end,execute=function()end})
+local left=require('l1_view').new({bank=banks:panel('Left'),resources=resources,path='',settings=settings})
+local right=require('l1_view').new({bank=banks:panel('Right'),resources=resources,path='',settings=settings})
+local before=created
+banks:edge(13,true);left:tick(true,960,540);right:tick(true,960,540)
+assert(created==before+42 and left.slots[8].alias.last_text=='Case')
+banks:edge(11,true);left:tick(true,960,540);assert(left.title.last_text=='L1 + L2  Actions')
+banks:edge(11,false);banks:edge(13,false);banks:edge(14,true)
+left:tick(true,960,540);right:tick(true,960,540)
+assert(created==before+84 and right:bounds().x==960-290)
+assert(right.title.last_text=='R1  Trust' and right.slots[8].alias.last_text=='Open Trust')
+banks:edge(12,true);right:tick(true,960,540)
+assert(right.title.last_text=='R1 + R2  NPC')
+assert(right:bounds().x==960-290 and settings.CompanionBanks.RightPanel.Slot1==nil)
+right:tick(false,960,540);assert(right.opacity==0)
+banks:cancel();banks:edge(13,true);native_menu=true;banks:refresh()
+left:tick(false,960,540);assert(left.opacity==0)
+left:tick(true,960,540);assert(left.slots[8].alias.last_text=='Wave')
+left:destroy();right:destroy();assert(next(alive)==nil)
+print('Actual new-bank panels: 84 fixed surfaces, shared side anchors, compact spacing/scale, right recovery, context labels and teardown passed.')
