@@ -10,13 +10,27 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261017.directlink1-text1**; shared wrapper Controls **9.7-realkeys**.
-Reload Lua for this rendering update. Updating from before realkeys1 also requires
-restarting the shared AHK wrapper for the IJKL experiment.
+Runtime: **0.4.0-a.20261018.directlink1-r1menus1**; shared wrapper Controls **9.8-r1-menus**.
+Reload Lua AND restart the shared AHK wrapper for these R1 shortcuts.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
 ## Development roadmap
+
+The [shoulder-bank design](docs/SHOULDER-BANKS.md) records current storage,
+the L1/R1/ordered-trigger plan and compatible migration to one editable system.
+
+Current new shortcuts: R1+Square sends `trust menu close`; R1+Triangle sends
+`trust menu open` directly through Windower. Use profile x with messages ON;
+controller status reports R1 protocol=1 and permission. Both chords consume the
+face press and the R1 hold, so no ordinary face action or release-R follows.
+Native FFXI menus may remain open; chat, XIVCrossbar editors and trigger bars
+exclude these personal commands. Other R1 arrows/Enter/Escape remain available.
+Trust's current menu test branch needs the [explicit-Open addendum](https://github.com/rerorriM-Mirrorer/trust/commit/17d0f9cc1e8dd400c70ae8411e4ff805d9868129)
+supplied with this checkpoint: update only commands/MenuCommands.lua over the
+compatible Test 4 install, reload Trust and check menu status for explicit open.
+Open preserves an existing submenu; Close retains Trust's
+save/validation policy and closes only Trust menus. Native acceptance is pending.
 
 The [current roadmap and render diagnostics](docs/ROADMAP-DIRECTLINK.md)
 separates open repairs, controller ideas, older optional work and completed features.
@@ -837,3 +851,12 @@ finish before current fade/dimming opacity is restored. Companion caching retrie
 stale positive widths too. Adds default-ON //xb textsettle comparison and trace
 states, with actual-source regressions replaying the supplied measurements.
 Lua update only relative to realkeys1; native Windower/FFXI acceptance is pending.
+
+### DirectLink R1 menu checkpoint 1
+
+Adds direct R1+Square Trust Close and R1+Triangle explicit Trust Open through the
+acknowledged message stream. Capability handshake, context/backlog guards,
+one-shot face ownership and neutral waiting prevent duplicate keys/commands.
+Removes the Triangle Ctrl+Numpad shortcut; other R1 controls remain. Includes
+the unified-bank proposal/current storage map. Restart Lua and Controls 9.8;
+Windows/FFXI/Trust acceptance remains pending.

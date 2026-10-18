@@ -1,0 +1,117 @@
+# Shoulder banks: current storage and proposed unification
+
+Author A. October 18, 2026. Current direct-R1 shortcut checkpoint follows
+a30638dd1475fab9a7b8f094578c596eba3eb38e on development/directlink.
+This document proposes the full bank system; only the two R1 Trust commands
+are implemented by this checkpoint.
+
+## What exists now
+
+| Layer | Action source | Persistence / editing |
+| --- | --- | --- |
+| L1 | personal_controls.ahk fixed Ctrl shortcuts; l1_bank.lua reference labels | Not editable bank entries yet. |
+| L1 then L2 | l1_bank.lua executes the saved console command | Installed data/settings.xml, L1.Slot1 through Slot8, each Alias/Command. //xb l1 edits this layer. |
+| R1 | AHK arrows/Enter/Escape; unused release R. Square/Triangle request direct Trust close/open through Lua. | Existing native shortcuts remain code; the two command strings are in the Lua receiver. No editable R1 bank settings yet. |
+| R1 then R2 | Proposed NPC interaction layer | Not implemented or stored yet. |
+
+L1 slot numbering is Left, Down, Right, Up, Square, Cross, Circle, Triangle.
+For example //xb l1 1 Wardrobe "input /wardrobe" writes the L1->L2 Left slot;
+it does not change bare L1. //xb l1 status reports that current bank.
+Config.save writes the current character's settings through Windower config.
+These entries are not in job bar XMLs or CustomActions.xml. The data/personal-
+controls/*.ini/.l1/.buttons files are temporary communication, not binding storage.
+
+Current R1 commands require profile x, messages ON, updated Lua and Controls 9.8.
+Square sends trust menu close; Triangle sends trust menu open. A matching Trust
+test addendum supplies explicit Open; older Trust builds may route open through
+their default menu handler. Close affects Trust's menu stack, with eligible saves
+and validation; it does not dismiss NPC dialogue or other addons' menus.
+That addendum is published at Trust commit
+17d0f9cc1e8dd400c70ae8411e4ff805d9868129; only commands/MenuCommands.lua needs
+updating at runtime over the existing compatible Menu options Test 4 install.
+
+windower.send_command('trust menu close') enters Windower's command dispatcher
+directly. The // prefix is the game-chat way to invoke that dispatcher. Sending
+input //trust ... would add the game/chat input path. Native menu arrows and
+scroll shortcuts can still require AHK keyboard delivery; a console command does
+not replace every keyboard input the FFXI client accepts.
+
+## Proposed configuration
+
+Keep character-specific bank definitions with current Windower settings, rather
+than scattering them across AHK and job files. Introduce a versioned
+CompanionBanks section in data/settings.xml with named L1, L1L2, R1, R1R2 layers.
+Each layer supports closed-menu and native-menu entries. Keep two panel position/
+scale/lock settings: left for L1/L1L2, right for R1/R1R2. Both layers on each side
+reuse the same panel and compact geometry.
+
+Each slot initially needs a label, action kind (console command or native key),
+command or key/modifier values, and native-menu permission. Slot buttons use
+names such as left, up, square and triangle instead of requiring numeric memory.
+Rendering reads the same definition as execution, so a label cannot keep saying
+Ctrl+Q after its action becomes Sack. Stable custom-action catalog references can
+be added later without copying commands into every job set.
+
+Migrate existing L1.SlotN Alias/Command into CompanionBanks.L1L2 once, preserving
+user content and the old section for recovery. Seed bare L1/R1 from current or
+explicitly chosen mappings only when no saved entry exists. A schema version
+makes this adoption one-time, so later releases do not overwrite personal edits.
+Keep //xb l1 as a compatibility editor for L1L2. Proposed new commands are
+//xb bank <l1|l1l2|r1|r1r2> <button> <label> <command...>, plus key assignment,
+clear, status and preview. These new bank commands are not available yet.
+
+## Input and context ownership
+
+Use one ordered shoulder/button stream into one Lua bank state machine. Lua
+chooses the layer and evaluates context, then either executes a console command
+or requests the required native key down/up from AHK. AHK remains the hardware
+reader and native key sender. The two R1 menu requests in this checkpoint are a
+small use of the existing stream, not the complete bidirectional key service.
+
+Preserve physical order: L2 before L1 stays ordinary L2; L1 before L2 reveals
+L1L2. Releasing L2 while L1 remains held reveals bare L1. Apply the equivalent
+rule on R1/R2 when adding that ordered bank. Same-sample trigger/shoulder presses
+prefer ordinary bars. Preserve existing L1+R1 Tab rather than filling every
+possible combination; define priority explicitly if both sides overlap.
+
+A press retains its owner until release. Changing menus/layers consumes any
+already-held slot; it cannot turn that same hold into another action. A used R1
+hold never emits the unused-release R. Focus, chat, cutscene, disconnect, stale
+communication and addon/editor transitions release owned native keys and cancel
+pending actions. Rearm at neutral for session/client changes.
+
+Keep native-menu visibility and action permission separate. Companions remain
+hidden over native menus by default, while explicitly menu-capable actions can
+run. Existing arbitrary saved L1L2 commands migrate as closed-menu-only. Trust
+open/close and deliberate native scroll/navigation can allow native menus.
+Chat, text capture and XIVCrossbar editors have priority over personal banks.
+The broad menu_open flag does not identify which NPC/item menu is displayed.
+
+## Intended layers
+
+| Layer | Intended role |
+| --- | --- |
+| L1, native menu closed | Up Items/Ctrl+I; Right Equipment/Ctrl+E; Left Wardrobe; Down Wardrobe 2; Triangle Case; Square Sack; Circle Satchel; Cross Jump. Use direct input / commands for the game actions. |
+| L1, native menu open | Up Ctrl+Left; Down Ctrl+Right; Left Alt+Left; Right Alt+Right; Triangle Wave; Square Bow; Circle Nod; Cross Jump. Native key chords for scrolling; direct commands for emotes. |
+| L1->L2 | Mostly free for testing/utility entries; NPC use remains an option, not prefilled. Preserve existing saved entries. |
+| R1 | Trust navigation/reference: arrows, confirm/back, Triangle Open, Square Close; bare unused release R. |
+| R1->R2 | NPCMirror/NPC interaction commands once their precise verbs are chosen; upper-right panel. Preserve R2-first ordinary bars. |
+
+The L1 context maps above remain desired changes, not installed mappings.
+Avoid using display visibility as permission to execute an action, and avoid
+guessing commands for the unfilled NPC layer.
+
+## Implementation batches
+
+1. Deliver/test the direct R1 open/close shortcuts and Trust's explicit Open.
+2. Add versioned configuration/migration plus typed command/key execution and
+   an editable-bank API. Test old settings and source-owned press releases.
+3. Move bare L1 and L1L2 onto it; add contextual native-menu mapping and shared
+   labels/rendering while preserving ordered ordinary trigger behavior.
+4. Move R1 onto the same definition, add its compact reference, then implement
+   ordered R1R2 and its chosen NPC entries. Validate both release orders and
+   simultaneous edges before extending other controller profiles.
+
+Use simulated state/ownership tests for the context/order boundaries, followed
+by Windows/FFXI tests for keyboard delivery, menu interception and multibox
+handoff. AHK messages cannot by themselves confirm that a game command succeeded.

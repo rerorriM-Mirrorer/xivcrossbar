@@ -8,7 +8,7 @@ PersonalInit(selected, prefix) {
         , layer:{phase:"idle"}, layerVisible:""
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
-        , targetR2:false, targetR3:false, realDpad:false}
+        , targetR2:false, targetR3:false, realDpad:false, r1Menus:false}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
@@ -64,6 +64,10 @@ PersonalPoll(states, active) {
             states[A_Index] := states[A_Index] and held
         }
         PersonalL1Block(raw)
+        if (raw.r1 and !raw.l1 and !raw[11] and !raw[12])
+            for _, i in [6, 8]
+                if (raw[i])
+                    PC.blocked[i] := ""
         return PersonalFilter(states, raw)
     }
     if (PC.contextPaused)
@@ -89,6 +93,10 @@ PersonalPoll(states, active) {
         }
         if (allowed)
             PersonalL1Block(raw)
+        if (allowed and raw.r1 and !raw.l1)
+            for _, i in [6, 8]
+                if (raw[i])
+                    PC.blocked[i] := ""
         PC.previous := raw
         return PersonalFilter(states, raw)
     }
@@ -148,10 +156,11 @@ PersonalPoll(states, active) {
             if (raw[i] and !PC.previous[i])
                 PC.blocked[i] := arrows[i]
         }
-        for i, key in {5:"Enter", 7:"Escape", 8:"NumpadAdd"} {
+        PersonalR1Menus(raw, mode, now)
+        for i, key in {5:"Enter", 7:"Escape"} {
             if (raw[i] and !PC.previous[i]) {
                 PC.blocked[i] := key
-                taps.Push({key:key, modifier:i = 8 ? "LControl" : ""})
+                taps.Push({key:key, modifier:""})
             }
         }
     } else if (raw.l1 and raw.r1) {
@@ -239,6 +248,31 @@ PersonalNativeDPad(states, raw, mode, now) {
     }
 }
 
+; R1 + Square/Triangle owns the face through release. Never synthesize its
+; ordinary game binding or a Ctrl+Numpad shortcut alongside the direct message.
+PersonalR1Menus(raw, mode, now) {
+    global PC, CM, appsOwned
+    eligible := PC.r1Menus and PC.ready and mode = "gameplay" and !appsOwned
+        and CM.requested and CM.phase = "messages" and now - CM.seen <= 100
+        and CM.pending.Length() < 96 and !PC.keys.Count()
+        and (!CM.pending.Length() or now - CM.pending[1].tick <= 350)
+        and !raw.l1 and raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
+        and !(raw[6] and raw[8])
+    for _, i in [1, 2, 3, 4, 5, 7, 9, 10, 11, 12]
+        if (raw[i])
+            eligible := false
+    for _, i in [6, 8] {
+        if (raw[i] and !PC.blocked.HasKey(i)) {
+            PC.blocked[i] := ""
+            if (eligible and !PC.previous[i]) {
+                ControllerMessageAdd("rmenu", i)
+                ControllerMessageFlush(true)
+                InputTraceRecord("R1 Trust menu button=" . i)
+            }
+        }
+    }
+}
+
 PersonalR1Tap(raw, consumed, now) {
     global PC
     ; Preserve physical keyboard ownership and avoid modified R shortcuts.
@@ -301,6 +335,7 @@ PersonalContext(hwnd) {
             if (age >= -1 and age <= 2) {
                 ControllerMessageLease(lease, A_LoopFileFullPath)
                 PersonalRealKeyLease(lease)
+                PersonalR1MenuLease(lease)
                 PersonalL1Lease(lease, A_LoopFileFullPath)
                 return mode1
             }
@@ -324,6 +359,15 @@ PersonalRealKeyLease(lease) {
 
 ; A: complete mailbox snapshots; only Lua's current session token may receive
 ; edges. No F13/media-key experiment, synthetic menu keys or process IPC hook.
+PersonalR1MenuLease(lease) {
+    global PC, CM
+    enabled := CM.requested and RegExMatch(lease, "m)^r1_menus=1\r?$") ? true : false
+    if (enabled != PC.r1Menus) {
+        PersonalRelease()
+        PC.r1Menus := enabled
+    }
+}
+
 PersonalL1Lease(lease, contextPath) {
     global PC
     ; Native menu toggles still use keyboard shortcuts on the L1 layer. Only

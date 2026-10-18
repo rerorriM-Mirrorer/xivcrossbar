@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.directlink1-text1'
+_addon.version = '0.4.0-a.20261018.directlink1-r1menus1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -73,7 +73,7 @@ local text_input_guard = require('text_input_guard')
 local personal_controls = require('personal_controls').new()
 local publish_personal_context
 local controller_message_bridge
-local message_capture, message_button, message_cancel
+local message_capture, message_button, message_cancel, message_menu
 local message_epoch=0
 local visibility = require('visibility')
 local storage = require('storage')
@@ -126,6 +126,7 @@ controller_message_bridge=require('controller_messages').new({session=require('w
     clock=l1_clock,wallclock=os.time,
     capture=function(pressed) if message_capture then message_capture(pressed) end end,
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
+    menu=function(button) if message_menu then message_menu(button) end end,
     cancel=function() if message_cancel then message_cancel() end end})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui_drag').new({
@@ -368,6 +369,11 @@ local function report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
             ' | active route=' .. (status.button_route or 'keys') .. ' | key fallback=' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if status.profile=='ps5-extended' then
+            windower.add_to_chat(0,'[XIVCrossbar] R1 Trust menu commands: wrapper protocol='..(status.r1_menu_protocol or 'absent')..
+                ' | permission='..(status.r1_menus or '0')..' | requires messages route')
+            if settings.ControllerMessages and status.r1_menu_protocol~='1' then
+                windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for direct R1 Trust menu commands (Controls 9.8 required).')
+            end
             windower.add_to_chat(0,'[XIVCrossbar] IJKL output permission='..(status.dpad_output or 'lua')..
                 ' | AHK realkeys protocol='..(status.realkeys_protocol or 'absent')..' (context/combo guards still apply)')
             if settings.ControllerRealKeys and status.realkeys_protocol~='1' then
@@ -1989,6 +1995,21 @@ message_button = function(dik,pressed,flags,blocked)
     handle_controller_key(item.logical, pressed, flags, blocked)
     return true
 end
+-- A: two deliberate personal commands share the acknowledged button stream.
+-- Trust owns its own menu/editor policy; native FFXI menus may remain open.
+message_menu = function(button)
+    if restart_pending or not xivcrossbar.ready or settings.ControllerProfile~='ps5-extended'
+        or not settings.ControllerMessages or settings.InputTest or not windower.has_focus()
+        or input_context()~='gameplay' then return false end
+    local info=windower.ffxi.get_info()
+    local character=windower.ffxi.get_player()
+    if not info.logged_in or info.chat_open or not character or character.status==4 then return false end
+    local command=button==6 and 'trust menu close' or button==8 and 'trust menu open' or nil
+    if not command then return false end
+    windower.send_command(command)
+    return true
+end
+
 message_cancel = function()
     local chooser_held=set_chooser_button_down or action_binder.chooser_active
     release_gameplay_keys();transport:reset()
@@ -2046,6 +2067,7 @@ publish_personal_context = function()
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
             realkeys=require('controller_realkeys').enabled(settings,controller_message_bridge.token),
+            r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)

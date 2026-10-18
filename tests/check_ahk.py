@@ -32,7 +32,8 @@ assert wrapper.index('instanceMutex := AcquireWrapperMutex()')<wrapper.index('On
 controls=sources[root/'personal_controls.ahk']
 assert 'enabled:selected = "ps5-extended"' in controls
 assert not any(x in controls for x in ['JoyR','raw.zoom','nextZoom','zoomArmed'])
-assert 'modifier:i = 8 ? "LControl" : ""' in controls
+assert 'PersonalR1Menus(raw, mode, now)' in controls
+assert 'NumpadAdd' not in controls
 assert 'raw.r1 and !raw.l1' in controls
 assert 'Mod(index - 1 + direction + ordered.Length(), ordered.Length())' in controls
 assert 'PC.owner != WinActive("ahk_class FFXiClass")' in controls

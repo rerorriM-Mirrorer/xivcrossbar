@@ -60,6 +60,7 @@ settings.ControllerMessages=true;info.chat_open=false;info.menu_open=false;chara
 step();local messages=env.controller_message_bridge;local message_token=messages.token
 assert(env_lease.messages and env_lease.button_token==message_token)
 info.menu_open=true;step();assert(bridge.token==nil and messages.token==message_token)
+assert(env_lease.r1_menus,'native menu revoked direct R1 permission')
 files['addon/data/personal-controls/Test.buttons']='token='..message_token..'\nstamp=100\nbeat=10\n1,down,11\nEND\n'
 step();assert(messages.captured and env_lease.button_ack==1)
 focused=false;step();assert(messages.token==nil and not messages.captured)
@@ -71,6 +72,7 @@ step();assert(not env_lease.realkeys,'real output without message session')
 settings.ControllerMessages=true;step();assert(env_lease.realkeys)
 info.menu_open=true;step();assert(bridge.token==nil and env_lease.realkeys,'native menu disabled IJKL')
 settings.InputTest=true;step();assert(not env_lease.realkeys)
+assert(not env_lease.r1_menus,'input test authorized real R1 commands')
 settings.InputTest=false;settings.GameplayDPad='arrows';step();assert(not env_lease.realkeys)
 settings.GameplayDPad='ijkl';focused=false;step();assert(not env_lease.realkeys)
 focused=true;character.status=4;step();assert(not env_lease.realkeys)

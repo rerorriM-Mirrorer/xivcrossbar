@@ -9,6 +9,20 @@ The chronological Personal notes below remain historical provenance.
 
 ---
 
+# DirectLink R1 menu checkpoint 1
+
+Runtime directlink1-r1menus1; Controls=9.8-r1-menus. Restart Lua AND the wrapper.
+Profile x/messages on: R1+Square sends trust menu close; R1+Triangle sends trust
+menu open. The matching Trust addendum adds explicit Open. Once per fresh face
+press; both face and R1 hold are consumed, with no native face, Ctrl+Numpad or
+release-R. Native FFXI menus are permitted; chat/editors/triggers are excluded.
+Trust Close retains editor save/validation and only closes Trust's own stack.
+R1 arrows/Enter/Escape and bare unused-release R remain. Other profiles keep
+their ordinary transport. See docs/SHOULDER-BANKS.md for current storage and the
+proposed unification. Larger editable banks remain proposals; native tests pending.
+
+---
+
 # DirectLink text settling checkpoint 1
 
 Runtime directlink1-text1; unchanged Controls=9.7-realkeys. Reload Lua after

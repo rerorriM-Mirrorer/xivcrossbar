@@ -4,7 +4,10 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const source=fs.readFileSync('personal_controls.ahk','utf8');
 function extract(name){const a=source.indexOf('\n'+name+'(')+1;assert(a>0);
   return source.slice(a,source.indexOf('\n}\n',a)+2);}
-let code=['PersonalPoll','PersonalNativeDPad','PersonalFilter','PersonalRealKeyLease','PersonalKey','PersonalRelease'].map(extract).join('\n');
+const gestures=fs.readFileSync('personal_gestures.ahk','utf8');
+const r1start=gestures.indexOf('\nPersonalR1Step(')+1;
+let code=gestures.slice(r1start,gestures.indexOf('\n}\n',r1start)+2)+'\n'+
+  ['PersonalPoll','PersonalNativeDPad','PersonalR1Menus','PersonalR1MenuLease','PersonalR1Tap','PersonalFilter','PersonalRealKeyLease','PersonalKey','PersonalRelease'].map(extract).join('\n');
 code=code.replace(/^\s*global .*$/gm,'').replace(/^\s*;[^\n]*$/gm,'')
   .replace(/SendEvent, % ([^\n]+)/g,'SendEvent($1)')
   .replace(/ControlSend,, % ([^\n]+), ahk_id %owner%/g,'ControlSend($1,owner)');
@@ -22,17 +25,18 @@ function* ahkEnum(o){if(Array.isArray(o)){for(let i=0;i<o.length;i++)yield[i+1,o
     const k=keys[index++];yield[/^\d+$/.test(k)?Number(k):k,o[k]];}}
 function object(v={}){return Object.defineProperties(v,{Delete:{value:k=>delete v[k]},
   Count:{value:()=>Object.keys(v).length},HasKey:{value:k=>Object.hasOwn(v,k)}});}
-const emitted=[],traces=[],physical=new Set();let active=1;
+const emitted=[],traces=[],messages=[],physical=new Set();let active=1;
 const ctx={PC:{},CM:{},appsOwned:false,ahkEnum,GetKeyState:k=>physical.has(k),
   WinActive:()=>active,WinExist:()=>active,
   SendEvent:s=>emitted.push(['send',s]),ControlSend:(s,o)=>emitted.push(['control',s,o]),
-  InputTraceRecord:s=>traces.push(s),IsObject:o=>o&&typeof o==='object',PersonalL1Event:()=>{},
+  InputTraceRecord:s=>traces.push(s),ControllerMessageAdd:(kind,button)=>messages.push([kind,button]),
+  ControllerMessageFlush:()=>true,IsObject:o=>o&&typeof o==='object',PersonalL1Event:()=>{},
   RegExMatch:(s,pattern)=>new RegExp(pattern.slice(2),'m').test(s)};
 vm.createContext(ctx);vm.runInContext('Array.prototype.Push=Array.prototype.push;Array.prototype.Length=function(){return this.length};\n'+code,ctx);
 function fresh(){ctx.PC={enabled:true,owner:1,ready:true,realDpad:true,keys:object(),releases:object(),
-  previous:{},blocked:object(),suppressed:object(),layer:{phase:'idle'},touch:{},clicks:{},r1:{}};
-  ctx.CM={requested:true,phase:'messages',seen:100};ctx.appsOwned=false;
-  active=1;physical.clear();emitted.length=0;traces.length=0;}
+  previous:{},blocked:object(),suppressed:object(),layer:{phase:'idle'},touch:{},clicks:{},r1:{phase:'idle'}};
+  ctx.CM={requested:true,phase:'messages',seen:100,pending:{Length:()=>0}};ctx.appsOwned=false;
+  active=1;physical.clear();emitted.length=0;traces.length=0;messages.length=0;}
 function step(raw={},mode='gameplay',now=100){const states={...raw};ctx.PersonalNativeDPad(states,raw,mode,now);
   ctx.PersonalFilter(states,raw);ctx.PC.previous={...raw};return states;}
 const map={1:'i',2:'l',3:'k',4:'j'};
@@ -85,8 +89,8 @@ assert(!/Sleep,|SetKeyDelay,/.test(extract('PersonalNativeDPad')));
 Object.assign(ctx,{previous:{},DllCall:()=>100,PersonalPS:()=>{},PersonalOtherWindow:()=>false,
   PersonalReleaseDue:()=>{},PersonalContext:()=>ctx.mode,PersonalLeasePause:()=>false,
   PersonalTargetTrial:()=>{},PersonalLayerStep:()=>'',PersonalL1Block:()=>{},
-  PersonalTouchStep:()=>'',PersonalClicksStep:()=>'',PersonalR1Tap:()=>{},
-  PersonalChord:()=>{},ReleaseTransport:()=>{},mode:'gameplay'});
+  PersonalTouchStep:()=>'',PersonalClicksStep:()=>'',
+  PersonalChord:(key)=>messages.push(['key',key]),ReleaseTransport:()=>{},mode:'gameplay'});
 function poll(raw={}){const original=ctx.GetKeyState;
   ctx.GetKeyState=k=>{const named={Joy5:'l1',Joy6:'r1',Joy11:'l3',Joy12:'r3',Joy13:'ps',Joy14:'touch',Joy15:'mute'};
     return named[k]?!!raw[named[k]]:physical.has(k);};
@@ -99,3 +103,35 @@ fresh();Object.assign(ctx.PC,{connected:true,prefix:'',layerVisible:''});
 poll({1:true});assert.equal(poll({1:true,12:true})[1],false);poll({1:true});poll();
 assert.equal(emitted.filter(e=>e[1].includes('{i down}')).length,1,'trigger transition re-fired direction');
 console.log('Actual AHK real IJKL: full-poll integration, direction mapping, once-per-hold, masking, chord/context transitions, neutral routes, modifiers, physical-key ownership, client cleanup and lease compatibility passed.');
+for(const button of [6,8]){
+  fresh();Object.assign(ctx.PC,{connected:true,prefix:'',layerVisible:'',r1Menus:true});
+  const raw={r1:true,[button]:true};assert.equal(poll(raw)[button],false);poll(raw);
+  poll({r1:true});poll();assert.deepEqual(messages,[['rmenu',button]],'R1 command repeated or failed');
+  assert(!emitted.some(e=>/Numpad|\{(Enter|Escape|r) down\}/.test(e[1])),'command also injected shortcut/game key');
+}
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',layerVisible:'',r1Menus:true});
+poll({r1:true});poll();assert.deepEqual(messages,[['key','r']],'bare unused R1 no longer emits R');
+for(const extra of [{l1:true},{l3:true},{r3:true},{touch:true},{ps:true},{mute:true},
+  ...[1,2,3,4,5,7,9,10,11,12].map(i=>({[i]:true})),{6:true}]){
+  fresh();ctx.PC.r1Menus=true;ctx.PersonalR1Menus({r1:true,8:true,...extra},'gameplay',100);
+  assert.deepEqual(messages,[]);assert(ctx.PC.blocked.HasKey(8),'excluded Triangle leaked');
+}
+for(const mode of ['crossbar','text','menu:1','setup','unknown']){
+  fresh();ctx.PC.r1Menus=true;ctx.PersonalR1Menus({r1:true,8:true},mode,100);assert.deepEqual(messages,[]);
+}
+for(const configure of [()=>ctx.PC.r1Menus=false,()=>ctx.CM.requested=false,()=>ctx.CM.phase='neutral',
+  ()=>ctx.CM.phase='backpressure',()=>ctx.CM.seen=-1,()=>ctx.PC.keys.Enter=1,()=>ctx.CM.pending.Length=()=>96]){
+  fresh();ctx.PC.r1Menus=true;configure();ctx.PersonalR1Menus({r1:true,8:true},'gameplay',100);
+  assert.deepEqual(messages,[]);assert(ctx.PC.blocked.HasKey(8));
+}
+fresh();ctx.PC.r1Menus=true;ctx.CM.pending={1:{tick:-251},Length:()=>1};
+ctx.PersonalR1Menus({r1:true,8:true},'gameplay',100);assert.deepEqual(messages,[],'menu bypassed stale backlog cancellation');
+fresh();ctx.PC.r1Menus=true;ctx.PC.previous[8]=true;
+ctx.PersonalR1Menus({r1:true,8:true},'gameplay',100);assert.deepEqual(messages,[],'face-first gesture became a new command');
+fresh();ctx.PersonalR1MenuLease('r1_menus=1\n');assert(ctx.PC.r1Menus&&!ctx.PC.ready);
+ctx.PC.ready=true;ctx.PersonalR1MenuLease('r1_menus=1\n');assert(ctx.PC.ready);
+ctx.PersonalR1MenuLease('l1token=older\n');assert(!ctx.PC.r1Menus&&!ctx.PC.ready);
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',layerVisible:'',r1Menus:true,ready:false});
+assert.equal(poll({r1:true,6:true})[6],false,'waiting-neutral R1 Square leaked');assert.deepEqual(messages,[]);
+assert(!/PersonalChord|PersonalKey|SendEvent|NumpadAdd/.test(extract('PersonalR1Menus')));
+console.log('Actual AHK R1 menu sender: full-poll one-shot masking, face-first suppression, combo/context/transport guards, no native shortcut and old-Lua capability handoff passed.');

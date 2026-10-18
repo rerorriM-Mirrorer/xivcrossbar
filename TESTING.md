@@ -1,3 +1,70 @@
+# R1 Trust menu checkpoint 1 — October 18, 2026 (America/Chicago)
+
+Author A. development/directlink, based on a30638dd1475fab9a7b8f094578c596eba3eb38e.
+Runtime 0.4.0-a.20261018.directlink1-r1menus1; Controls=9.8-r1-menus.
+Adds the two requested R1 shortcuts and the shoulder-bank implementation proposal.
+Exact publication is identified by Git/delivery. Public RC3 and snapshot preserved.
+
+## Install and live acceptance — pending
+
+1. Preserve installed settings/data/artwork. Stop the shared wrapper and unload
+   Lua in all clients; update DirectLink, then reload Lua and restart AHK. Confirm
+   inputstatus runtime and controller status Controls=9.8-r1-menus, R1 protocol=1.
+   Use profile x and //xb messages on. Return controls to neutral.
+2. Update Trust's commands/MenuCommands.lua from the explicit-Open addendum over
+   the compatible Menu options Test 4 install and reload Trust. Its menu status
+   reports explicit open: true. The previous handler had no registered open verb;
+   a request fell through to the default menu handler. Do not infer idempotence
+   from that older path. Existing close is available in the earlier menu tests.
+   Published Trust addendum: 17d0f9cc1e8dd400c70ae8411e4ff805d9868129.
+3. Press R1+Triangle: Trust opens. Repeat while deep in an editor: the current
+   submenu/cursor/draft should stay. Press R1+Square: all Trust levels close,
+   saving eligible edits. Invalid drafts can keep the menu open with feedback;
+   discard is not implicit. No NPC dialogue/other-addon close is intended.
+4. Hold each face, release in both orders, press the face before R1, and try both
+   faces together. Expect at most one command from a fresh eligible face, no
+   ordinary Square/Triangle game action, no Ctrl+Numpad pulse, and no extra R
+   on R1 release. Bare unused R1 still sends R; arrows/Enter/Escape still work.
+5. Check native-menu-open, chat/text, XIVCrossbar editor/chooser, L1, L2/R2 both
+   orders, focus/client handoff, restart/disconnect and brief/stale leases. Native
+   menus permit Trust commands; other contexts have priority. Try messages off
+   at neutral: these new personal command slots stay reserved without injecting
+   a native shortcut. Restore messages on for direct menu commands.
+6. Trace if needed: R1 Trust menu button=6/8, message rmenu button=6/8 and current
+   Controls version. Protocol/permission show route support, not a live receipt
+   or successful Trust save. The new bank API in docs remains proposed.
+
+## Implementation and local verification
+
+Reviewed project/shared workflow, testing history and exact starting tree: all
+2,268 local blobs matched GitHub. Inspected current Trust main and menu test
+branch (31245d39fce64847db755e7c900d6bf111624c07); close exists only in the latter,
+and open was not an explicit verb. A coordinated one-runtime-file Trust addendum
+uses its existing HUD open method and preserves close validation. No Trust data,
+preferences, menus/rendering or profile save algorithm changes are needed here.
+
+Two whitelisted rmenu events use the same ordered/acknowledged DirectLink stream.
+The receiver validates the entire packet before dispatch and advances the ack
+before execution. Cancel preempts queued menu requests. A separate lease field
+advertises the capability independently of the L1 native-menu visibility token.
+Old senders remain on their previous controls; new AHK cannot send extended
+events to older Lua without the advertised permission. Both sender and receiver
+check context; sender also checks transport freshness/backlog and consumes the
+face hold. Uncertain/neutral transitions suppress new menu-face output. Existing
+R1 consumed-hold state prevents later release-R.
+
+Actual-source tests cover the full AHK poll/menu sender/R1 release machine,
+once-only messages, held/face-first/ambiguous chords, raw masking, native-key
+absence, guards and capability handoff. Lua tests run the actual root guard and
+real receiver for ordering/dedup/atomic rejection/cancel/context rules. Existing
+six-bar/menu/chooser/lease, IJKL, R1/F8 and trace regressions pass; AHK lexical/
+include/function checks pass. All 114 Lua sources parse with the documented
+Lua 5.4 normalization fallback. Trust checks use its actual menu command and HUD
+open method plus actual base dispatcher; OS/rendering are mocked. Native Windows/
+Windower/FFXI/Trust acceptance remains pending. Historical records follow unchanged.
+
+---
+
 # Text settling checkpoint 1 — October 17, 2026 (America/Chicago)
 
 Author A. development/directlink, based on 6a0052fe23e83157f62f9abfefd2731dbf1d559c.
