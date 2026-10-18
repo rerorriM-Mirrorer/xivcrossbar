@@ -9,6 +9,22 @@ The chronological Personal notes below remain historical provenance.
 
 ---
 
+# DirectLink real IJKL checkpoint 1
+
+Runtime directlink1-realkeys1; Controls=9.7-realkeys. Restart Lua AND the wrapper.
+Default OFF. //xb realkeys on requires profile x, messages on, dpad ijkl and
+inputtest off. Return to neutral. Ordinary D-pad Up/Right/Down/Left emits AHK
+I/L/K/J while its DirectLink equivalent is masked. Existing triggers, L1/R1
+chords, R1 unused-release R, R3 F8/R and native-menu companion hiding remain.
+Chat/XIV editors, triggers, other buttons and physical modifiers exclude the
+real-key route. Context/chord loss releases owned keys; consumed directions
+remain masked until physical release. //xb realkeys off restores Lua output.
+Controller status distinguishes configuration, wrapper support and permission;
+permission alone does not prove a key fired. This thread does not change Trust.
+Source/simulated checks pass; native Windows/FFXI/Trust acceptance is pending.
+
+---
+
 # DirectLink R1 checkpoint 1
 
 Runtime directlink1-r1test1; Controls=9.6-r1-r. Restart Lua AND the shared wrapper.

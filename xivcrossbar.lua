@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261017.directlink1-r1test1'
+_addon.version = '0.4.0-a.20261017.directlink1-realkeys1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -358,6 +358,7 @@ local function report_controller_status()
     local status = controller_status()
     windower.add_to_chat(207,'[XIVCrossbar] Controller messages configured='..tostring(settings.ControllerMessages)..
         ' | received='..controller_message_bridge.received..' | rejected='..controller_message_bridge.rejected)
+    windower.add_to_chat(207,'[XIVCrossbar] Real IJKL configured='..tostring(settings.ControllerRealKeys==true))
     if status and status.running then
         if settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' and status.button_protocol~='1' then
             windower.add_to_chat(123,'[XIVCrossbar] Restart the AHK wrapper for controller messages (Controls 9.5 required).')
@@ -365,6 +366,11 @@ local function report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
             ' | active route=' .. (status.button_route or 'keys') .. ' | key fallback=' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if status.profile=='ps5-extended' then
+            windower.add_to_chat(0,'[XIVCrossbar] IJKL output permission='..(status.dpad_output or 'lua')..
+                ' | AHK realkeys protocol='..(status.realkeys_protocol or 'absent')..' (context/combo guards still apply)')
+            if settings.ControllerRealKeys and status.realkeys_protocol~='1' then
+                windower.add_to_chat(123,'[XIVCrossbar] Restart the updated AHK wrapper for real IJKL (Controls 9.7 required).')
+            end
             windower.add_to_chat(207, '[XIVCrossbar] Personal: '..(status.personal_context or 'starting')..
                 ' | Controls='..(status.personal_version or 'older wrapper; stop/start required')..
                 ' | PS='..(status.ps_action or status.ps_hold or 'unknown')..
@@ -1089,6 +1095,7 @@ function display_help_menu()
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
+    help.command('realkeys [on|off|status]','Test AHK keyboard IJKL in ordinary gameplay; default OFF, bare toggles.')
     help.command('scale <0.25-2>','Scale crossbars independently of menus.')
     help.command('compact [on|off]','Switch layout immediately; bare toggles.')
     help.command('show','Show crossbars.')
@@ -1275,6 +1282,17 @@ windower.register_event('addon command', function(command, ...)
         l1_bank:command({...})
         l1_epoch=l1_epoch+1
         if publish_personal_context then publish_personal_context() end
+        return
+    elseif command == 'realkeys' then
+        local changed=require('controller_realkeys').command(settings,(...),
+            function() config.save(settings) end,
+            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+        if changed then
+            release_gameplay_keys()
+            message_epoch=message_epoch+1
+            controller_message_bridge:reset()
+            if publish_personal_context then publish_personal_context() end
+        end
         return
     elseif command == 'messages' then
         local changed=require('controller_messages').command(settings,(...),
@@ -2019,6 +2037,7 @@ publish_personal_context = function()
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
+            realkeys=require('controller_realkeys').enabled(settings,controller_message_bridge.token),
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)

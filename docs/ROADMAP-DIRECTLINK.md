@@ -21,6 +21,53 @@ simulated/live results, and use small development changes.
 
 ## Immediate work
 
+### October 17 update: input ownership before new banks
+
+The opt-in real-IJKL comparison is implemented on development/directlink,
+default OFF. //xb realkeys on lets AHK own ordinary D-pad I/L/K/J and mask those
+directions from DirectLink; no duplicate Lua setkey is emitted for that gesture.
+Requires profile x/messages on/dpad ijkl/inputtest off, updated Lua and AHK,
+and neutral handoff. This is a small routing experiment, not the general Lua
+gesture owner/native-key output service proposed below. Trust consumption is
+separate work in its own conversation; no integration success is claimed here.
+
+Recommended sequence:
+
+1. Validate real IJKL with Trust closed/open, native menus, every trigger order,
+   held-direction transitions and client/focus/lifecycle cleanup. Easiest useful
+   experiment; establishes which keyboard events Trust actually receives.
+2. Fix text settling from the supplied capture, an isolated high-visibility
+   repair. Frame 334 object 546 Ctrl+Space is shown at alpha 255 with width 0
+   and x=238; frame 335 width 73 moves x to 201.5. Other changed captions can
+   report a stale positive width, so testing only for zero is insufficient.
+   Caption/font/size/scale-aware measurement reuse and a bounded invisible
+   settling pass are candidates; no rendering fix is included here.
+3. Establish one context/press-ownership contract before new bank execution.
+   Lua decides meaning; AHK handles hardware and required Windows key output.
+   Keep visibility separate from action permission and retain each press's
+   owner through release. This is the most foundational design work.
+4. Add editable per-layer labels/actions and contextual L1, then R1 Trust and
+   ordered R1->R2 NPC interaction banks. L1->L2 remains mostly free for tests;
+   trigger-first orders keep ordinary bars. Do not fill NPC commands speculatively.
+5. Centralize asset paths/legacy references, then migrate the default pack to
+   images/icons/default and optionally themes to images/themes. Shared numeric
+   fallback art can serve partial alternate packs; no duplication requirement.
+6. Move broader module families last, in small loader-tested batches. Folder
+   churn should not be coupled to input behavior or text layout repairs.
+
+Latest desired L1 closed-menu map (not implemented): Up Items/Ctrl+I, Right
+Equipment/Ctrl+E, Left input /wardrobe, Down input /wardrobe2; Triangle Case,
+Square Sack, Circle Satchel, Cross Jump, with direct game commands where
+appropriate. Native-menu map: Up Ctrl+Left, Down Ctrl+Right, Left Alt+Left,
+Right Alt+Right; Triangle Wave, Square Bow, Circle Nod, Cross Jump. These
+supersede older equipment-on-R1 brainstorming below. Keep companion hidden
+in native menus; arbitrary saved bank execution remains guarded by default.
+
+Other retained follow-ups: exact per-bank editing commands, multibox/neutral
+acceptance, a separate public RC3 port, other-controller message profiles,
+optional mute-held bank and success-confirmed temporary-bank return. Movement
+receiver remains separate; only the old standalone L1 addon is redundant.
+
 | Item | State and intended result |
 | --- | --- |
 | Quiet render trace | Implemented, local checks pass; live capture needed. Default OFF, 6,000-event memory ring, explicit save, no overlay or extra native measurements. |

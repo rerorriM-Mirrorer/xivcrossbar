@@ -10,7 +10,9 @@ config={load=function() return fixture end,save=function(t)
     assert(t.Hotbar.Number==4,'saved bar count was overwritten by new defaults')
     assert(t.Color.MpCost.Red==12 and t.Color.MpCost.Green==34 and t.Color.MpCost.Blue==56)
 end,register=function(t,fn) assert(t==fixture);refresh=fn end}
-windower={add_to_chat=function() end}
+-- Startup now registers the optional render-trace frame observer too. Register
+-- without running its callback; this fixture tests settings, not native frames.
+windower={add_to_chat=function() end,register_event=function() end}
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
 local start=assert(source:find("local defaults = require('defaults')",1,true))
 local stop=assert(source:find('-- A: immutable',start,true))
@@ -27,7 +29,8 @@ fixture.ControllerProfile='xinput';fixture.ControllerDevice=2;fixture.PersonalPr
 refresh();assert(fixture.ControllerProfile=='xinput' and fixture.ControllerDevice==2,'alternate reader changed')
 local profiles=require('controller_profiles')
 local policy=require('personal_profile')
-local public={ControllerProfile='ps5-directinput',ControllerDevice=1}
+-- Isolate profile adoption from the later, independently tested target migration.
+local public={ControllerProfile='ps5-directinput',ControllerDevice=1,PersonalTargetR3Migrated=true}
 assert(policy.normalize(public,{ControllerProfile='ps5-directinput',ControllerDevice=1},profiles)==false)
 assert(public.PersonalProfileMigrated==nil,'public defaults acquired private migration')
 local function copy(t)

@@ -36,6 +36,25 @@ README/examples and packaging manifests. Test nondefault packs/themes too.
 
 ## Proposed module destinations
 
+### Later preference: images/icons/default
+
+The chosen target is now images/icons/default/<category>, removing only the
+iconpacks level. This is feasible after centralizing the pack-path resolver
+and migrating/preserving old saved and generated references. It is not a move
+performed by the audit or real-IJKL checkpoint. Inventory the icon chooser too:
+putting a file in the pack does not automatically make every category selectable.
+
+Keep the numeric native fallback collection distinct from named pack artwork,
+even if both ultimately live beneath default (for example default/native/abilities
+versus default/abilities). Alternate packs can override a subset and fall back
+to the shared default/native assets; they need not duplicate every fallback.
+Pack identity stays configurable, so a later third-party system can be adapted
+through the resolver without rewriting bank/action code. Avoid flattening same-
+purpose-looking folders until generated recast IDs and named art are reconciled.
+
+The classifications below describe the 50-file audit baseline; later runtime
+helpers such as controller_realkeys.lua belong with controllers/ when moved.
+
 There are 50 Lua files at the root. The table classifies every one; these are
 proposed destinations, not completed moves. Retain the addon entry filename and
 folder identity xivcrossbar. Keep defaults discoverable at the root initially.

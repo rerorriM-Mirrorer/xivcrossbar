@@ -1,3 +1,76 @@
+# Real IJKL comparison checkpoint 1 — October 17, 2026 (America/Chicago)
+
+Author A. development/directlink, based on a9b2486937ec3bbeacd545ec505d9920e0381f75.
+Runtime 0.4.0-a.20261017.directlink1-realkeys1; Controls=9.7-realkeys.
+Opt-in comparison only; default OFF. Exact checkpoint is identified by its Git
+commit/delivery. Public RC3 and frozen Unbound snapshot are unchanged. No Trust
+code, renderer, mapping/bank, asset path, installed data or module moves.
+
+## Install and native acceptance — pending
+
+1. Preserve data/, config.ini, personal icons and Trust settings. Stop the shared
+   wrapper, unload Lua in every client, update DirectLink, then restart Lua AND
+   AHK. Lua reload alone cannot update the sender. Confirm runtime with inputstatus
+   and Controls=9.7-realkeys / realkeys protocol=1 with controller status.
+2. Profile x; //xb messages on; //xb dpad ijkl; //xb inputtest off;
+   //xb realkeys on. Return all controls to neutral. Status reports configured
+   state and AHK output permission, not proof of a down event or Trust consumption.
+   Old wrappers keep normal Lua output and warn to restart rather than losing
+   all D-pad input. //xb realkeys off rolls back after neutral; bare toggles.
+3. Trust closed: D-pad Up/Right/Down/Left should behave like keyboard I/L/K/J,
+   including native game menus. Trust open with its separately updated build:
+   verify navigation, repeat/hold, Enter/Escape and no underlying game movement.
+   Trust must recognize AND block key events; this thread changes no Trust code.
+4. Test fresh direction, release, held direction then L1/R1, L2/R2 (both orders),
+   face/click/touch/Options/Share, modifiers and chat/XIV editor entry. Owned
+   keyboard output must release and stay masked until the direction is released;
+   no surprise crossbar slot or resumed hold. Fresh trigger+direction remains
+   normal DirectLink. Native menu opening alone intentionally does not revoke
+   ordinary-key permission; companion hide/executable guards remain unchanged.
+5. Test wrapper/Lua stop/reload, disconnect, stale leases and focus/client handoff
+   while a direction is held. No stuck key, delayed press or other-client down.
+   Exercise physical IJKL/modifiers too. Toggle on/off, messages, dpad mapping and
+   inputtest at neutral. All six bars, R1 arrows/Trust shortcut/unused R and R3
+   F8/R should retain their current behavior. Trace on if needed; markers include
+   real IJKL own <key>, personal <key> down/up, and the 9.7 Controls version.
+
+## Implementation and local verification
+
+Lua publishes effective real-IJKL permission in the current character lease.
+Permission requires profile x, messages, ijkl, inputtest off and a current message
+session; its parser is independent of L1's native-menu token. AHK owns only fresh
+ordinary eligible D-pad holds, emits SendEvent through existing PersonalKey and
+masks both edges from the ordinary stream. No global Lua gameplay suppression:
+an old wrapper still works. Existing physical-key ownership/old-window release
+and brief uncertain-read behavior are retained. Permission changes release keys
+and require neutral; a consumed hold never changes owner mid-press. No sleeps,
+polling changes, Apps/F-key experiment or general Lua->AHK output service.
+
+New actual-source AHK checks execute the sender, filter, lease parser, key owner,
+release cleanup and full PersonalPoll under the narrow JS translation. Cover four
+directions, one down/up per hold, no corresponding message direction, physical
+keys/modifiers, every ordinary-control exclusion, held combo transitions, route
+phases/staleness, context/client cleanup, old Lua compatibility and no R1-arrow
+duplication. Lua checks cover default OFF, idempotent/toggle/status/invalid command,
+permission prerequisites, immediate lease publication and actual root menu/focus/
+cutscene gating. Existing message/six-bar/native-menu/lifecycle/chooser/Save Only/
+render-trace and personal-control regressions pass. Lua parsing uses the documented
+Lua 5.4 normalization fallback, not native Lua 5.1. Windows/AHK/FFXI/Trust live
+execution is unavailable; no live result is inferred from simulated success.
+The broad sweep also found an older profile-persistence fixture missing the
+render-trace startup register_event stub and target-migration isolation (same
+runtime code at the base commit). Updated that fixture only; no profile/runtime
+policy change. All 42 Lua test files
+and six JS test files pass, plus AHK lexical/include/function checks; all 111 Lua
+sources parse under the documented fallback.
+
+Reviewed current AGENTS/WORKFLOW/TESTING and shared NPCMirror WORKFLOW. Baseline
+comparison found all 2,263 local blobs identical to current GitHub head before
+editing. Historical records follow unchanged. Roadmap now records latest L1/R1
+intent, trace-backed settling and path-resolver-first cleanup priorities.
+
+---
+
 # Folder audit and example presets — October 17, 2026 (America/Chicago)
 
 Author A. development/directlink, based on bfdf7d693c387dac9782144b0139d466e9c0ccf5.

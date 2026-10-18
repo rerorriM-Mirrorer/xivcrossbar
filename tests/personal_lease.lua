@@ -11,6 +11,7 @@ local lease=require('personal_controls').new({clock=function()return now end,ope
 local path='data/Test.ini'
 assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='keyboard',ack=0}))
 assert(files[path]:find('l1token=one',1,true) and files[path]:find('l1ack=0',1,true))
+assert(files[path]:find('dpad_output=lua\n',1,true))
 assert(not files[path..'.tmp'])
 assert(files[path]:find('target_r2=0\ntarget_r3=0\nbutton_mode=keys\n',1,true))
 assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='keyboard',ack=0}) and writes==1)
@@ -20,6 +21,9 @@ assert(files[path]:find('target_r2=1\ntarget_r3=1\nbutton_mode=keys\n',1,true))
 assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='keyboard',ack=2,
     messages=true,button_token='buttons-1',button_ack=17}))
 assert(files[path]:find('button_mode=messages\nbutton_token=buttons-1\nbutton_ack=17\nEND\n',1,true))
+assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='keyboard',ack=2,
+    messages=true,button_token='buttons-1',button_ack=17,realkeys=true}))
+assert(files[path]:find('dpad_output=ahk\n',1,true),'permission change must publish immediately')
 fail=true
 assert(not lease:update('data/','Test','ps5-extended','text',{token='two',mode='bank',ack=0}))
 assert(not files[path] and not files[path..'.tmp'])

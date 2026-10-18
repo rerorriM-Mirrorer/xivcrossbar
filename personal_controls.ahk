@@ -8,7 +8,7 @@ PersonalInit(selected, prefix) {
         , layer:{phase:"idle"}, layerVisible:""
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
-        , targetR2:false, targetR3:false}
+        , targetR2:false, targetR3:false, realDpad:false}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
@@ -124,6 +124,7 @@ PersonalPoll(states, active) {
         return PersonalFilter(states, raw)
     }
 
+    PersonalNativeDPad(states, raw, mode, now)
     taps := []
     ; Each assigned Ctrl shortcut fires once. Empty L1 slots are reserved and
     ; consume their button rather than leaking native confirm/cancel.
@@ -207,6 +208,37 @@ PersonalPoll(states, active) {
     return states
 }
 
+; A: own a fresh ordinary D-pad hold, not its DirectLink equivalent. Preserve
+; native menu navigation; addon editor/chat contexts are gated by PersonalPoll.
+; Once consumed, a direction stays masked until release even if a chord starts.
+PersonalNativeDPad(states, raw, mode, now) {
+    global PC, CM, appsOwned
+    eligible := PC.realDpad and PC.ready and mode = "gameplay" and !appsOwned
+        and CM.phase = "messages" and now - CM.seen <= 100
+        and !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
+    Loop, 8
+        if (raw[A_Index + 4])
+            eligible := false
+    for _, key in ["Control", "Alt", "Shift", "LWin", "RWin", "AppsKey"]
+        if GetKeyState(key, "P")
+            eligible := false
+    for _, key in ["LControl", "RControl", "LAlt", "RAlt", "LShift", "RShift"]
+        if (PC.keys.HasKey(key))
+            eligible := false
+    for i, key in {1:"i", 2:"l", 3:"k", 4:"j"} {
+        if (eligible and raw[i] and !PC.previous[i] and !PC.blocked.HasKey(i)) {
+            PC.blocked[i] := key
+            InputTraceRecord("real IJKL own " . key)
+        }
+        if (PC.blocked[i] = key) {
+            states[i] := false
+            if (!eligible and raw[i])
+                PC.suppressed[i] := true
+            PersonalKey(key, eligible and raw[i] and !PC.suppressed.HasKey(i))
+        }
+    }
+}
+
 PersonalR1Tap(raw, consumed, now) {
     global PC
     ; Preserve physical keyboard ownership and avoid modified R shortcuts.
@@ -268,6 +300,7 @@ PersonalContext(hwnd) {
             age := now - stamp1
             if (age >= -1 and age <= 2) {
                 ControllerMessageLease(lease, A_LoopFileFullPath)
+                PersonalRealKeyLease(lease)
                 PersonalL1Lease(lease, A_LoopFileFullPath)
                 return mode1
             }
@@ -275,6 +308,18 @@ PersonalContext(hwnd) {
         }
     }
     return InputTraceContextMiss("no-matching-lease")
+}
+
+; This permission is independent of L1's native-menu visibility token. Missing
+; fields from an older Lua build preserve the established Lua output path.
+PersonalRealKeyLease(lease) {
+    global PC, CM
+    enabled := CM.requested and RegExMatch(lease, "m)^dpad_output=ahk\r?$") ? true : false
+    if (enabled != PC.realDpad) {
+        PersonalRelease()
+        PC.realDpad := enabled
+        InputTraceRecord("real IJKL permission=" . enabled . " waiting-neutral")
+    }
 }
 
 ; A: complete mailbox snapshots; only Lua's current session token may receive

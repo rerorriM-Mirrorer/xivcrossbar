@@ -7,9 +7,9 @@ Future work: `development/directlink`. See the [snapshot record](docs/SNAPSHOT-D
 and [branch map](docs/BRANCH-MAP.md) to distinguish the two older Personal lines.
 Snapshot 1 preserves the live-tested Personal 9 Test 6. This working branch adds
 chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
-release; live checks are pending.
+release, plus the opt-in real-IJKL comparison below; live checks are pending.
 
-Runtime: **0.4.0-a.20261017.directlink1-r1test1**; shared wrapper Controls **9.6-r1-r**.
+Runtime: **0.4.0-a.20261017.directlink1-realkeys1**; shared wrapper Controls **9.7-realkeys**.
 Restart Lua AND the shared AHK wrapper after installing this checkpoint.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
@@ -25,6 +25,36 @@ The [folder audit and cleanup plan](docs/FOLDER-STRUCTURE.md) identifies runtime
 asset paths and proposed module moves. No runtime files have been relocated.
 [Optional templates and presets](examples/README.md) now include the recovered
 Cioara and Franklet/Lionstag All Jobs Default bars with their paired catalog.
+
+## Real keyboard IJKL comparison — opt-in
+
+Restart Lua **and** the shared wrapper after updating. Preserve installed data,
+settings and personal artwork. This test is for profile `x` (PS5 Extended):
+
+```
+//xb messages on
+//xb dpad ijkl
+//xb inputtest off
+//xb realkeys on
+//xb controller status
+```
+
+Return every control to neutral after switching. Ordinary D-pad Up/Right/Down/
+Left sends AHK keyboard I/L/K/J down/up instead of Lua `setkey`. Those owned
+directions are withheld from DirectLink, so Lua does not also output the same
+press. Triggers, face buttons, existing L1/R1 combinations and other profiles
+retain their routes. Chat, XIVCrossbar editors, triggers, other controller
+buttons and physical modifiers exclude this ordinary-key route. A consumed hold
+stays consumed until release. Native game menus do not disable it; L1's native-
+menu hide guard remains unchanged. This is not a general Lua-to-AHK key service.
+
+`//xb realkeys off` restores the existing route after neutral. Bare toggles;
+`status` only reports. OFF is the default; an explicit choice is saved per client.
+Wrapper status must show Controls=9.7-realkeys and realkeys protocol=1. Output
+permission=ahk is permission, not proof a guarded key fired or that Trust consumed
+it. Old wrappers continue the established Lua route and produce a restart warning.
+Trust must separately recognize **and block** IJKL to prevent game leakage; no
+Trust code is changed here. Native AHK/FFXI/Trust acceptance remains pending.
 
 ## Quiet text/layout diagnosis
 
@@ -769,3 +799,12 @@ images path. A new action choice replaces nullable alias/command/icon metadata
 from a previous choice. Includes Controls1, the stable login gate and Cleanup6.
 
 Movement bridge attribution is normalized to A; its takeover behavior is unchanged.
+
+### DirectLink real IJKL checkpoint 1
+
+Adds default-OFF //xb realkeys comparison for ordinary PS5 Extended IJKL.
+AHK owns and masks each eligible direction through release, leaving trigger/
+face DirectLink and existing personal chords intact. Includes lease permission,
+old-wrapper diagnostics, neutral handoff and actual-source local regressions.
+No Trust, rendering, bank-map, icon-path or module-directory changes. Restart
+Lua and AHK; live Windows/FFXI/Trust verification is pending.
