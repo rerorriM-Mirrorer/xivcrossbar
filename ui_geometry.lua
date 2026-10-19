@@ -281,10 +281,10 @@ function geometry:surface(object, kind, options)
         if not m.draw_visible then object:show();m.draw_visible=true;m.draw_alpha=nil end
         draw_opacity(g, m)
     end
-    function methods:hide()
+    function methods:hide(immediate)
         local was_visible = m.visible or m.defer_visible
         m.visible = false
-        if g.deferring_hide and was_visible then m.defer_visible = true
+        if not immediate and g.deferring_hide and was_visible then m.defer_visible = true
         else m.defer_visible = nil; if m.draw_visible then object:hide();m.draw_visible=false end end
     end
     function methods:visible(value)

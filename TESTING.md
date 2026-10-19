@@ -1,5 +1,43 @@
 # Current Development Status — October 19, 2026 (America/Chicago)
 
+- **Branch / source:** development/directlink, starting at 87fd89e7e47cc67f9e828de01bd928d91d472381. Runtime directlink1-banks2 / Controls 9.9-banks unchanged.
+- **Live feedback:** User confirms all four companion banks, assigned commands and native item-menu scrolling work well. The text settling flicker is gone. Rapid R1/R2 transitions can briefly expose the Options hint despite compact mode.
+- **Current change:** Compact hints never show during text setup; both hint-show entry points enforce compact visibility; layout-excluded hints hide immediately rather than lingering in a fade. Ordinary full-layout fades retain their existing behavior. This addresses visibility paths; the exact live rapid-switch sequence has not been reproduced here.
+- **Verification:** See the dated entry below for completed checks. Native Windows/Windower/FFXI acceptance of this hint fix is pending.
+- **Next:** Reload the two runtime files ui.lua and ui_geometry.lua and repeat rapid R1/R2 changes in compact mode; verify ordinary-layout hints and fades. The broader one-command live test/screenshot runner is authorized but not implemented by this focused fix. NPC cutscene access and SlowEnter all-client delivery remain unresolved integration work.
+- **Delivery:** Focused two-file Lua update over Banks 2 plus the previous resources.lua hotfix; no AHK restart. Existing complete Banks 2 ZIP predates both fixes.
+
+---
+
+# Compact hint visibility — October 19, 2026
+
+Author A. Reviewed current AGENTS/WORKFLOW/TESTING and remote source baseline.
+Recorded the user's live bank/menu/command success and absence of text flicker.
+Hardened compact hint ownership at setup, show and hide boundaries. Geometry
+surface hide accepts an optional immediate flag, matching primitive hide behavior;
+only compact hints opt in. The crossbar text setup helper is now local so another
+UI module cannot replace its compact visibility policy. The existing fade remains for ordinary-layout hints.
+Regression exercises 20 attempted reveals/chooser changes during deferred hides
+at each of 108 layout configurations across six resolutions and three scales.
+This is simulated coverage, not reproduction of the user's physical sequence.
+
+Verification: all seven JS/controller routing scripts, AHK structural checks and
+git diff --check passed. The amended compact regression passed independently on
+the final source (108 configurations); the text API/settling regression passed.
+All 48 top-level Lua regressions passed and all 122 Lua sources parsed. Lua uses the documented Lua
+5.4 temporary Windower-syntax normalization fallback, not native Lua 5.1 or
+Windows/Windower execution. The final refinement limits immediate hint hides to
+compact mode, preserving ordinary-layout fade semantics.
+
+The earlier targeted invocation also named nonexistent tests/geometry.lua after
+compact/text tests passed; the full wildcard suite is the authoritative run.
+The in-game automated pending-test runner remains planned; no such command is
+shipped here. No installed settings, bindings, assets or companion code changed.
+
+---
+
+# Historical status — bank text API hotfix, October 19, 2026
+
 - **Branch / baseline:** development/directlink, starting at d6131b127b611708b662850167f2910309dbd60e. Runtime remains directlink1-banks2 / Controls 9.9-banks.
 - **User report:** L1/bank reveal raises resources.lua:73, attempt to call a nil field. Title/background and only the leftmost D-pad slot render.
 - **Cause / fix:** Measurement queried right(), absent from Windower texts.lua. Corrected the style getter/setter/invalidation key to right_justified(). The first label measurement previously aborted the slot draw loop.

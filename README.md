@@ -947,3 +947,13 @@ keys and invalidation; the text-settling fixture now rejects the nonexistent
 method. Source/API checked; execution environment unavailable, so the amended
 regression and native acceptance have not run. Replace ui/resources.lua over
 Banks 2 and reload XIVCrossbar in each client; no AHK update is required.
+
+
+### Compact hint visibility — October 19, 2026
+
+Compact hints remain hidden through setup, attempted reveals and interrupted
+fades. Full-layout hint behavior is preserved. User confirms all four banks,
+commands, item-menu scrolling and removal of text settling flicker. The separate
+Options-hint fix needs live rapid-switch acceptance. Update ui.lua and
+ui_geometry.lua together, retain the earlier ui/resources.lua fix, and reload
+XIVCrossbar; AHK is unchanged. Broader automated live testing remains planned.
