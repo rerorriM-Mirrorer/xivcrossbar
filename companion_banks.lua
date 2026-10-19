@@ -41,9 +41,9 @@ function M.defaults()
     -- Windower config lowercases XML tags and restores their spelling from
     -- defaults. Declare the whole shape, including empty strings/booleans, so
     -- a fresh process can reload saved banks without losing names or types.
-    local d={Version=0}
+    local d={Version=0,Preset=''}
     for _,name in pairs(layers) do
-        d[name]={Closed={},Menu={}}
+        d[name]={Closed={},Menu={},Visible=true,ShowOnMenu=false,MenuActions=true,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
             d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false}
         end end
@@ -56,10 +56,14 @@ end
 function M.ensure(settings)
     local d=settings.CompanionBanks
     if type(d)~='table' then d={Version=0};settings.CompanionBanks=d end
+    d.Preset=type(d.Preset)=='string' and d.Preset or ''
     local version=tonumber(d.Version) or 0
     local migrate=version<2
     for layer,name in pairs(layers) do
         if type(d[name])~='table' then d[name]={} end
+        local b=d[name]
+        b.Visible=b.Visible~=false;b.ShowOnMenu=b.ShowOnMenu==true
+        b.MenuActions=b.MenuActions~=false;b.Title=type(b.Title)=='string' and b.Title or ''
         for _,context in ipairs({'Closed','Menu'}) do
             if type(d[name][context])~='table' then d[name][context]={} end
             for i=1,8 do
@@ -114,6 +118,9 @@ function M.new(options)
         return normalized
     end
     function self:stored_entry(layer,slot,menu) return self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot] end
+    function self:uses_menu(layer,menu)
+        return menu==true and self:settings()[layers[layer]].MenuActions~=false
+    end
     function self:entry(layer,slot,menu)
         local e=self:stored_entry(layer,slot,menu)
         return e.Kind=='default' and M.factory(layer,slot,menu) or e
@@ -198,7 +205,7 @@ function M.new(options)
         if self.blocked[button] then return end
         if self.layer=='' then options.ordinary(button,true);self.owners[button]='ordinary';return end
         if not layers[self.layer] or not self.eligible then return end
-        local e=self:entry(self.layer,slot_for[button],self.menu)
+        local e=self:entry(self.layer,slot_for[button],self:uses_menu(self.layer,self.menu))
         if e.Kind=='key' and require('companion_keys').parse(e.Key) then
             -- Native navigation can hold. Pulses retain both edges even if the
             -- physical release happened before AHK read the next Lua frame.
@@ -215,14 +222,22 @@ function M.new(options)
     function self:panel(side)
         local parent=self
         local names=side=='Left' and {l1=true,l1l2=true} or {r1=true,r1r2=true}
+        local function selected()
+            return names[parent.layer] and parent.layer or parent.previews[side] and parent.previews[side].layer or (side=='Left' and 'l1' or 'r1')
+        end
         local proxy=setmetatable({}, {__index=function(_,key)return parent:settings()[side..'Panel'][key] end,
             __newindex=function(_,key,value) parent:settings()[side..'Panel'][key]=value end})
         return {
-            settings=function() local layer=names[parent.layer] and parent.layer or parent.previews[side] and parent.previews[side].layer or (side=='Left' and 'l1' or 'r1')
-                for i=1,8 do rawset(proxy,'Slot'..i,parent:entry(layer,i,parent.menu)) end;return proxy end,
-            mode=function() return names[parent.layer] and parent.layer or parent.previews[side] and parent.previews[side].layer or (side=='Left' and 'l1' or 'r1') end,
-            title=function(_,mode) return ({l1='L1  Inventory',l1l2='L1 + L2  Actions',r1='R1  Trust',r1r2='R1 + R2  NPC'})[mode] end,
-            opacity=function(_,eligible) local preview=parent.previews[side];return eligible and (names[parent.layer] or preview and options.clock()<preview.until_time) and 1 or 0 end,
+            settings=function() local layer=selected()
+                for i=1,8 do rawset(proxy,'Slot'..i,parent:entry(layer,i,parent:uses_menu(layer,parent.menu))) end;return proxy end,
+            mode=function() return selected() end,
+            title=function(_,mode) local title=parent:settings()[layers[mode]].Title
+                return title~='' and title or ({l1='L1  Inventory',l1l2='L1 + L2  Actions',r1='R1  Trust',r1r2='R1 + R2  NPC'})[mode] end,
+            opacity=function(_,eligible)
+                local preview=parent.previews[side];local b=parent:settings()[layers[selected()]]
+                return eligible and b.Visible and (not parent.menu or b.ShowOnMenu)
+                    and (names[parent.layer] or preview and options.clock()<preview.until_time) and 1 or 0
+            end,
         }
     end
     function self:previewing(side)
@@ -231,6 +246,10 @@ function M.new(options)
     function self:help()
         for _,row in ipairs({
             {'bank <layer> status','Show saved closed/menu entries and input/output state.'},
+            {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
+            {'bank <layer> menus on|off','Allow this bank to draw over native game menus.'},
+            {'bank <layer> menuactions on|off','Use menu bindings automatically, or always use Closed bindings.'},
+            {'bank preset cioara apply','Replace four bank layouts with the Cioara template; back up settings first.'},
             {'bank <layer> [menu] <button> <label> <command...>','Assign a console command; layer: l1, l1l2, r1, r1r2.'},
             {'bank <layer> [menu] key <button> <label> <key> [hold]','Native key, e.g. ctrl+i or alt+left; pulse by default.'},
             {'bank <layer> [menu] clear <button>','Reserve a slot without executing anything.'},
@@ -244,6 +263,8 @@ function M.new(options)
     function self:status(layer)
         options.say('Banks v2 | layer='..(self.layer~='' and self.layer or 'ordinary')..' | native menu='..tostring(self.menu)..
             ' | executed='..self.executed..' | empty='..self.empty..' | native ack='..self.output.ack..'/'..self.output.seq)
+        local b=self:settings()[layers[layer]]
+        options.say(layer..' visible='..tostring(b.Visible)..' | draw on native menus='..tostring(b.ShowOnMenu)..' | menu actions='..tostring(b.MenuActions))
         for _,context in ipairs({'Closed','Menu'}) do
             local entries={}
             for i,name in ipairs(M.buttons) do local e=self:entry(layer,i,context=='Menu');local source=self:stored_entry(layer,i,context=='Menu').Kind=='default' and 'default' or 'override'
@@ -253,6 +274,12 @@ function M.new(options)
     end
     function self:command(args)
         local layer=(args[1] or ''):lower()
+        if layer=='preset' then
+            if args[2]~='cioara' or args[3]~='apply' or args[4] then self:help();return false end
+            self:release_slots();self.output:cancel();self.r1used=true
+            require('companion_presets').cioara(self)
+            options.save();options.say('Cioara banks applied. Inventory is on L1+L2; menu actions OFF retains its inventory-opening bindings.');return true
+        end
         if not layers[layer] then self:help();return false end
         local offset=args[2]=='menu' and 1 or 0;local menu=offset==1
         local op=(args[2+offset] or 'status'):lower()
@@ -260,6 +287,10 @@ function M.new(options)
         local changed=false
         if op=='help' then self:help();return
         elseif op=='status' then self:status(layer);return
+        elseif (op=='show' or op=='hide') and offset==0 and not args[3] then
+            self:settings()[layers[layer]].Visible=op=='show';changed=true
+        elseif (op=='menus' or op=='menuactions') and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
+            self:settings()[layers[layer]][op=='menus' and 'ShowOnMenu' or 'MenuActions']=args[3]=='on';changed=true
         elseif op=='defaults' and not args[3+offset] then
             for i=1,8 do self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..i]=inherited() end
             changed=true

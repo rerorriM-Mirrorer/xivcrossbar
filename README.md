@@ -1,7 +1,7 @@
 # XIVCrossbar DirectLink — Unbound
 
 Current branch verification, last live-confirmed behavior and outstanding tests:
-[Current Development Status](TESTING.md#current-development-status--october-18-2026-americachicago).
+[Current Development Status](TESTING.md).
 For the current complete installation, use the short
 [DirectLink live-test guide](docs/LIVE-TEST-DIRECTLINK.md).
 
@@ -15,7 +15,7 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261018.directlink1-banks2**; shared wrapper Controls **9.9-banks**.
+Runtime: **0.4.0-a.20261019.directlink1-banks3**; shared wrapper Controls **9.9-banks**.
 From banks1, reload Lua; AHK is unchanged. Older installs require both updates.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
@@ -27,10 +27,70 @@ system, saved-setting migration, editing commands and pending live tests.
 
 Four editable layers now share Lua input ownership and per-character settings:
 L1 inventory, L1→L2 utility/testing, R1 Trust and R1→R2 NPCMirror/SlowEnter.
-L1 changes to menu scrolling/emotes while a native menu is open. Companions stay
-hidden over native menus, independently of whether their menu actions may run.
+These are the factory roles; the explicit Cioara preset below rearranges them.
+Menu bindings and native-menu drawing are independently configurable per bank.
 Native keys use an acknowledged Lua→AHK service; commands dispatch directly.
 Existing L1→L2 entries migrate once; their old L1 section remains for recovery.
+
+### Per-bank drawing and the Cioara layout
+
+```
+//xb bank r1 show
+//xb bank r1 menus on
+//xb r1r2 hide
+//xb l1l2 menuactions off
+```
+
+`show|hide` changes artwork only; controls remain active while held. `menus
+on|off` permits drawing over Windower's native `menu_open` flag (default off).
+`menuactions on|off` selects automatic Menu entries or always Closed entries
+(default on). This flag includes menus seen in combat; it does not identify
+which native menu is open. Turning menu actions off keeps Ctrl+I / Ctrl+E and
+container commands routed as assigned. Re-enable them to use stored menu
+scrolling/emotes. We do not infer menu identity from engagement, since actual
+inventory menus can also be opened in combat. Game acceptance remains a live test.
+
+Trust's addon menu is not detected by the native flag. Hiding R1R2 entirely
+keeps its navigation artwork out of the way of Trust without an IPC dependency.
+Show/menus never force a bank on screen without its held chord or preview, and
+never bypass chat/editor/cutscene input guards. Each layer has its own policy;
+coordinates and scale are still shared by the two layers on each side.
+
+After backing up `data/settings.xml`, explicitly apply:
+
+```
+//xb bank preset cioara apply
+```
+
+This replaces the four companion-bank definitions in the current character's
+settings, preserving panel placement and ordinary/job crossbar XML. It never runs
+automatically during installation/login. It materializes current L1 closed/menu
+bindings on L1L2 before replacing L1; repeated apply retains L1L2 as the inventory
+source. Previous L1L2 overrides are replaced, so keep your settings backup.
+
+| Button | L1 NPC / tests | R1 party |
+|---|---|---|
+| Left | NPCMirror call | Switch Myrr |
+| Down | SlowEnter toggle | Switch Killala |
+| Right | NPCMirror status | Switch Clairvaux |
+| Up | NPCMirror stop | Switch Cioara |
+| Square | Target NPC / report | Trust menu open |
+| Cross | All Confirm | Party Ready |
+| Circle | All Cancel | Party Stand Down |
+| Triangle | NPCMirror interact | Self Trust toggle |
+
+R1R2 gets held arrow directions, Cross Enter, Circle Escape, Triangle `trust menu
+open`, Square `trust menu close`. It starts hidden. R1 can draw over native
+menus. L1L2 gets inventory; automatic menu actions start OFF to keep battle-menu
+flags from replacing the opening commands. Enable with `//xb l1l2 menuactions on`.
+
+The imported target/confirm/cancel chains match Cioara's ALL-JOBS-DEFAULT exactly.
+They require its existing Send, Switch, SAT, SlowEnter and personal `all` alias
+setup; no missing aliases are installed here. Raw all-client taps can select a
+highlighted choice; the Confirm chain also enables local SlowEnter after two
+seconds. No NPCMirror/SlowEnter delivery or cutscene limitation is repaired by
+copying these commands. Factory defaults remain unchanged; `default/defaults`
+still restores the original shipped bindings, not this personal preset.
 
 Short editors: `//xb r1r2 ...`, `//xb r1 ...`, `//xb l1l2 ...` equal their
 `//xb bank <layer> ...` forms; bare shows status. `//xb l1` retains its older
@@ -957,3 +1017,14 @@ commands, item-menu scrolling and removal of text settling flicker. The separate
 Options-hint fix needs live rapid-switch acceptance. Update ui.lua and
 ui_geometry.lua together, retain the earlier ui/resources.lua fix, and reload
 XIVCrossbar; AHK is unchanged. Broader automated live testing remains planned.
+
+
+### Bank display policies and Cioara layout — October 19, 2026
+
+Adds independent per-bank show/hide, native-menu drawing and automatic-menu
+binding controls. Includes explicit Cioara preset from the uploaded sets:
+L1 NPC/tests, L1L2 preserved inventory, R1 party, hidden R1R2 Trust navigation.
+Preset menu actions start OFF to keep the battle command menu from selecting
+item-scrolling bindings. No automatic menu-type distinction is claimed. Settings
+and ordinary bars are preserved on install; the preset only replaces companion
+entries when explicitly applied. Runtime banks3, AHK Controls 9.9 unchanged.

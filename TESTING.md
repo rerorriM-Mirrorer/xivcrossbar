@@ -1,5 +1,61 @@
 # Current Development Status — October 19, 2026 (America/Chicago)
 
+- **Branch / tested source:** development/directlink, starting at a572fcac584b351d1db6af921766f2da50f8df67. Runtime directlink1-banks3, unchanged AHK Controls 9.9-banks.
+- **Last user-confirmed live behavior:** All four banks, commands and item scrolling work; text settling flicker is gone. Selecting DirectLink appears to work on Cioara and crew. Compact Options hint can still flash after the last fix; unresolved.
+- **New report:** Native menu context during battle replaces inventory controls. The router only has broad menu_open, not a menu identity. We cannot distinguish item menus from the battle command menu on this evidence.
+- **Current change:** Saved per-layer show/hide, native-menu drawing allowance and menu-action override. Explicit Cioara preset: L1 NPC/tests, preserved current L1 inventory on L1L2, R1 party, hidden R1R2 Trust navigation. No automatic preset migration or ordinary-set replacement.
+- **Verification:** All 49 top-level Lua regressions passed; 124 Lua sources parsed with the documented Lua 5.4 Windower-syntax normalization fallback. All seven JS/controller routing scripts, AHK structural checks and diff checks passed. No Windows/Windower/FFXI run claimed for Banks 3.
+- **Live acceptance:** Apply on a backed-up character; verify inventory routing during battle, optional scrolling, R1 native-menu drawing, hidden R1R2 Trust navigation, persistence/reload, and panel layout retention. Native menu-type detection, compact hint identification, NPC cutscene access and SlowEnter batch delivery remain open.
+- **Next:** Get live feedback on this coherent bank update; implement the separately authorized one-command diagnostic/screenshot runner and instrument the remaining compact hint. No runner command is included here.
+- **Delivery:** Complete banks3 installation from the published tree, preserving installed data/settings, config.ini and personal art. From Banks 2 only Lua reload is needed; older wrappers require their update. Per-character preset explicitly replaces all four companion definitions, including old L1L2 entries; back up data/settings.xml before applying.
+
+---
+
+# Bank visibility, Cioara preset and menu override — October 19, 2026
+
+Author A. Reviewed AGENTS, WORKFLOW, TESTING and published source a572fcac.
+User supplied Cioara-L1s.zip (16 character-set XML/backup files, no settings.xml).
+Read current Cioara/ALL-JOBS-DEFAULT.xml, Shared and SMN-DEFAULT. Copied command
+strings and their physical positions from current ALL-JOBS-DEFAULT, not backup
+or Copy files. Original archive and installed ordinary/job sets are untouched.
+User explicitly selected moving inventory to L1L2. Native_menu in combat is user
+observation; broad flag routing is source-confirmed, exact menu identity remains
+unobserved. No packet or engagement heuristic was introduced.
+
+New defaults declare booleans/title/preset marker for Windower config casing and
+type restoration. Display filtering moved into each panel; retired fallback still
+has its native-menu guard. Commands and displayed labels use the same selected
+Closed/Menu entries. Hide does not disable the physical-input owner. Setting
+changes retain cancellation/held-button blocking and saved panel positions.
+Explicit preset preserves current L1 bindings as materialized L1L2 entries, not
+factory inheritance to the wrong bank. Repeated apply keeps L1L2 as its source.
+It sets menu actions OFF for inventory-opening access during broad menu states;
+user may opt back into existing menu scrolling. R1 draws over native menus;
+R1R2 navigation starts hidden. No IPC claims for Trust menu detection.
+
+Exact copied raw chains retain Cioara's personal dependencies: Send, Switch,
+SAT, the all alias, NPCMirror and SlowEnter. Commands were not executed here;
+no repair of the existing SlowEnter batch-delivery/cutscene issue is implied.
+
+Verification completed: python3 tests/run_lua.py tests/*.lua, 49 top-level
+regressions, all 124 Lua sources parsed; seven tests/*.js scripts and
+python3 tests/check_ahk.py; git diff --check. Initial suite run exposed the two
+old lower-level menu-visibility assumptions below; both were updated and the
+complete suite then passed. Static/simulated checks use the existing Lua 5.4
+normalization fallback. No native Lua 5.1/Windows/AHK/Windower/FFXI execution.
+Package audit is performed after publication and reported in the handoff.
+
+Two prior lower-level tests assumed their caller filtered native menus. Updated
+them to verify the new panel-owned default guard and explicit allow policy.
+New tests cover all four visibility policies, hidden execution, broad-menu
+Closed binding output, opt-in scrolling, invalid commands, preset exact strings,
+repeated apply and saved config reload. Pending acceptance is listed above.
+Historical status and checks follow unchanged.
+
+---
+
+# Historical status — compact hints, October 19, 2026
+
 - **Branch / source:** development/directlink, starting at 87fd89e7e47cc67f9e828de01bd928d91d472381. Runtime directlink1-banks2 / Controls 9.9-banks unchanged.
 - **Live feedback:** User confirms all four companion banks, assigned commands and native item-menu scrolling work well. The text settling flicker is gone. Rapid R1/R2 transitions can briefly expose the Options hint despite compact mode.
 - **Current change:** Compact hints never show during text setup; both hint-show entry points enforce compact visibility; layout-excluded hints hide immediately rather than lingering in a fade. Ordinary full-layout fades retain their existing behavior. This addresses visibility paths; the exact live rapid-switch sequence has not been reproduced here.

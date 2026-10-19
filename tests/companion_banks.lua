@@ -64,7 +64,7 @@ commands={};tap(8);tap(6);tap(7);tap(5)
 assert(table.concat(commands,'|')=='input /wave|input /bow|input /yes|input /jump')
 -- Contextual execution is independent of native-menu visibility.
 local left,right=bank:panel('Left'),bank:panel('Right')
-assert(left:opacity(false)==0 and left:opacity(true)==1)
+assert(left:opacity(false)==0 and left:opacity(true)==0,'native menu guard belongs to the panel')
 assert(left:settings().Slot8.Alias=='Wave')
 left:settings().X=54;assert(settings.CompanionBanks.LeftPanel.X==54)
 assert(settings.CompanionBanks.LeftPanel.Slot1==nil,'rendering duplicated entries into panel settings')

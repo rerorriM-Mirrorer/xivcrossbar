@@ -81,6 +81,10 @@ assert(right:bounds().x==960-290 and settings.CompanionBanks.RightPanel.Slot1==n
 right:tick(false,960,540);assert(right.opacity==0)
 banks:cancel();banks:edge(13,true);native_menu=true;banks:refresh()
 left:tick(false,960,540);assert(left.opacity==0)
+left:tick(true,960,540);assert(left.opacity==0,'default native-menu drawing guard lost')
+settings.CompanionBanks.L1.ShowOnMenu=true
 left:tick(true,960,540);assert(left.slots[8].alias.last_text=='Wave')
+settings.CompanionBanks.L1.Visible=false
+left:tick(true,960,540);assert(left.opacity==0 and left.visible==false)
 left:destroy();right:destroy();assert(next(alive)==nil)
 print('Actual new-bank panels: 84 fixed surfaces, shared side anchors, compact spacing/scale, right recovery, context labels and teardown passed.')

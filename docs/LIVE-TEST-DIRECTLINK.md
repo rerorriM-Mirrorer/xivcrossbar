@@ -1,9 +1,47 @@
-# DirectLink companion banks test 2 — October 18, 2026
+# DirectLink companion banks test 3 — October 19, 2026
 
 This is the short in-game guide for the **complete personal DirectLink** test
 package. It incorporates the shared command fixes, four companion banks,
 optional real IJKL comparison and text settling. It is **not** the public RC3.
 The cumulative record and detailed edge cases remain in `TESTING.md`.
+
+## Banks 3 layout and menu acceptance
+
+From Banks 2, update the complete addon files and reload Lua in each client;
+Controls 9.9-banks is unchanged. Preserve installed data and art. New fields
+merge without changing assignments. The Cioara layout is opt-in per character:
+
+```
+//xb bank preset cioara apply
+//xb r1 status
+//xb r1r2 status
+//xb l1l2 status
+```
+
+Back up data/settings.xml first: the preset replaces all four companion layouts
+and old L1L2 assignments. L1 becomes NPC/tests; current L1 inventory moves to
+L1L2; R1 gets Cioara client directions / Ready / Stand Down / Toggle / Trust open;
+R1R2 gets Trust navigation and starts hidden. Ordinary crossbar sets are untouched.
+The existing personal Send/Switch/SAT/all-alias dependencies are not installed.
+
+Hold R1 over a native game menu: its bank should remain visible. Hold R1 then R2:
+the panel should disappear but directions/confirm/back/open/close should still
+work in Trust. Test safe choices and verify physical releases do not leak.
+
+Open the battle command menu and try L1 then L2 inventory commands; the preset
+uses Closed bindings even if native menu_open is true. This tests output routing,
+not a guarantee that FFXI accepts each command in every state. For the saved
+scrolling/emote layer in actual item menus:
+
+```
+//xb l1l2 menuactions on
+```
+
+To restore always-available opening bindings: `//xb l1l2 menuactions off`.
+Per-bank `show|hide` controls artwork; `menus on|off` controls drawing over native
+menus. Trust's addon menu has no detection in this change; hide R1R2 entirely.
+Capture any failed command/menu context and the exact chord. The old compact
+Options flash still needs identification; the previous patch did not resolve it.
 
 ## Install and identify
 
@@ -25,7 +63,7 @@ The cumulative record and detailed edge cases remain in `TESTING.md`.
    //xb controller status
    ```
 
-   Expect runtime `0.4.0-a.20261018.directlink1-banks2` and wrapper
+   Expect runtime `0.4.0-a.20261019.directlink1-banks3` and wrapper
    `Controls=9.9-banks`, banks protocol=1/enabled=1 and receiver=true after
    neutral. If the wrapper version
    is older, stop here and restart it before judging controller behavior.

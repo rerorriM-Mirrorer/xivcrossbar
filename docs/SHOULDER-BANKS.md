@@ -1,4 +1,36 @@
-# Companion banks — current checkpoint 2
+# Companion banks — checkpoint 3
+
+October 19, 2026. Author A. Runtime directlink1-banks3 / Controls 9.9-banks.
+Starting source a572fcac584b351d1db6af921766f2da50f8df67.
+
+New per-layer controls: `//xb bank <layer> show|hide`, `menus on|off`, and
+`menuactions on|off`. Short r1/r1r2/l1l2 editors accept the same operations.
+Bare `//xb l1` retains its historical L1L2 meaning; use `//xb bank l1`.
+Show/hide only affects drawing. Menus controls drawing over native menu_open;
+menuactions off always selects the Closed commands and labels. Default policy
+remains visible, hidden over native menus, automatic Menu actions enabled.
+Trust menu visibility is not inferred from the native flag.
+
+The optional `//xb bank preset cioara apply` copies Cioara's uploaded ordinary
+bar commands to L1 NPC/tests and R1 party, copies current L1 closed/menu bindings
+to L1L2 inventory, and sets R1R2 to Trust menu navigation. Read the README for
+the exact map and dependency notes. Apply explicitly after backing up settings;
+all four companion definitions are replaced, ordinary/job XML is untouched.
+The current inventory entries are cloned, including personal assignments and
+saved menu scrolling/emotes. R1 can draw over menus; R1R2 is hidden; menu actions
+start off on all four banks. Turn on L1L2 menu actions for automatic scrolling.
+This avoids treating the battle command menu as proof of an item menu. Automatic
+native menu-type detection is not implemented. The original factory defaults
+below are unchanged and still restored by default/defaults commands.
+
+Next live acceptance: four bank roles, hidden R1R2 Trust navigation, native-menu
+R1 visibility, inventory commands while engaged/menu_open, and optional scrolling.
+The persistent compact Options flash remains unresolved after the previous fix.
+The one-command live test/screenshot runner remains authorized, not shipped.
+
+---
+
+# Historical checkpoint 2
 
 October 18, 2026. Author A. Runtime directlink1-banks2, unchanged Controls 9.9-banks.
 Starting source: 549e5d86df4919eb82e4c5085aed892b6db9f775.

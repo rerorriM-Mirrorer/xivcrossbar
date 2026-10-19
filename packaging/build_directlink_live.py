@@ -23,7 +23,7 @@ REQUIRED = {
     "xivcrossbar.lua", "ffxi_directinput.ahk", "personal_controls.ahk",
     "controller_messages.ahk", "controller_clients.ahk", "movement_signal.ahk",
     "controller_messages.lua", "personal_controls.lua", "l1_bank.lua",
-    "companion_banks.lua", "companion_keys.lua", "companion_output.lua",
+    "companion_banks.lua", "companion_keys.lua", "companion_output.lua", "companion_presets.lua",
     "l1_transport.lua", "l1_view.lua", "ui/text_measure.lua",
     "images/setup/gamepad-directinput.jpg", "themes/ffxiv/frame.png",
     "README.md", "WORKFLOW.md", "TESTING.md", "AGENTS.md",
@@ -71,9 +71,9 @@ def build():
         assert "xivcrossbar/" + dependency in contents, f"Missing AHK include {dependency}"
 
     version = re.search(r"_addon.version = '([^']+)'", (ROOT / "xivcrossbar.lua").read_text())
-    assert version and version.group(1) == "0.4.0-a.20261018.directlink1-banks2"
+    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-banks3"
     contents["xivcrossbar/PACKAGE-INFO.txt"] = (
-        "XIVCrossbar DirectLink companion banks test 2 complete installation\n"
+        "XIVCrossbar DirectLink companion banks test 3 complete installation\n"
         "Branch: development/directlink\n"
         f"Published source commit: {args.published}\n"
         f"Verified source tree: {local_tree}\n"
