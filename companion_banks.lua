@@ -3,6 +3,8 @@
 local M={buttons={'Left','Down','Right','Up','Square','Cross','Circle','Triangle'}}
 local slot_for={[4]=1,[3]=2,[2]=3,[1]=4,[6]=5,[5]=6,[7]=7,[8]=8}
 local layers={l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}
+local prefixes={l1='L1',l1l2='L1 + L2',r1='R1',r1r2='R1 + R2'}
+local titles={l1='L1  Inventory',l1l2='L1 + L2  Actions',r1='R1  Trust',r1r2='R1 + R2  NPC'}
 M.aliases={l1l2=true,r1=true,r1r2=true} -- l1 retains its older L1L2 editor meaning
 local function clone(t) local r={};for k,v in pairs(t) do r[k]=type(v)=='table' and clone(v) or v end;return r end
 local function action(label,kind,value,hold)
@@ -238,13 +240,34 @@ function M.new(options)
                 for i=1,8 do rawset(proxy,'Slot'..i,parent:entry(layer,i,parent:uses_menu(layer,parent.menu))) end;return proxy end,
             mode=function() return selected() end,
             title=function(_,mode) local title=parent:settings()[layers[mode]].Title
-                return title~='' and title or ({l1='L1  Inventory',l1l2='L1 + L2  Actions',r1='R1  Trust',r1r2='R1 + R2  NPC'})[mode] end,
+                return title~='' and title or titles[mode] end,
             opacity=function(_,eligible)
                 local preview=parent.previews[side];local b=parent:settings()[layers[selected()]]
-                return eligible and b.Visible and (not parent.menu or b.ShowOnMenu)
+                local editing=preview and preview.editing and selected()==preview.layer
+                return eligible and (editing or b.Visible) and (editing or not parent.menu or b.ShowOnMenu)
                     and (names[parent.layer] or preview and options.clock()<preview.until_time) and 1 or 0
             end,
         }
+    end
+    function self:swap(a,b)
+        if not layers[a] or not layers[b] or a==b then return false end
+        local function materialize(layer)
+            local result=clone(self:settings()[layers[layer]])
+            if result.Title=='' then result.Title=titles[layer] end
+            for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
+                result[context]['Slot'..i]=clone(self:entry(layer,i,context=='Menu'))
+            end end
+            return result
+        end
+        local first,second=materialize(a),materialize(b)
+        -- Inherited entries must retain their original meaning at a new layer.
+        self:settings()[layers[a]],self:settings()[layers[b]]=second,first
+        for _,pair in ipairs({{a,b},{b,a}}) do
+            local layer,source=pair[1],prefixes[pair[2]]
+            local bank=self:settings()[layers[layer]]
+            if bank.Title:sub(1,#source)==source then bank.Title=prefixes[layer]..bank.Title:sub(#source+1) end
+        end
+        return true
     end
     function self:previewing(side)
         return self.previews[side] and options.clock()<self.previews[side].until_time or false
@@ -253,6 +276,8 @@ function M.new(options)
         for _,row in ipairs({
             {'bank <layer> status','Show saved closed/menu entries and input/output state.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
+            {'bank <layer> edit on|off','Pin/unlock this bank for mouse-only dragging; off hides preview and locks.'},
+            {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
             {'bank <layer> menus on|off','Allow this bank to draw over native game menus.'},
             {'bank <layer> menuactions on|off','Use menu bindings automatically, or always use Closed bindings.'},
             {'bank preset cioara apply','Replace four bank layouts with the Cioara template; back up settings first.'},
@@ -271,6 +296,8 @@ function M.new(options)
             ' | executed='..self.executed..' | empty='..self.empty..' | native ack='..self.output.ack..'/'..self.output.seq)
         local b=self:settings()[layers[layer]]
         options.say(layer..' visible='..tostring(b.Visible)..' | draw on native menus='..tostring(b.ShowOnMenu)..' | menu actions='..tostring(b.MenuActions))
+        local p=self:settings()[(layer:sub(1,1)=='l' and 'Left' or 'Right')..'Panel']
+        options.say('Position: //xb bank '..layer..' pos '..tostring(p.X)..' '..tostring(p.Y)..' | scale='..tostring(p.Scale)..' | follows main='..tostring(p.FollowCrossbar))
         for _,context in ipairs({'Closed','Menu'}) do
             local entries={}
             for i,name in ipairs(M.buttons) do local e=self:entry(layer,i,context=='Menu');local source=self:stored_entry(layer,i,context=='Menu').Kind=='default' and 'default' or 'override'
@@ -280,6 +307,11 @@ function M.new(options)
     end
     function self:command(args)
         local layer=(args[1] or ''):lower()
+        if layer=='swap' then
+            if args[4] or not layers[args[2]] or not layers[args[3]] or args[2]==args[3] then self:help();return false end
+            self:release_slots();self.output:cancel();self.r1used=true
+            self:swap(args[2],args[3]);options.save();self:status(args[2]);self:status(args[3]);return true
+        end
         if layer=='preset' then
             if args[2]~='cioara' or args[3]~='apply' or args[4] then self:help();return false end
             self:release_slots();self.output:cancel();self.r1used=true
@@ -293,8 +325,13 @@ function M.new(options)
         local changed=false
         if op=='help' then self:help();return
         elseif op=='status' then self:status(layer);return
+        elseif op=='edit' and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
+            local enabled=args[3]=='on';p.Locked=not enabled
+            self.previews[side]=enabled and {layer=layer,until_time=math.huge,editing=true} or nil
+            changed=true
         elseif (op=='show' or op=='hide') and offset==0 and not args[3] then
             self:settings()[layers[layer]].Visible=op=='show';changed=true
+            if op=='hide' and self.previews[side] and self.previews[side].layer==layer then self.previews[side]=nil end
         elseif (op=='menus' or op=='menuactions') and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
             self:settings()[layers[layer]][op=='menus' and 'ShowOnMenu' or 'MenuActions']=args[3]=='on';changed=true
         elseif op=='defaults' and not args[3+offset] then

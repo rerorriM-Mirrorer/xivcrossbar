@@ -1,5 +1,57 @@
 # Current Development Status — October 19, 2026 (America/Chicago)
 
+- **Branch / tested baseline:** development/directlink, source d6a12c8d8356d6abd3e4f747f2130d24dea1ee27. Runtime directlink1-banklayout1 / unchanged Controls 9.10-holdfix.
+- **User request:** Exchange current L1/R1 controls, replace L1L2 Cross Jump with input /quest, match main font/size, and simplify movement/copying Cioara positions. No new live acceptance of held-input recovery was supplied in this request.
+- **Change:** Explicit swap preserves custom and materialized inherited bindings, Closed/Menu entries, titles and policies; positions stay on their original side. Updated explicit Cioara preset includes swap and Quests. Existing installs use explicit swap plus two slot assignments, avoiding wholesale preset replacement. Typography follows main font/size/rendered scale. Pinned edit previews allow mouse-only dragging. Main pos and panel status expose copyable position commands; no Ctrl grid snapping.
+- **Verification:** All 51 top-level Lua regressions passed, 126 Lua sources parsed using the documented Lua 5.4 normalization fallback; seven JS/controller routing scripts, AHK structural checks and diff checks passed. Native Windows/Windower/FFXI acceptance remains pending.
+- **Delivery / install:** Complete update with all Hold Recovery 1 and Banks 3 work. Preserve data/settings.xml, config.ini and art. From Hold Recovery 1 only Lua reload is needed. If still on an older wrapper, install/restart Controls 9.10-holdfix as described in HOLD-RECOVERY.md. No automatic saved-bank rewrite or preset reapply.
+- **Live tests:** Run swap once on each desired character, set Quests in both contexts, verify labels/commands, compare bank typography with main bar, drag via edit preview without held controls, and copy Cioara coordinates into clients of matching UI resolution/scale. Continue held-input acceptance and retain its trace protocol.
+- **Pending:** Held-input live confirmation/performance investigation, compact Options flash, menu-type detection, one-command in-game diagnostic runner, Ctrl+drag snapping, NPC cutscene access and SlowEnter all-client delivery.
+
+---
+
+# Bank layout and positioning test 1 — October 19, 2026
+
+Author A. Reviewed AGENTS/WORKFLOW/TESTING and source baseline d6a12c8d.
+User requested current L1/R1 exchange rather than changing hardware shoulder
+semantics. Generic bank swap materializes factory entries before moving them;
+otherwise Kind=default would resolve different commands at the destination.
+Both contexts and bank-specific display/menu policies follow the definitions;
+left/right shared panel geometry does not move. Titles get the correct physical
+prefix, including compound-bank swaps. Applying swap again reverses the change.
+The explicit Cioara preset now ships party L1 / NPC R1 and Quest on inventory
+Cross in Closed and Menu. Existing users should not reapply it to preserve other
+customizations: use the swap and slot commands documented in README.
+
+Bank text uses Texts.Font/Size with main CrossbarScale, matching actual main
+pixel size even when a bank has an independent geometry scale. Title and font
+changes participate in the render cache. Slot icon size/geometry is preserved.
+Edit on pins a preview indefinitely and unlocks its side panel; off locks and
+unpins. Edit previews do not arm physical input or permanently override a hidden
+bank's visibility. Main pos uses existing move/anchor logic and saves offsets;
+panel status prints existing pos syntax. data/settings.xml stores Style.OffsetX/Y
+and CompanionBanks.LeftPanel/RightPanel.X/Y; copy individual fields/commands, not
+all character settings. Different resolutions/scales may clamp/place differently.
+
+Verification: all 51 tests/*.lua regressions and all 126 Lua sources parsed via
+the Lua 5.4 temporary Windower-syntax normalization fallback. All seven JS routing
+scripts and tests/check_ahk.py passed. Focused final-source bank-layout and view
+regressions passed after removing the obsolete unused text-size parameter.
+git diff --check passed. Actual bank owner tests cover custom/factory semantics,
+both contexts, invalid swap, policy/title transfer, preserved panel positions,
+pinned edit without input arming and main position validation. Actual view tests
+check configured font and matching main scaled size independent of bank geometry.
+No native Windows/Windower/FFXI acceptance is claimed. Source-tree and package
+entry/byte integrity are audited after publication.
+
+Source/test records from previous checkpoints remain below. The hold-recovery
+implementation and AHK are unchanged; native acceptance is still outstanding.
+Ctrl+drag snapping and the one-command runner are not included in this batch.
+
+---
+
+# Historical status — Hold Recovery 1, October 19, 2026
+
 - **Repository / branch:** rerorriM-Mirrorer/xivcrossbar / development/directlink; tested source baseline bdc6706d40b4424bd5bc9eef086c084c750f38d2.
 - **Runtime / wrapper:** directlink1-holdfix1 / Controls 9.10-holdfix. This is a matched Lua/AHK update; restart the wrapper after replacing files, reload Lua in each client. Existing settings and Banks 3 preset assignments are retained without reapplying the preset.
 - **User live evidence:** Disappearing R1/R2 holds are now frequent. Supplied controller-input-trace(2).log shows native Down/up acknowledgements, then cancellation near a 375 ms poll and eight later physical Down presses suppressed while R1/R2 stay held. Neutral rearming resumes after releasing controls. Clairvaux log reports messages active, zero rejected and lifetime max poll/gap 656/672 ms; those maxima are not proof of this capture's precise reset cause.

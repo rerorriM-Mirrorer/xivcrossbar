@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261019.directlink1-holdfix1'
+_addon.version = '0.4.0-a.20261019.directlink1-banklayout1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -180,6 +180,22 @@ local crossbar_drag = require('ui_drag').new({
     end,
     save=function() config.save(settings) end,
 })
+
+local function set_crossbar_position(args)
+    if #args==0 then
+        windower.add_to_chat(0,'[XIVCrossbar] Copy position: //xb pos '..tostring(settings.Style.OffsetX)..' '..tostring(settings.Style.OffsetY))
+        return
+    end
+    local x,y=tonumber(args[1]),tonumber(args[2])
+    if #args~=2 or not x or not y or x~=x or y~=y or math.abs(x)==math.huge or math.abs(y)==math.huge then
+        windower.add_to_chat(0,'[XIVCrossbar] Use //xb pos <offset x> <offset y>.');return
+    end
+    if not ui.is_setup then windower.add_to_chat(0,'[XIVCrossbar] Finish setup before positioning crossbars.');return end
+    crossbar_drag:finish()
+    settings.Style.OffsetX,settings.Style.OffsetY=x,y
+    theme_options.offset_x,theme_options.offset_y=x,y
+    move_crossbars(x,y);config.save(settings);ui_dirty=true
+end
 
 local function set_compact_mode(mode)
     mode = mode and mode:lower()
@@ -1152,6 +1168,7 @@ function display_help_menu()
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
     help.command('realkeys [on|off|status]','Test AHK keyboard IJKL in ordinary gameplay; default OFF, bare toggles.')
     help.command('scale <0.25-2>','Scale crossbars independently of menus.')
+    help.command('pos [<offset x> <offset y>]','Report copyable main-bar coordinates, or set them.')
     help.command('compact [on|off]','Switch layout immediately; bare toggles.')
     help.command('show','Show crossbars.')
     help.command('hide','Hide crossbars; bindings remain active.')
@@ -1430,6 +1447,7 @@ windower.register_event('addon command', function(command, ...)
         return
     end
     local args = {...}
+    if command=='pos' then return set_crossbar_position(args) end
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
         return set_text_fade(command == 'textfade' and args[1] or args[2])
     end

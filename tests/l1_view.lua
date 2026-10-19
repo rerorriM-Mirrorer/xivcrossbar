@@ -6,6 +6,7 @@ local function object()
         assert(alive[self],'disposed surface reused')
         calls=calls+1
         if key=='text' then self.last_text=(...) end
+        if key=='font' then self.last_font=(...) end
         if key=='pos' or key=='size' then self['last_'..key]={...} end
         -- This layout fixture supplies an already-settled measurement. Deferred
         -- rendering is exercised with real resources in text_settle.lua.
@@ -17,9 +18,16 @@ local resources={text=object,image=object,clear=function(list)for _,o in ipairs(
 local now=5;local settings={L1=require('l1_bank').defaults()}
 local bank=require('l1_bank').new({settings=settings,clock=function()return now end})
 local view=require('l1_view').new({bank=bank,resources=resources,path='',settings=settings})
+settings.Texts={Font='Arial',Size=9}
 view:tick(true,960,540);assert(created==0,'hidden companion allocated surfaces')
 bank:event('show');view:tick(true,960,540);local fixed=created
 assert(fixed==42)
+assert(view.title.last_font=='Arial' and view.title.last_size[1]==9)
+assert(view.slots[1].alias.last_font=='Arial' and view.slots[1].alias.last_size[1]==9)
+settings.CrossbarScale=1.25;settings.L1.FollowCrossbar=false;settings.L1.Scale=1
+view:tick(true,960,540)
+assert(view.slots[1].alias.last_size[1]==11,'bank text diverged from main text scale')
+settings.CrossbarScale=nil;settings.L1.FollowCrossbar=true;view:tick(true,960,540)
 assert(view.slots[1].background and view.slots[1].frame)
 assert(view:bounds().width==290 and view:bounds().height==148)
 -- Compare with actual main-bar coordinate functions, not a second formula.

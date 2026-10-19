@@ -10,11 +10,12 @@ local icons={'dpad_playstation_left','dpad_playstation_down','dpad_playstation_r
     'facebuttons_playstation_b','facebuttons_playstation_a','facebuttons_playstation_x','facebuttons_playstation_y'}
 function M.new(options)
     local self={options=options,objects={},slots={},opacity=0,allocated=false}
-    local function text(size)
+    local function text()
         local t=options.resources.text({flags={draggable=false}})
         require('ui/render_trace').track(t,nil,options.owner or 'l1-companion','caption')
         t:bg_alpha(0);t:bg_visible(false)
-        t:font('Verdana');t:size(size);t:color(228,231,240)
+        local typography=options.settings and options.settings.Texts or {}
+        t:font(typography.Font or 'sans-serif');t:size(tonumber(typography.Size) or 7);t:color(228,231,240)
         t:stroke_width(1);t:stroke_alpha(180);t:hide()
         self.objects[#self.objects+1]=t;return t
     end
@@ -24,7 +25,7 @@ function M.new(options)
         self.bg=options.resources.image({draggable=false})
         self.bg:path(options.path..'images/icons/iconpacks/default/ui/bar_bg_compact.png')
         self.bg:hide();self.objects[#self.objects+1]=self.bg
-        self.title=text(11)
+        self.title=text()
         local theme=options.settings and options.settings.Theme or {}
         local slot_theme=tostring(theme.Slot or 'ffxiv'):lower()
         local frame_theme=tostring(theme.Frame or 'ffxiv'):lower()
@@ -38,7 +39,7 @@ function M.new(options)
             local frame=options.resources.image({draggable=false})
             frame:path(options.path..'themes/'..frame_theme..'/frame.png')
             frame:hide();self.objects[#self.objects+1]=frame
-            self.slots[i]={background=background,icon=icon,frame=frame,number=text(8),alias=text(9)}
+            self.slots[i]={background=background,icon=icon,frame=frame,number=text(),alias=text()}
         end
     end
     function self:metrics()
@@ -69,7 +70,12 @@ function M.new(options)
         local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=d.X,d.Y
         local alpha=math.floor(255*self.opacity+.5)
         local mode=options.bank:mode()
-        local labels,parts={},{mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha),tostring(horizontal),tostring(vertical)}
+        local typography=options.settings and options.settings.Texts or {}
+        local font=typography.Font or 'sans-serif'
+        local main_scale=tonumber(options.settings and options.settings.CrossbarScale) or 1
+        local font_size=math.max(1,math.floor((tonumber(typography.Size) or 7)*main_scale+.5))
+        local title=(options.bank.title and options.bank:title(mode) or (mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts'))..(d.Locked and '' or '  [drag]')
+        local labels,parts={},{mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha),tostring(horizontal),tostring(vertical),font,tostring(font_size),title}
         for i=1,8 do
             local entry=d['Slot'..i]
             local label=mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
@@ -83,8 +89,7 @@ function M.new(options)
         if self.visible and self.render_key==key and not self.needs_measurement then return end
         self.visible=true;self.render_key=key;self.needs_measurement=false
         self.bg:pos(x,y);self.bg:size(w*s,h*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
-        local title=(options.bank.title and options.bank:title(mode) or (mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts'))..(d.Locked and '' or '  [drag]')
-        self.title:text(title);self.title:size(math.max(6,math.floor(11*s+.5)));self.title:pos(x+10*s,y+8*s)
+        self.title:text(title);self.title:font(font);self.title:size(font_size);self.title:pos(x+10*s,y+8*s)
         self.title:alpha(alpha);self.title:stroke_alpha(math.floor(alpha*.7));self.title:show()
         for i,slot in ipairs(self.slots) do
             local px,py=30+layout[i][1]*horizontal,36+layout[i][2]*vertical
@@ -92,9 +97,9 @@ function M.new(options)
             slot.background:alpha(math.floor(alpha*.6));slot.background:show()
             slot.icon:pos(x+(px-20)*s,y+py*s);slot.icon:size(40*s,40*s);slot.icon:alpha(alpha);slot.icon:show()
             slot.frame:pos(x+(px-20)*s,y+py*s);slot.frame:size(40*s,40*s);slot.frame:alpha(alpha);slot.frame:show()
-            slot.number:text(tostring(i));slot.number:size(math.max(4,math.floor(8*s+.5)));slot.number:pos(x+(px-18)*s,y+(py+1)*s)
+            slot.number:text(tostring(i));slot.number:font(font);slot.number:size(font_size);slot.number:pos(x+(px-18)*s,y+(py+1)*s)
             local label=labels[i]
-            local font_size=math.max(4,math.floor(9*s+.5))
+            slot.alias:font(font)
             if slot.caption~=label then slot.alias:text(label);slot.caption=label end
             if slot.font_size~=font_size then slot.alias:size(font_size);slot.font_size=font_size end
             local width_text=slot.alias:measure_width()

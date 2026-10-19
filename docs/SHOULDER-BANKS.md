@@ -1,3 +1,37 @@
+# Bank layout and typography test 1 — October 19, 2026
+
+Source baseline d6a12c8d8356d6abd3e4f747f2130d24dea1ee27. Author A.
+Runtime directlink1-banklayout1 / unchanged Controls 9.10-holdfix.
+
+Use `//xb bank <layer>` consistently for all four layers, including R1.
+For existing personal banks, swap L1/R1 once and assign Quests in both contexts:
+
+```
+//xb bank swap l1 r1
+//xb bank l1l2 cross Quests input /quest
+//xb bank l1l2 menu cross Quests input /quest
+```
+
+This preserves all current commands, including overrides and factory-resolved
+entries. Positions remain left/right rather than following the swapped bank.
+The updated explicit Cioara preset already includes these changes; applying it
+also resets its other companion definitions, so it is not the existing-user
+upgrade route. Keep the current settings and use the three commands above.
+
+`//xb bank l1 edit on` pins/unlocks the left bank for mouse-only dragging. Edit
+off unpins/locks. The same form works for r1/l1l2/r1r2. Hidden-bank edit previews
+can draw temporarily; input is never armed by the preview. `hide` ends a pinned
+preview. Typographic font/size follows main Texts settings and CrossbarScale.
+
+Use `//xb pos` for main copyable coordinates and `//xb bank l1 status` /
+`//xb bank r1 status` for copyable panel coordinates. Settings live in
+`data/settings.xml`, Style.OffsetX/Y and CompanionBanks.LeftPanel/RightPanel.X/Y.
+Main offsets use screen-centre/bottom anchoring; bank positions are absolute UI
+pixels. Use matching client UI resolution and scale when copying locations.
+No Ctrl+drag grid snapping is implemented by this update.
+
+---
+
 # Companion banks — checkpoint 3
 
 October 19, 2026. Author A. Runtime directlink1-banks3 / Controls 9.9-banks.

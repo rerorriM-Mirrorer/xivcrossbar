@@ -40,5 +40,9 @@ function M.cioara(bank)
         end end
     end
     bank:settings().Preset='cioara'
+    bank:swap('l1','r1')
+    for _,context in ipairs({'Closed','Menu'}) do
+        bank:settings().L1L2[context].Slot6=command('Quests','input /quest')
+    end
 end
 return M

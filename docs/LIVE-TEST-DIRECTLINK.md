@@ -1,11 +1,20 @@
-# DirectLink held-input recovery test 1 — October 19, 2026
+# DirectLink bank layout test 1 — October 19, 2026
 
 This is the short in-game guide for the **complete personal DirectLink** test
 package. It incorporates the shared command fixes, four companion banks,
 optional real IJKL comparison and text settling. It is **not** the public RC3.
 The cumulative record and detailed edge cases remain in `TESTING.md`.
 
-## Banks 3 layout and menu acceptance
+## Current layout update
+
+From Hold Recovery 1, update/reload Lua; AHK remains Controls 9.10-holdfix.
+Preserve current data/settings.xml. Use the three commands in SHOULDER-BANKS.md
+to swap existing L1/R1 and assign L1L2 Cross to input /quest in both contexts.
+Do not reapply a preset to update existing personalized banks. Check font/size
+against the main crossbar; use edit on/off without a held controller to drag.
+Check copyable main/panel coordinates on Cioara before applying them elsewhere.
+
+## Banks 3 layout and menu acceptance (historical roles)
 
 For this hold fix, update both Lua and AHK, reload each client, and restart the
 shared wrapper once; expect Controls 9.10-holdfix. See HOLD-RECOVERY.md. Preserve installed data and art. New fields
@@ -63,7 +72,7 @@ Options flash still needs identification; the previous patch did not resolve it.
    //xb controller status
    ```
 
-   Expect runtime `0.4.0-a.20261019.directlink1-holdfix1` and wrapper
+   Expect runtime `0.4.0-a.20261019.directlink1-banklayout1` and wrapper
    `Controls=9.10-holdfix`, banks protocol=1/enabled=1 and receiver=true after
    neutral. If the wrapper version
    is older, stop here and restart it before judging controller behavior.

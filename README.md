@@ -15,12 +15,72 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261019.directlink1-holdfix1**; shared wrapper Controls **9.10-holdfix**.
+Runtime: **0.4.0-a.20261019.directlink1-banklayout1**; shared wrapper Controls **9.10-holdfix**.
 Update Lua and AHK together, then restart the shared wrapper once. Preserve installed settings.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
-## Held-input recovery — current test
+## Bank layout and positioning — current test
+
+Bank labels, title and slot numbers now use `Texts.Font`, `Texts.Size` and the
+main `CrossbarScale` for the same rendered typography as the main crossbars.
+Bank geometry can still have its own scale. No Ctrl+drag snapping is added here.
+
+To update the current saved layout without rebuilding personal commands, run
+these once in each character's client (do not reapply the Cioara preset):
+
+```
+//xb bank swap l1 r1
+//xb bank l1l2 cross Quests input /quest
+//xb bank l1l2 menu cross Quests input /quest
+```
+
+Swap exchanges both Closed/Menu bindings, titles and drawing/menu policies;
+left/right panel positions stay in place. Inherited actions are materialized so
+moving a factory entry cannot change its meaning. Swap again reverses it, so do
+not run it twice unintentionally. Other banks, slot assignments and settings
+remain. Fresh explicit Cioara presets already use L1 party, R1 NPC/tests and
+L1L2 Quests; do not run the swap after freshly applying that updated preset.
+
+All four layers accept the same `//xb bank <l1|l1l2|r1|r1r2> ...` form. The short
+`//xb l1` remains a legacy L1L2 editor; using `bank` consistently avoids that alias.
+
+For mouse-only dragging, without holding any controller button:
+
+```
+//xb bank l1 edit on
+//xb bank l1 edit off
+```
+
+Edit on pins that layer and unlocks its shared side panel. Edit off clears the
+preview and locks the panel. It does not arm controller input or change a hidden
+bank's saved visibility policy. Edit preview is temporary, cleared on reload;
+the position and lock setting save normally. Use `bank r1 edit on/off` on the right.
+The two banks on each side share their position, scale and lock.
+
+On Cioara, `//xb pos` prints the main bar's copyable offset command.
+`//xb bank l1 status` and `//xb bank r1 status` print their copyable `pos` commands.
+Run those printed commands in each other client. For example:
+
+```
+//xb pos 0 -20
+//xb bank l1 pos 24 70
+//xb bank r1 pos 600 70
+```
+
+These are examples, not Cioara's measured coordinates. `//xb pos 0 0` restores
+the main default anchor. Main offsets are relative to screen centre/bottom;
+bank X/Y are absolute UI pixels and clamp to the current viewport. Match UI
+resolution and scale for matching visual positions.
+
+Saved location fields are in `xivcrossbar/data/settings.xml`: `Style.OffsetX`,
+`Style.OffsetY`, `CompanionBanks.LeftPanel.X/Y` and `RightPanel.X/Y` within the
+relevant character section (or inherited global section). For matching sizes,
+also compare CrossbarScale and panel FollowCrossbar/Scale. Do not replace the
+whole settings file merely to copy positions; it also contains personal binds.
+Use the commands while loaded; unload before manually editing the XML.
+
+## Held-input recovery — previous test
 
 This complete build includes Banks 3 and a focused fix for disappearing holds.
 The supplied trace shows a session cancellation while R1/R2 stayed physically
@@ -93,7 +153,7 @@ automatically during installation/login. It materializes current L1 closed/menu
 bindings on L1L2 before replacing L1; repeated apply retains L1L2 as the inventory
 source. Previous L1L2 overrides are replaced, so keep your settings backup.
 
-| Button | L1 NPC / tests | R1 party |
+| Button | R1 NPC / tests | L1 party |
 |---|---|---|
 | Left | NPCMirror call | Switch Myrr |
 | Down | SlowEnter toggle | Switch Killala |
@@ -105,7 +165,7 @@ source. Previous L1L2 overrides are replaced, so keep your settings backup.
 | Triangle | NPCMirror interact | Self Trust toggle |
 
 R1R2 gets held arrow directions, Cross Enter, Circle Escape, Triangle `trust menu
-open`, Square `trust menu close`. It starts hidden. R1 can draw over native
+open`, Square `trust menu close`. It starts hidden. L1 can draw over native
 menus. L1L2 gets inventory; automatic menu actions start OFF to keep battle-menu
 flags from replacing the opening commands. Enable with `//xb l1l2 menuactions on`.
 
@@ -1064,3 +1124,12 @@ neutral rearm. Adds reset reasons/status protocol and actual AHK/Lua regression
 coverage. Runtime holdfix1, matching Controls 9.10-holdfix; both must be updated.
 All Banks 3 settings, bindings, presets and artwork behavior are retained. The
 compact Options flash and one-command test runner remain separate pending work.
+
+
+### Bank layout and typography test 1 — October 19, 2026
+
+Adds preserving swaps, pinned mouse-only edit previews and copyable main/panel
+position commands. Bank font and rendered size now follow main typography. The
+explicit Cioara preset swaps party/NPC roles to L1/R1 and assigns input /quest
+to L1L2 Cross in both contexts. Existing saved definitions are changed only by
+explicit commands; no hidden migration or preset reapply. AHK remains 9.10-holdfix.
