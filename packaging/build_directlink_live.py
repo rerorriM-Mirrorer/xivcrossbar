@@ -50,6 +50,7 @@ def build():
     parser.add_argument("--published", required=True, help="Verified GitHub branch commit SHA")
     parser.add_argument("--published-tree", required=True, help="Verified GitHub commit tree SHA")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--no-images", action="store_true", help="Cumulative code update; retain installed images and themes")
     args = parser.parse_args()
     assert PUBLISHED_RE.fullmatch(args.published), "Expected published commit SHA"
     assert PUBLISHED_RE.fullmatch(args.published_tree), "Expected published tree SHA"
@@ -63,6 +64,8 @@ def build():
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT)
     files = sorted(name.decode() for name in tracked.split(b"\0") if name and should_include(name.decode()))
     assert REQUIRED.issubset(files), sorted(REQUIRED.difference(files))
+    if args.no_images:
+        files = [name for name in files if Path(name).suffix.lower() not in {'.png', '.jpg', '.jpeg'}]
     assert not any(name.lower().endswith((".xml", ".ini", ".log", ".bak", ".lease", ".buttons", ".l1")) for name in files)
     contents = {"xivcrossbar/" + name: (ROOT / name).read_bytes() for name in files}
 
@@ -71,15 +74,20 @@ def build():
         assert "xivcrossbar/" + dependency in contents, f"Missing AHK include {dependency}"
 
     version = re.search(r"_addon.version = '([^']+)'", (ROOT / "xivcrossbar.lua").read_text())
-    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-banklayout1"
+    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-hintfix1"
     contents["xivcrossbar/PACKAGE-INFO.txt"] = (
-        "XIVCrossbar DirectLink bank layout test 1 complete installation\n"
+        "XIVCrossbar DirectLink hint cleanup test 1\n"
+        + ("Package: cumulative code update WITHOUT images; requires an existing DirectLink installation.\n"
+           "Contains all current installable code, not a delta; earlier code patches need not be applied.\n"
+           "Retain installed images/ and themes/ assets. New installs require the complete package.\n"
+           if args.no_images else "Package: complete installation including images and themes.\n") +
         "Branch: development/directlink\n"
         f"Published source commit: {args.published}\n"
         f"Verified source tree: {local_tree}\n"
         f"Runtime: {version.group(1)}\n"
         "AHK wrapper: Controls=9.10-holdfix\n"
         "Read docs/LIVE-TEST-DIRECTLINK.md before updating.\n"
+        "Read docs/UPDATING.md for update and position-copy instructions.\n"
         "No character data, custom bindings/settings or companion Trust addon included.\n"
         "Windows/FFXI live acceptance remains pending.\n"
     ).encode()
@@ -101,6 +109,7 @@ def build():
         "published_commit": args.published,
         "published_tree": args.published_tree,
         "runtime": version.group(1),
+        "package_kind": "cumulative-code" if args.no_images else "complete",
         "entry_count": len(contents),
         "archive_bytes": output.stat().st_size,
         "archive_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),

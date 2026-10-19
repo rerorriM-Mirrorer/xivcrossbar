@@ -15,10 +15,13 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261019.directlink1-banklayout1**; shared wrapper Controls **9.10-holdfix**.
+Runtime: **0.4.0-a.20261019.directlink1-hintfix1**; shared wrapper Controls **9.10-holdfix**.
 Update Lua and AHK together, then restart the shared wrapper once. Preserve installed settings.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
+
+For cumulative code-only updates and copying Cioara positions, see
+[Updating and layout transfer](docs/UPDATING.md).
 
 ## Bank layout and positioning — current test
 
@@ -1133,3 +1136,13 @@ position commands. Bank font and rendered size now follow main typography. The
 explicit Cioara preset swaps party/NPC roles to L1/R1 and assigns input /quest
 to L1L2 Cross in both contexts. Existing saved definitions are changed only by
 explicit commands; no hidden migration or preset reapply. AHK remains 9.10-holdfix.
+
+
+### Skillchain hint cleanup test 1 — October 19, 2026
+
+Clears inherited hint/recast artwork on slot replacement and restores the base
+frame (including alpha) for commands, missing metadata and expired hints.
+Burst frames no longer retain an earlier skillchain property icon. Genuine item
+warmup and cooldown rendering remains intact. The tracker itself is unchanged.
+Adds cumulative code-only packaging with an explicit build/source marker;
+settings and all installed image/theme assets remain in place. See UPDATING.md.

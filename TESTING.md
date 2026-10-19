@@ -1,5 +1,52 @@
 # Current Development Status — October 19, 2026 (America/Chicago)
 
+- **Branch / tested baseline:** development/directlink; source e4fbe7b32e68f0198c191104b186805e54286b92. Runtime directlink1-hintfix1; unchanged Controls 9.10-holdfix.
+- **Request / fix:** Stale skillchain slot hints during rapid set changes. Slot replacement now clears recast/hint surfaces and resets frame artwork/alpha. All non-hint action paths restore their normal frame, including commands, missing metadata and item warmup; burst frames cannot inherit an old SC property image. Tracker timing and tracking remain unchanged.
+- **Verification:** Actual renderer regression covers replacement types, empty slots, expiry, SC-to-burst, frame alpha, item warmup/cooldown and immediate slot clear. All 52 top-level Lua regressions and 127 Lua sources passed the documented Lua 5.4 normalization fallback; all seven JS routing suites, AHK structural checks and diff checks passed. Windows/Windower/FFXI live acceptance remains pending.
+- **Delivery:** Cumulative code-only update contains all current installable non-image files, not merely changed files. Requires an existing complete DirectLink installation; preserves images/themes and excludes personal settings/bindings. Runtime and PACKAGE-INFO identify the checkpoint. No AHK changes in this batch.
+- **Settings supplied:** settings(20261019-212625).xml examined read-only. Cioara panels: left 1657,1669; right 1957,1675; main offsets 35,-146. No whole-file settings replacement. Settings migration and directory moves are proposed next, not implemented here.
+- **Latest user feedback:** Text-settling issue resolved; all four banks and menu scrolling work. Held-input recovery/layout changes still need native acceptance. Compact Options flash remains unresolved.
+- **Next:** Live-test rapid bar changes during/after a skillchain window; then migrate bank settings into a dedicated data file with explicit versioned import and fallback, before moving runtime modules/assets. Tracker-disable, R3 release-R cleanup, menu-type detection, one-command diagnostic runner and Ctrl-drag remain separate pending work.
+
+---
+
+# Skillchain hint cleanup test 1 — October 19, 2026
+
+Author A. Reviewed current AGENTS.md, WORKFLOW.md and TESTING.md; starting
+published checkpoint e4fbe7b32e68f0198c191104b186805e54286b92.
+The slot image/frame objects survive set changes. clear_slot hid the frame but
+left its animated texture/alpha and recast surfaces intact. Non-recast actions
+never visited the frame restoration branch. The burst path reused the warmup
+surface without changing a previous skillchain image. These are rendering leaks;
+they do not prove a stale tracker window. The patch clears surfaces at replacement,
+starts each recast pass with the shared warmup overlay hidden, and restores normal
+frame artwork/alpha whenever there is no valid hint. Actual warmup/cooldown code
+still draws its current output. Valid hints retain their animated frame path
+without an unnecessary base-texture round trip each frame.
+
+New tests/skillchain_hint_cleanup.lua exercises the real renderer rather than a
+copy of the algorithm. Caption fixtures now include actual recast cleanup while
+still proving replacement labels never pass through a transient blank.
+
+Cumulative packaging includes all installable current code and docs and omits
+image bytes only with --no-images. It never includes data/settings.xml, ordinary
+bar XML, local configuration or logs. Assets remain at current paths. Package
+integrity and published-tree equality are checked by the builder; a code-only
+package is not advertised as a fresh installation. Copy commands for the supplied
+Cioara positions and a staged settings/directory cleanup plan are in UPDATING.md.
+The attachment itself is unchanged and is not distributed with the update.
+
+Verification: all 52 top-level tests/*.lua regressions passed; 127 Lua sources
+parsed with the Lua 5.4 temporary Windower-syntax normalization fallback. Seven
+JS/controller routing suites, tests/check_ahk.py and git diff --check passed. The
+new renderer and caption tests also passed separately. Builder Python parsed.
+No native Windows/Windower/FFXI acceptance is claimed. Published-tree and ZIP
+byte/entry audits run before delivery. Earlier history follows unchanged.
+
+---
+
+# Historical status — Bank Layout 1, October 19, 2026
+
 - **Branch / tested baseline:** development/directlink, source d6a12c8d8356d6abd3e4f747f2130d24dea1ee27. Runtime directlink1-banklayout1 / unchanged Controls 9.10-holdfix.
 - **User request:** Exchange current L1/R1 controls, replace L1L2 Cross Jump with input /quest, match main font/size, and simplify movement/copying Cioara positions. No new live acceptance of held-input recovery was supplied in this request.
 - **Change:** Explicit swap preserves custom and materialized inherited bindings, Closed/Menu entries, titles and policies; positions stay on their original side. Updated explicit Cioara preset includes swap and Quests. Existing installs use explicit swap plus two slot assignments, avoiding wholesale preset replacement. Typography follows main font/size/rendered scale. Pinned edit previews allow mouse-only dragging. Main pos and panel status expose copyable position commands; no Ctrl grid snapping.

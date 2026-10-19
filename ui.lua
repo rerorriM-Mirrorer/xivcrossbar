@@ -1132,7 +1132,12 @@ end
 -- reset slot
 function ui:clear_slot(hotbar, slot, preserve_caption)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
+    -- Slot surfaces outlive the action occupying them. Do not let a previous
+    -- hint/recast survive a set replacement, even before the next recast pass.
+    self.hotbars[hotbar].slot_frame[slot]:path(self.frame_image_path)
+    self.hotbars[hotbar].slot_frame[slot]:alpha(255)
     self.hotbars[hotbar].slot_frame[slot]:hide()
+    self:clear_recast(hotbar, slot)
     self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
     self.hotbars[hotbar].slot_icon[slot]:hide()
     self.hotbars[hotbar].slot_icon[slot]:alpha(255)
@@ -1533,6 +1538,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 local slot = i
                 if slot == 10 then slot = 0 end
 
+                -- The overlay is shared by SC hints and item warmup. Only the
+                -- current action may reveal it below (a burst uses just a frame).
+                self.hotbars[h].slot_warmup[i]:hide()
                 self.hotbars[h].slot_background[i]:show()
                 self.hotbars[h].slot_icon[i]:show()
                 self.hotbars[h].slot_frame[i]:show()
@@ -1579,6 +1587,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 -- bails before the recast code can look up the linked metadata.
                 local effective_type = action and (action.linked_type or action.type) or nil
                 if action == nil or (effective_type ~= 'ma' and effective_type ~= 'ja' and effective_type ~= 'ws' and effective_type ~= 'pet' and effective_type ~= 'enchanteditem') then
+                    self.hotbars[h].slot_frame[i]:path(self.frame_image_path)
+                    self.hotbars[h].slot_frame[i]:alpha(255)
                     self:clear_recast(h, i)
                     if (action ~= nil and action.type == 'item') then
                         local item_count = consumables:get_item_count_by_name(action.action)
@@ -1922,6 +1932,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
                     end
 
+                    -- Restore even during an item warmup or missing metadata.
+                    -- Do not switch to the base texture and back every frame
+                    -- while a valid animated hint is still active.
+                    if skillchain_prop == nil then
+                        self.hotbars[h].slot_frame[i]:path(self.frame_image_path)
+                        self.hotbars[h].slot_frame[i]:alpha(255)
+                    end
                     -- Show skillchain indicator if WS has a compatible skillchain property
                     if (skillchain_prop ~= nil) then
                         local frame_step = 1
@@ -1962,7 +1979,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                             self.hotbars[h].slot_warmup[i]:path(windower.addon_path..'/images/' .. get_icon_pathbase() .. '/skillchain/' .. skillchain_prop:lower() .. '.png')
                             self.hotbars[h].slot_warmup[i]:size(40, 40)
                             self.hotbars[h].slot_warmup[i]:pos(self:get_slot_x(h, i), self:get_slot_y(h, i))
-                            self.hotbars[h].slot_warmup[i]:show()
                             self.hotbars[h].slot_warmup[i]:show()
                             self.hotbars[h].slot_icon[i]:hide()
                         end
