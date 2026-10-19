@@ -21,25 +21,31 @@ function M.new(options)
         self.held={};self.captured=false
         options.cancel()
     end
-    function self:reset()
+    function self:reset(reason)
         local active=self.token~=nil
+        self.recover_key=(reason=='heartbeat' or reason=='stall' or reason=='output-stall') and self.key or nil
+        if options.can_recover and not options.can_recover() then self.recover_key=nil end
+        self.recovering=false
+        if reason then self.last_reason=reason end
         self.token,self.key=nil,nil;self.ack=0;self.last_seen=0;self.last_beat=nil
         if active then cancel() end
     end
     function self:context(key,enabled)
-        if not enabled then self:reset();return end
+        if not enabled then self:reset('context-disabled');return end
         if self.key~=key then
             local active=self.token~=nil
-            self:reset()
+            local recovering=self.recover_key==key
+            if recovering then self:reset() else self:reset('context-change') end
             -- Initial activation also releases keys owned by the legacy route.
             if not active then cancel() end
             self.epoch=self.epoch+1;self.key=key
             self.token=options.session..'-buttons-'..self.epoch
+            self.recovering=recovering
         end
     end
     function self:watchdog()
         if self.captured and options.clock()-self.last_seen>.35 then
-            self:reset();return true
+            self:reset('heartbeat');return true
         end
         return false
     end
@@ -55,13 +61,14 @@ function M.new(options)
             local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
             seq,button=tonumber(seq),tonumber(button)
             if not seq or not button or not ((kind=='down' or kind=='up') and button>=1 and button<=(options.physical and 14 or 12) or
-                kind=='cancel' and button==0 or kind=='rmenu' and (button==6 or button==8)
-                    and type(options.menu)=='function' or kind=='banks' and button==0 and type(options.ready)=='function'
+                (kind=='cancel' or kind=='stall') and button==0 or kind=='rmenu' and (button==6 or button==8) and type(options.menu)=='function'
+                    or kind=='resume' and button>=11 and button<=14 and self.recovering and type(options.resume)=='function'
+                    or kind=='banks' and button==0 and type(options.ready)=='function'
                     or kind=='keyack' and button>=0 and button<=2147483647 and type(options.key_ack)=='function') then self.rejected=self.rejected+1;return false end
             if seq>self.ack then
                 if seq~=next_seq then self.rejected=self.rejected+1;return false end
                 events[#events+1]={seq,kind,button};next_seq=next_seq+1
-                if kind=='cancel' then last_cancel=#events end
+                if kind=='cancel' or kind=='stall' then last_cancel=#events end
             end
         end
         beat=tonumber(beat)
@@ -74,9 +81,13 @@ function M.new(options)
             if index>=last_cancel then
                 local kind,button=event[2],event[3]
                 if kind=='cancel' then cancel()
+                elseif kind=='stall' then self:reset('output-stall')
                 elseif kind=='rmenu' then options.menu(button)
                 elseif kind=='banks' then options.ready()
                 elseif kind=='keyack' then options.key_ack(button)
+                elseif kind=='resume' and not self.held[button] then
+                    if not self.captured then self.captured=true;options.capture(true) end
+                    self.held[button]=true;options.resume(button)
                 elseif kind=='down' and not self.held[button] then
                     if not self.captured then self.captured=true;options.capture(true) end
                     self.held[button]=true

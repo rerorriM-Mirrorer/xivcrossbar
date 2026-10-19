@@ -104,5 +104,5 @@ assert(env_lease.native:find('d,ctrl+left',1,true),'native-menu context did not 
 buttons('10,keyack,4\n',22);assert(env_lease.native=='' and env_lease.native_base==4)
 info.menu_open=false;step();buttons('11,down,14\n12,down,1\n',23)
 assert(env_lease.native:find('d,up',1,true))
-now=now+.36;step();assert(messages.token==nil and not env_lease.banks and banks.layer=='','native backlog did not cancel session')
+now=now+.36;step();assert(messages.token~=message_token and env_lease.button_recover and banks.layer=='' and env_lease.native=='','native backlog did not replace and clear session')
 print('Actual root bank pipeline: ordered mailbox -> Lua map -> native lease, menu-context generation change, output acknowledgment and overdue-session cancellation passed.')

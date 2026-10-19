@@ -187,7 +187,7 @@ function M.new(options)
             if not other then self.output:edge(key,false) end
         end
         self:refresh()
-        if pressed and self.layer=='pair' and before~='pair' then
+        if pressed and self.layer=='pair' and before~='pair' and not self.resuming then
             self.r1used=true
             local slots=false;for i=1,12 do if self.down[i] then slots=true end end
             if self.eligible and not slots then self.output:pulse('tab') end
@@ -218,6 +218,12 @@ function M.new(options)
         elseif e.Kind=='command' and e.Command:match('%S') then
             self.executed=self.executed+1;options.execute(e.Command)
         else self.empty=self.empty+1 end
+    end
+    function self:resume(button)
+        -- Restore only held controls, in their original order. No slot, Tab or
+        -- unused-R release may be synthesized by recovering a lost session.
+        if button<11 or button>14 then return end
+        self.resuming=true;self:edge(button,true);self.resuming=false;self.r1used=true
     end
     function self:panel(side)
         local parent=self

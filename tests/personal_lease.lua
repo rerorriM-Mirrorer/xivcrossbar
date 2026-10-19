@@ -21,12 +21,14 @@ assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='
 assert(files[path]:find('target_r2=1\ntarget_r3=1\nbutton_mode=keys\n',1,true))
 assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='keyboard',ack=2,
     messages=true,button_token='buttons-1',button_ack=17}))
-assert(files[path]:find('button_mode=messages\nbutton_token=buttons-1\nbutton_ack=17\nEND\n',1,true))
+assert(files[path]:find('button_mode=messages\nbutton_token=buttons-1\nbutton_ack=17\nbutton_recover=0\nbutton_reason=context\nEND\n',1,true))
 assert(lease:update('data/','Test','ps5-extended','gameplay',{token='one',mode='keyboard',ack=2,
     messages=true,button_token='buttons-1',button_ack=17,realkeys=true}))
 assert(files[path]:find('dpad_output=ahk\n',1,true),'permission change must publish immediately')
 assert(lease:update('data/','Test','ps5-extended','gameplay',{r1_menus=true}))
 assert(files[path]:find('r1_menus=1\n',1,true))
+assert(lease:update('data/','Test','ps5-extended','gameplay',{messages=true,button_recover=true,button_reason='heartbeat'}))
+assert(files[path]:find('button_recover=1\nbutton_reason=heartbeat\nEND\n',1,true))
 local prior=writes
 assert(lease:update('data/','Test','ps5-extended','gameplay',{banks=true,native_token='buttons-1-native-3',
     native_base=17,native='18,d,ctrl+i|19,u,ctrl+i'}))

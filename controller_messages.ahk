@@ -3,7 +3,7 @@
 ControllerMessageInit() {
     global CM
     CM := {requested:false, token:"", seq:0, ack:0, pending:[], previous:[]
-        , phase:"keys", seen:0, nextWrite:0, path:"", error:false, expanded:false}
+        , phase:"keys", seen:0, nextWrite:0, path:"", error:false, expanded:false, controlSeq:[], canResume:false, lastHealthy:0}
 }
 
 ControllerMessageLease(lease, contextPath) {
@@ -21,10 +21,19 @@ ControllerMessageLease(lease, contextPath) {
     }
     CM.seen := now
     if (requested != CM.requested or token != CM.token) {
+        resume := requested and CM.requested and CM.canResume and CM.expanded
+            and now - CM.lastHealthy <= 2000
+            and RegExMatch(lease, "m)^bank_protocol=1\r?$")
+            and CM.path = RegExReplace(contextPath, "\.ini$", ".buttons")
+            and RegExMatch(lease, "m)^button_recover=1\r?$")
+        controls := CM.controlSeq
         ; Finish the previous route before adopting the current client's token.
         ReleaseTransport(true)
         CM.requested := requested, CM.token := token, CM.seq := requested ? ack1 + 0 : 0, CM.ack := 0
         CM.pending := [], CM.previous := [], CM.phase := "neutral", CM.nextWrite := 0
+        CM.controlSeq := resume ? controls : [], CM.canResume := resume
+        if (resume)
+            CM.phase := "recover"
         CM.path := RegExReplace(contextPath, "\.ini$", ".buttons")
         if (requested) {
             ; A restarted writer resumes above Lua's acknowledgment and clears
@@ -33,6 +42,10 @@ ControllerMessageLease(lease, contextPath) {
             ControllerMessageFlush(true)
         }
         InputTraceRecord("button route=" . mode1 . " waiting-neutral")
+        if (RegExMatch(lease, "m)^button_reason=([a-z-]+)\r?$", reason))
+            InputTraceRecord("button receiver reset reason=" . reason1)
+        if (resume)
+            InputTraceRecord("button recovery same-client, waiting for action-button release")
     }
     if (requested) {
         CM.ack := ack1 + 0
@@ -65,6 +78,18 @@ ControllerMessageCancel() {
         ControllerMessageFlush(true)
     }
     CM.previous := [], CM.phase := "neutral"
+    CM.controlSeq := [], CM.canResume := false
+}
+
+ControllerMessageStall() {
+    global CM
+    controls := CM.controlSeq, recover := CM.canResume
+    ControllerMessageCancel()
+    CM.controlSeq := controls, CM.canResume := recover
+    ; Request a new receiver generation. Never drain an overdue action queue
+    ; into the recovered hold, even if its acknowledgement arrives later.
+    ControllerMessageAdd("stall", 0)
+    ControllerMessageFlush(true)
 }
 
 ControllerMessageAnyHeld() {
@@ -109,7 +134,10 @@ ControllerMessagePoll(states) {
             neutral := false
     now := DllCall("GetTickCount64", "UInt64")
     if (CM.requested and now - CM.seen > 100) {
-        ControllerMessageCancel()
+        if (CM.phase = "messages" or CM.phase = "recover") {
+            InputTraceRecord("button stall reason=lease-gap")
+            ControllerMessageStall()
+        }
         CM.phase := "uncertain"
         ; An unloaded/logged-out client can return to its old login controls,
         ; only after a complete neutral interval and expiry of the old lease.
@@ -129,9 +157,53 @@ ControllerMessagePoll(states) {
     }
     if (!CM.requested)
         return false
+    if (CM.phase = "recover") {
+        if (now - CM.lastHealthy > 2000) {
+            CM.phase := "neutral", CM.controlSeq := [], CM.canResume := false
+            InputTraceRecord("button recovery expired, waiting-neutral")
+            ControllerMessageFlush(true)
+            return true
+        }
+        ; Never replay face/D-pad/menu presses. Only the original still-held
+        ; controls can recover, after all action buttons have been released.
+        quiet := true
+        Loop, 10
+            if (states[A_Index])
+                quiet := false
+        for _, i in [11, 12, 13, 14] {
+            if (states[i] and !CM.controlSeq[i])
+                quiet := false
+        }
+        if (quiet) {
+            restored := []
+            ControllerMessageAdd("banks", 0)
+            Loop, 4 {
+                selected := 0, first := 2147483647
+                for _, i in [11, 12, 13, 14] {
+                    if (CM.controlSeq[i] and CM.controlSeq[i] < first) {
+                        selected := i, first := CM.controlSeq[i]
+                    }
+                }
+                if (selected) {
+                    CM.controlSeq[selected] := 0
+                    if (states[selected]) {
+                        ControllerMessageAdd("resume", selected)
+                        CM.previous[selected] := true
+                        restored[selected] := CM.seq
+                    }
+                }
+            }
+            CM.controlSeq := restored
+            CM.phase := "messages", CM.canResume := true, CM.lastHealthy := now
+            InputTraceRecord("button recovery complete, no action replay")
+        }
+        ControllerMessageFlush(true)
+        return true
+    }
     if (CM.phase != "backpressure" and (CM.pending.Length() > 96
         or (CM.pending.Length() and now - CM.pending[1].tick > 350))) {
-        ControllerMessageCancel()
+        InputTraceRecord("button stall reason=ack-backlog")
+        ControllerMessageStall()
         CM.phase := "backpressure"
         return true
     }
@@ -152,14 +224,19 @@ ControllerMessagePoll(states) {
         if (CM.previous[i] and !states[i]) {
             ControllerMessageAdd("up", i)
             CM.previous[i] := false, changed := true
+            if (i >= 11)
+                CM.controlSeq[i] := 0
         }
     }
     for _, i in [11, 12, 13, 14, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8] {
         if ((i <= 12 or CM.expanded) and states[i] and !CM.previous[i]) {
             ControllerMessageAdd("down", i)
             CM.previous[i] := true, changed := true
+            if (i >= 11)
+                CM.controlSeq[i] := CM.seq
         }
     }
     ControllerMessageFlush(changed)
+    CM.canResume := true, CM.lastHealthy := now
     return true
 }

@@ -27,7 +27,8 @@ function M.new(options)
         local payload='\nbank_protocol='..(l1.banks and '1' or '0')..'\nbank_native_token='..(l1.native_token or '')..'\nbank_native_base='..(l1.native_base or 0)..'\nbank_native='..(l1.native or '')..
             '\nr1_menus='..(l1.r1_menus and '1' or '0')..'\ndpad_output='..(l1.realkeys and 'ahk' or 'lua')..'\nl1token='..(l1.token or '')..'\nl1mode='..(l1.mode or 'keyboard')..'\nl1ack='..(l1.ack or 0)..
             '\ntarget_r2='..(l1.target_r2 and '1' or '0')..'\ntarget_r3='..(l1.target_r3 and '1' or '0')..'\nbutton_mode='..(l1.messages and 'messages' or 'keys')..'\nbutton_token='..(l1.button_token or '')..
-            '\nbutton_ack='..(l1.button_ack or 0)..'\nEND\n'
+            '\nbutton_ack='..(l1.button_ack or 0)..'\nbutton_recover='..(l1.button_recover and '1' or '0')..
+            '\nbutton_reason='..(l1.button_reason or 'context')..'\nEND\n'
         if self.mode==mode and self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.25
         -- AHK validates the name/mode/timestamp and complete END trailer.

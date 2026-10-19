@@ -71,14 +71,14 @@ def build():
         assert "xivcrossbar/" + dependency in contents, f"Missing AHK include {dependency}"
 
     version = re.search(r"_addon.version = '([^']+)'", (ROOT / "xivcrossbar.lua").read_text())
-    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-banks3"
+    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-holdfix1"
     contents["xivcrossbar/PACKAGE-INFO.txt"] = (
-        "XIVCrossbar DirectLink companion banks test 3 complete installation\n"
+        "XIVCrossbar DirectLink held-input recovery test 1 complete installation\n"
         "Branch: development/directlink\n"
         f"Published source commit: {args.published}\n"
         f"Verified source tree: {local_tree}\n"
         f"Runtime: {version.group(1)}\n"
-        "AHK wrapper: Controls=9.9-banks\n"
+        "AHK wrapper: Controls=9.10-holdfix\n"
         "Read docs/LIVE-TEST-DIRECTLINK.md before updating.\n"
         "No character data, custom bindings/settings or companion Trust addon included.\n"
         "Windows/FFXI live acceptance remains pending.\n"

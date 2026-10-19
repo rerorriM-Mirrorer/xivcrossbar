@@ -1,5 +1,64 @@
 # Current Development Status — October 19, 2026 (America/Chicago)
 
+- **Repository / branch:** rerorriM-Mirrorer/xivcrossbar / development/directlink; tested source baseline bdc6706d40b4424bd5bc9eef086c084c750f38d2.
+- **Runtime / wrapper:** directlink1-holdfix1 / Controls 9.10-holdfix. This is a matched Lua/AHK update; restart the wrapper after replacing files, reload Lua in each client. Existing settings and Banks 3 preset assignments are retained without reapplying the preset.
+- **User live evidence:** Disappearing R1/R2 holds are now frequent. Supplied controller-input-trace(2).log shows native Down/up acknowledgements, then cancellation near a 375 ms poll and eight later physical Down presses suppressed while R1/R2 stay held. Neutral rearming resumes after releasing controls. Clairvaux log reports messages active, zero rejected and lifetime max poll/gap 656/672 ms; those maxima are not proof of this capture's precise reset cause.
+- **Change:** Brief same-client stalls renew the session and restore only original still-held controls, after action buttons are released. Queued actions are discarded. Hard context/client/focus/disconnect changes and interruptions beyond two seconds retain neutral rearming. Added reset reason/status protocol. No blanket timeout increase.
+- **Verification:** All 50 top-level Lua regressions passed, all 125 Lua sources parsed via the documented Lua 5.4 temporary normalization fallback; all seven JS routing scripts, AHK structural checks and diff checks passed. All checks are static/simulated, not native Windows/Windower/FFXI execution. See dated entry and docs/HOLD-RECOVERY.md.
+- **Live acceptance:** Repeat the supplied Trust-menu scenario without releasing bank controls; verify new Down presses work after brief stalls with no old actions replayed. Also check both shoulder/trigger orders, bare R1, ordinary R2, focus/client isolation, long gaps and disconnect. Ordinary double-tap timing restarts rather than replaying a tap.
+- **Open work:** Determine any remaining cause of sustained slow polling, compact Options flash, native menu-type recognition, NPC cutscene input access, SlowEnter all-client delivery, and the one-command in-game diagnostic/screenshot runner. Previous bank functionality/text settling was live-confirmed; hold recovery remains pending live acceptance.
+- **Delivery:** Complete source-identifiable installation, preserving installed data/settings.xml, config.ini and personal art. Both Lua and AHK updates are required. Public/main and frozen snapshot remain untouched.
+
+---
+
+# Held-input recovery test 1 — October 19, 2026
+
+Author A. Reviewed AGENTS/WORKFLOW/TESTING and baseline bdc6706d. User authorized
+repair after the trace-backed diagnosis and reports constant interruptions.
+Read local supplied controller-input-trace(2).log and Clairvaux_2026.10.19.log.
+Capture spans 337 lines starting UTC 20261019165031, Controls 9.9-banks. Wrapper
+identifies R1+R2 (l1=0,r1=1), despite the user's L1>L2 description. Last native
+Down/up key acknowledgements are 85/86; cancellation at tick 2995289812 and
+replacement route at 2995289843 precede eight Down mask transitions with no
+message/native output. Focus stays on the same HWND through that failure.
+The old trace cannot identify which Lua reset path fired. Poll 375 ms is observed
+around it; attributing the precise guard remains an inference.
+
+Receiver heartbeat, render-gap and native-output stalls now create a fresh token
+with a recoverable same-context marker. Wrapper can restore only original held
+controls 11..14, ordered by prior physical downs, after all action buttons and
+new controls are released. AHK lease uncertainty/backlog can request receiver
+renewal using a stall event, which invalidates earlier queued actions atomically.
+Restoration uses separate resume events, not ordinary fresh action edges. Lua
+suppresses pair Tab and unused-R release during restoration. Native key outputs
+are cancelled; no old face/D-pad/command output can be replayed. Context identity,
+current eligibility and a two-second healthy-poll bound gate recovery; external
+transport cancellations clear its permission. Updated lease avoids an interim
+keyboard route on soft reset. Status/trace expose protocol and reset reason.
+
+Verification: python3 tests/run_lua.py tests/*.lua (50 top-level regressions,
+125 parsed sources) passed. All seven tests/*.js scripts, tests/check_ahk.py and
+git diff --check passed. The AHK harness executes translated actual functions;
+Lua uses temporary Windower syntax normalization under Lua 5.4. These do not
+establish Windows scheduling, SendEvent or in-game acceptance. Final package
+source-tree match, entry/byte integrity and archive audit are checked after
+publication and reported with the delivery.
+
+Initial runs found old test assumptions about a cancelled session having a nil
+token and exact lease END placement. Updated them to check fresh-token recovery,
+empty output, explicit recovery fields and intact complete lease publication.
+New tests exercise original/reversed control order, repeated reset, 400 ms stall,
+action/new-control quarantine, old token and slot-resume rejection, no Tab/R side
+effects, stale queued action cancellation, client/focus and eligibility isolation,
+refusal of recovery beyond two seconds, expiry while waiting for action release,
+and another lease gap arriving during recovery. Native live acceptance remains open.
+No installed state or NPC/Trust addon code is modified. Banks 3 preset and menu
+policy remain as delivered. All prior records follow unchanged.
+
+---
+
+# Historical status — Banks 3, October 19, 2026
+
 - **Branch / tested source:** development/directlink, starting at a572fcac584b351d1db6af921766f2da50f8df67. Runtime directlink1-banks3, unchanged AHK Controls 9.9-banks.
 - **Last user-confirmed live behavior:** All four banks, commands and item scrolling work; text settling flicker is gone. Selecting DirectLink appears to work on Cioara and crew. Compact Options hint can still flash after the last fix; unresolved.
 - **New report:** Native menu context during battle replaces inventory controls. The router only has broad menu_open, not a menu identity. We cannot distinguish item menus from the battle command menu on this evidence.

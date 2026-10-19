@@ -15,10 +15,35 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261019.directlink1-banks3**; shared wrapper Controls **9.9-banks**.
-From banks1, reload Lua; AHK is unchanged. Older installs require both updates.
+Runtime: **0.4.0-a.20261019.directlink1-holdfix1**; shared wrapper Controls **9.10-holdfix**.
+Update Lua and AHK together, then restart the shared wrapper once. Preserve installed settings.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
+
+## Held-input recovery — current test
+
+This complete build includes Banks 3 and a focused fix for disappearing holds.
+The supplied trace shows a session cancellation while R1/R2 stayed physically
+held, followed by eight Down presses suppressed until neutral. A slow 375 ms
+poll appears at the reset; the old trace cannot identify the precise Lua cause.
+
+Brief same-client heartbeat, render-gap or output-stall resets now discard queued
+actions and negotiate a fresh token. Updated AHK restores only still-held
+L1/R1/L2/R2 in their original order, after all action buttons have been released within the bounded recovery window.
+A new control pressed during recovery must also be released. No stale face/D-pad
+press, menu command, pair Tab or unused-R release is replayed. Fresh button presses
+then work without releasing the held bank controls. The strict 350 ms cancellation
+checks remain; recovery is separate, limited to two seconds since healthy polling.
+Focus/client changes, disconnected hardware, login/setup/editor/chat guards and
+long interruptions retain neutral rearming. Ordinary double-tap timing restarts;
+a recovered ordinary trigger starts as a normal held trigger, not a replayed tap.
+
+Install over the current addon while preserving data/settings.xml and personal
+art. Stop the wrapper, update files, reload Lua in every client, then start the
+wrapper once. `//xb controller status` should show Controls 9.10-holdfix and
+Hold recovery protocol=1. New trace lines identify lease-gap/ack-backlog requests,
+receiver reset reasons and completed control recovery. No preset reapply is needed.
+See [the recovery checks](docs/HOLD-RECOVERY.md). Native acceptance is pending.
 
 ## Development roadmap
 
@@ -1028,3 +1053,14 @@ Preset menu actions start OFF to keep the battle command menu from selecting
 item-scrolling bindings. No automatic menu-type distinction is claimed. Settings
 and ordinary bars are preserved on install; the preset only replaces companion
 entries when explicitly applied. Runtime banks3, AHK Controls 9.9 unchanged.
+
+
+### Held-input recovery test 1 — October 19, 2026
+
+Adds a same-client control-only recovery handshake for brief stalled sessions.
+Cancels stale actions, restores original shoulder/trigger order after action
+release, and suppresses recovery Tab/unused-R outputs. Hard transitions retain
+neutral rearm. Adds reset reasons/status protocol and actual AHK/Lua regression
+coverage. Runtime holdfix1, matching Controls 9.10-holdfix; both must be updated.
+All Banks 3 settings, bindings, presets and artwork behavior are retained. The
+compact Options flash and one-command test runner remain separate pending work.

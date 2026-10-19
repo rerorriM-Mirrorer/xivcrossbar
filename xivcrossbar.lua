@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261019.directlink1-banks3'
+_addon.version = '0.4.0-a.20261019.directlink1-holdfix1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -139,6 +139,10 @@ controller_message_bridge=require('controller_messages').new({session=require('w
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
     menu=function(button) if message_menu then message_menu(button) end end,
     physical=function(button,pressed) companion_banks:edge(button,pressed) end,
+    can_recover=function() return companion_context and companion_context() end,
+    resume=function(button)
+        if companion_context and companion_context() then companion_banks:resume(button) end
+    end,
     ready=function() companion_banks.active=true end,
     key_ack=function(ack) companion_banks.output:accept(ack) end,
     cancel=function() if message_cancel then message_cancel() end end})
@@ -395,6 +399,11 @@ local function report_controller_status()
                 ' | receiver='..tostring(companion_banks.active==true))
             if settings.ControllerMessages and status.bank_protocol~='1' then
                 windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for companion banks (Controls 9.9 required).')
+            end
+            windower.add_to_chat(0,'[XIVCrossbar] Hold recovery: protocol='..(status.hold_recovery_protocol or 'absent')..
+                ' | last reset='..(controller_message_bridge.last_reason or 'none')..' | recovering='..tostring(controller_message_bridge.recovering==true))
+            if settings.ControllerMessages and status.hold_recovery_protocol~='1' then
+                windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for held-input recovery (Controls 9.10 required).')
             end
             windower.add_to_chat(0,'[XIVCrossbar] R1 Trust menu commands: wrapper protocol='..(status.r1_menu_protocol or 'absent')..
                 ' | permission='..(status.r1_menus or '0')..' | requires messages route')
@@ -2081,7 +2090,7 @@ publish_personal_context = function()
     if info.chat_open then context='text' end
     local now=l1_clock()
     if l1_last_tick>0 and now-l1_last_tick>.5 then
-        l1_epoch=l1_epoch+1;message_epoch=message_epoch+1
+        l1_epoch=l1_epoch+1;controller_message_bridge:reset('stall')
     end
     l1_last_tick=now
     local eligible=(context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not info.menu_open
@@ -2099,13 +2108,21 @@ publish_personal_context = function()
     end
     local message_enabled=settings.ControllerMessages==true and xivcrossbar.ready and not restart_pending
         and windower.has_focus() and character and character.status~=4
-    controller_message_bridge:context(table.concat({player.server or '',player.name or '',tostring(message_epoch)},':'),message_enabled)
+    local message_key=table.concat({player.server or '',player.name or '',tostring(message_epoch)},':')
+    controller_message_bridge:context(message_key,message_enabled)
     if controller_message_bridge.token then
         -- Check the heartbeat before accepting a replacement file. A recovered
         -- writer must rearm, rather than reviving an expired held gesture.
-        if not controller_message_bridge:watchdog() then
+        if controller_message_bridge:watchdog() then
+            -- Advertise the replacement directly; publishing an intermediate
+            -- keyboard route would destroy the writer's held-control snapshot.
+            controller_message_bridge:context(message_key,message_enabled)
+        else
             local f=io.open(windower.addon_path..'data/personal-controls/'..player.name..'.buttons','rb')
             if f then local contents=f:read(8193);f:close();controller_message_bridge:accept(contents) end
+            if not controller_message_bridge.token and controller_message_bridge.recover_key then
+                controller_message_bridge:context(message_key,message_enabled)
+            end
         end
     end
     context=(restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
@@ -2114,7 +2131,8 @@ publish_personal_context = function()
     if companion_banks then
         if companion_banks.output:stale() then
             -- An unacknowledged native request cannot become a late action.
-            message_epoch=message_epoch+1;controller_message_bridge:reset();companion_banks:cancel()
+            controller_message_bridge:reset('output-stall');companion_banks:cancel()
+            controller_message_bridge:context(message_key,message_enabled)
         end
         native_token,native,native_base=companion_banks.output:payload(controller_message_bridge.token)
     end
@@ -2124,7 +2142,8 @@ publish_personal_context = function()
             realkeys=require('controller_realkeys').enabled(settings,controller_message_bridge.token),
             r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
             banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
-            messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack})
+            messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack,
+            button_recover=controller_message_bridge.recovering,button_reason=controller_message_bridge.last_reason})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- Own Escape through key-up after closing: neither repeats nor release
