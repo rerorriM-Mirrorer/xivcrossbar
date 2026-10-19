@@ -21,7 +21,7 @@ end
 texts={new=object}; images={new=object}
 package.loaded.texts=texts;package.loaded.images=images
 for _,name in ipairs({'strings','tables','libs/mountroulette/mountroulette',
-    'ui/item_icons','sw_zones','resources/crossbar_abilities','resources/crossbar_spells'}) do package.loaded[name]={} end
+    'ui/item_icons','libs/sw_zones','resources/crossbar_abilities','resources/crossbar_spells'}) do package.loaded[name]={} end
 -- The upstream List has a numeric n member and range-checked assignments.
 -- A plain array double hid the original cleanup regression.
 _libs={tables=table}
@@ -34,8 +34,8 @@ package.loaded.lists=list
 package.loaded['libs/kebab_casify']=function(s) return s:lower():gsub(' ','-') end
 local player={hotbar_settings={active_environment='basic'},hotbar={basic={name='Basic'}},
     catalog_save_scope=function() return 'global' end}
-package.loaded.player=player
-package.loaded['text_input_guard']={update=function()end}
+package.loaded['libs/player']=player
+package.loaded['libs/controller/text_input_guard']={update=function()end}
 package.loaded.socket={gettime=function()return 1 end}
 config={load=function(d)return d end}
 local prim_values,events={},{}
@@ -60,7 +60,7 @@ ipairs=previous_ipairs
 assert(resources.is_disposed(one) and resources.snapshot().text==0)
 resources.clear(malformed)
 assert(resources.version=='cleanup6')
-local binder=require('action_binder')
+local binder=require('ui/action_binder')
 -- Use the real binder method, not a chooser-only stub: the absent method was
 -- the live crash. Every saved cancel choice must map to exactly one slot.
 local cancel_labels={gamecube={'a','b','x','y'},playstation={'cross','square','circle','triangle'},
@@ -76,7 +76,7 @@ for layout,labels in pairs(cancel_labels) do
     end
 end
 binder.button_layout='invalid';assert(not binder:is_cancel_button('a'))
-local options=require('theme').apply(require('defaults'))
+local options=require('ui/theme').apply(require('libs/defaults'))
 options.button_layout='playstation';options.hotbar_number=6
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function()end,function()end,
     options,function()return {'Basic'}end,0,0,1000,600)

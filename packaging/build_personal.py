@@ -30,9 +30,9 @@ required_external={'resources','config','files','texts','images','tables','strin
  'io','luau','pack','string'}
 generated={'resources/crossbar_spells','resources/crossbar_abilities'}
 startup=(root/'xivcrossbar.lua').read_text()
-assert startup.index('resource_generator.generate_outdated_resources()') < startup.index("require('ui')")
+assert startup.index('resource_generator.generate_outdated_resources()') < startup.index("require('ui/crossbar')")
 for name in generated:
-    assert f"files.new('{name}.lua', true)" in (root/'resource_generator.lua').read_text()
+    assert f"files.new('{name}.lua', true)" in (root/'libs/resource_generator.lua').read_text()
 imports=set()
 for p in files:
     if p.suffix=='.lua':imports.update(re.findall(r"\brequire\s*(?:\(\s*)?['\"]([^'\"]+)['\"]",(root/p).read_text()))
@@ -45,8 +45,8 @@ for p in files:
     if p.suffix.lower() in {'.png','.jpg','.jpeg'}:
         with Image.open(root/p) as image:image.verify()
         images+=1
-rollback_names=['ffxi_directinput.ahk','personal_controls.ahk','xivcrossbar.lua','ui.lua',
-    'ui_geometry.lua','README.md','PERSONAL.md']
+rollback_names=['ffxi_directinput.ahk','personal_controls.ahk','xivcrossbar.lua','ui/crossbar.lua',
+    'ui/geometry.lua','README.md','PERSONAL.md']
 archive=output/'XIVCrossbar-Personal2-Complete.zip'
 assert not archive.exists(),'Refuse to replace a delivered package silently'
 entries={f'xivcrossbar/{p.as_posix()}':(root/p).read_bytes() for p in files}

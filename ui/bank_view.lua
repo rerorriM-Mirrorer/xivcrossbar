@@ -1,6 +1,6 @@
 -- A: fixed-size owned resources: no per-frame text/image allocation. Geometry
 -- and dragging are independent of the main trigger bars and their autohide.
-local bank=require('l1_bank')
+local bank=require('libs/banks/legacy')
 local M={}
 -- Same 40px slots, horizontal slot spacing and half hotbar spacing as compact
 -- XIVCrossbar. Coordinates describe columns/rows, not an independent layout.
@@ -23,7 +23,7 @@ function M.new(options)
         if self.allocated then return end
         self.allocated=true
         self.bg=options.resources.image({draggable=false})
-        self.bg:path(options.path..'images/icons/iconpacks/default/ui/bar_bg_compact.png')
+        self.bg:path(options.path..'images/icons/default/ui/bar_bg_compact.png')
         self.bg:hide();self.objects[#self.objects+1]=self.bg
         self.title=text()
         local theme=options.settings and options.settings.Theme or {}
@@ -31,13 +31,13 @@ function M.new(options)
         local frame_theme=tostring(theme.Frame or 'ffxiv'):lower()
         for i=1,8 do
             local background=options.resources.image({draggable=false})
-            background:path(options.path..'themes/'..slot_theme..'/slot.png')
+            background:path(options.path..'images/themes/'..slot_theme..'/slot.png')
             background:hide();self.objects[#self.objects+1]=background
             local icon=options.resources.image({draggable=false})
-            icon:path(options.path..'images/icons/iconpacks/default/ui/binding_icons/'..icons[i]..'.png')
+            icon:path(options.path..'images/icons/default/ui/binding_icons/'..icons[i]..'.png')
             icon:hide();self.objects[#self.objects+1]=icon
             local frame=options.resources.image({draggable=false})
-            frame:path(options.path..'themes/'..frame_theme..'/frame.png')
+            frame:path(options.path..'images/themes/'..frame_theme..'/frame.png')
             frame:hide();self.objects[#self.objects+1]=frame
             self.slots[i]={background=background,icon=icon,frame=frame,number=text(),alias=text()}
         end

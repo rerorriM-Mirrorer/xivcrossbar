@@ -7,6 +7,7 @@ local created = {text=0,image=0}
 local destroyed = {text=0,image=0}
 local trace = require('ui/render_trace')
 local measure = require('ui/text_measure')
+local assets = require('ui/assets')
 local measured_fields={'text','font','size','pad','bold','italic','right_justified','stroke_width'}
 local measured_setters={text=true,font=true,size=true,pad=true,bold=true,italic=true,right_justified=true,stroke_width=true}
 local opacity_fields={alpha=true,bg_alpha=true,stroke_alpha=true}
@@ -110,6 +111,9 @@ local function new(kind, library, ...)
         if type(value) ~= 'function' then return value end
         local method = function(_, ...)
             assert(not disposed, 'UI object used after disposal: ' .. kind .. '.' .. key)
+            if kind=='image' and key=='path' and select('#',...)>0 then
+                return value(object,assets.resolve((...)))
+            end
             if kind=='text' and measured_setters[key] and select('#',...)>0 then
                 local signature=encode(...)
                 if signature~=style[key] then

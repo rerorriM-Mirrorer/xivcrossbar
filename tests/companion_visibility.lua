@@ -1,6 +1,6 @@
 -- Use the actual bank owner, native output queue and panel facade. Drawing
 -- policy must never turn a hidden bank into ordinary game button input.
-local Banks=require('companion_banks')
+local Banks=require('libs/banks/banks')
 local settings={};local menu,allowed=false,true;local sent,saves={},0
 local bank=Banks.new({settings=settings,clock=function()return 10 end,
     context=function()return allowed,menu end,save=function()saves=saves+1 end,

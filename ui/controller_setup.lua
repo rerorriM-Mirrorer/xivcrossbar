@@ -20,7 +20,7 @@ local states = {
 local icon_pack = nil
 
 local get_icon_pathbase = function()
-    return 'icons/iconpacks/' .. icon_pack
+    return 'icons/' .. icon_pack
 end
 
 function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, theme_options, base_x, base_y, max_width, max_height, profile_options)

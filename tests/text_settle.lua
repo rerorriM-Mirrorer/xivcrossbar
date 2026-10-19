@@ -120,7 +120,7 @@ width_by_caption['Never measured']=200;frame(function()layout:update()end)
 assert(bo.x==120,'fallback recentered visibly after timeout')
 -- Caption/style keys distinguish actual pixel size; scale/drag and panel fades
 -- remain geometry's responsibility, including fade changes during settling.
-local geometry=require('ui_geometry').new('settle-test')
+local geometry=require('ui/geometry').new('settle-test')
 geometry:set_scale(2);geometry:set_opacity(.5)
 local raw,go=caption('Scaled');local g=geometry:surface(raw,'text')
 g:size(12);g:alpha(200);g:stroke_alpha(160);g:center(100,30);g:show()
@@ -136,9 +136,9 @@ frame(function()geometry:tick()end);frame(function()geometry:tick()end)
 assert(go.x==190 and go.alpha_value==50)
 geometry:shutdown()
 -- Real L1 renderer: a positive old width cannot seal its static render cache.
-local settings={L1=require('l1_bank').defaults()}
-local bank=require('l1_bank').new({settings=settings,clock=function()return 1 end})
-local view=require('l1_view').new({bank=bank,resources=resources,path='',settings=settings})
+local settings={L1=require('libs/banks/legacy').defaults()}
+local bank=require('libs/banks/legacy').new({settings=settings,clock=function()return 1 end})
+local view=require('ui/bank_view').new({bank=bank,resources=resources,path='',settings=settings})
 bank:event('show');view:tick(true,960,540)
 for _=1,3 do frame(function()view:tick(true,960,540)end) end
 assert(not view.needs_measurement)

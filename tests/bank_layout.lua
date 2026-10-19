@@ -1,4 +1,4 @@
-local Banks=require('companion_banks')
+local Banks=require('libs/banks/banks')
 local now,settings,saved=5,{},0
 local bank=Banks.new({settings=settings,clock=function()return now end,
     context=function()return true,false end,execute=function()error('layout executed a command')end,

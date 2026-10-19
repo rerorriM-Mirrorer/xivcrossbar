@@ -1,4 +1,4 @@
-local defaults=require('defaults')
+local defaults=require('libs/defaults')
 assert(defaults.ControllerProfile=='ps5-extended')
 assert(defaults.ControllerMessages==true)
 assert(defaults.ControllerRealKeys==false)
@@ -6,12 +6,12 @@ assert(defaults.GameplayDPad=='ijkl' and defaults.VisibilityMode=='oninput')
 assert(defaults.iscompact and defaults.enable_superwarp_all and defaults.on_unload_killahk)
 assert(defaults.Hotbar.Number==6 and defaults.AutoHideExtraBars==true)
 assert(defaults.UseSharedSet==false)
-assert(require('theme').apply(defaults).UseSharedSet==false)
+assert(require('ui/theme').apply(defaults).UseSharedSet==false)
 local explicit={};for key,value in pairs(defaults) do explicit[key]=value end
-explicit.UseSharedSet=true;assert(require('theme').apply(explicit).UseSharedSet==true)
-explicit.UseSharedSet=nil;assert(require('theme').apply(explicit).UseSharedSet==false)
-assert(require('theme').apply(defaults).hotbar_number==6)
-local profiles=require('controller_profiles')
+explicit.UseSharedSet=true;assert(require('ui/theme').apply(explicit).UseSharedSet==true)
+explicit.UseSharedSet=nil;assert(require('ui/theme').apply(explicit).UseSharedSet==false)
+assert(require('ui/theme').apply(defaults).hotbar_number==6)
+local profiles=require('libs/controller/profiles')
 assert(profiles.validate(defaults.ControllerProfile,defaults.ControllerDevice)=='ps5-extended')
 for _,id in ipairs(profiles.order) do assert(id~='ps5-extended') end
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
@@ -27,7 +27,7 @@ local function text()
 end
 package.loaded.texts={new=text}
 windower={register_event=function() end,prim=setmetatable({},{__index=function() return function() end end})}
-local mapper=require('gamepad_mapper')
+local mapper=require('ui/controller_setup')
 mapper.width=800;mapper.base_x=0;mapper.base_y=0;mapper.profile_buttons={}
 mapper.title=text();mapper.subtitle=text();mapper.profile_status=text()
 mapper.hide_text=function() end;mapper.hide_images=function() end;mapper.create_text=function() return text() end

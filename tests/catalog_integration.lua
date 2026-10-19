@@ -1,8 +1,8 @@
 -- Exercise the actual player methods with catalog I/O and Windows locking mocked.
 dofile('tests/custom_catalog.lua')
-local catalog=require('custom_catalog')
-local bindings=require('catalog_bindings')
-local f=assert(io.open('player.lua'));local source=f:read('*a');f:close()
+local catalog=require('libs/custom_catalog')
+local bindings=require('libs/catalog_bindings')
+local f=assert(io.open('libs/player.lua'));local source=f:read('*a');f:close()
 local a=assert(source:find('local function read_catalog_file',1,true))
 local z=assert(source:find('function player:store_new_hotbars()',a,true))
 local files={
@@ -20,13 +20,13 @@ end
 windower={addon_path='addon/',create_dir=function()end}
 file={new=function(path)return{exists=function()return files['addon/'..path]~=nil end}end}
 xml={parse=catalog_test_parse}
-package.loaded['windows_file']={new=function()return{session_id='test-session',lock=function()return function()end end,
+package.loaded['libs/windows_file']={new=function()return{session_id='test-session',lock=function()return function()end end,
     replace=function(path,raw)files[path]=raw;return true end}end}
 package.loaded.socket={gettime=function()return 111 end}
 local storage={identity_valid=true,global_catalog_path='addon/data/CustomActions.xml',character_catalog_path='addon/data/hotbar/Fenrir/Test/CustomActions.xml'}
 local player={identity_confirmed=true,name='Test',hotbar={}}
 _G.integration_player,_G.integration_storage=player,storage
-local block=assert(load("local player,storage=integration_player,integration_storage;local catalog=require('custom_catalog');local catalog_bindings=require('catalog_bindings');\n"..source:sub(a,z-1)))
+local block=assert(load("local player,storage=integration_player,integration_storage;local catalog=require('libs/custom_catalog');local catalog_bindings=require('libs/catalog_bindings');\n"..source:sub(a,z-1)))
 block()
 assert(player:refresh_custom_catalogs())
 assert(player.custom_actions.Bow and player.custom_actions.Local)

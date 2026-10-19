@@ -1,7 +1,7 @@
 -- Recovered gate plus the real root observer; no character storage is touched
 -- while the lobby advertises a valid-looking server before an in-world entity.
 local now=0
-local gate=require('profile_gate').new(function()return now end)
+local gate=require('libs/controller/profile_gate').new(function()return now end)
 local info={logged_in=false,server=1,zone=0}
 local player={name='Cioara',id=123,main_job='WHM'}
 local entity

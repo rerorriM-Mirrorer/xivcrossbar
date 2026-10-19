@@ -1,11 +1,11 @@
 local ui_resources = require('ui/resources')
 local env_chooser = {}
-local geometry = require('ui_geometry').new('chooser')
+local geometry = require('ui/geometry').new('chooser')
 local prim = geometry:prim()
 local function new_text(options)
     return geometry:surface(ui_resources.text(options), 'text', options)
 end
-local defaults = require('defaults')
+local defaults = require('libs/defaults')
 settings = config.load(defaults)
 
 local text_setup = {
@@ -322,7 +322,7 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
     local environments = self:get_player_environments(player_hotbar)
     local display_names={}
     for key,bar in pairs(player_hotbar) do
-        display_names[bar]=require('set_labels').display(key,bar.name)
+        display_names[bar]=require('ui/set_labels').display(key,bar.name)
     end
     self.environment_count=#environments
     if anchor_x then self:set_anchor(anchor_x,anchor_bottom) end
@@ -371,7 +371,7 @@ end
 function env_chooser:cancel_name_entry()
     self.capturing=false
     self.new_set_name=nil
-    require('text_input_guard'):release(windower.send_command)
+    require('libs/controller/text_input_guard'):release(windower.send_command)
 end
 
 function env_chooser:close()
@@ -381,7 +381,7 @@ end
 function env_chooser:accept_text_entry()
     if not self.capturing then self.new_set_name='' end
     self.capturing = true
-    require('text_input_guard'):update(true, windower.send_command)
+    require('libs/controller/text_input_guard'):update(true, windower.send_command)
     local index = self.indexof_add_new_set
     local label = HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. ADD_NEW_SET
     local text_prompt = HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. '<Enter Set Name>'

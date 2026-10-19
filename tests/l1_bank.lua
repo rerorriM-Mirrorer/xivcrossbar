@@ -1,7 +1,7 @@
 local now,saved=10,0
 local sent,messages={},{}
-local settings={L1=require('l1_bank').defaults()}
-local bank=require('l1_bank').new({settings=settings,clock=function()return now end,
+local settings={L1=require('libs/banks/legacy').defaults()}
+local bank=require('libs/banks/legacy').new({settings=settings,clock=function()return now end,
     save=function()saved=saved+1 end,execute=function(s)sent[#sent+1]=s end,
     say=function(s)messages[#messages+1]=s end,help=function()end})
 assert(bank:mode()=='keyboard' and bank:opacity(true)==0)
@@ -15,8 +15,8 @@ bank:event('release');assert(bank:opacity(true)==0,'bank remained visible after 
 assert(bank:command({'1','Hello','input','/echo','L1 one'}))
 assert(bank:command({'append','1','input','/echo','L1 two'}))
 assert(settings.L1.Slot1.Command=='input /echo "L1 one"; input /echo "L1 two"')
-assert(require('l1_bank').command_text({'6','Heal','input','/ma','Cure III','<p1>'},3)=='input /ma "Cure III" <p1>')
-assert(require('l1_bank').command_text({'6','Heal','input /ma "Cure III" <p1>'},3)=='input /ma "Cure III" <p1>')
+assert(require('libs/banks/legacy').command_text({'6','Heal','input','/ma','Cure III','<p1>'},3)=='input /ma "Cure III" <p1>')
+assert(require('libs/banks/legacy').command_text({'6','Heal','input /ma "Cure III" <p1>'},3)=='input /ma "Cure III" <p1>')
 bank:event('slot',1);assert(#sent==0,'must not execute without a fresh hold')
 bank:event('bank');bank:event('slot',1);assert(#sent==1 and sent[1]==settings.L1.Slot1.Command)
 bank:event('slot',8);assert(#sent==1 and bank.empty==1)
@@ -30,7 +30,7 @@ assert(bank:command({'clear','1'}));assert(settings.L1.Slot1.Alias=='' and setti
 bank:event('show');assert(bank:mode()=='keyboard');bank:event('slot',1);assert(#sent==1)
 assert(bank:command({'mode','keyboard'})==false,'retired mode command accepted')
 bank:cancel()
-local other=require('l1_bank').new({settings=settings,clock=function()return now end})
+local other=require('libs/banks/legacy').new({settings=settings,clock=function()return now end})
 assert(other:mode()=='keyboard' and other:settings().Slot1.Command=='')
 bank:command({'preview'});assert(bank:opacity(true)==1)
 bank:cancel();assert(bank:opacity(true)==0)

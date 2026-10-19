@@ -7,7 +7,7 @@ function M.new(options)
         self.epoch=self.epoch+1;self.ack=self.seq;self.pending={};self.held={}
     end
     function self:edge(key,pressed)
-        local _,_,canonical=require('companion_keys').parse(key)
+        local _,_,canonical=require('libs/banks/keys').parse(key)
         if not canonical or (not not self.held[canonical])==pressed then return end
         self.held[canonical]=pressed or nil
         self.seq=self.seq+1

@@ -1,10 +1,10 @@
 local res = require('resources')
 -- Windower's logger exports a non-raising error(). Guards need Lua's exception.
 local error = (_raw and _raw.error) or error
-local storage = require('storage')
-local catalog = require('custom_catalog')
-local catalog_bindings = require('catalog_bindings')
-local action_manager = require('action_manager')
+local storage = require('libs/storage')
+local catalog = require('libs/custom_catalog')
+local catalog_bindings = require('libs/catalog_bindings')
+local action_manager = require('libs/action_manager')
 local mount_roulette = require('libs/mountroulette/mountroulette')
 
 settings = config.load(defaults)
@@ -550,7 +550,7 @@ function player:save_catalog_edit(original_key,record)
     local scope=original and original._scope or (record and record._scope) or self:catalog_save_scope()
     local path=scope=='global' and storage.global_catalog_path or storage.character_catalog_path
     windower.create_dir(path:match('^(.*)[/\\]'))
-    local backend=require('windows_file').new()
+    local backend=require('libs/windows_file').new()
     local next_record=catalog.copy(record)
     if next_record then
         catalog_id_counter=catalog_id_counter+1

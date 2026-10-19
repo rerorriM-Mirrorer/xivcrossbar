@@ -15,7 +15,7 @@ local resources=require('ui/resources')
 local measure=require('ui/text_measure')
 local function run(enabled)
     measure.clear_cache()
-    local geometry=require('ui_geometry').new('benchmark')
+    local geometry=require('ui/geometry').new('benchmark')
     local labels={}
     for i=1,48 do
         local t=geometry:surface(resources.text({}),'text')

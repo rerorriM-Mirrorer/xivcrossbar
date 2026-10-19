@@ -1,16 +1,16 @@
 -- Execute the actual root context/receive/publish function with mocked I/O.
 local now=10
 local files={}
-local settings={ControllerProfile='ps5-extended',L1=require('l1_bank').defaults()}
+local settings={ControllerProfile='ps5-extended',L1=require('libs/banks/legacy').defaults()}
 local sent={}
-local bank=require('l1_bank').new({settings=settings,clock=function()return now end,
+local bank=require('libs/banks/legacy').new({settings=settings,clock=function()return now end,
     save=function()end,say=function()end,execute=function(s)sent[#sent+1]=s end})
-local bridge=require('l1_transport').new({session='integration',wallclock=function()return 100 end,
+local bridge=require('libs/banks/legacy_transport').new({session='integration',wallclock=function()return 100 end,
     event=function(kind,slot)bank:event(kind,slot)end,cancel=function()bank.held=false end})
 local context,focused='gameplay',true
 local info={logged_in=true};local character={status=0}
 local env=setmetatable({settings=settings,l1_clock=function()return now end,l1_bank=bank,l1_bridge=bridge,
-    message_epoch=0,controller_message_bridge=require('controller_messages').new({session='buttons-test',
+    message_epoch=0,controller_message_bridge=require('libs/controller/messages').new({session='buttons-test',
         clock=function()return now end,wallclock=function()return 100 end,
         cancel=function()end,capture=function()end,event=function()end}),
     l1_epoch=0,l1_last_tick=0,l1_next_read=0,restart_pending=false,xivcrossbar={ready=true},
@@ -81,11 +81,11 @@ settings.ControllerRealKeys=false;step();assert(not env_lease.realkeys)
 print('Actual root L1 bridge: ordered layers, stable ordinary-trigger sessions, once-only dispatch and menu/chat/focus/cutscene/stall guards passed.')
 -- Feed the full bank receiver through that same actual publish/read/lease path.
 settings.ControllerMessages=true;settings.InputTest=false;character.status=0;focused=true;info.menu_open=false;context='gameplay'
-local banks=require('companion_banks').new({settings=settings,clock=function()return now end,
+local banks=require('libs/banks/banks').new({settings=settings,clock=function()return now end,
     context=function()return context=='gameplay',info.menu_open end,ordinary=function()end,
     execute=function(s)sent[#sent+1]=s end,save=function()end,say=function()end,help=function()end})
 env.companion_banks=banks
-env.controller_message_bridge=require('controller_messages').new({session='bank-root-test',clock=function()return now end,
+env.controller_message_bridge=require('libs/controller/messages').new({session='bank-root-test',clock=function()return now end,
     wallclock=function()return 100 end,cancel=function()banks:cancel()end,capture=function()end,
     physical=function(b,p)banks:edge(b,p)end,ready=function()banks.active=true end,key_ack=function(a)banks.output:accept(a)end})
 step();messages=env.controller_message_bridge;message_token=messages.token

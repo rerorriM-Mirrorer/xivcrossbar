@@ -1,5 +1,5 @@
 local events={};local cancelled=0;local wall=100
-local t=require('l1_transport').new({session='test-1',wallclock=function()return wall end,
+local t=require('libs/banks/legacy_transport').new({session='test-1',wallclock=function()return wall end,
     event=function(kind,slot)events[#events+1]={kind,slot}end,cancel=function()cancelled=cancelled+1 end})
 t:context('foreground-keyboard',true);local token=t.token
 local function packet(body,stamp,tok)return 'token='..(tok or token)..'\nstamp='..(stamp or wall)..'\n'..body..'END\n' end

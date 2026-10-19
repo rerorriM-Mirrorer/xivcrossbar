@@ -2,11 +2,12 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261019.directlink1-hintfix1'
+_addon.version = '0.4.0-a.20261019.directlink1-cleanup1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
 -- Libs
+require('libs/module_paths').install()
 require('chat')
 res = require 'resources'
 config = require('config')
@@ -18,25 +19,44 @@ resources = require('resources')
 xml = require('libs/xml2')   -- TODO: REMOVE
 
 -- User settings
-local defaults = require('defaults')
+local defaults = require('libs/defaults')
 local render_trace = require('ui/render_trace')
 -- Register before UI modules so their existing measurements share this frame ID.
 windower.register_event('prerender',function()
     require('ui/text_measure').begin_frame()
     if render_trace.enabled then render_trace.begin_frame(require('socket').gettime()) end
 end)
+-- Import every saved character before loading the main settings map, so config
+-- never reintroduces the retired bank sections. Recovery copies stay in data/.
+windower.create_dir(windower.addon_path..'data')
+local bank_backend=require('libs/windows_file').new()
+local bank_storage=require('libs/banks/storage').new({
+    path=windower.addon_path..'data/companion_banks.xml',main=windower.addon_path..'data/settings.xml',
+    parse=xml.parse,lock=bank_backend.lock,replace=bank_backend.replace,
+    read=function(path)
+        local f,err,code=io.open(path,'rb')
+        if not f then if code==2 then return nil end;return nil,err end
+        local raw,read_error=f:read('*a');local closed,close_error=f:close()
+        if not raw or not closed then return nil,read_error or close_error or 'Could not read bank settings.' end
+        return raw
+    end,
+    say=function(message) windower.add_to_chat(123,'[XIVCrossbar] '..message) end})
+bank_storage:prepare()
+local bank_settings=bank_storage.state
 local settings = config.load(defaults)
 local client_registry
 -- A: profile selection replaces the independent legacy backend flags. Existing
 -- unused XML fields remain harmless; only one shared reader can be active.
-local controller_profiles = require('controller_profiles')
-local personal_profile = require('personal_profile')
+local controller_profiles = require('libs/controller/profiles')
+local personal_profile = require('libs/controller/personal_profile')
 local function normalize_controller_settings()
     require('ui/text_measure').enabled=settings.TextSettling~=false
     local changed,notice = personal_profile.normalize(settings,defaults,controller_profiles)
-    local _,banks_changed=require('companion_banks').ensure(settings)
+    local info=windower.ffxi.get_info()
+    local character=info.logged_in and windower.ffxi.get_player()
+    bank_storage:refresh(nil,character and character.name)
     if notice then windower.add_to_chat(123,'[XIVCrossbar] '..notice) end
-    if changed or banks_changed then config.save(settings) end
+    if changed then config.save(settings) end
     if client_registry then client_registry:register(settings.on_unload_killahk) end
 end
 normalize_controller_settings()
@@ -57,39 +77,39 @@ local controller_capture_dik = controller_modifier == 'ctrl' and 29 or 221
 local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
 
 -- Load theme options according to settings
-local character_identity = require('character_identity')
-local profile_gate = require('profile_gate').new(require('socket').gettime)
-local theme = require('theme')
+local character_identity = require('libs/character_identity')
+local profile_gate = require('libs/controller/profile_gate').new(require('socket').gettime)
+local theme = require('ui/theme')
 local theme_options = theme.apply(settings)
-local buttonmapping = require('buttonmapping')
-local resource_generator = require('resource_generator')
+local buttonmapping = require('libs/controller/buttonmapping')
+local resource_generator = require('libs/resource_generator')
 resource_generator.generate_outdated_resources()
 
 -- Addon Dependencies
-local action_manager = require('action_manager')
-local keyboard = require('keyboard_mapper')
-local gamepad = require('gamepad')
-local transport = require('controller_transport')
-local text_input_guard = require('text_input_guard')
-local personal_controls = require('personal_controls').new()
+local action_manager = require('libs/action_manager')
+local keyboard = require('libs/controller/keyboard_mapper')
+local gamepad = require('libs/controller/gamepad')
+local transport = require('libs/controller/transport')
+local text_input_guard = require('libs/controller/text_input_guard')
+local personal_controls = require('libs/controller/personal_controls').new()
 local publish_personal_context
 local controller_message_bridge
 local message_capture, message_button, message_cancel, message_menu
 local companion_banks,companion_context
 local message_epoch=0
-local visibility = require('visibility')
-local storage = require('storage')
-local player = require('player')
-local ui = require('ui')
-local env_chooser = require('environment_chooser')
-local action_binder = require('action_binder')
-local enchanted_items = require('enchanted_items')
-local xivcrossbar = require('variables')
+local visibility = require('libs/visibility')
+local storage = require('libs/storage')
+local player = require('libs/player')
+local ui = require('ui/crossbar')
+local env_chooser = require('ui/environment_chooser')
+local action_binder = require('ui/action_binder')
+local enchanted_items = require('libs/enchanted_items')
+local xivcrossbar = require('libs/variables')
 local skillchains = require('libs/skillchain/skillchains')
-local consumables = require('consumables')
-local gamepad_mapper = require('gamepad_mapper')
-local gamepad_converter = require('gamepad_converter')
-local function_key_bindings = require('function_key_bindings')
+local consumables = require('libs/consumables')
+local gamepad_mapper = require('ui/controller_setup')
+local gamepad_converter = require('libs/controller/gamepad_converter')
+local function_key_bindings = require('libs/controller/function_key_bindings')
 
 -----------------------------
 -- Main
@@ -116,24 +136,24 @@ local y_adjust = 450
 -- A: companion state lives in this client's settings, never in the shared
 -- wrapper. The sequenced bridge cannot replay across focus/menu transitions.
 local l1_clock=require('socket').gettime
-local l1_bank=require('l1_bank').new({settings=settings,clock=l1_clock,
-    save=function() config.save(settings) end,
+local l1_bank=require('libs/banks/legacy').new({settings=bank_settings,clock=l1_clock,
+    save=function() bank_storage:save() end,
     execute=function(command) windower.send_command(command) end,
     say=function(message) windower.add_to_chat(0,('[XIVCrossbar] '):color(200)..message) end,
-    help=function(syntax,description) require('chat_help').command(syntax,description) end})
-local l1_bridge=require('l1_transport').new({session=require('windows_file').new().session_id,
+    help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
+local l1_bridge=require('libs/banks/legacy_transport').new({session=require('libs/windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
-local l1_view=require('l1_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
-companion_banks=require('companion_banks').new({settings=settings,clock=l1_clock,
-    ordinary=function(button,pressed) if message_button then message_button(require('controller_messages').diks[button],pressed,0,false) end end,
+local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
+companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1_clock,
+    ordinary=function(button,pressed) if message_button then message_button(require('libs/controller/messages').diks[button],pressed,0,false) end end,
     context=function() if companion_context then return companion_context() end;return false,false end,
     execute=function(command) windower.send_command(command) end,
-    save=function() config.save(settings) end,
+    save=function() bank_storage:save() end,
     say=function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end,
-    help=function(syntax,description) require('chat_help').command(syntax,description) end})
+    help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
-local r1_view=require('l1_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion'})
-controller_message_bridge=require('controller_messages').new({session=require('windows_file').new().session_id,
+local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion'})
+controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
     capture=function(pressed) if message_capture then message_capture(pressed) end end,
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
@@ -147,26 +167,26 @@ controller_message_bridge=require('controller_messages').new({session=require('w
     key_ack=function(ack) companion_banks.output:accept(ack) end,
     cancel=function() if message_cancel then message_cancel() end end})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
-local l1_drag=require('ui_drag').new({
+local l1_drag=require('ui/drag').new({
     enabled=function() return l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
     bounds=function() return l1_view:bounds() end,
     offsets=function() local d=l1_view.options.bank:settings();return d.X,d.Y end,
     move=function(x,y) local d=l1_view.options.bank:settings();d.X,d.Y=x,y end,
-    save=function() config.save(settings) end,
+    save=function() bank_storage:save() end,
 })
-local r1_drag=require('ui_drag').new({
+local r1_drag=require('ui/drag').new({
     enabled=function() return r1_view.opacity>.01 and not companion_right:settings().Locked end,
     bounds=function() return r1_view:bounds() end,
     offsets=function() local d=companion_right:settings();return d.X,d.Y end,
     move=function(x,y) local d=companion_right:settings();d.X,d.Y=x,y end,
-    save=function() config.save(settings) end})
+    save=function() bank_storage:save() end})
 
 local function move_crossbars(x,y)
     ui:move_to(x,y)
     env_chooser:set_anchor(ui:get_set_chooser_anchor())
 end
 
-local crossbar_drag = require('ui_drag').new({
+local crossbar_drag = require('ui/drag').new({
     enabled=function()
         return xivcrossbar.ready and ui.is_setup and ui.public_visible == true
             and ui.geometry.opacity > .01
@@ -245,7 +265,7 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     local is_custom_action = (explicit_alias ~= nil or linked_action ~= nil or linked_type ~= nil)
 
     local alias = explicit_alias
-    if is_custom_action and not require('custom_action_review').nonempty(alias) then alias = action end
+    if is_custom_action and not require('ui/custom_action_review').nonempty(alias) then alias = action end
     if (not is_custom_action) then
         if (action == 'Ranged Attack') then
             action = 'ra'
@@ -279,10 +299,10 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
         end
     end
 
-    if is_custom_action and action_type == 'ex' and not require('custom_action_review').nonempty(command) then
+    if is_custom_action and action_type == 'ex' and not require('ui/custom_action_review').nonempty(command) then
         -- Preserve the blank catalog command; materialize only the slot's
         -- executable action using its explicit alias, then catalog name.
-        action = require('custom_action_review').nonempty(alias) and alias or action
+        action = require('ui/custom_action_review').nonempty(alias) and alias or action
     elseif (command ~= nil and command ~= '') then
         -- If no explicit alias was provided, fall back to the human-readable
         -- action name being replaced by the raw command (existing behavior).
@@ -292,7 +312,7 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
 
     local new_action = action_manager:build(action_type, action, target, alias, icon, nil, nil, nil, nil, linked_action, linked_type)
     if catalog_origin then
-        local bindings=require('catalog_bindings')
+        local bindings=require('libs/catalog_bindings')
         local record=bindings.find(player.catalog_sources[catalog_origin.scope],catalog_origin.id)
         if record then bindings.attach(new_action,record,catalog_origin.scope) end
     end
@@ -300,7 +320,7 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     player:save_hotbar()
     reload_hotbar()
     set_active_environment(environment)
-    local feedback=require('binding_feedback')
+    local feedback=require('ui/binding_feedback')
     windower.add_to_chat(207, feedback.bound(alias or action, feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
 
@@ -316,12 +336,12 @@ function delete_hotkey(hotbar, slot)
     player:save_hotbar()
     reload_hotbar()
     set_active_environment(environment)
-    local feedback=require('binding_feedback')
+    local feedback=require('ui/binding_feedback')
     windower.add_to_chat(207, feedback.cleared(feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
 
 function get_crossbar_sets()
-    return require('crossbar_destinations').build(player.hotbar)
+    return require('ui/crossbar_destinations').build(player.hotbar)
 end
 
 function create_new_set(name)
@@ -521,7 +541,7 @@ local function request_controller_trace(mode)
         (mode=='on' and ' for 30 seconds.' or '.')..' Log: data/controller-input-trace.log')
     return true
 end
-controller_switcher = require('controller_switch').new({
+controller_switcher = require('libs/controller/switch').new({
     clock=require('socket').gettime, status=controller_status,
     stop=stop_controller_wrapper, start=start_controller_wrappers,
     stop_pending=function()
@@ -932,7 +952,7 @@ end
 -- Only accepted while a Custom Action review screen is 
 -- active; otherwise the binder reports the error to chat.
 function custom_action_field_command(args)
-    local kind, value, field_value = require('custom_action_review').route(args)
+    local kind, value, field_value = require('ui/custom_action_review').route(args)
     if kind == 'open' then return action_binder:new_custom_action(value, 'command') end
     return action_binder:on_custom_action_field_set(value, field_value)
 end
@@ -1134,7 +1154,7 @@ end
 
 -- command to display help for the user
 function display_help_menu()
-    local help=require('chat_help')
+    local help=require('libs/chat_help')
     help.heading('XIVCrossbar commands')
     help.command('help','Show this command list.')
     help.command('status','Show version, storage, controller and display state.')
@@ -1258,7 +1278,7 @@ end
 
 -- ON LOAD
 windower.register_event('load',function()
-    local ok,registry=pcall(require('controller_clients').new,{directory=windower.addon_path..'data/controller-clients/'})
+    local ok,registry=pcall(require('libs/controller/clients').new,{directory=windower.addon_path..'data/controller-clients/'})
     if ok then
         client_registry=registry
         local registered,err=registry:register(settings.on_unload_killahk)
@@ -1346,9 +1366,9 @@ windower.register_event('addon command', function(command, ...)
         local name=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
         return render_trace.command((...),windower.addon_path..'data/render-trace-'..name..'.log',
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
-    elseif command == 'bank' or command == 'l1' or require('companion_banks').aliases[command] then
+    elseif command == 'bank' or command == 'l1' or require('libs/banks/banks').aliases[command] then
         local args={...}
-        if require('companion_banks').aliases[command] then table.insert(args,1,command);command='bank' end
+        if require('libs/banks/banks').aliases[command] then table.insert(args,1,command);command='bank' end
         local operation=args[1] or 'help'
         if command=='bank' then operation=(args[2]=='menu' and args[3] or args[2]) or 'status' end
         if not xivcrossbar.ready and operation~='help' and operation~='status' then
@@ -1365,7 +1385,7 @@ windower.register_event('addon command', function(command, ...)
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
         return
     elseif command == 'realkeys' then
-        local changed=require('controller_realkeys').command(settings,(...),
+        local changed=require('libs/controller/realkeys').command(settings,(...),
             function() config.save(settings) end,
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
         if changed then
@@ -1376,7 +1396,7 @@ windower.register_event('addon command', function(command, ...)
         end
         return
     elseif command == 'messages' then
-        local changed=require('controller_messages').command(settings,(...),
+        local changed=require('libs/controller/messages').command(settings,(...),
             function() config.save(settings) end,
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
         if changed then
@@ -1389,7 +1409,7 @@ windower.register_event('addon command', function(command, ...)
         select_controller_profile('x', (...))
         return
     elseif command == 'r2' or command == 'r3' or command == 'both' then
-        local changed=require('controller_target').shortcut(settings,command,(...),
+        local changed=require('libs/controller/target').shortcut(settings,command,(...),
             function() config.save(settings) end,
             function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
         if changed then
@@ -1407,7 +1427,7 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'status' then report_controller_status()
         elseif mode == 'trace' then request_controller_trace(name)
         elseif mode == 'target' then
-            local changed=require('controller_target').command(settings,name,device,
+            local changed=require('libs/controller/target').command(settings,name,device,
                 function() config.save(settings) end,
                 function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
             if changed then
@@ -1484,6 +1504,7 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..directory)
         windower.add_to_chat(0,'[XIVCrossbar] Client registration: '..tostring(client_registry and client_registry.loaded or false)..' | Last-client shutdown: '..tostring(settings.on_unload_killahk))
         windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
+        windower.add_to_chat(0,'[XIVCrossbar] Bank storage: '..bank_storage.source..' | Character: '..bank_storage.character)
         report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
         windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | Text fade: ' .. tostring(settings.Animation.TextFade) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
@@ -2157,7 +2178,7 @@ publish_personal_context = function()
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
-            realkeys=require('controller_realkeys').enabled(settings,controller_message_bridge.token),
+            realkeys=require('libs/controller/realkeys').enabled(settings,controller_message_bridge.token),
             r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
             banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack,

@@ -35,7 +35,7 @@ local generate_crossbar_spells = function()
         local mp_cost = spell.mp_cost
         local element = res.elements[spell.element].en
 
-        local default_icon = '/images/icons/spells/' .. (string.format("%05d", recast_id)) .. '.png'
+        local default_icon = '/images/icons/default/fallback/spells/' .. (string.format("%05d", recast_id)) .. '.png'
         local custom_icon = kebab_casify(category) .. '/' ..  key .. '.png'
 
         spells_by_name[key] = string.format('["%s"] = { id = %d, en = "%s", res_key = "spells", type = "ma", skill = "%s", recast_id = %d, category = "%s", element = "%s", default_icon = "%s", custom_icon = "%s", mp_cost = %d, tp_cost = %d }', key, id, spell.en, skill, recast_id, category, element, default_icon, custom_icon, mp_cost, 0)
@@ -167,9 +167,9 @@ local generate_crossbar_abilities = function()
 
         local default_icon = nil
         if (ja_type ~= 'pet' and (recast_id == LV_1_SP_ABILITY_RECAST_ID or recast_id == LV_96_SP_ABILITY_RECAST_ID)) then
-            default_icon = '/images/icons/abilities/' .. string.format("%05d", recast_id) .. '.' .. string.format("%02d", SP_ABILITY_TO_JOB_ID_LOOKUP[ability.en]) .. '.png'
+            default_icon = '/images/icons/default/fallback/abilities/' .. string.format("%05d", recast_id) .. '.' .. string.format("%02d", SP_ABILITY_TO_JOB_ID_LOOKUP[ability.en]) .. '.png'
         else    
-            default_icon = '/images/icons/abilities/' .. string.format("%05d", recast_id) .. '.png'
+            default_icon = '/images/icons/default/fallback/abilities/' .. string.format("%05d", recast_id) .. '.png'
         end
         local custom_icon = kebab_casify(category) .. '/' ..  key .. '.png'
 
@@ -185,7 +185,7 @@ local generate_crossbar_abilities = function()
             -- TODO: This call to kebab_casify is redundant
             -- TODO: Check if this still works after I removed redundant images in the folder
             local custom_icon = 'weaponskills/' .. kebab_casify(category) .. '/' ..  key .. '.png'
-            local default_icon = '/images/icons/weapons/' .. category .. '.png'
+            local default_icon = '/images/icons/default/fallback/weapons/' .. category .. '.png'
 
             abilities_by_name[key] = string.format('["%s"] = { id = %d, en = "%s", res_key = "weapon_skills", type = "ws", category = "%s", element = "%s", default_icon = "%s", custom_icon = "%s", mp_cost = %d, tp_cost = %d }', key, id, ws.en, category, element, default_icon, custom_icon, 0, 1000)
         end

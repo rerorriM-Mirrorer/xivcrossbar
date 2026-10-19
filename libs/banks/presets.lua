@@ -26,7 +26,7 @@ function M.cioara(bank)
         command('Ready','send @others trust start; input /echo Asked party to stand ready!'),
         command('Stand Down','send @all trust stop; input /echo Asked party to stand down!'),
         command('Toggle','trust toggle')}
-    local Banks=require('companion_banks')
+    local Banks=require('libs/banks/banks')
     local navigation={}
     for i=1,8 do navigation[i]=Banks.factory('r1',i,false) end
     for layer,name in pairs(names) do

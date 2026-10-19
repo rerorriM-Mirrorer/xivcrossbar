@@ -23,7 +23,7 @@ local function draw(enabled)
     measure.clear_cache()
     if enabled then trace.start() end
     local text=resources.text({})
-    local g=require('ui_geometry').new('test-panel')
+    local g=require('ui/geometry').new('test-panel')
     local proxy=g:surface(text,'text')
     trace.track(proxy,nil,'test-panel','heading')
     proxy:text('Short');proxy:size(12);proxy:center(150,20);proxy:show()

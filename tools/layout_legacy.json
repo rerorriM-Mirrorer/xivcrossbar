@@ -1,0 +1,272 @@
+[
+  {
+    "old": "action_binder.lua",
+    "new": "ui/action_binder.lua",
+    "sha256": "3f63087231771828c8b64511b277a947ada0b1fe9e0d59f11f6a878f053c79b9"
+  },
+  {
+    "old": "action_manager.lua",
+    "new": "libs/action_manager.lua",
+    "sha256": "e4bf9789543820a80a706ca1814d0b7e29ecac79af00ef8e970442704bd398b0"
+  },
+  {
+    "old": "autoattack.lua",
+    "new": "libs/autoattack.lua",
+    "sha256": "db96ffc00c9aa6cf61b73ed87d31bee3b69559973ea4858b6e53aed80f1fdfdb"
+  },
+  {
+    "old": "binding_feedback.lua",
+    "new": "ui/binding_feedback.lua",
+    "sha256": "5055b72727b0256409df550b4045e24f73b33cc946ed1a6065740d34b1962bd6"
+  },
+  {
+    "old": "buttonmapping.lua",
+    "new": "libs/controller/buttonmapping.lua",
+    "sha256": "41955b068ea1c7efb13597bcc22f534772c16afde7eead18b45462d1c754d676"
+  },
+  {
+    "old": "catalog_bindings.lua",
+    "new": "libs/catalog_bindings.lua",
+    "sha256": "d59f50b031fe047aecf43be5ddd75e7ff97146a6c35f5ff4a05461a720acf76d"
+  },
+  {
+    "old": "character_identity.lua",
+    "new": "libs/character_identity.lua",
+    "sha256": "4a4ed6b71d8216080ea9f78a74c1d67e284731fa11e39e2c22706803e1526e44"
+  },
+  {
+    "old": "chat_help.lua",
+    "new": "libs/chat_help.lua",
+    "sha256": "310aebceaf634c2093ac980dbc722e8cddd4df370ee7ba29b9b0513f27ceeccf"
+  },
+  {
+    "old": "companion_banks.lua",
+    "new": "libs/banks/banks.lua",
+    "sha256": "6520170b440d2c17f99ac1b76f2f1f74435496ea5f632746b990cb800cf2a3a4"
+  },
+  {
+    "old": "companion_keys.lua",
+    "new": "libs/banks/keys.lua",
+    "sha256": "abe299c3d82ca620fb23dd4b107d591a758ad47c22d980021fe66c2e3c70a513"
+  },
+  {
+    "old": "companion_output.lua",
+    "new": "libs/banks/output.lua",
+    "sha256": "d0a47f469e47ca130fb9f387e6942d1f31eec9c8087c16be89ec43dd04bf1205"
+  },
+  {
+    "old": "companion_presets.lua",
+    "new": "libs/banks/presets.lua",
+    "sha256": "979675c6418b54dd8fdf8eca355eceb8c96bc8a7ba0bd0faf0730ff804fd9d52"
+  },
+  {
+    "old": "consumables.lua",
+    "new": "libs/consumables.lua",
+    "sha256": "dc9f3712af52a33f68e057881329682642892e9fe4dabae469ac4b7f77834639"
+  },
+  {
+    "old": "controller_clients.lua",
+    "new": "libs/controller/clients.lua",
+    "sha256": "52da4050d137b9928232a8aa4ae552104ca3e74be19e255fdc9e8c92a8056eb4"
+  },
+  {
+    "old": "controller_messages.lua",
+    "new": "libs/controller/messages.lua",
+    "sha256": "91bb0b470f8980647b58d3d81f361f2d7bfea2c4354ca2a3ac4f32abbc59f1a2"
+  },
+  {
+    "old": "controller_profiles.lua",
+    "new": "libs/controller/profiles.lua",
+    "sha256": "ceb4c40cde4c57ccd22395076328b91e93264c80b80c94a3621dec5909e7097a"
+  },
+  {
+    "old": "controller_realkeys.lua",
+    "new": "libs/controller/realkeys.lua",
+    "sha256": "b3b33dae595ba3dc6372c22b0875e66e3319f4c6f4f28fcff85aa39f6787eb3f"
+  },
+  {
+    "old": "controller_switch.lua",
+    "new": "libs/controller/switch.lua",
+    "sha256": "e5a5dd4dd7e5e63716196e8d5dbe6183f0e76b91ec2746a4803ce3712b9f3aaa"
+  },
+  {
+    "old": "controller_target.lua",
+    "new": "libs/controller/target.lua",
+    "sha256": "43fee7a7510c3cf087f32e5e82198d6211f38fc52d46c461fada8c330f81f78a"
+  },
+  {
+    "old": "controller_transport.lua",
+    "new": "libs/controller/transport.lua",
+    "sha256": "3ed0a43390b24cecf58cb41e0f6b0e7cf3beab30680cf04eee208a3fd64a02e3"
+  },
+  {
+    "old": "crossbar_destinations.lua",
+    "new": "ui/crossbar_destinations.lua",
+    "sha256": "df87ca9585c5bc2d1e254fe1346983758d8ff28e5962f2d7a92dbaba8d97c0f6"
+  },
+  {
+    "old": "custom_action_review.lua",
+    "new": "ui/custom_action_review.lua",
+    "sha256": "9ef110bcc0f8743068ba47970ef31e55097988f69c1298cd4e455c68d8476257"
+  },
+  {
+    "old": "custom_catalog.lua",
+    "new": "libs/custom_catalog.lua",
+    "sha256": "c5f87bc625414a0023ee4b2982001d8a48e780370662fa9d2b9ccb87aa2e4dc5"
+  },
+  {
+    "old": "defaults.lua",
+    "new": "libs/defaults.lua",
+    "sha256": "3e892eedc4d0f5abd2b76eb68869ab164fbf74432b80e8a8afc2520be36d6b22"
+  },
+  {
+    "old": "enchanted_items.lua",
+    "new": "libs/enchanted_items.lua",
+    "sha256": "e257ae219f6ac4763b02882b696d25c8eebec8617e35b801df1e714db3f9577f"
+  },
+  {
+    "old": "environment_chooser.lua",
+    "new": "ui/environment_chooser.lua",
+    "sha256": "bd4cb473f4f5975e65c848eaf8438db5a744437218a7c76e8307837e8f42e270"
+  },
+  {
+    "old": "function_key_bindings.lua",
+    "new": "libs/controller/function_key_bindings.lua",
+    "sha256": "abcb351bb5d365a7b5fe72a78c1c007f746ac8065f626f775d27ebc214824094"
+  },
+  {
+    "old": "gamepad.lua",
+    "new": "libs/controller/gamepad.lua",
+    "sha256": "4858825dbd4f92e56c3bd6f4af9d6c3b4f08e8ba8fff42e8532209e099119639"
+  },
+  {
+    "old": "gamepad_converter.lua",
+    "new": "libs/controller/gamepad_converter.lua",
+    "sha256": "23cac70a0ab4538d2057ba47ffceb1040d27102d0f1f0ca52cddf57d289ce730"
+  },
+  {
+    "old": "gamepad_mapper.lua",
+    "new": "ui/controller_setup.lua",
+    "sha256": "b068778cf23cc74f617b0cc9a349132a66803b9a8ac61f484b70095deb58d1ad"
+  },
+  {
+    "old": "keyboard_mapper.lua",
+    "new": "libs/controller/keyboard_mapper.lua",
+    "sha256": "9992894d0ce1507eb62c97403d160e890f81891945544ea58bf76693379a4d80"
+  },
+  {
+    "old": "l1_bank.lua",
+    "new": "libs/banks/legacy.lua",
+    "sha256": "480a94d89b777390320d0f9906da268b935d3781ca7405489f22bd5d8d22ffc7"
+  },
+  {
+    "old": "l1_transport.lua",
+    "new": "libs/banks/legacy_transport.lua",
+    "sha256": "c47b72b20781e5d8bdd04b962c7ec7987262f05160b3b7e922ccfbb7c06a9a86"
+  },
+  {
+    "old": "l1_view.lua",
+    "new": "ui/bank_view.lua",
+    "sha256": "db955871a2a05ed53dda4cb97b7aa8e3d8516de78a3b9398f70674d3fc4323a7"
+  },
+  {
+    "old": "menu_layout.lua",
+    "new": "ui/menu_layout.lua",
+    "sha256": "3d953f6e7d2d7bd2185281345612699c74e6ada6592e7ce7c1af51bdd0a17393"
+  },
+  {
+    "old": "personal_controls.lua",
+    "new": "libs/controller/personal_controls.lua",
+    "sha256": "ff7867bad2510ac7023d8a9189badae09b84736dec9812bbd5f6a04a62624c24"
+  },
+  {
+    "old": "personal_profile.lua",
+    "new": "libs/controller/personal_profile.lua",
+    "sha256": "4074467ca14fb9472e116b9bc9c9eede2d94f49b8b0a80e5fb488fe94a688acc"
+  },
+  {
+    "old": "player.lua",
+    "new": "libs/player.lua",
+    "sha256": "0a339cd75e8233d69b6608669158ee71c8c8457c707c2ee4e15a878fc3f4fc9b"
+  },
+  {
+    "old": "profile_gate.lua",
+    "new": "libs/controller/profile_gate.lua",
+    "sha256": "a3582841aeafffe85dfb22f1fdcb696134f630542bda4d722466b5580c758708"
+  },
+  {
+    "old": "resource_generator.lua",
+    "new": "libs/resource_generator.lua",
+    "sha256": "591b047c5e550c921b7067a8eb2ffc202847a1b72d64d0574a1db4e0e19ed151"
+  },
+  {
+    "old": "set_labels.lua",
+    "new": "ui/set_labels.lua",
+    "sha256": "a5be993ab461e193dfd91f31ce7da434103ca482fc07c050474728bd0dbcc040"
+  },
+  {
+    "old": "spells_that_require_ja.lua",
+    "new": "libs/spells_that_require_ja.lua",
+    "sha256": "f9ad896fb8abd3cc3a9ec1f91ca2d8fbbadbfdd41d3c666ae97ad21acfcdf807"
+  },
+  {
+    "old": "storage.lua",
+    "new": "libs/storage.lua",
+    "sha256": "e38f70d85908a4e2f08373117b31801ee108ad7c4e93ce12487eab710df2695f"
+  },
+  {
+    "old": "sw_zones.lua",
+    "new": "libs/sw_zones.lua",
+    "sha256": "50203b86f8f6ecc4669e923dd461f391942383f6603469f179fc2d160c2573a5"
+  },
+  {
+    "old": "target_choices.lua",
+    "new": "ui/target_choices.lua",
+    "sha256": "c7a28cff22a13c91787028d4c64d33283a2131e91a0080b3b2ed311b2e5eda8d"
+  },
+  {
+    "old": "text_input_guard.lua",
+    "new": "libs/controller/text_input_guard.lua",
+    "sha256": "62c5f8fe6df1528f8e9ba683f06a8538559681529ad5e567abf2d30b2f9d567b"
+  },
+  {
+    "old": "theme.lua",
+    "new": "ui/theme.lua",
+    "sha256": "db9266e17ea01d08f6e161188d7fd8aec36372d671754552b7aa7975bded58c9"
+  },
+  {
+    "old": "ui.lua",
+    "new": "ui/crossbar.lua",
+    "sha256": "4f2d6b522ed2e8ddea6beaf357af2598c34b7fcb803693613995ea0038202203"
+  },
+  {
+    "old": "ui_drag.lua",
+    "new": "ui/drag.lua",
+    "sha256": "2db8381d54320ac2db7c5e24cd5da47afbb43b2143390015067746b0374f6b8d"
+  },
+  {
+    "old": "ui_fade.lua",
+    "new": "ui/fade.lua",
+    "sha256": "7cfb52f589cc10405e7f5bbe087cbbff18ed3d14d7d49c7f6ce73f6f95ca8cb0"
+  },
+  {
+    "old": "ui_geometry.lua",
+    "new": "ui/geometry.lua",
+    "sha256": "d9e3c21f1e12b1b8e9fd524b326f68b38be115cc39e33d23e15cbed56f2c281b"
+  },
+  {
+    "old": "variables.lua",
+    "new": "libs/variables.lua",
+    "sha256": "cb316b433c774b87f68c6d214dca15b6fe9ab88d5acc89a03cf668114c3d0a26"
+  },
+  {
+    "old": "visibility.lua",
+    "new": "libs/visibility.lua",
+    "sha256": "811421e48e5159171230a9d68fcb3e8f55916b15dd4a21400736fe6d05cb16dc"
+  },
+  {
+    "old": "windows_file.lua",
+    "new": "libs/windows_file.lua",
+    "sha256": "770a76e5cabee95d6e728695adbf8dd789675d9d60e5e1441b013d4028e0ed5e"
+  }
+]

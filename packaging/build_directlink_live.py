@@ -17,17 +17,19 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 ROOT = Path(__file__).resolve().parents[1]
 PUBLISHED_RE = re.compile(r"[0-9a-f]{40}\Z")
 EXCLUDED_DIRS = {"data", "tests", "packaging", "examples", "upload"}
-ALLOWED_SUFFIXES = {".lua", ".ahk", ".bat", ".png", ".jpg", ".jpeg", ".md", ".txt", ".json"}
+ALLOWED_SUFFIXES = {".lua", ".ahk", ".bat", ".png", ".jpg", ".jpeg", ".md", ".txt", ".json", ".ps1"}
 ALLOWED_BARE = {"LICENSE", "NOTICE"}
 REQUIRED = {
     "xivcrossbar.lua", "ffxi_directinput.ahk", "personal_controls.ahk",
     "controller_messages.ahk", "controller_clients.ahk", "movement_signal.ahk",
-    "controller_messages.lua", "personal_controls.lua", "l1_bank.lua",
-    "companion_banks.lua", "companion_keys.lua", "companion_output.lua", "companion_presets.lua",
-    "l1_transport.lua", "l1_view.lua", "ui/text_measure.lua",
-    "images/setup/gamepad-directinput.jpg", "themes/ffxiv/frame.png",
+    "libs/controller/messages.lua", "libs/controller/personal_controls.lua", "libs/banks/legacy.lua",
+    "libs/banks/banks.lua", "libs/banks/keys.lua", "libs/banks/output.lua", "libs/banks/presets.lua",
+    "libs/banks/legacy_transport.lua", "ui/bank_view.lua", "ui/text_measure.lua",
+    "images/setup/gamepad-directinput.jpg", "images/themes/ffxiv/frame.png",
     "README.md", "WORKFLOW.md", "TESTING.md", "AGENTS.md",
     "docs/LIVE-TEST-DIRECTLINK.md", "LICENSE", "NOTICE",
+    "libs/banks/storage.lua", "libs/module_paths.lua", "ui/assets.lua",
+    "finish-cleanup.bat", "tools/Finish-Cleanup.ps1", "tools/layout_legacy.json",
 }
 
 
@@ -74,9 +76,9 @@ def build():
         assert "xivcrossbar/" + dependency in contents, f"Missing AHK include {dependency}"
 
     version = re.search(r"_addon.version = '([^']+)'", (ROOT / "xivcrossbar.lua").read_text())
-    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-hintfix1"
+    assert version and version.group(1) == "0.4.0-a.20261019.directlink1-cleanup1"
     contents["xivcrossbar/PACKAGE-INFO.txt"] = (
-        "XIVCrossbar DirectLink hint cleanup test 1\n"
+        "XIVCrossbar DirectLink folder and settings cleanup test 1\n"
         + ("Package: cumulative code update WITHOUT images; requires an existing DirectLink installation.\n"
            "Contains all current installable code, not a delta; earlier code patches need not be applied.\n"
            "Retain installed images/ and themes/ assets. New installs require the complete package.\n"
@@ -87,7 +89,8 @@ def build():
         f"Runtime: {version.group(1)}\n"
         "AHK wrapper: Controls=9.10-holdfix\n"
         "Read docs/LIVE-TEST-DIRECTLINK.md before updating.\n"
-        "Read docs/UPDATING.md for update and position-copy instructions.\n"
+        "Read docs/UPDATING.md for migration and position-copy instructions.\n"
+        "Unload ALL clients before running finish-cleanup.bat; custom art/code is preserved.\n"
         "No character data, custom bindings/settings or companion Trust addon included.\n"
         "Windows/FFXI live acceptance remains pending.\n"
     ).encode()

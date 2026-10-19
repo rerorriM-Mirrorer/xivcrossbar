@@ -1,6 +1,4 @@
 local defaults = {}
-defaults.L1 = require('l1_bank').defaults()
-defaults.CompanionBanks = require('companion_banks').defaults()
 defaults.CustomActionSaveScope = 'global'
 
 defaults.buttonbackgroundalpha = 150

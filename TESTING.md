@@ -1,5 +1,83 @@
 # Current Development Status — October 19, 2026 (America/Chicago)
 
+- **Branch / tested baseline:** development/directlink; published starting source fbb535db09deeb0467c2ebb6339c2e350e264b0a. Runtime directlink1-cleanup1; unchanged Controls 9.10-holdfix.
+- **Request / change:** Authorized bank-settings separation, module/folder simplification and image reorganization with working legacy paths. Bank state now saves separately in data/companion_banks.xml. All existing global/character bank sections import before main settings cleanup; original main bytes are backed up and unrelated bytes retained. User bank commands and controller mappings are unchanged.
+- **Layout:** 55 Lua modules relocated into libs/ and ui/ (54 retired tracked root files plus the new bank-storage module). Default pack -> images/icons/default; numeric fallbacks -> default/fallback; themes -> images/themes. 2084 asset relocations; all 2101 shipped images match their baseline bytes. Root shared AHK wrapper/includes retain their paths. Internal requires use canonical names; bootstrap supports legacy require names.
+- **Verification:** All 55 top-level Lua regressions / 133 Lua sources passed the documented Lua 5.4 normalization fallback; seven JS routing suites, AHK structural checks and layout/dependency/asset-byte audits passed. Actual shipped XML parser exercised with adapted Windower collection/string APIs. Attached settings migration preview retained all seven sections and Cioara positions and independently parsed as valid XML. Focused final checks repeated after recovery guards. Native Windows/Windower/FFXI and PowerShell helper execution remain pending.
+- **Delivery:** Cumulative code-only ZIP works with existing DirectLink artwork through the resolver. Optional finish-cleanup.bat consolidates installed images in place, preserves differing custom art as overrides, and backs up modified retired root Lua modules. Complete-package builder uses the same source checkpoint. No personal data/settings are distributed.
+- **Live acceptance:** Unload all clients; back up and merge update; optionally run folder helper; load one client and verify storage path/version, saved banks, position commands, menus and icon chooser; edit a bank, reload and verify persistence; then load other clients. Verify custom legacy/override art and rapid bar switching. Latest confirmed behavior remains prior working banks/menu scroll and repaired text settling; no new live confirmation inferred.
+- **Pending:** Held-input recovery and hint cleanup live acceptance, native helper execution, compact Options flash, tracker-disable and R3 release-R cleanup, menu-type detection, one-command in-game runner, Ctrl-drag, NPC cutscene/SlowEnter issues. No such behavior changes are bundled into cleanup.
+
+---
+
+# Folder and bank-settings cleanup test 1 — October 19, 2026
+
+Author A. Current AGENTS/WORKFLOW/TESTING reviewed. User explicitly authorized the
+previously proposed staged migration and path-compatible directory cleanup.
+Starting published checkpoint fbb535db09deeb0467c2ebb6339c2e350e264b0a.
+
+Bank storage imports every saved global/character section with typed field names,
+including legacy L1 commands, then stores character differences over global
+settings. Main config loads only after prepare; bank defaults are no longer in
+the main config shape and bank commands/drags save through the separate owner.
+Root config refresh selects the character's bank state without replacing the
+shared state container used by render/input owners. Main typography/scaling and
+ordinary bar XML/catalogs stay in their existing settings/storage locations.
+
+Migration/save coordination uses the existing Windows atomic replacement backend
+and cross-client locks. Main bytes outside the two retired bank sections remain
+verbatim, with settings.xml.before-bank-cleanup.bak retained. Bank saves keep a
+previous-file .bak, validate XML/readback and detect same-character stale writers
+while preserving other characters' edits. Interrupted .pending input is read as
+recovery. Invalid/newer files are never overwritten; saves are blocked and a
+specific message is shown. A partial bank file without an import-complete marker
+does not authorize removal of unimported legacy sections. Old snapshots do not
+continually reimport over later edits. No automatic Cioara preset or binding swap.
+
+Runtime Lua moves into libs/banks, libs/controller, supporting libs and ui. One
+bootstrap alias map preserves external legacy require names. Canonical internal
+requires are dependency-audited. Shared AHK and includes stay at the root so their
+startup paths remain stable. Generated resources/ metadata remains compatible.
+
+The resolver handles canonical, old pack, old numeric fallback and old theme
+paths; explicit external and extracted cache images stay valid. Existing legacy
+art wins over stock and images/overrides wins over both. Alternate packs can fall
+back to the default pack. All saved custom action icon stems remain valid. The
+selector scans override/legacy/canonical roots, deduplicates stems and includes
+fallback icons. Structural setup/menu/credit art remains at existing paths.
+All 2101 shipped image bytes were compared with the starting local tree matching
+the published baseline; 2084 paths relocate without pixel/recompression changes.
+
+The optional Windows helper consolidates legacy image trees after a merge update:
+move missing destinations, remove byte-identical duplicates, preserve differing
+art as overrides, keep/report conflicting custom overrides. Retired root Lua
+files matching baseline hashes are removed; differing files move to timestamped
+data/cleanup-backup for review. It does not alter settings. -Preview is non-writing.
+No recursive delete is used. The helper has structural checks only in this Linux
+environment; actual Windows PowerShell execution is a pending acceptance check.
+Skipping it leaves old paths usable. Code-only packaging is therefore viable
+without downloading images again. Complete-package builds include canonical art.
+
+Verification: all 55 tests/*.lua regressions passed; 133 Lua sources parsed via
+Lua 5.4 temporary normalization (not native Lua 5.1/Windower). Seven JS routing
+suites and tests/check_ahk.py passed. tests/check_layout.py audited canonical
+requires, old-module retirement, manifest targets, helper structure and all image
+blob hashes. New asset tests exercise the actual resource wrapper. New bank tests
+cover import, inherited fields, cleared slots, repeat migration, conflict/failure,
+partial/newer/bad files, pending recovery and prelogin writes. The entire bank
+regression also ran with the actual shipped libs/xml2 parser and adapted
+Windower APIs. The supplied settings(20261019-212625).xml was tested read-only:
+a private preview retained global plus six character sections and Cioara anchors;
+Python's independent XML parser accepted the emitted document. Original upload
+unchanged and not bundled. Native FFXI acceptance is not claimed.
+
+Installation and recovery details: docs/UPDATING.md. Existing position commands
+and exact Cioara values are documented there. Earlier history follows unchanged.
+
+---
+
+# Historical status — Hint Cleanup 1, October 19, 2026
+
 - **Branch / tested baseline:** development/directlink; source e4fbe7b32e68f0198c191104b186805e54286b92. Runtime directlink1-hintfix1; unchanged Controls 9.10-holdfix.
 - **Request / fix:** Stale skillchain slot hints during rapid set changes. Slot replacement now clears recast/hint surfaces and resets frame artwork/alpha. All non-hint action paths restore their normal frame, including commands, missing metadata and item warmup; burst frames cannot inherit an old SC property image. Tracker timing and tracking remain unchanged.
 - **Verification:** Actual renderer regression covers replacement types, empty slots, expiry, SC-to-burst, frame alpha, item warmup/cooldown and immediate slot clear. All 52 top-level Lua regressions and 127 Lua sources passed the documented Lua 5.4 normalization fallback; all seven JS routing suites, AHK structural checks and diff checks passed. Windows/Windower/FFXI live acceptance remains pending.

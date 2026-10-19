@@ -1,6 +1,6 @@
 dofile('tests/menu_resources.lua')
-local binder=require('action_binder');local player=require('player')
-local opts=require('theme').apply(require('defaults'));opts.button_layout='playstation'
+local binder=require('ui/action_binder');local player=require('libs/player')
+local opts=require('ui/theme').apply(require('libs/defaults'));opts.button_layout='playstation'
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function()end,function()end,
     opts,function()return {'Basic'}end,0,0,1000,600)
 windower.add_to_chat=function()end

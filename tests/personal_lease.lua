@@ -5,7 +5,7 @@ local function open(path)
         close=function()files[path]=value;return true end}
 end
 local fail=false
-local lease=require('personal_controls').new({clock=function()return now end,open=open,
+local lease=require('libs/controller/personal_controls').new({clock=function()return now end,open=open,
     create_dir=function()end,remove=function(p)files[p]=nil;return true end,
     rename=function(a,b)if fail then return nil end;files[b]=files[a];files[a]=nil;return true end})
 local path='data/Test.ini'

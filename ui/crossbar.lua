@@ -3,15 +3,15 @@ local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
 local crossbar_spells = require('resources/crossbar_spells')
-local defaults = require('defaults')
+local defaults = require('libs/defaults')
 settings = config.load(defaults)
-local player = require('player')
+local player = require('libs/player')
 
 local ui = {}
-local geometry = require('ui_geometry').new('crossbar')
+local geometry = require('ui/geometry').new('crossbar')
 local prim = geometry:prim()
 ui.geometry = geometry
-ui.autoattack = require('autoattack').new(os.clock)
+ui.autoattack = require('libs/autoattack').new(os.clock)
 local function new_image(options)
     return geometry:surface(ui_resources.image(options), 'image', options)
 end
@@ -36,7 +36,7 @@ local images_setup = {
     draggable = false
 }
 
-local spellsThatRequireJA = require('spells_that_require_ja')
+local spellsThatRequireJA = require('libs/spells_that_require_ja')
 
 -- ui metrics
 ui.hotbar_width = 0
@@ -218,14 +218,14 @@ end
 local icon_pack = nil
 
 local get_icon_pathbase = function()
-    return 'icons/iconpacks/' .. icon_pack
+    return 'icons/' .. icon_pack
 end
 
 local maybe_get_custom_icon = function(default_icon, custom_icon)
     local pathbase = get_icon_pathbase()
     local icon_path = 'images/' .. pathbase .. '/' .. custom_icon
-    local icon_file = file.new(icon_path)
-    if (icon_file:exists()) then
+    local icon_file = require('ui/assets').exists(icon_path)
+    if (icon_file) then
         return icon_path, true
     else
         return default_icon, false
@@ -458,10 +458,10 @@ end
 function ui:load(theme_options)
     geometry:dispose_surfaces({[self.battle_notice]=true})
     -- load battle notice
-    setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
+    setup_image(self.battle_notice, windower.addon_path .. '/images/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
     self.battle_notice:hide()
-    self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
+    self.frame_image_path = windower.addon_path..'/images/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
 
     prim.create_rounded('skillchain_indicator_bg')
     prim.set_color('skillchain_indicator_bg', 150, 0, 0, 0)
@@ -583,7 +583,7 @@ function ui:load(theme_options)
             trace.track(self.hotbars[h].slot_recast_text[i],nil,'crossbar','bar'..h..'.slot'..i..'.recast')
             self.hotbars[h].slot_icon[i]:size(40, 40)
 
-            setup_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
+            setup_image(self.hotbars[h].slot_background[i], windower.addon_path..'/images/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
             setup_image(self.hotbars[h].slot_icon[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
             setup_image(self.hotbars[h].slot_frame[i], self.frame_image_path)
             setup_image(self.hotbars[h].slot_element[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')

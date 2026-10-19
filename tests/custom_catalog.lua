@@ -1,4 +1,4 @@
-local c=require('custom_catalog')
+local c=require('libs/custom_catalog')
 -- Simulated parser/backend isolate coordination from unavailable Windows APIs.
 local function parse(raw)
     if not raw:match('^<custom_actions>') then return nil,'Invalid XML' end

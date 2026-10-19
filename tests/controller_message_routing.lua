@@ -14,8 +14,8 @@ function binder:button_x(down)menus[#menus+1]={'circle',down}end
 local chooser={capturing=false,shown=false}
 function chooser:is_showing()return self.shown end
 function chooser:close()self.shown=false end
-local env=setmetatable({gamepad=require('gamepad'),keyboard=require('keyboard_mapper'),gamepad_state=state,
-    controller_capture_dik=221,transport=require('controller_transport'),settings={GameplayDPad='ijkl'},
+local env=setmetatable({gamepad=require('libs/controller/gamepad'),keyboard=require('libs/controller/keyboard_mapper'),gamepad_state=state,
+    controller_capture_dik=221,transport=require('libs/controller/transport'),settings={GameplayDPad='ijkl'},
     buttonmapping={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'},
     action_binder=binder,env_chooser=chooser,gamepad_mapper={is_showing=false},xivcrossbar={ready=true},
     theme_options={hotbar_number=6},shift_keys_down={},keys={},shifted_keys={},
@@ -27,7 +27,7 @@ local env=setmetatable({gamepad=require('gamepad'),keyboard=require('keyboard_ma
 function env.close_left_doublepress_window()env.is_left_doublepress_window_open=false;env.left_trigger_lifted_during_doublepress_window=false end
 function env.close_right_doublepress_window()env.is_right_doublepress_window_open=false;env.right_trigger_lifted_during_doublepress_window=false end
 assert(load(source:sub(start,finish-1),'actual controller routing','t',env))()
-local receiver=require('controller_messages').new({session='routing',clock=function()return now end,wallclock=function()return 100 end,
+local receiver=require('libs/controller/messages').new({session='routing',clock=function()return now end,wallclock=function()return 100 end,
     capture=env.message_capture,event=env.message_button,cancel=env.message_cancel})
 local seq=0
 local function new_session()
@@ -86,7 +86,7 @@ events.keyboard(88,false,0,false);events.keyboard(221,false,0,false)
 assert(#actions==1 and actions[1].bar==2 and actions[1].slot==7 and #commands==0);empty()
 -- Exercise the real chooser handler with the real binder helper, not a fake
 -- is_cancel_button method that would hide its absence from the installed file.
-local f=assert(io.open('action_binder.lua'));local binder_source=f:read('*a');f:close()
+local f=assert(io.open('ui/action_binder.lua'));local binder_source=f:read('*a');f:close()
 local first=assert(binder_source:find('function action_binder:is_cancel_button(',1,true))
 local last=assert(binder_source:find('function action_binder:create_text(',first,true))
 assert(load(binder_source:sub(first,last-1),'actual cancel helper','t',
@@ -108,11 +108,11 @@ env.windower.ffxi={get_info=function()return info end,get_player=function()retur
 env.windower.has_focus=function()return true end
 env.settings.ControllerProfile='ps5-extended';env.settings.ControllerMessages=true
 binder.cancel_button='circle';chooser.shown=false
-local banks=require('companion_banks').new({settings=env.settings,clock=function()return now end,
+local banks=require('libs/banks/banks').new({settings=env.settings,clock=function()return now end,
     context=env.companion_context,execute=env.windower.send_command,save=function()end,say=function()end,help=function()end,
-    ordinary=function(button,pressed)env.message_button(require('controller_messages').diks[button],pressed,0,false)end})
+    ordinary=function(button,pressed)env.message_button(require('libs/controller/messages').diks[button],pressed,0,false)end})
 env.companion_banks=banks
-receiver=require('controller_messages').new({session='full-bank-routing',clock=function()return now end,wallclock=function()return 100 end,
+receiver=require('libs/controller/messages').new({session='full-bank-routing',clock=function()return now end,wallclock=function()return 100 end,
     capture=env.message_capture,physical=function(b,p)banks:edge(b,p)end,cancel=env.message_cancel,
     ready=function()banks.active=true end,key_ack=function(a)banks.output:accept(a)end})
 for _,case in ipairs({{1,{'down,11','down,7','up,7','up,11'}},{2,{'down,12','down,5','up,5','up,12'}},

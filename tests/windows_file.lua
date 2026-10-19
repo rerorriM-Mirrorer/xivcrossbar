@@ -1,7 +1,7 @@
 -- Stock-Lua dependency, cross-client lock ownership and Windows rename behavior.
 local native_require=require
 require=function(name)assert(name~='ffi','FFI dependency returned');return native_require(name)end
-local M=require('windows_file')
+local M=require('libs/windows_file')
 local reserved,sequence={},100
 local socket={gettime=function()return 1000 end}
 function socket.tcp()

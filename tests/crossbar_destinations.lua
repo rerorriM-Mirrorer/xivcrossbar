@@ -1,18 +1,18 @@
 -- Real binder and slot-save/execute paths; only Windower I/O is mocked.
 dofile('tests/menu_resources.lua')
-local choices=require('crossbar_destinations')
+local choices=require('ui/crossbar_destinations')
 local bars={basic={name='Basic'},default={name='Default'},['job-default']={name='Job Default'},
     ['all-jobs-default']={name='Universal'},['all-warps']={name='Warps'},shared={name='Shared'}}
 local entries=choices.build(bars)
-assert(require('set_labels').display('basic','Basic')=='Main')
-assert(require('set_labels').display('basic','My setup')=='My setup')
-assert(require('set_labels').display('main','Main')=='Main')
+assert(require('ui/set_labels').display('basic','Basic')=='Main')
+assert(require('ui/set_labels').display('basic','My setup')=='My setup')
+assert(require('ui/set_labels').display('main','Main')=='Main')
 assert(bars.basic.name=='Basic' and bars.main==nil,'display renamed the internal key')
 assert(entries[1].key=='default' and entries[2].key=='job-default' and entries[3].key=='all-jobs-default')
 assert(entries[3].name=='Universal' and bars['all-jobs-default'].name=='Universal')
 assert(#entries==6 and choices.build({})[1]==nil)
-local binder=require('action_binder')
-local player=package.loaded.player
+local binder=require('ui/action_binder')
+local player=package.loaded['libs/player']
 player.hotbar=bars;player.hotbar_settings={active_environment='basic',active_hotbar=2}
 local builds,saves=0,0
 local env=setmetatable({player=player,theme_options={},action_manager={build=function(_,kind,action,target,alias,icon)
@@ -34,14 +34,14 @@ env.windower.send_command=function(command)
     local key=command:match('^xb bar ([%w%-]+)$')
     if key then env.switch_crossbars_command({key}) else assert(command=='input /echo one') end
 end
-f=assert(io.open('player.lua'));local source=f:read('*a');f:close()
+f=assert(io.open('libs/player.lua'));local source=f:read('*a');f:close()
 a=assert(source:find('function player:execute_action(',1,true))
 -- dispatch_action is followed by next code; the ex branch returns early.
 b=source:find('\nfunction player:',source:find('function player:dispatch_action(',a,true)+10,true) or (#source+1)
 env.kebab_casify=function(value)return value:lower():gsub('%s+','-')end
 assert(load(source:sub(a,b-1),'actual action execution','t',env))()
 player.is_valid_environment=function(_,key)return bars[key]~=nil end
-local options=require('theme').apply(require('defaults'));options.button_layout='playstation'
+local options=require('ui/theme').apply(require('libs/defaults'));options.button_layout='playstation'
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},env.set_hotkey,function()end,
     options,function()return choices.build(bars)end)
 binder:show_set_title('Assign');assert(binder.title:text():find('Main Crossbar',1,true))
@@ -57,8 +57,8 @@ local function pick(key,quick)
     end
     assert(found,'destination omitted: '..key)
     local selected=binder.selector:get_selected_option()
-    assert(selected.text==require('set_labels').display(key,bars[key].name) and selected.data.action_name==key)
-    assert(io.open('images/icons/iconpacks/default/ui/facebuttons_playstation.png','rb')):close()
+    assert(selected.text==require('ui/set_labels').display(key,bars[key].name) and selected.data.action_name==key)
+    assert(io.open('images/icons/default/ui/facebuttons_playstation.png','rb')):close()
     binder:submit_selected_option()
     binder.active_crossbar,binder.hotkey=2,7
     binder:assign_action()

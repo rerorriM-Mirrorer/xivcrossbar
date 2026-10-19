@@ -12,9 +12,14 @@ config={load=function() return fixture end,save=function(t)
 end,register=function(t,fn) assert(t==fixture);refresh=fn end}
 -- Startup now registers the optional render-trace frame observer too. Register
 -- without running its callback; this fixture tests settings, not native frames.
-windower={add_to_chat=function() end,register_event=function() end}
+windower={addon_path='addon/',create_dir=function()end,ffxi={get_info=function()return{logged_in=false}end},add_to_chat=function() end,register_event=function() end}
+-- Bank persistence has separate migration tests; this fixture isolates profile
+-- adoption while still exercising the real root initialization/callback.
+package.loaded['libs/windows_file']={new=function()return{}end}
+package.loaded['libs/banks/storage']={new=function()return{state={},prepare=function()end,refresh=function()end}end}
+xml={parse=function()end}
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
-local start=assert(source:find("local defaults = require('defaults')",1,true))
+local start=assert(source:find("local defaults = require('libs/defaults')",1,true))
 local stop=assert(source:find('-- A: immutable',start,true))
 local block=assert(load(source:sub(start,stop-1)..'\nreturn settings'))
 assert(block()==fixture)
@@ -29,8 +34,8 @@ fixture.ControllerProfile='xinput';fixture.ControllerDevice=2;fixture.PersonalPr
 refresh();assert(fixture.ControllerProfile=='xinput' and fixture.ControllerDevice==2,'alternate reader changed')
 fixture.TextSettling=false;refresh();assert(not require('ui/text_measure').enabled)
 fixture.TextSettling=true;refresh();assert(require('ui/text_measure').enabled)
-local profiles=require('controller_profiles')
-local policy=require('personal_profile')
+local profiles=require('libs/controller/profiles')
+local policy=require('libs/controller/personal_profile')
 -- Isolate profile adoption from the later, independently tested target migration.
 local public={ControllerProfile='ps5-directinput',ControllerDevice=1,PersonalTargetR3Migrated=true}
 assert(policy.normalize(public,{ControllerProfile='ps5-directinput',ControllerDevice=1},profiles)==false)
@@ -38,7 +43,7 @@ assert(public.PersonalProfileMigrated==nil,'public defaults acquired private mig
 local function copy(t)
     local out={};for k,v in pairs(t) do out[k]=type(v)=='table' and copy(v) or v end;return out
 end
-local current=copy(require('defaults'));current.CrossbarScale=.6;current.Style.OffsetX=37
+local current=copy(require('libs/defaults'));current.CrossbarScale=.6;current.Style.OffsetX=37
 _G.current_settings=current
 windower.ffxi={get_player=function() return {name='Test',main_job='BST',id=123} end,get_info=function() return {logged_in=true,server=1,zone=100} end}
 windower.ffxi.get_mob_by_id=function()return{name='Test',id=123}end
@@ -51,7 +56,7 @@ player={initialize=function() end,load_hotbar=function() return false end}
 xivcrossbar={}
 local first=assert(source:find('function initialize(',1,true))
 local last=assert(source:find('-- A: recover the earlier personal',first,true))
-local init=assert(load("local character_identity=require('character_identity');local storage={};local settings=current_settings;local theme=require('theme');local theme_options={crossbar_scale=1};local y_adjust=450;\n"..
+local init=assert(load("local character_identity=require('libs/character_identity');local storage={};local settings=current_settings;local theme=require('ui/theme');local theme_options={crossbar_scale=1};local y_adjust=450;\n"..
     source:sub(first,last-1)..'\nreturn initialize'))()
 init(1,'Test',123)
 assert(seen.crossbar_scale==.6 and seen.offset_x==37,'pre-login cached theme replaced character appearance')

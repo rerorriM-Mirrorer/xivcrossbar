@@ -180,7 +180,7 @@ function geometry:configure_fade(enabled, fade_in, fade_out, load_fade_in, load_
         self.startup_reveal, startup = false, nil
     end
     -- Changing regular fades does not cancel or replay the startup phase.
-    self.fade = startup or require('ui_fade').new(require('socket').gettime, self.opacity)
+    self.fade = startup or require('ui/fade').new(require('socket').gettime, self.opacity)
 end
 
 -- Autohide waits for the startup reveal, including one fully visible frame.

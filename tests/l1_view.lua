@@ -15,9 +15,9 @@ local function object()
     end end})
 end
 local resources={text=object,image=object,clear=function(list)for _,o in ipairs(list)do o:destroy()end end}
-local now=5;local settings={L1=require('l1_bank').defaults()}
-local bank=require('l1_bank').new({settings=settings,clock=function()return now end})
-local view=require('l1_view').new({bank=bank,resources=resources,path='',settings=settings})
+local now=5;local settings={L1=require('libs/banks/legacy').defaults()}
+local bank=require('libs/banks/legacy').new({settings=settings,clock=function()return now end})
+local view=require('ui/bank_view').new({bank=bank,resources=resources,path='',settings=settings})
 settings.Texts={Font='Arial',Size=9}
 view:tick(true,960,540);assert(created==0,'hidden companion allocated surfaces')
 bank:event('show');view:tick(true,960,540);local fixed=created
@@ -31,7 +31,7 @@ settings.CrossbarScale=nil;settings.L1.FollowCrossbar=true;view:tick(true,960,54
 assert(view.slots[1].background and view.slots[1].frame)
 assert(view:bounds().width==290 and view:bounds().height==148)
 -- Compare with actual main-bar coordinate functions, not a second formula.
-local f=assert(io.open('ui.lua'));local source=f:read('*a');f:close()
+local f=assert(io.open('ui/crossbar.lua'));local source=f:read('*a');f:close()
 local a=assert(source:find('function ui:get_slot_x(',1,true))
 local b=assert(source:find('\n-----------------------------',a,true))
 local main={pos_x=50,pos_y=100,slot_spacing=6,hotbar_spacing=56,is_compact=true,theme={}}
@@ -69,12 +69,12 @@ local settled=calls;view:tick(true,960,540);assert(calls==settled)
 view:destroy();assert(next(alive)==nil)
 print('L1 companion: actual main compact coordinates/40px icons, following scale, 42 fixed surfaces, 24 clamps, 300 reveal/hide cycles and teardown passed.')
 -- Both new-bank panels reuse these actual compact coordinates and resources.
-settings.CompanionBanks=require('companion_banks').defaults();settings.CrossbarScale=1
+settings.CompanionBanks=require('libs/banks/banks').defaults();settings.CrossbarScale=1
 local native_menu=false
-local banks=require('companion_banks').new({settings=settings,clock=function()return now end,
+local banks=require('libs/banks/banks').new({settings=settings,clock=function()return now end,
     context=function()return true,native_menu end,ordinary=function()end,execute=function()end})
-local left=require('l1_view').new({bank=banks:panel('Left'),resources=resources,path='',settings=settings})
-local right=require('l1_view').new({bank=banks:panel('Right'),resources=resources,path='',settings=settings})
+local left=require('ui/bank_view').new({bank=banks:panel('Left'),resources=resources,path='',settings=settings})
+local right=require('ui/bank_view').new({bank=banks:panel('Right'),resources=resources,path='',settings=settings})
 local before=created
 banks:edge(13,true);left:tick(true,960,540);right:tick(true,960,540)
 assert(created==before+42 and left.slots[8].alias.last_text=='Case')

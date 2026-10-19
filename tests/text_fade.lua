@@ -12,7 +12,7 @@ local function object()
         show=function(self) self.visible=true end,
         hide=function(self) self.visible=false end}
 end
-local geometry=require('ui_geometry')
+local geometry=require('ui/geometry')
 for _,together in ipairs({false,true}) do
     now=0
     local g=geometry.new()

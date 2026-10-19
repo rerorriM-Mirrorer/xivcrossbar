@@ -1,7 +1,7 @@
 -- Exercise the actual recast renderer with persistent drawing surfaces across
 -- action/set changes. Tracker results are controlled, not the rendering logic.
 dofile('tests/compact.lua')
-local ui=require('ui')
+local ui=require('ui/crossbar')
 local abilities=package.loaded['resources/crossbar_abilities']
 local spells=package.loaded['resources/crossbar_spells']
 abilities.TestWS={id=1,recast_id=1}

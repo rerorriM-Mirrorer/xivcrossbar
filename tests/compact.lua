@@ -33,12 +33,12 @@ package.loaded['ui/item_icons']={}
 package.loaded['libs/kebab_casify']=function(name) return name end
 package.loaded['resources/crossbar_abilities']={}
 package.loaded['resources/crossbar_spells']={}
-package.loaded['player']={}
+package.loaded['libs/player']={}
 package.loaded['socket']={gettime=function() return 5 end}
 config={load=function(value) return value end}
 math.round=function(n) return math.floor(n+.5) end
-local defaults=require('defaults')
-local theme=require('theme')
+local defaults=require('libs/defaults')
+local theme=require('ui/theme')
 local function equal(a,b,message) assert(a==b,(message or '')..': '..tostring(a)..' ~= '..tostring(b)) end
 local resolutions={{960,540},{1280,720},{1600,900},{1920,1080},{2560,1440},{3840,2160}}
 for _,res in ipairs(resolutions) do
@@ -48,8 +48,8 @@ for _,res in ipairs(resolutions) do
     screen={ui_x_res=res[1],ui_y_res=res[2]}
     defaults.iscompact=false;defaults.UseAltLayout=alt;defaults.Hotbar.Number=count
     defaults.CrossbarScale=scale;defaults.Style.OffsetX=37;defaults.Style.OffsetY=-23
-    package.loaded.ui=nil
-    local ui=require('ui')
+    package.loaded['ui/crossbar']=nil
+    local ui=require('ui/crossbar')
     -- Other UI modules publish a same-named global; use our own setup policy.
     _G.setup_text=function() error('crossbar setup leaked through global helper') end
     local options=theme.apply(defaults)

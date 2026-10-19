@@ -2,10 +2,10 @@
 local now,wall=10,100
 local allowed=true
 local sent,ordinary={},{}
-local bank=require('companion_banks').new({settings={},clock=function()return now end,
+local bank=require('libs/banks/banks').new({settings={},clock=function()return now end,
     context=function()return true,false end,save=function()end,say=function()end,help=function()end,
     execute=function(c)sent[#sent+1]=c end,ordinary=function(b,p)ordinary[#ordinary+1]={b,p}end})
-local receiver=require('controller_messages').new({session='recovery',clock=function()return now end,
+local receiver=require('libs/controller/messages').new({session='recovery',clock=function()return now end,
     can_recover=function()return allowed end,
     wallclock=function()return wall end,capture=function()end,
     cancel=function()bank:cancel();bank.active=false end,

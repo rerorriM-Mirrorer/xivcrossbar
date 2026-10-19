@@ -1,4 +1,4 @@
-local m=require('controller_realkeys')
+local m=require('libs/controller/realkeys')
 local s={ControllerProfile='ps5-extended',ControllerMessages=true,GameplayDPad='ijkl',InputTest=false}
 local saves=0;local lines={}
 local function command(mode)return m.command(s,mode,function()saves=saves+1 end,function(v)lines[#lines+1]=v end)end

@@ -1,6 +1,6 @@
 dofile('tests/custom_catalog.lua')
-local c=require('custom_catalog')
-local b=require('catalog_bindings')
+local c=require('libs/custom_catalog')
+local b=require('libs/catalog_bindings')
 local f=assert(io.open('examples/CustomActions-template.xml'));local raw=f:read('*a');f:close()
 local entries=assert(c.decode(raw,catalog_test_parse))
 local count,npc=0,0
@@ -10,7 +10,7 @@ for name,record in pairs(entries) do
     assert(record.id and values.action==record.command and record.command~='')
     assert(not record.command:match('^//'))
     if record.icon then
-        local image=assert(io.open('images/icons/iconpacks/default/'..record.icon..'.png','rb'));image:close()
+        local image=assert(io.open('images/icons/default/'..record.icon..'.png','rb'));image:close()
     end
     if name:match('^NPCMirror') then
         npc=npc+1

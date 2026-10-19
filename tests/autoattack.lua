@@ -1,7 +1,7 @@
 -- Actual optional estimator with a controlled clock. Off must bypass timing,
 -- sampling and pause work; on must handle overlapping and overdue pauses.
 local now,reads=0,0
-local tracker=require('autoattack').new(function() reads=reads+1;return now end)
+local tracker=require('libs/autoattack').new(function() reads=reads+1;return now end)
 local function off_events()
     tracker:set_engaged(true,{2})
     tracker:gain_buff(6);tracker:lose_buff(6)
@@ -46,5 +46,5 @@ assert(not tracker:is_paused() and tracker.estimate==nil)
 now=1001;tracker:record_swing()
 now=1005;tracker:record_swing();assert(tracker.estimate==4)
 tracker:reset();assert(tracker.enabled and not tracker.engaged and tracker:elapsed()==nil)
-assert(not require('autoattack').schedule,'estimator owns no scheduled callbacks')
+assert(not require('libs/autoattack').schedule,'estimator owns no scheduled callbacks')
 print('Autoattack disabled-work bypass, learning, rolling history, overlapping pauses, persistent buffs and fresh restart checks passed.')

@@ -1,4 +1,4 @@
-local t=require('controller_transport')
+local t=require('libs/controller/transport')
 assert(t:login_key(t.signals[59],{})=='up')
 assert(t:login_key(t.signals[63],{})=='enter')
 assert(t:login_key(t.signals[65],{})=='escape')

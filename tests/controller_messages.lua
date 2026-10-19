@@ -1,4 +1,4 @@
-local module=require('controller_messages')
+local module=require('libs/controller/messages')
 local now,wall=10,100
 local events,captures,cancels={}, {},0
 local t=module.new({session='test',clock=function()return now end,wallclock=function()return wall end,

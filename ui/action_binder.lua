@@ -8,17 +8,17 @@ local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
 local crossbar_spells = require('resources/crossbar_spells')
-local player_data = require('player')
+local player_data = require('libs/player')
 texts = require('texts')
-local defaults = require('defaults')
+local defaults = require('libs/defaults')
 settings = config.load(defaults)
 local action_binder = {}
-local review = require('custom_action_review')
+local review = require('ui/custom_action_review')
 local caption_layout = require('ui/text_layout').new()
-local theme = require('theme')
+local theme = require('ui/theme')
 local theme_options = theme.apply(settings)
 local icon_pack = nil
-local sw_zones = require('sw_zones')
+local sw_zones = require('libs/sw_zones')
 
 local WYVERN_ABILITIES_TO_FILTER = {
         ['1151'] = true,
@@ -40,7 +40,7 @@ local WYVERN_ABILITIES_TO_FILTER = {
     }
 
 local get_icon_pathbase = function()
-    return 'icons/iconpacks/' .. icon_pack
+    return 'icons/' .. icon_pack
 end
 
 -- Assumes a kebab_casify'd string
@@ -95,9 +95,9 @@ end
 local maybe_get_custom_icon = function(default_icon, custom_icon, category, element)
     local pathbase = get_icon_pathbase()
     local icon_path = 'images/' .. pathbase .. '/' .. custom_icon
-    local icon_file = file.new(icon_path)
+    local icon_file = require('ui/assets').exists(icon_path)
 
-    if (icon_file:exists()) then
+    if (icon_file) then
         return icon_path, true
     else
         -- TODO: Remove the redundancy
@@ -106,9 +106,9 @@ local maybe_get_custom_icon = function(default_icon, custom_icon, category, elem
         -- TODO: Also check if the fallback maybe is already implemented elsewhere to avoid doing a redundant fallback check
         if category == "spell" then
             local fallback_icon_path = get_base_spell_for_higher_level_spells(icon_path)
-            local fallback_icon_file = file.new(fallback_icon_path)
+            local fallback_icon_file = require('ui/assets').exists(fallback_icon_path)
             
-            if (fallback_icon_file:exists()) then
+            if (fallback_icon_file) then
                 return fallback_icon_path, true
             else
                 return default_icon, false
@@ -120,9 +120,9 @@ local maybe_get_custom_icon = function(default_icon, custom_icon, category, elem
                 return default_icon, false
             end
             
-            local fallback_icon_file = file.new(fallback_icon_path)
+            local fallback_icon_file = require('ui/assets').exists(fallback_icon_path)
             
-            if (fallback_icon_file:exists()) then
+            if (fallback_icon_file) then
                 return fallback_icon_path, true
             else
                 return default_icon, false
@@ -315,7 +315,7 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     -- A single centered panel owns the background, title and selector. Style
     -- offsets move the crossbar only; applying them here displaced the backdrop.
     local screen = windower.get_windower_settings()
-    base_x, base_y, max_width, max_height = require('menu_layout').fit(screen.ui_x_res, screen.ui_y_res)
+    base_x, base_y, max_width, max_height = require('ui/menu_layout').fit(screen.ui_x_res, screen.ui_y_res)
     self.button_layout = buttonmapping.button_layout
     self.confirm_button = buttonmapping.confirm_button
     self.cancel_button = buttonmapping.cancel_button
@@ -1190,7 +1190,7 @@ function action_binder:submit_selected_option()
                 alias         = record.alias,
                 name          = record.name,
                 _scope        = record._scope,
-                _expected     = require('custom_catalog').copy(record),
+                _expected     = require('libs/custom_catalog').copy(record),
                 id            = record.id,
                 command       = record.command,
                 icon          = record.icon,
@@ -1784,7 +1784,7 @@ function action_binder:display_target_selector()
     self.title:text('Select Action Target')
     self.title:show()
 
-    local target_options = L(require('target_choices').build(self.target_type,
+    local target_options = L(require('ui/target_choices').build(self.target_type,
         self.theme_options.allow_stpc_for_self_targeted_actions,
         'images/' .. get_icon_pathbase() .. '/mappoint.png'))
 
@@ -1801,7 +1801,7 @@ function action_binder:show_set_title(label)
     self.set_title_base = label
     local key = player_data.hotbar_settings.active_environment
     local bar = player_data.hotbar[key]
-    local name = require('set_labels').display(key,bar and bar.name)
+    local name = require('ui/set_labels').display(key,bar and bar.name)
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
     local color = defaults[key] and '\\cs(0,128,255)' or '\\cs(255,255,255)'
     local scope = self.state == states.EDIT_CUSTOM_ACTION_REVIEW and self.custom_action_draft and
@@ -3014,7 +3014,7 @@ function action_binder:new_custom_action(name, origin)
     self.custom_action_original_name=record and key or nil
     self.action_type=record and action_types.EDIT_CUSTOM_ACTION or action_types.CREATE_CUSTOM_ACTION
     self.custom_action_draft={name=record and record.name or name,_scope=record and record._scope or player_data:catalog_save_scope(),
-        _expected=require('custom_catalog').copy(record),id=record and record.id or nil,alias=record and record.alias or nil,command=record and record.command or nil,
+        _expected=require('libs/custom_catalog').copy(record),id=record and record.id or nil,alias=record and record.alias or nil,command=record and record.command or nil,
         icon=record and record.icon or nil,linked_action=record and record.linked_action or nil,linked_type=record and record.linked_type or nil}
     self.state=states.EDIT_CUSTOM_ACTION_REVIEW
     self.custom_action_name_required = not review.nonempty(name)
@@ -3464,7 +3464,6 @@ function action_binder:display_icon_selector_sylvebits()
 
     local icon_list = L{}
     local pathbase = get_icon_pathbase()
-    local base_dir = windower.addon_path .. 'images/' .. pathbase
 
     -- Excluded files that are UI framework images, not usable as button icons
     local excluded_files = {
@@ -3499,62 +3498,64 @@ function action_binder:display_icon_selector_sylvebits()
     local icon_id = 1
 
     -- Scan the icon pack directory recursively for all .png files
-    local command = 'dir /b /s "' .. base_dir .. '\\*.png" 2>nul'
-    local handle = io.popen(command)
-    if (handle) then
-        local all_icons = L{}
-        for full_path in handle:lines() do
-            -- Convert backslashes to forward slashes
-            full_path = full_path:gsub('\\', '/')
+    local all_icons,seen=L{},{}
+    for _,base_dir in ipairs(require('ui/assets').pack_roots(icon_pack)) do
+        local command = 'dir /b /s "' .. base_dir .. '\\*.png" 2>nul'
+        local handle = io.popen(command)
+        if (handle) then
+            for full_path in handle:lines() do
+                -- Convert backslashes to forward slashes
+                full_path = full_path:gsub('\\', '/')
 
-            -- Extract the relative path after the iconpack base directory
-            local relative = full_path:match('.*/iconpacks/[^/]+/(.*)')
-            if (relative) then
-                -- Remove .png extension
-                local icon_key = relative:gsub('%.png$', '')
+                -- Extract the relative path after the iconpack base directory
+                local relative = full_path:sub(1,#base_dir):lower()==base_dir:lower() and full_path:sub(#base_dir+2)
+                if (relative) then
+                    -- Remove .png extension
+                    local icon_key = relative:gsub('%.png$', '')
 
-                -- Get just the filename without extension
-                local filename = icon_key:match('.*/(.+)$') or icon_key
+                    -- Get just the filename without extension
+                    local filename = icon_key:match('.*/(.+)$') or icon_key
 
-                -- Get the subdirectory if any
-                local subdir = icon_key:match('(.*)/') or ''
-                local immediate_dir = subdir:match('.*/(.*)')  or subdir
+                    -- Get the subdirectory if any
+                    local subdir = icon_key:match('(.*)/') or ''
+                    local immediate_dir = subdir:match('.*/(.*)')  or subdir
 
-                -- Skip excluded files and directories
-                if (not excluded_files[filename] and not excluded_dirs[immediate_dir]) then
-                    -- Build display name: capitalize and clean up
-                    local display_name = filename:gsub('-', ' '):gsub('_', ' ')
-                    -- Capitalize first letter of each word
-                    display_name = display_name:gsub('(%a)([%w]*)', function(first, rest)
-                        return first:upper() .. rest
-                    end)
+                    -- Skip excluded files and directories
+                    if (not seen[icon_key] and not excluded_files[filename] and not excluded_dirs[immediate_dir]) then
+                        seen[icon_key]=true
+                        -- Build display name: capitalize and clean up
+                        local display_name = filename:gsub('-', ' '):gsub('_', ' ')
+                        -- Capitalize first letter of each word
+                        display_name = display_name:gsub('(%a)([%w]*)', function(first, rest)
+                            return first:upper() .. rest
+                        end)
 
-                    -- Build category prefix for sorting
-                    local sort_key = subdir .. '/' .. filename
+                        -- Build category prefix for sorting
+                        local sort_key = subdir .. '/' .. filename
 
-                    all_icons:append({
-                        sort_key = sort_key,
-                        name = display_name,
-                        icon = 'images/' .. pathbase .. '/' .. icon_key .. '.png',
-                        icon_path = '/' .. icon_key,
-                        subdir = subdir
-                    })
+                        all_icons:append({
+                            sort_key = sort_key,
+                            name = display_name,
+                            icon = 'images/' .. pathbase .. '/' .. icon_key .. '.png',
+                            icon_path = '/' .. icon_key,
+                            subdir = subdir
+                        })
+                    end
                 end
             end
-        end
-        handle:close()
-
-        -- Sort alphabetically by category then name
-        all_icons:sort(function(a, b) return a.sort_key < b.sort_key end)
-
-        -- Build the final icon list
-        for i, entry in ipairs(all_icons) do
-            local data = { icon_path = entry.icon_path }
-            icon_list:append({id = icon_id, name = entry.name, icon = entry.icon, data = data})
-            icon_id = icon_id + 1
+            handle:close()
         end
     end
 
+    -- Sort alphabetically by category then name
+    all_icons:sort(function(a, b) return a.sort_key < b.sort_key end)
+
+    -- Build the final icon list
+    for i, entry in ipairs(all_icons) do
+        local data = { icon_path = entry.icon_path }
+        icon_list:append({id = icon_id, name = entry.name, icon = entry.icon, data = data})
+        icon_id = icon_id + 1
+    end
     self.selector:display_options(icon_list)
     self:show_control_hints('Confirm', 'Go Back')
 end
@@ -3611,7 +3612,7 @@ end
 
 function action_binder:set_capturing_text(enabled)
     self.capturing_text = enabled
-    require('text_input_guard'):update(enabled, windower.send_command)
+    require('libs/controller/text_input_guard'):update(enabled, windower.send_command)
 end
 
 function action_binder:send_key(char)
@@ -4164,8 +4165,8 @@ function get_icons() -- Used for EXECUTE_COMMAND action type
 			if not tonumber(line) and line ~= nil and line ~= '' and not line:contains('home-point') and not line:contains('survival-guide') then
 				local icon_name = tostring(line):gsub('\r$', ''):gsub('%.[pP][nN][gG]$',''):gsub('\\','/')
 				local icon_path = get_icon_pathbase()..'/'..icon_name..'.png'
-				local icon_file = file.new('images/'..icon_path)
-				if icon_file:exists() then
+				local icon_file = require('ui/assets').exists('images/'..icon_path)
+				if icon_file then
 					command_list:append({id = FAKE_ID, name = icon_name, icon = 'images/' .. icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
 				else
 					lognotice = true

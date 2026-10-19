@@ -65,7 +65,7 @@ for path in required:
 if branch == 'public/rc3-maintenance':
     assert not any('personal_controls' in path or 'movement_signal' in path or '/tools/' in path
                    for path in entries)
-    assert 'ps5-extended' not in (root / 'controller_profiles.lua').read_text()
+    assert 'ps5-extended' not in (root / 'libs/controller/profiles.lua').read_text()
 else:
     assert 'xivcrossbar/movement_signal.ahk' in entries
 

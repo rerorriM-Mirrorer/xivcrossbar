@@ -1,13 +1,13 @@
 -- Execute the actual XML loader and action constructor, not just the sync helper.
-local f=assert(io.open('player.lua'));local source=f:read('*a');f:close()
+local f=assert(io.open('libs/player.lua'));local source=f:read('*a');f:close()
 local a=assert(source:find('function kebab_casify',1,true))
 local z=assert(source:find('-- A: a missing layer file',a,true))
 local setup=source:match('(function player:setup_environment_hotbars.-)\n%-%- set bar environment')
 local add=source:match('(function player:add_action.-)\nfunction create_send_command_coroutine')
 assert(setup and add)
-local storage=require('storage')
-local action_manager=require('action_manager')
-local bindings=require('catalog_bindings')
+local storage=require('libs/storage')
+local action_manager=require('libs/action_manager')
+local bindings=require('libs/catalog_bindings')
 local function dom(fields,bar,slot)
     local tags={}
     for key,value in pairs(fields) do

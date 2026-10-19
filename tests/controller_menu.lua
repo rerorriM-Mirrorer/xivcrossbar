@@ -13,7 +13,7 @@ local env=setmetatable({settings={ControllerProfile='ps5-extended',ControllerMes
         has_focus=function()return focused end,send_command=function(s)commands[#commands+1]=s end,
         ffxi={get_info=function()return info end,get_player=function()return character end}}},{__index=_G})
 assert(load(source:sub(a,b-1)..source:sub(c,d-1),'actual direct R1 command guard','t',env))()
-local receiver=require('controller_messages').new({session='r1-menus',clock=function()return 10 end,
+local receiver=require('libs/controller/messages').new({session='r1-menus',clock=function()return 10 end,
     wallclock=function()return 100 end,capture=function()error('menu request captured ordinary buttons')end,
     event=function()error('menu request injected a logical key')end,cancel=function()end,menu=env.message_menu})
 receiver:context('Fenrir:Test',true);local token=receiver.token

@@ -1,8 +1,8 @@
 -- Complete UI reconstruction and the actual deferred-destruction boundary.
 dofile('tests/compact.lua')
 local resources=require('ui/resources')
-local ui=require('ui')
-local options=require('theme').apply(require('defaults'))
+local ui=require('ui/crossbar')
+local options=require('ui/theme').apply(require('libs/defaults'))
 options.button_layout='playstation'
 ui:setup(options,{})
 local baseline=resources.snapshot()
@@ -14,7 +14,7 @@ for i=1,30 do
 end
 local now,deletions=0,0
 package.loaded.socket={gettime=function()return now end}
-local geometry=require('ui_geometry').new()
+local geometry=require('ui/geometry').new()
 geometry:configure_fade(true,1,1)
 local raw={size=function()end,fit=function()end,alpha=function()end,show=function()end,hide=function()end,
     destroy=function()deletions=deletions+1 end}
@@ -33,7 +33,7 @@ geometry:dispose_surfaces();geometry:shutdown();p2:destroy()
 assert(deletions==2 and #geometry.retired==0)
 package.loaded.lists={};package.loaded.strings={}
 L=function(t)return t or {}end
-local chooser=require('environment_chooser')
+local chooser=require('ui/environment_chooser')
 chooser:setup(options)
 baseline=resources.snapshot()
 for i=1,20 do

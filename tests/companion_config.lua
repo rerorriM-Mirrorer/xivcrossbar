@@ -3,7 +3,7 @@
 local function copy(t)local d={};for k,v in pairs(t)do d[k]=type(v)=='table' and copy(v) or v end;return d end
 table.copy=copy;_meta={T={}}
 local merge=require('tests/fixtures/windower_config_merge')
-local Banks=require('companion_banks')
+local Banks=require('libs/banks/banks')
 local settings={CompanionBanks=Banks.defaults(),L1={Slot1={Alias='Original',Command='input /echo preserved'},X=41,Y=72}}
 Banks.ensure(settings)
 assert(settings.CompanionBanks.L1.Closed.Slot4.Kind=='default' and settings.CompanionBanks.LeftPanel.X==41)

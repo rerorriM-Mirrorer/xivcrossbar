@@ -1,5 +1,5 @@
 -- Factory inheritance, v1 adoption and actual root alias dispatch.
-local M=require('companion_banks')
+local M=require('libs/banks/banks')
 local s={CompanionBanks={Version=1}}
 for layer,name in pairs({l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}) do
     s.CompanionBanks[name]={Closed={},Menu={}}
@@ -63,9 +63,9 @@ count=saves;dispatch('r1r2');assert(saves==count and bank.active==nil,'bare alia
 env.xivcrossbar.ready=false;dispatch('r1r2','status');assert(saves==count)
 dispatch('r1r2','triangle','Blocked','input /echo blocked');assert(saves==count)
 -- Explicit trigger names also work inside the original, unchanged set API.
-local converter=require('gamepad_converter');converter:setup('playstation')
+local converter=require('libs/controller/gamepad_converter');converter:setup('playstation')
 local bound,saved,reloaded
-local set_env=setmetatable({gamepad_converter=converter,theme_options={hotbar_number=6},action_manager=require('action_manager'),
+local set_env=setmetatable({gamepad_converter=converter,theme_options={hotbar_number=6},action_manager=require('libs/action_manager'),
     player={add_action=function(_,action,set,bar,slot)bound={action=action,set=set,bar=bar,slot=slot}end,
         save_hotbar=function()saved=true end},reload_hotbar=function()reloaded=true end},{__index=_G})
 a=assert(source:find('function set_action_command(args)',1,true));b=assert(source:find('-- command to delete an action',a,true))

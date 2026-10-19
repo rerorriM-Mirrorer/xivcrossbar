@@ -1,15 +1,15 @@
 -- Run the actual root helpers with real UI/geometry and narrow API spies.
 -- Preferences, active fades, bindings and gameplay commands remain independent.
 dofile('tests/compact.lua')
-local ui=require('ui')
-local settings=require('defaults')
+local ui=require('ui/crossbar')
+local settings=require('libs/defaults')
 local file=assert(io.open('xivcrossbar.lua'))
 local source=file:read('*a');file:close()
 local saves,messages=0,{}
 windower.ffxi.get_player=function() return {status=1,buffs={}} end
 windower.add_to_chat=function(_,message) messages[#messages+1]=message end
 windower.send_command=function() error('indicator setting issued a gameplay command') end
-local theme_options=require('theme').apply(settings)
+local theme_options=require('ui/theme').apply(settings)
 local env=setmetatable({ui=ui,settings=settings,theme_options=theme_options,
     windower=windower,config={save=function(value) assert(value==settings);saves=saves+1 end}},
     {__index=_G})

@@ -112,7 +112,7 @@ function M.ensure(settings)
 end
 function M.new(options)
     local self={down={},owners={},blocked={},layer='',menu=false,eligible=false,executed=0,empty=0,
-        previews={},output=require('companion_output').new({clock=options.clock})}
+        previews={},output=require('libs/banks/output').new({clock=options.clock})}
     self.migrated=select(2,M.ensure(options.settings))
     local normalized=options.settings.CompanionBanks
     function self:settings()
@@ -208,10 +208,10 @@ function M.new(options)
         if self.layer=='' then options.ordinary(button,true);self.owners[button]='ordinary';return end
         if not layers[self.layer] or not self.eligible then return end
         local e=self:entry(self.layer,slot_for[button],self:uses_menu(self.layer,self.menu))
-        if e.Kind=='key' and require('companion_keys').parse(e.Key) then
+        if e.Kind=='key' and require('libs/banks/keys').parse(e.Key) then
             -- Native navigation can hold. Pulses retain both edges even if the
             -- physical release happened before AHK read the next Lua frame.
-            local _,_,key=require('companion_keys').parse(e.Key)
+            local _,_,key=require('libs/banks/keys').parse(e.Key)
             local held=self.output.held[key]
             self.output:edge(key,true)
             if e.Hold then self.owners[button]=clone(e);self.owners[button].Key=key
@@ -315,7 +315,7 @@ function M.new(options)
         if layer=='preset' then
             if args[2]~='cioara' or args[3]~='apply' or args[4] then self:help();return false end
             self:release_slots();self.output:cancel();self.r1used=true
-            require('companion_presets').cioara(self)
+            require('libs/banks/presets').cioara(self)
             options.save();options.say('Cioara banks applied. Inventory is on L1+L2; menu actions OFF retains its inventory-opening bindings.');return true
         end
         if not layers[layer] then self:help();return false end
@@ -359,15 +359,15 @@ function M.new(options)
                 elseif op=='clear' and not args[index+1] then
                     self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot]=empty();changed=true
                 elseif op=='key' and args[index+1] and args[index+2] and (not args[index+3] or args[index+3]=='hold') and not args[index+4] then
-                    local _,_,key=require('companion_keys').parse(args[index+2])
+                    local _,_,key=require('libs/banks/keys').parse(args[index+2])
                     if key then e.Alias=args[index+1];e.Kind='key';e.Key=key;e.Command='';e.Hold=args[index+3]=='hold';changed=true end
                 elseif op=='append' and self:entry(layer,slot,menu).Kind=='command' and args[index+1] then
                     e=clone(self:entry(layer,slot,menu))
                     self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot]=e
-                    local text=require('l1_bank').command_text(args,index+1)
+                    local text=require('libs/banks/legacy').command_text(args,index+1)
                     e.Command=(e.Command~='' and e.Command..'; ' or '')..text;changed=true
                 elseif not special and args[index+1] and args[index+2] then
-                    e.Alias=args[index+1];e.Kind='command';e.Command=require('l1_bank').command_text(args,index+2);e.Key='';e.Hold=false;changed=true
+                    e.Alias=args[index+1];e.Kind='command';e.Command=require('libs/banks/legacy').command_text(args,index+2);e.Key='';e.Hold=false;changed=true
                 end
             end
         end

@@ -15,13 +15,26 @@ chooser cancellation repairs, opt-in render diagnostics and R on an unused R1
 release, plus the opt-in real-IJKL comparison below; live checks are pending.
 The current checkpoint also stages unfamiliar centered text before revealing it.
 
-Runtime: **0.4.0-a.20261019.directlink1-hintfix1**; shared wrapper Controls **9.10-holdfix**.
+Runtime: **0.4.0-a.20261019.directlink1-cleanup1**; shared wrapper Controls **9.10-holdfix**.
 Update Lua and AHK together, then restart the shared wrapper once. Preserve installed settings.
 Author: A. DirectLink development line. Initial live message-transport operation
 is confirmed by the user's trace and feedback; broader acceptance remains pending.
 
 For cumulative code-only updates and copying Cioara positions, see
 [Updating and layout transfer](docs/UPDATING.md).
+
+## Folder and settings cleanup — current test
+
+Bank settings now live in `data/companion_banks.xml`. Existing global and character
+banks migrate automatically, with a retained main-settings backup. Main typography
+and main crossbar positions stay in `data/settings.xml`. Bank commands are unchanged.
+
+Lua modules now live under `libs/` and `ui/`; themes under `images/themes/` and the
+default icon pack under `images/icons/default/`, including numeric fallback icons.
+A central resolver preserves old saved paths and custom artwork. The cumulative
+code-only update includes `finish-cleanup.bat` to move installed artwork in place
+and retire old root modules. Read [the update guide](docs/UPDATING.md) before
+running it. The wrapper/include locations and controller behavior are unchanged.
 
 ## Bank layout and positioning — current test
 
@@ -76,9 +89,9 @@ the main default anchor. Main offsets are relative to screen centre/bottom;
 bank X/Y are absolute UI pixels and clamp to the current viewport. Match UI
 resolution and scale for matching visual positions.
 
-Saved location fields are in `xivcrossbar/data/settings.xml`: `Style.OffsetX`,
-`Style.OffsetY`, `CompanionBanks.LeftPanel.X/Y` and `RightPanel.X/Y` within the
-relevant character section (or inherited global section). For matching sizes,
+Main locations are in `data/settings.xml`: `Style.OffsetX` and `Style.OffsetY`.
+Bank locations are in `data/companion_banks.xml`: `CompanionBanks.LeftPanel.X/Y`
+and `RightPanel.X/Y` within the character section (or inherited global section). For matching sizes,
 also compare CrossbarScale and panel FollowCrossbar/Scale. Do not replace the
 whole settings file merely to copy positions; it also contains personal binds.
 Use the commands while loaded; unload before manually editing the XML.
@@ -144,7 +157,7 @@ Show/menus never force a bank on screen without its held chord or preview, and
 never bypass chat/editor/cutscene input guards. Each layer has its own policy;
 coordinates and scale are still shared by the two layers on each side.
 
-After backing up `data/settings.xml`, explicitly apply:
+After backing up `data/companion_banks.xml`, explicitly apply:
 
 ```
 //xb bank preset cioara apply
@@ -436,7 +449,7 @@ settings. An explicit numeric companion scale remains available.
 Slots: **1 Left, 2 Down, 3 Right, 4 Up, 5 Square, 6 Cross, 7 Circle, 8 Triangle**.
 Use named buttons or those numbers. `bank l1` edits bare L1; `bank l1l2` and the
 legacy `l1` command edit L1-then-L2. Add `menu` to edit native-menu entries.
-Both contexts save under CompanionBanks in data/settings.xml. Empty slots are
+Both contexts save under CompanionBanks in data/companion_banks.xml. Empty slots are
 reserved and consumed. The old `l1 mode` command is retired. Preview is an explicit
 six-second editing aid, not a persistent physical mode.
 
@@ -1146,3 +1159,13 @@ Burst frames no longer retain an earlier skillchain property icon. Genuine item
 warmup and cooldown rendering remains intact. The tracker itself is unchanged.
 Adds cumulative code-only packaging with an explicit build/source marker;
 settings and all installed image/theme assets remain in place. See UPDATING.md.
+
+
+### Folder and bank-settings cleanup test 1 — October 19, 2026
+
+Separates bank persistence with all-character migration, backup, typed XML,
+readback checks and atomic cross-client saves. Moves Lua runtime modules into
+libs/ui, artwork into canonical icon/theme folders and preserves old module/icon
+paths through compatibility resolvers. Adds an optional Windows merge-install
+cleanup helper that preserves custom art and modified code. Adds actual XML,
+asset compatibility and relocation-byte regressions. Runtime cleanup1; AHK unchanged.

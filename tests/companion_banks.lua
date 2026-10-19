@@ -1,6 +1,6 @@
 -- Actual bank/schema/output modules. OS delivery is exercised separately by
 -- the actual AHK function harness; no FFXI success is inferred from a dispatch.
-local Banks=require('companion_banks')
+local Banks=require('libs/banks/banks')
 local now,menu,allowed=10,false,true
 local settings={L1={Slot1={Alias='Old Wardrobe',Command='input /wardrobe4'},X=37,Y=81,Scale=.8}}
 local saved,commands,ordinary=0,{},{}
@@ -94,7 +94,7 @@ assert(bank.output:accept(old) and #bank.output.pending==2)
 assert(not bank.output:accept(bank.output.seq+1))
 now=now+.36;assert(bank.output:stale());bank.output:cancel();assert(not bank.output:stale())
 -- New protocol negotiates separately; old receivers reject its entire packet.
-local received={};local receiver=require('controller_messages').new({session='banks-test',clock=function()return now end,
+local received={};local receiver=require('libs/controller/messages').new({session='banks-test',clock=function()return now end,
     wallclock=function()return 100 end,capture=function()end,cancel=function()bank:cancel()end,
     physical=function(b,p)received[#received+1]={b,p};bank:edge(b,p)end,
     ready=function()bank.active=true end,key_ack=function(a)bank.output:accept(a)end})

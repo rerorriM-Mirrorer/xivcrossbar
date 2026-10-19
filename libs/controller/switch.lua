@@ -1,5 +1,5 @@
 -- A: profile changes advance on observed wrapper status, never a blocking sleep.
-local profiles = require('controller_profiles')
+local profiles = require('libs/controller/profiles')
 local M = {}
 function M.new(options)
     local self = {options=options}

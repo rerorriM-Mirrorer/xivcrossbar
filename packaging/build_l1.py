@@ -49,10 +49,10 @@ with zipfile.ZipFile(args.companion) as source:
         +entries['trustmovement/README.md'])
     companion_hash=hashlib.sha256(entries['trustmovement/trustmovement.lua']).hexdigest()
 assert companion_hash=='1b9d83d33244bd3c0cf6088e7d0e276702b612d4eed69be567658fa01ec09e54'
-required=['l1_bank.lua','l1_transport.lua','l1_view.lua','personal_controls.lua','personal_controls.ahk',
-          'personal_gestures.ahk','controller_messages.ahk','controller_messages.lua','controller_clients.ahk','movement_signal.ahk','ffxi_directinput.ahk',
+required=['libs/banks/legacy.lua','libs/banks/legacy_transport.lua','ui/bank_view.lua','libs/controller/personal_controls.lua','personal_controls.ahk',
+          'personal_gestures.ahk','controller_messages.ahk','libs/controller/messages.lua','controller_clients.ahk','movement_signal.ahk','ffxi_directinput.ahk',
           'images/icons/iconpacks/default/icon_list.txt','images/setup/gamepad-directinput.jpg',
-          'themes/ffxiv/notice.png','set_labels.lua','WORKFLOW.md','TESTING.md','LICENSE','NOTICE']
+          'themes/ffxiv/notice.png','ui/set_labels.lua','WORKFLOW.md','TESTING.md','LICENSE','NOTICE']
 for name in required: assert 'xivcrossbar/'+name in entries, name
 for name in entries:
     assert '/data/' not in name and not name.lower().endswith(('.xml','.ini','.log','.bak','.lease','.l1','.buttons')),name

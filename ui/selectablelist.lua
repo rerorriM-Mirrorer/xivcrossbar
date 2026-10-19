@@ -15,7 +15,7 @@ local page_assets = 'images/assets/menu/'
 function selectable_list:setup(theme_options, base_x, base_y, max_width, max_height)
     ui_resources.clear(self.fields); ui_resources.clear(self.images)
     self.theme_options = theme_options
-    self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
+    self.frame_image_path = windower.addon_path..'/images/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
     self.base_x = base_x or 150
     self.base_y = base_y or 150
     local temp_width = max_width or (windower.get_windower_settings().ui_x_res - 300)

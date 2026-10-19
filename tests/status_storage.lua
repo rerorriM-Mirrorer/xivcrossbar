@@ -1,14 +1,15 @@
 -- Execute the real status branch and identity/logout guards using the root's
 -- actual storage import. Earlier fixtures hid the missing import with a local.
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
-local imported=assert(source:match("local storage = require%('storage'%)"),'root storage import missing')
-local storage=require('storage')
-local defaults=require('defaults')
+local imported=assert(source:match("local storage = require%('libs/storage'%)"),'root storage import missing')
+local storage=require('libs/storage')
+local defaults=require('libs/defaults')
 local start=assert(source:find("    if command == 'status' then",1,true))
 local stop=assert(source:find("\n        return\n    end",start,true))
 local body=source:sub(start,stop+#'\n        return\n    end'-1)
 local lines={}
 local env=setmetatable({_addon={version='test'},settings=defaults,
+    bank_storage={source='data/companion_banks.xml',character='cioara'},
     player={catalog_save_scope=function()return 'global' end,hotbar_settings={active_environment='Basic'}},
     client_registry={loaded=true},report_controller_status=function()end,xivcrossbar={ready=false},companion_banks={status=function()end},
     gamepad_mapper={},gamepad_state={},text_input_guard={},
@@ -30,8 +31,8 @@ local last=assert(source:find('\n    xivcrossbar.pending_initialize = false',fir
 local invalid=source:sub(first,last-1)..'\nend\nreturn initialize'
 env.windower.ffxi={get_player=function()return nil end,get_info=function()return{logged_in=false}end}
 env.resources={servers={}}
-env.character_identity=require('character_identity')
-env.profile_gate=require('profile_gate').new(function()return 0 end)
+env.character_identity=require('libs/character_identity')
+env.profile_gate=require('libs/controller/profile_gate').new(function()return 0 end)
 local initialize=assert(load(imported..'\n'..invalid,'pre-login identity guard','t',env))()
 assert(initialize()==false and storage.identity_valid==false)
 local begin=assert(source:find("windower.register_event('logout'",1,true))

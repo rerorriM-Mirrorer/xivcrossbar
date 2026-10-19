@@ -1,4 +1,4 @@
-local profiles=require('controller_profiles')
+local profiles=require('libs/controller/profiles')
 for _,name in ipairs({'x','X','ps5extended','ps5-extended'}) do
     local canonical,device=profiles.validate(name,2)
     assert(canonical=='ps5-extended' and device==2)

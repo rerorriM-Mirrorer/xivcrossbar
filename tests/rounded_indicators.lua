@@ -1,7 +1,7 @@
 -- Actual UI indicators with mock Windower rendering. Inspect their final
 -- shapes, shared fade/drag transform and flush two-color auto-attack join.
 dofile('tests/compact.lua')
-local ui = require('ui')
+local ui = require('ui/crossbar')
 local calls, creates = {}, 0
 windower.prim = setmetatable({}, {__index=function(_,method)
     return function(name,...)
@@ -11,7 +11,7 @@ windower.prim = setmetatable({}, {__index=function(_,method)
     end
 end})
 windower.ffxi.get_mob_by_target = function() return {hpp=100} end
-local theme = require('theme').apply(require('defaults'))
+local theme = require('ui/theme').apply(require('libs/defaults'))
 theme.button_layout = 'playstation'
 ui:setup(theme,{})
 local function shape(name,x,y,width,height)

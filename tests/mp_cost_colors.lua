@@ -1,7 +1,7 @@
 -- Real affordability/rendering path for ordinary and linked spells; TP and
 -- recast dimming stay independent of the new MP-specific color.
 dofile('tests/compact.lua')
-local ui=require('ui')
+local ui=require('ui/crossbar')
 local spells=package.loaded['resources/crossbar_spells']
 local abilities=package.loaded['resources/crossbar_abilities']
 spells.Cure={mp_cost=35,tp_cost=0}

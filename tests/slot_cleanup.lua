@@ -1,5 +1,5 @@
 dofile('tests/mp_cost_colors.lua')
-local ui=require('ui')
+local ui=require('ui/crossbar')
 local spells=package.loaded['resources/crossbar_spells']
 spells.Cure={mp_cost=35,tp_cost=0}
 local hotbar={test={hotbar_1={slot_1={type='ma',action='Cure'},slot_2={type='ma',action='Cure'}}}}

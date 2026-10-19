@@ -1,7 +1,7 @@
 -- Actual load/clear methods and actual geometry text cache. Record every native
 -- caption write so a transient blank cannot be hidden by the final assertion.
 windower={ffxi={get_player=function()return {main_job_id=1}end},addon_path='addon/'}
-local geometry=require('ui_geometry').new()
+local geometry=require('ui/geometry').new()
 local writes={}
 local function native(record)
     return setmetatable({caption=''}, {__index=function(_,key)
@@ -21,7 +21,7 @@ local ui={theme={slot_opacity=150},hotbars={[1]=bar},
     get_slot_x=function()return 10 end,get_slot_y=function()return 20 end}
 local env=setmetatable({ui=ui,get_icon_pathbase=function()return 'icons' end,
     maybe_get_default_action=function()return nil end},{__index=_G})
-local file=assert(io.open('ui.lua'));local source=file:read('*a');file:close()
+local file=assert(io.open('ui/crossbar.lua'));local source=file:read('*a');file:close()
 local first=assert(source:find('function ui:load_action(',1,true))
 local last=assert(source:find('-- Disabled Slots',first,true))
 assert(load(source:sub(first,last-1),'actual caption replacement','t',env))()

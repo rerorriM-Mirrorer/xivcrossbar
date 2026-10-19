@@ -1,6 +1,6 @@
 dofile('tests/custom_catalog.lua')
-local c=require('custom_catalog')
-local b=require('catalog_bindings')
+local c=require('libs/custom_catalog')
+local b=require('libs/catalog_bindings')
 local old={name='Bow',id='one',command='input /bow'}
 local slot={type='ex',action='input /bow',alias='Bow'}
 b.attach(slot,old,'global')
