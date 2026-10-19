@@ -938,3 +938,12 @@ The original set API also accepts l2/r2/r2l2/l2r2/l2l2/r2r2 bar names. Actual
 root alias/set routing, both menu maps, migration and persistence checks pass.
 AHK remains Controls 9.9; NPC dialogue/cutscene and SlowEnter native acceptance
 remain pending. Companion addons are not installed or modified by this package.
+
+### Bank text API hotfix — October 19, 2026
+
+Fixes resources.lua:73 on first bank-label measurement: Windower exposes
+right_justified(), not right(). Uses the real getter/setter name in measurement
+keys and invalidation; the text-settling fixture now rejects the nonexistent
+method. Source/API checked; execution environment unavailable, so the amended
+regression and native acceptance have not run. Replace ui/resources.lua over
+Banks 2 and reload XIVCrossbar in each client; no AHK update is required.

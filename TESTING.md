@@ -1,4 +1,32 @@
-# Current Development Status — October 18, 2026 (America/Chicago)
+# Current Development Status — October 19, 2026 (America/Chicago)
+
+- **Branch / baseline:** development/directlink, starting at d6131b127b611708b662850167f2910309dbd60e. Runtime remains directlink1-banks2 / Controls 9.9-banks.
+- **User report:** L1/bank reveal raises resources.lua:73, attempt to call a nil field. Title/background and only the leftmost D-pad slot render.
+- **Cause / fix:** Measurement queried right(), absent from Windower texts.lua. Corrected the style getter/setter/invalidation key to right_justified(). The first label measurement previously aborted the slot draw loop.
+- **Verification:** Inspected current Windower/Lua live addons/libs/texts.lua and statically matched every measured field to an exported getter. Added API-name/invalidation regression and made its fixture reject right(). The execution environment is unavailable: no Lua suite, parse check or Windows/FFXI test ran for this hotfix. Earlier passing checks below do not validate this revision.
+- **Delivery / next:** One runtime-file hotfix: replace ui/resources.lua over Banks 2 and reload XIVCrossbar in every client. AHK unchanged. Verify eight slots/texts on all four banks, scale/reveal/menu transitions and absence of repeat console errors. Re-run the full suite when an environment becomes available.
+
+---
+
+# Bank text API hotfix — October 19, 2026
+
+Author A. Reviewed AGENTS/WORKFLOW/TESTING via GitHub. Traced the exact Banks 2
+line 73 to the first slot alias measure_width() in l1_view.tick(). Native text
+objects have right_justified(), not right(); the permissive test mock previously
+invented either name and missed this API mismatch. Corrected measured_fields,
+measured_setters and trace observation consistently. Amended text_settle.lua to
+reject right() and cover the real right_justified getter/setter and subsequent
+width invalidation. Other measured getters were checked against Windower's
+published texts API. No blanket nil fallback or removal of text settling.
+
+Source inspection and API-name validation only. Execution blocked because no
+usable execution environment is available. New/amended tests have NOT run.
+Live report and preceding test history are retained below. No full ZIP rebuilt;
+the published runtime file is the focused hotfix over the existing complete ZIP.
+
+---
+
+# Historical development status — Banks 2, October 18, 2026
 
 - **Repository / branch:** rerorriM-Mirrorer/xivcrossbar / development/directlink. Tested source baseline 549e5d86df4919eb82e4c5085aed892b6db9f775.
 - **Runtime / companions:** directlink1-banks2; unchanged Controls 9.9-banks. From banks1 only Lua reload is required. NPCMirror/Trust/SlowEnter remain separate; raw all-client taps need SlowEnter v1.4.0+ on participating same-PC clients.

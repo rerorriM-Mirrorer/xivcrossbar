@@ -7,8 +7,8 @@ local created = {text=0,image=0}
 local destroyed = {text=0,image=0}
 local trace = require('ui/render_trace')
 local measure = require('ui/text_measure')
-local measured_fields={'text','font','size','pad','bold','italic','right','stroke_width'}
-local measured_setters={text=true,font=true,size=true,pad=true,bold=true,italic=true,right=true,stroke_width=true}
+local measured_fields={'text','font','size','pad','bold','italic','right_justified','stroke_width'}
+local measured_setters={text=true,font=true,size=true,pad=true,bold=true,italic=true,right_justified=true,stroke_width=true}
 local opacity_fields={alpha=true,bg_alpha=true,stroke_alpha=true}
 local function encode(...)
     local parts={}
@@ -17,7 +17,7 @@ local function encode(...)
 end
 local observed = {text=true,font=true,size=true,pos=true,pos_x=true,pos_y=true,color=true,
     alpha=true,bg_alpha=true,bg_visible=true,stroke_alpha=true,stroke_color=true,
-    stroke_width=true,pad=true,show=true,hide=true,visible=true,bold=true,italic=true,flags=true}
+    stroke_width=true,pad=true,show=true,hide=true,visible=true,bold=true,italic=true,right_justified=true,flags=true}
 
 local function new(kind, library, ...)
     local api = _G[library] or require(library)

@@ -6,10 +6,12 @@ local natives={}
 local width_by_caption={}
 local function native(kind)
     local o={kind=kind,caption='',font_value='Verdana',size_value=12,pad_value=0,
-        alpha_value=255,stroke_alpha_value=180,bg_alpha_value=0,right_value=false,
+        alpha_value=255,stroke_alpha_value=180,bg_alpha_value=0,right_justified_value=false,
         bold_value=false,italic_value=false,stroke_width_value=1,shown=false,reads=0,events={}}
     natives[#natives+1]=o
     return setmetatable(o,{__index=function(_,key)
+        -- Windower has right_justified(), never right(). Reject that missing API.
+        if key=='right' then return nil end
         return function(self,...)
             local n=select('#',...);local value=(...)
             if key=='extents' then
@@ -48,6 +50,18 @@ local function settle(t,x,y)
     if width~=nil then t:pos(x-width/2,y);t:commit_measurement() end
     return width
 end
+-- Exact public API names: unknown getters must not be invented by the mock.
+local api_text,api_native=caption('Right API contract')
+assert(api_text.right==nil)
+api_text:right_justified(false)
+assert(api_text:measure_width()==nil)
+frame(function()settle(api_text,200,20)end)
+frame(function()assert(settle(api_text,200,20)~=nil)end)
+api_text:right_justified(true)
+assert(api_native.right_justified_value==true and api_text:measure_width()==nil,
+    'right_justified setter did not invalidate the measurement style')
+frame(function()settle(api_text,200,20)end)
+frame(function()assert(settle(api_text,200,20)~=nil)end)
 -- Trace frames 334/335: never display x=238 from an unavailable width.
 local t,o=caption('Ctrl+Space');width_by_caption['Ctrl+Space']=0
 layout:center(t,238,202)
