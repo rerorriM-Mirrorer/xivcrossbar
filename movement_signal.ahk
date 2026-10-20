@@ -63,7 +63,9 @@ MovementReceiverReady(active) {
     ; character in the title, as the existing personal-controls bridge does.
     Loop, Files, %A_ScriptDir%\..\trustmovement\data\*.lease
     {
+        timingReadStart := DllCall("GetTickCount64", "UInt64")
         FileRead, lease, %A_LoopFileFullPath%
+        InputTimingOperation("movement-file-read", timingReadStart)
         if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name)
             or !RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))
             continue

@@ -9,7 +9,7 @@ local bridge=require('libs/banks/legacy_transport').new({session='integration',w
     event=function(kind,slot)bank:event(kind,slot)end,cancel=function()bank.held=false end})
 local context,focused='gameplay',true
 local info={logged_in=true};local character={status=0}
-local env=setmetatable({settings=settings,l1_clock=function()return now end,l1_bank=bank,l1_bridge=bridge,
+local env=setmetatable({input_timing={tick=function()end},settings=settings,l1_clock=function()return now end,l1_bank=bank,l1_bridge=bridge,
     message_epoch=0,controller_message_bridge=require('libs/controller/messages').new({session='buttons-test',
         clock=function()return now end,wallclock=function()return 100 end,
         cancel=function()end,capture=function()end,event=function()end}),

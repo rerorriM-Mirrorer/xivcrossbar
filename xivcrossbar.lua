@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261019.directlink1-cleanup1'
+_addon.version = '0.4.0-a.20261020.directlink1-timing1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -20,6 +20,13 @@ xml = require('libs/xml2')   -- TODO: REMOVE
 
 -- User settings
 local defaults = require('libs/defaults')
+local input_timing=require('libs/controller/timing_trace').new({clock=require('socket').gettime,
+    write=function(path,contents)
+        local f,err=io.open(path,'ab');if not f then return nil,err end
+        local ok,write_error=f:write(contents);local closed,close_error=f:close()
+        return ok and closed,write_error or close_error
+    end,
+    say=function(message) windower.add_to_chat(123,'[XIVCrossbar] '..message) end})
 local render_trace = require('ui/render_trace')
 -- Register before UI modules so their existing measurements share this frame ID.
 windower.register_event('prerender',function()
@@ -155,6 +162,7 @@ local companion_left,companion_right=companion_banks:panel('Left'),companion_ban
 local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion'})
 controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
+    trace=function(message) input_timing:record(message) end,
     capture=function(pressed) if message_capture then message_capture(pressed) end end,
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
     menu=function(button) if message_menu then message_menu(button) end end,
@@ -537,6 +545,11 @@ local function request_controller_trace(mode)
     if not written or not closed then
         windower.add_to_chat(0,'[XIVCrossbar] Controller trace request failed.');return false
     end
+    if mode=='on' then
+        local name=windower.ffxi.get_player()
+        input_timing:start(windower.addon_path..'data/controller-lua-trace-'..(name and name.name or 'login')..'.log',_addon.version)
+    else input_timing:stop('manual') end
+    windower.add_to_chat(0,'[XIVCrossbar] Lua trace '..mode..'; data/controller-lua-trace-<character>.log')
     windower.add_to_chat(0,'[XIVCrossbar] Wrapper trace '..mode..' requested'..
         (mode=='on' and ' for 30 seconds.' or '.')..' Log: data/controller-input-trace.log')
     return true
@@ -2004,6 +2017,7 @@ end
 local gameplay_down = {}
 release_gameplay_keys = function()
     for dik, key in pairs(gameplay_down) do
+        input_timing:record('native request '..key..' up cleanup')
         windower.send_command('setkey ' .. key .. ' up')
         gameplay_down[dik] = nil
     end
@@ -2048,6 +2062,7 @@ message_button = function(dik,pressed,flags,blocked)
         return true
     end
     local context = input_context()
+    input_timing:record('router dik='..dik..' pressed='..tostring(pressed)..' context='..context)
     local item, edge, owner = transport:edge(dik, pressed, context)
     if edge == 'repeat' then return true end
     if settings.InputTrace then
@@ -2057,6 +2072,7 @@ message_button = function(dik,pressed,flags,blocked)
         windower.add_to_chat(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
     end
     if gameplay_down[dik] and not pressed then
+        input_timing:record('native request '..gameplay_down[dik]..' up dik='..dik)
         windower.send_command('setkey ' .. gameplay_down[dik] .. ' up')
         gameplay_down[dik] = nil
     end
@@ -2070,6 +2086,7 @@ message_button = function(dik,pressed,flags,blocked)
         local key=transport:login_key(item,buttonmapping)
         if key and pressed then
             gameplay_down[dik]=key
+            input_timing:record('native request '..key..' down dik='..dik)
             windower.send_command('setkey '..key..' down')
         end
         return true
@@ -2080,6 +2097,7 @@ message_button = function(dik,pressed,flags,blocked)
             if pressed then windower.add_to_chat(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
         elseif key and pressed then
             gameplay_down[dik] = key
+            input_timing:record('native request '..key..' down dik='..dik)
             windower.send_command('setkey ' .. key .. ' down')
         end
         return true
@@ -2104,6 +2122,7 @@ message_menu = function(button)
 end
 
 message_cancel = function()
+    input_timing:record("router cancel")
     if companion_banks then companion_banks:cancel();companion_banks.active=false end
     local chooser_held=set_chooser_button_down or action_binder.chooser_active
     release_gameplay_keys();transport:reset()
@@ -2119,6 +2138,7 @@ message_cancel = function()
 end
 
 publish_personal_context = function()
+    input_timing:tick(input_context())
     if companion_banks then companion_banks:refresh() end
     if settings.ControllerProfile~='ps5-extended' or not windower.ffxi.get_info().logged_in then
         l1_bridge:reset();controller_message_bridge:reset();personal_controls:close();return
@@ -2516,3 +2536,5 @@ end)
 windower.register_event('zone change', function()
     skillchains.zone_change()
 end)
+
+windower.register_event('unload',function() input_timing:stop('unload') end)

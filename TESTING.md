@@ -1,3 +1,32 @@
+# Current Development Status — October 20, 2026 (America/Chicago)
+
+- Branch: development/directlink. Tested starting source: 28304f405e7824e1b7dbc5f9e20378985007ea84.
+- Diagnostic-only Controller Timing 1: runtime directlink1-timing1, shared Controls 9.11-timing1.
+- `//xb controller trace on|off` now also controls a bounded per-character Lua receiver/native-request log. AHK adds actual start-gap, named-stage and slow context-read/button-write measurements. Input routing, filtering and watchdog policy are unchanged.
+- Live evidence: October 20 auction capture has 23 paired direction holds, no resets, 29 cycles >100 ms and max 437 ms; one recorded Up spans 297 ms. This does not prove finger release timing or actual game repeat. Earlier paired menu capture has four session resets; chat contains repeated R2 downs without intervening up, but lacks timestamps.
+- Correction: prior descriptions equated slow poll_ms with exact hardware-read gaps. It measures elapsed callback duration. New start_gap_ms records callback start intervals separately; neither is CPU time.
+- Validation: all 56 top-level Lua regressions passed using the Lua 5.4 normalization fallback; 135 Lua files parsed; all seven JS routing/trace suites passed (including actual timing helper duration checks). Native Windows/AHK/Windower execution remains pending; this is an evidence-gathering build, not a claimed stickiness fix.
+- Next: collect the two logs using docs/CONTROLLER-TIMING-TEST.md; locate the slow stage and distinguish delayed native release from session cancellation before changing behavior.
+
+---
+
+# Controller Timing 1 — October 20, 2026
+
+Current AGENTS.md, WORKFLOW.md and TESTING.md read from GitHub before edits.
+User requested collection tooling for sticky direction taps and ghost menu movement.
+Paired captures use the existing command, with a 30-second shared wrapper capture
+and a 31-second character Lua capture. Lua flushes outside the active measurement
+window, appends, caps memory at 256 KiB and reports write failure. Unload saves;
+crash recovery of the in-memory diagnostic is not promised. No settings or images
+are included in the cumulative code-only update. Restart the matched wrapper.
+
+Validation: all 56 top-level Lua tests passed with tests/run_lua.py (Lua 5.4 temporary Windower syntax normalization); all 135 Lua files parsed; all seven JS suites passed. No Windows AHK or FFXI runtime was available. git diff --check passed.
+
+The new recorder tests bounded buffering, automatic and repeated stop, update-gap
+timing and failed saves. Existing routing/trace fixtures include the diagnostic
+object; they still execute the actual routing handlers. Published head is given
+in delivery/Git history, not self-referentially inside this file.
+
 # Current Development Status — October 19, 2026 (America/Chicago)
 
 - **Branch / tested baseline:** development/directlink; published starting source fbb535db09deeb0467c2ebb6339c2e350e264b0a. Runtime directlink1-cleanup1; unchanged Controls 9.10-holdfix.

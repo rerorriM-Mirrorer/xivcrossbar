@@ -4,7 +4,9 @@ local stop=assert(text:find('\ncontroller_switcher =',start,true))
 local running,writes,mode=true,0,nil
 local write_ok=true
 local env=setmetatable({controller_status=function()return {running=running}end,
-    windower={addon_path='addon/',add_to_chat=function()end},
+    windower={addon_path='addon/',add_to_chat=function()end,ffxi={get_player=function()return {name='Test'}end}},
+    input_timing={start=function(_,path)assert(path=='addon/data/controller-lua-trace-Test.log')end,stop=function()end},
+    _addon={version='test'},
     io={open=function(path,access)
         assert(path=='addon/data/controller-trace.request' and access=='w')
         return {write=function(_,s)writes=writes+1;mode=s;return write_ok end,close=function()return true end}

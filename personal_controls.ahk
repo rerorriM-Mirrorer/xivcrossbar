@@ -326,7 +326,9 @@ PersonalContext(hwnd) {
     Loop, 2 {
         Loop, Files, %A_ScriptDir%\data\personal-controls\*.ini
         {
+            timingReadStart := DllCall("GetTickCount64", "UInt64")
             FileRead, lease, %A_LoopFileFullPath%
+            InputTimingOperation("context-file-read", timingReadStart)
             if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name))
                 continue
             if (!RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))

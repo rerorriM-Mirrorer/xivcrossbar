@@ -72,24 +72,29 @@ return
 TransportPoll:
 pollStart := DllCall("GetTickCount64", "UInt64")
 InputTraceStart(pollStart)
+InputTimingBegin(pollStart)
 if (WrapperClientsShouldExit())
     ExitApp
 if FileExist(A_ScriptDir . "\data\input-stop.request") {
     FileDelete, %A_ScriptDir%\data\input-stop.request
     ExitApp
 }
+InputTimingStage("housekeeping")
 active := WinActive("ahk_class FFXiClass")
 ; The PS button can restore a client while another application is focused.
 readStart := DllCall("GetTickCount64", "UInt64")
 states := ReadTransportStates()
 rawBits := InputTraceMask(states)
 readMs := DllCall("GetTickCount64", "UInt64") - readStart
+InputTimingStage("hardware")
 personalStart := DllCall("GetTickCount64", "UInt64")
 states := PersonalPoll(states, active)
 personalMs := DllCall("GetTickCount64", "UInt64") - personalStart
+InputTimingStage("personal-context-and-output")
 InputTraceObserve(rawBits, states, active, readMs, personalMs)
 current := WinActive("ahk_class FFXiClass")
 MovementTick(current)
+InputTimingStage("movement-tick")
 if (current != active) {
     ReleaseTransport()
     ready := false
@@ -119,6 +124,7 @@ if (!connected) {
     return
 }
 MovementPoll(states, active)
+InputTimingStage("movement-poll")
 neutral := true
 Loop, 12 {
     if (states[A_Index])
@@ -127,6 +133,7 @@ Loop, 12 {
 anyDown := !neutral
 phase := ready ? "ready" : "waiting-neutral"
 WriteTransportStatus()
+InputTimingStage("status")
 if (!ready) {
     if (neutral)
         ready := true
@@ -303,7 +310,7 @@ WriteTransportStatus(force := false) {
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
     global PC
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.10-holdfix`nhold_recovery_protocol=1`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.11-timing1`nhold_recovery_protocol=1`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
             . "target_r2=" . PC.targetR2 . "`ntarget_r3=" . PC.targetR3 . "`ncontext_pauses=" . PC.contextPauses . "`n"
             . "realkeys_protocol=1`ndpad_output=" . (PC.realDpad ? "ahk" : "lua") . "`n"
             . "r1_menu_protocol=1`nr1_menus=" . PC.r1Menus . "`n"
@@ -333,8 +340,12 @@ InputTraceInit() {
 
 InputTraceStart(now) {
     global IT, profile, device
-    if (IT.previous)
-        IT.gapMax := Max(IT.gapMax, now - IT.previous)
+    if (IT.previous) {
+        gap := now - IT.previous
+        IT.gapMax := Max(IT.gapMax, gap)
+        if (gap > 30)
+            InputTraceRecord("poll start_gap_ms=" . gap)
+    }
     IT.previous := now
     if (IT.enabled and now >= IT.deadline) {
         InputTraceRecord("capture auto-stopped after 30 seconds")
@@ -352,7 +363,7 @@ InputTraceStart(now) {
     if (request = "on") {
         InputTraceClose()
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
-        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.10-holdfix")
+        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.11-timing1")
     } else if (request = "off") {
         InputTraceRecord("capture manually stopped")
         InputTraceClose()
@@ -389,10 +400,11 @@ InputTraceObserve(raw, routed, active, readMs, personalMs) {
 
 InputTraceFinish(started) {
     global IT
+    InputTimingStage("routing-and-message-write")
     elapsed := DllCall("GetTickCount64", "UInt64") - started
     IT.pollMax := Max(IT.pollMax, elapsed)
     if (elapsed > 30)
-        InputTraceRecord("slow poll_ms=" . elapsed)
+        InputTraceRecord("slow poll_ms=" . elapsed . " stages=" . IT.stages)
     if (StrLen(IT.buffer) > 65536)
         InputTraceFlush()
 }
@@ -437,3 +449,27 @@ InputTraceContextMiss(reason) {
 #Include %A_ScriptDir%\controller_clients.ahk
 
 #Include %A_ScriptDir%\movement_signal.ahk
+
+; A: elapsed stage timings are observations, including any Windows scheduling
+; pauses inside a stage. They do not claim CPU time or individual I/O latency.
+InputTimingBegin(now) {
+    global IT
+    IT.stageTick := now, IT.stages := ""
+}
+InputTimingStage(name) {
+    global IT
+    if (!IT.enabled)
+        return
+    now := DllCall("GetTickCount64", "UInt64")
+    IT.stages .= name . ":" . (now - IT.stageTick) . ","
+    IT.stageTick := now
+}
+
+InputTimingOperation(name, started) {
+    global IT
+    if (!IT.enabled)
+        return
+    elapsed := DllCall("GetTickCount64", "UInt64") - started
+    if (elapsed > 10)
+        InputTraceRecord("operation=" . name . " elapsed_ms=" . elapsed)
+}

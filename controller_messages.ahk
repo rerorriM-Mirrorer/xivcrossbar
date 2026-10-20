@@ -116,11 +116,13 @@ ControllerMessageFlush(force := false) {
     contents .= "END`n"
     temporary := CM.path . ".tmp"
     destination := CM.path
+    timingWriteStart := DllCall("GetTickCount64", "UInt64")
     FileDelete, %temporary%
     FileAppend, %contents%, %temporary%
     if (!ErrorLevel)
         FileMove, %temporary%, %destination%, 1
     CM.error := ErrorLevel ? true : false
+    InputTimingOperation("button-file-write", timingWriteStart)
     return !CM.error
 }
 

@@ -14,7 +14,7 @@ function binder:button_x(down)menus[#menus+1]={'circle',down}end
 local chooser={capturing=false,shown=false}
 function chooser:is_showing()return self.shown end
 function chooser:close()self.shown=false end
-local env=setmetatable({gamepad=require('libs/controller/gamepad'),keyboard=require('libs/controller/keyboard_mapper'),gamepad_state=state,
+local env=setmetatable({input_timing={record=function()end},gamepad=require('libs/controller/gamepad'),keyboard=require('libs/controller/keyboard_mapper'),gamepad_state=state,
     controller_capture_dik=221,transport=require('libs/controller/transport'),settings={GameplayDPad='ijkl'},
     buttonmapping={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'},
     action_binder=binder,env_chooser=chooser,gamepad_mapper={is_showing=false},xivcrossbar={ready=true},

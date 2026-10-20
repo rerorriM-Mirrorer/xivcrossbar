@@ -1,3 +1,7 @@
+Controller Timing 1 diagnostic build: see [capture instructions](docs/CONTROLLER-TIMING-TEST.md)
+and the current status at the start of TESTING.md. This build measures input delays;
+it does not claim to fix them. Runtime directlink1-timing1 / Controls 9.11-timing1.
+
 # XIVCrossbar DirectLink — Unbound
 
 Current branch verification, last live-confirmed behavior and outstanding tests:
@@ -1169,3 +1173,9 @@ libs/ui, artwork into canonical icon/theme folders and preserves old module/icon
 paths through compatibility resolvers. Adds an optional Windows merge-install
 cleanup helper that preserves custom art and modified code. Adds actual XML,
 asset compatibility and relocation-byte regressions. Runtime cleanup1; AHK unchanged.
+
+## October 20, 2026 — Controller Timing 1
+
+Paired controller/Lua traces, actual poll-start gaps, slow-stage/I/O timings,
+receiver sequence/context and native-key request observations. Bounded buffered
+Lua logging; no controller behavior or saved-setting changes.

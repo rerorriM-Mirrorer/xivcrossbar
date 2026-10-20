@@ -2,7 +2,8 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const source=fs.readFileSync('ffxi_directinput.ahk','utf8');
 function extract(name){
-  const start=source.indexOf('\n'+name+'(')+1;
+  const match=new RegExp('\\n'+name+'\\([^\\n]*\\) \\{').exec(source);
+  const start=match ? match.index+1 : -1;
   assert(start>0);let at=source.indexOf('{',start),depth=1,end=at+1;
   while(depth){const c=source[end++];if(c==='{')depth++;if(c==='}')depth--;}
   return source.slice(start,end);
@@ -31,3 +32,16 @@ const helpers=source.slice(source.indexOf('\nInputTraceInit() {'),source.indexOf
 assert(!/SendEvent|ControlSend|SetKeyDelay|BlockInput/.test(helpers));
 assert(source.includes('IT.deadline := now + 30000')&&source.includes('now >= IT.deadline'));
 console.log('Actual trace helpers: opt-in-only buffering, exact raw masks, unchanged context results and 30-second/no-injection integration checks passed.');
+let timing=['InputTimingBegin','InputTimingStage','InputTimingOperation'].map(extract).join('\n');
+timing=timing.replace(/^\s*global .*$/gm,'').replace(/;[^\n]*/g,'')
+ .replace(/"(?:[^"]|"")*"|[^"\n]+/g,t=>t.startsWith('"')?t:t.replace(/\.=/g,'+=').replace(/ \. /g,' + ').replace(/:=/g,'='))
+ .replace(/^(InputTiming\w+\([^\n]*\)) \{/gm,'function $1 { let now, elapsed;');
+timing=timing.replace('function InputTimingBegin(now) { let now, elapsed;', 'function InputTimingBegin(now) { let elapsed;');
+vm.runInContext(timing,context);
+let tick=100;context.DllCall=()=>tick;
+context.IT.enabled=true;context.InputTimingBegin(100);tick=115;context.InputTimingStage('read');
+tick=152;context.InputTimingStage('route');assert.equal(context.IT.stages,'read:15,route:37,');
+context.InputTimingOperation('write',115);assert(context.IT.buffer.includes('operation=write elapsed_ms=37'));
+const before=context.IT.buffer;context.IT.enabled=false;tick=200;
+context.InputTimingStage('off');context.InputTimingOperation('off',100);assert.equal(context.IT.buffer,before);
+console.log('Actual timing helpers: deterministic stage/operation durations and disabled-trace silence passed.');

@@ -1,3 +1,4 @@
+package.loaded.socket={gettime=function()return 1 end}
 -- Real root startup policy and config refresh callback, with Windower I/O mocked.
 -- Simulate old character overrides being reloaded after addon initialization.
 local fixture={ControllerProfile='ps5-directinput',ControllerDevice=1,

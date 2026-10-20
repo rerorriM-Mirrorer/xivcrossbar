@@ -22,6 +22,7 @@ function M.new(options)
         options.cancel()
     end
     function self:reset(reason)
+        if options.trace then options.trace('receiver reset reason='..tostring(reason)..' ack='..self.ack) end
         local active=self.token~=nil
         self.recover_key=(reason=='heartbeat' or reason=='stall' or reason=='output-stall') and self.key or nil
         if options.can_recover and not options.can_recover() then self.recover_key=nil end
@@ -75,6 +76,7 @@ function M.new(options)
         if self.last_beat and beat<self.last_beat then return false end
         if beat~=self.last_beat then self.last_seen=options.clock();self.last_beat=beat end
         for index,event in ipairs(events) do
+            if options.trace then options.trace('receiver seq='..event[1]..' kind='..event[2]..' button='..event[3]..' writer_beat='..beat..' execute='..tostring(index>=last_cancel)) end
             self.ack=event[1];self.received=self.received+1
             -- Cancellation invalidates queued actions too. Never briefly execute
             -- earlier downs from the same snapshot before seeing its cancel.
