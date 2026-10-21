@@ -1,3 +1,51 @@
+# Current Development Status — October 21, 2026 (America/Chicago)
+
+- Branch development/directlink; reviewed baseline 60cd89d8eea9418f2076b26f808dec225b4e14ce, tree 2a6d5d0b11bfc25a4ab04202835034fd99539c29. Current root AGENTS/WORKFLOW/TESTING and original transport/fork code reviewed. Master and preserved snapshots stay unchanged.
+- User confirms Blood Pact menus are usable. User still reports native-menu stickiness and asks for the next investigation/improvement. Additional supplied Myrr capture is pre-registry tuning: Controls 9.11-timing1 / Lua directlink1-status1, UTC 20261021010935.
+- Myrr evidence: 68 logged slow cycles; max callback 375 ms, max logged start interval 391 ms. Housekeeping is largest (ties included) in 47/68, max 344 ms. Ten Down press/release pairs travel through Apps/F3 then Lua native k down/up; no new Up or shoulder press in the capture. Receiver repeatedly reports context-disabled, not active acknowledged DirectLink. The disabled condition was not recorded, so its cause cannot be inferred from subsequently supplied settings. An Up already latched before trace start remains unproven and cannot be excluded.
+- Reproduced source defect: clear_controller_input reset the message receiver first; cancellation emptied gameplay_down before collecting focus_release_keys. Actual root/receiver/router simulation fails to retry the owned key-up on regain. Fix snapshots owned keys before cancellation. Test now covers four directions and Enter with active DirectLink, legacy keyboard fallback, repeated loss, retry retirement, and initial route/ownership trace snapshots. This proves bookkeeping behavior, not native background key delivery or the cause of Myrr's particular incident.
+- Controller Response 1: runtime directlink1-response1 / shared Controls 9.13-response1. AHK SetBatchLines -1 in auto-execute removes default batch sleeps from callbacks. Requested timer remains 10 ms; OS timer precision is not guaranteed. SendEvent key delay and the F8 pulse, debounce, POV diagonal policy, repeat policy and all watchdog thresholds remain unchanged. No busy loop, priority increase or timer-resolution change.
+- Trace additions: AHK version/batch/key delay/key duration, actual wrapper route/request flag; Lua initial/change-only route permission/selection, readiness/focus/status and gameplay-owned keys, plus focus release retries. Logs still record requested native key state, not FFXI's accepted state or cursor movement. Trace remains opt-in and bounded.
+- Validation: all 59 top-level Lua regressions passed, all 140 Lua sources parsed with the Lua 5.4 temporary Windower syntax normalization fallback; seven JS suites, AHK lexical/include checks, canonical layout check and git diff --check passed. No Windows AHK interpreter/Windower/FFXI runtime available. No native latency result or cure is claimed.
+- Delivery: cumulative changed-files patch against Cleanup 1 (28304f4), including preceding timing/status/startup/pacts/registry fixes. README/WORKFLOW/TESTING and focused install/test guide included inside xivcrossbar. No data/settings/bindings/images. Shared wrapper restart required. See docs/CONTROLLER-RESPONSE-TEST.md.
+- Next live check: one paired trace with ordinary native-menu taps plus a harmless focus round trip; check route in status first. If delay persists, compare operation timing after registry+pacing changes. If polls are healthy but native behavior is not, compare existing real-IJKL route against Lua setkey one variable at a time. Further native AHK background-release verification, focus mailbox I/O, external bindings and hardware/native-gamepad duplication remain hypotheses to test rather than changes bundled here.
+
+---
+
+# Controller Response 1 — October 21, 2026
+
+Ideal: each physical gesture has one owner, prompt release and no delayed replay
+across clients. Established problems include measured wrapper stalls and a native
+menu reportedly held upward before capture. Investigation separates transient
+input delay, persistent injected state, route/lease cancellation and duplicate
+native input. Different-looking symptoms need not share one cause.
+
+The source focus defect was reproduced with the actual root callback and actual
+message receiver/router before modification, then verified after moving the
+ownership snapshot. Existing tests covered ordinary cleanup but did not execute
+this full callback ordering. The expanded test retains that regression.
+
+AHK official v1 docs confirm automatic batch sleeps when SetBatchLines is not
+set, a separate default key delay for SendEvent, and approximate timers whose
+callbacks cannot be rerun while still executing. Stage wall times include those
+sleeps and Windows scheduling, not just disk I/O. Prior five-INI-read discovery
+is source evidence, not proof that every slow housekeeping millisecond was file
+latency. Registry tuning still needs a live comparison after installation.
+
+Primary references reviewed:
+- https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v1/docs/lib/SetBatchLines.htm
+- https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v1/docs/lib/SetKeyDelay.htm
+- https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v1/docs/lib/SetTimer.htm
+- https://docs.windower.net/commands/input/#setkey
+
+Small coherent commits keep the focus repair, execution pacing and diagnostics
+separate. No user-data changes, blanket directional reset, watchdog extension,
+artificial repeat filter or IPC rewrite is included. Actual native acceptance is
+pending; the user's Blood Pact menu confirmation is the only new live acceptance
+recorded here. The previous test/history entries below remain preserved.
+
+---
+
 # Current Development Status — October 20, 2026 (America/Chicago)
 
 - Branch: development/directlink. Tested source baseline a8ea46128c394fb0e90effde3ebeae24cc4ce773 (Status Cleanup 1). User confirmed status readability improved and requested startup matching, Blood Pact chooser fixes, then controller investigation.

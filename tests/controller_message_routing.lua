@@ -33,7 +33,7 @@ env.text_input_guard={reset_confirmation=function()end}
 env.focus_events={};env.windower.register_event=function(name,fn)env.focus_events[name]=fn end
 local focus_start=assert(source:find('local focus_release_keys = {}',1,true))
 local focus_end=assert(source:find('local catalog_clock=',focus_start,true))
-assert(load(source:sub(start,finish-1)..source:sub(focus_start,focus_end-1),'actual controller routing and focus','t',env))()
+assert(load(source:sub(start,finish-1)..source:sub(focus_start,focus_end-1)..'\ntrace_snapshot=trace_controller_state','actual controller routing and focus','t',env))()
 local receiver=require('libs/controller/messages').new({session='routing',clock=function()return now end,wallclock=function()return 100 end,
     capture=env.message_capture,event=env.message_button,cancel=env.message_cancel})
 local seq=0
@@ -161,3 +161,18 @@ env.focus_events['lose focus']();commands={};env.focus_events['gain focus']()
 assert(#commands==1 and commands[1]=='setkey i up','keyboard fallback lost focus retry')
 commands={};env.focus_events['gain focus']();assert(#commands==0)
 print('Actual focus callbacks: DirectLink and keyboard fallback preserve owned key-ups before cancellation, retry on regain, retain across repeated loss and retire retries once.')
+
+-- A capture begun during a hold needs its initial ownership and route snapshot.
+local snapshots={}
+env.input_timing.state=function(_,s)snapshots[#snapshots+1]=s end
+env.input_timing.active=true
+new_session();send('down,1');env.controller_message_bridge=receiver
+env.trace_snapshot('gameplay')
+assert(snapshots[#snapshots]:find('messages_setting=true',1,true))
+assert(snapshots[#snapshots]:find('lua_route=messages',1,true))
+assert(snapshots[#snapshots]:find('gameplay_owned=i',1,true))
+receiver:reset();env.trace_snapshot('gameplay')
+assert(snapshots[#snapshots]:find('lua_route=keys',1,true))
+assert(snapshots[#snapshots]:find('gameplay_owned=none',1,true))
+env.input_timing.active=false;local count=#snapshots;env.trace_snapshot('gameplay');assert(#snapshots==count)
+print('Actual trace snapshot: initial owned key, route permission/selection, cleanup state and inactive silence passed.')

@@ -389,13 +389,14 @@ InputTraceMask(states) {
 }
 
 InputTraceObserve(raw, routed, active, readMs, personalMs) {
-    global IT, PC, appsOwned, ready
+    global IT, PC, CM, appsOwned, ready
     IT.readMax := Max(IT.readMax, readMs), IT.personalMax := Max(IT.personalMax, personalMs)
     if (!IT.enabled)
         return
     signature := "hwnd=" . active . " raw=" . raw . " routed=" . InputTraceMask(routed)
         . " pov=" . IT.pov . " apps=" . appsOwned . " base_ready=" . ready
         . " context=" . PC.context . " personal_ready=" . PC.ready
+        . " route=" . CM.phase . " messages_requested=" . CM.requested
     if (PC.enabled)
         signature .= " l1=" . PC.previous.l1 . " r1=" . PC.previous.r1
     if (signature != IT.signature or readMs > 30 or personalMs > 30) {

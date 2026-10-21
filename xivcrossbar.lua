@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261020.directlink1-startup-pacts1'
+_addon.version = '0.4.0-a.20261021.directlink1-response1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1975,6 +1975,20 @@ end
 -- A: menu decisions stay beside the menu code. Raw keys never masquerade
 -- as ordinary Enter/arrows; only deliberate gameplay translation emits those.
 local gameplay_down = {}
+local function trace_controller_state(context)
+    if not input_timing.active then return end
+    local owned={}
+    for _,key in pairs(gameplay_down) do owned[#owned+1]=key end
+    table.sort(owned)
+    local info=windower.ffxi.get_info()
+    local character=windower.ffxi.get_player()
+    input_timing:state('context='..context..' profile='..tostring(settings.ControllerProfile)..
+        ' messages_setting='..tostring(settings.ControllerMessages)..' ready='..tostring(xivcrossbar.ready)..
+        ' restarting='..tostring(restart_pending==true)..' focus='..tostring(windower.has_focus())..
+        ' logged_in='..tostring(info.logged_in)..' character_status='..tostring(character and character.status)..
+        ' lua_route='..(controller_message_bridge.token and 'messages' or 'keys')..
+        ' gameplay_owned='..(#owned>0 and table.concat(owned,',') or 'none'))
+end
 release_gameplay_keys = function()
     for dik, key in pairs(gameplay_down) do
         input_timing:record('native request '..key..' up cleanup')
@@ -2099,6 +2113,7 @@ end
 
 publish_personal_context = function()
     input_timing:tick(input_context())
+    if input_timing.active then trace_controller_state(input_context()) end
     if companion_banks then companion_banks:refresh() end
     if settings.ControllerProfile~='ps5-extended' or not windower.ffxi.get_info().logged_in then
         l1_bridge:reset();controller_message_bridge:reset();personal_controls:close();return

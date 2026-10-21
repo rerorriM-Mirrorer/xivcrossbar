@@ -1,3 +1,9 @@
+Controller Response 1: retain owned native-key releases across DirectLink focus
+cancellation, remove AHK batch sleeps inside the timer callback, and record route,
+ownership and execution settings in paired traces. Runtime directlink1-response1 /
+Controls 9.13-response1. [Install and focused live check](docs/CONTROLLER-RESPONSE-TEST.md).
+Windows/game response is still pending verification; this is a development patch.
+
 Startup/Pacts/Registry 1: matching single-line startup feedback, native available
 Blood Pact choices with explicit icon fallbacks, and reduced repeated registry I/O.
 Runtime directlink1-startup-pacts1 / Controls 9.12-registry1. Read
@@ -1207,3 +1213,15 @@ the native available ability lists and use specific, generic or shipped pact
 icons consistently. Replace five INI reads per registration with one record read,
 reuse retired session metadata, and expose registry operation timing. Input
 routing/recovery rules remain unchanged; live responsiveness needs confirmation.
+
+
+### October 21, 2026 — Controller Response 1
+
+- Preserve Lua-owned gameplay keys before message cancellation so focus regain
+  can retry the original key-up. Actual-source regression failed before the fix.
+- SetBatchLines -1 removes AHK's automatic batch sleeps inside callbacks; the
+  existing timer, SendEvent key delay, pulse duration and watchdogs remain.
+- Paired traces include starting/current route eligibility, owned Lua keys,
+  focus retries and AHK runtime pacing. No settings/bindings/artwork changes.
+- Detailed evidence, limits, live check and next investigation are in
+  docs/CONTROLLER-RESPONSE-TEST.md and the current TESTING.md entry.
