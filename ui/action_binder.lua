@@ -3461,7 +3461,9 @@ function action_binder:display_icon_selector_sylvebits()
     -- Scan the icon pack directory recursively for all .png files
     local all_icons,seen=L{},{}
     for _,base_dir in ipairs(require('ui/assets').pack_roots(icon_pack)) do
-        local command = 'dir /b /s "' .. base_dir .. '\\*.png" 2>nul'
+        -- cmd.exe parses forward slashes as switches; asset paths use '/'.
+        local scan_dir = base_dir:gsub('/', '\\')
+        local command = 'dir /b /s "' .. scan_dir .. '\\*.png" 2>nul'
         local handle = io.popen(command)
         if (handle) then
             for full_path in handle:lines() do

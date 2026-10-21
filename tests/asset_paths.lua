@@ -50,6 +50,8 @@ local env=setmetatable({action_binder={},icon_pack='default',
     get_icon_pathbase=function()return 'icons/default'end,
     io={popen=function(command)
         local folder=command:match('"(.-)\\%*%.png"')
+        assert(not folder:find('/',1,true),command)
+        folder=folder:gsub('\\','/')
         assert(listings[folder],command)
         local i=0
         return{lines=function()return function()i=i+1;return listings[folder][i]end end,close=function()end}
