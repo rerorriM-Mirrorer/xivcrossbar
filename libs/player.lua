@@ -173,7 +173,7 @@ function player:load_hotbar()
             player:store_new_hotbars()
         end
         if not self.has_reported_load then
-            windower.add_to_chat(207, '[XIVCrossbar] Loaded crossbar sets for ' .. self.main_job .. '/' .. (self.sub_job or 'NOSUB') .. ' (job, defaults and shared).')
+            windower.add_to_chat(0,require('libs/chat_status').notice('Loaded '..self.main_job..'/'..(self.sub_job or 'NOSUB')..' crossbars. //xb status'))
             self.has_reported_load = true
         end
     end)
