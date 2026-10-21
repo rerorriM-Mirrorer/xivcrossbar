@@ -1,3 +1,9 @@
+Cutscene Banks 1: `//xb bank <layer> cutscenes on|off` grants cutscene access
+per bank and character (default OFF), while ordinary actions remain guarded in
+the restricted message route. Render traces now stage complete saves before
+replacement. Runtime directlink1-cutscene1 / Controls 9.14-cutscene1.
+[Installation and live check](docs/CUTSCENE-BANKS-TEST.md). Restart the wrapper.
+
 Controller Response 1: retain owned native-key releases across DirectLink focus
 cancellation, remove AHK batch sleeps inside the timer callback, and record route,
 ownership and execution settings in paired traces. Runtime directlink1-response1 /
@@ -1225,3 +1231,16 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   focus retries and AHK runtime pacing. No settings/bindings/artwork changes.
 - Detailed evidence, limits, live check and next investigation are in
   docs/CONTROLLER-RESPONSE-TEST.md and the current TESTING.md entry.
+
+
+### October 21, 2026 — Cutscene Banks 1 and staged render trace saving
+
+- Add saved per-bank cutscene permission, default off, with help/status and
+  one-line command feedback. Lua and AHK support the restricted bank context.
+- Preserve menu-map/drawing choices; prevent ordinary crossbar and implicit
+  R1/Tab/touch/click output from acquiring actions in the opted-in scene route.
+- Assemble render traces before the shared staged replacement helper touches
+  their destination. Report failures without truncating an earlier capture at
+  the start of a save. Myrr's native crash remains unexplained.
+- User confirms Controller Response 1 feels much more responsive, including
+  L1 banks. This batch's new cutscene behavior needs native live verification.

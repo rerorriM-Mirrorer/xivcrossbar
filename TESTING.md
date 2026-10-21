@@ -1,5 +1,48 @@
 # Current Development Status — October 21, 2026 (America/Chicago)
 
+- Branch development/directlink. Reviewed current root AGENTS/WORKFLOW/TESTING, baseline published 7bdede0a8a8f46dc02a5f78101bfd88a4978005e / tree eb3a535809057d3bfd137e46900eeb14cd3cd783. Preserved master/snapshots unchanged.
+- User-confirmed live behavior: Controller Response 1 feels immediately much more responsive, including L1 banks. Blood Pact chooser remains confirmed usable. User requests a per-bank cutscene exception for NPCMirror/test functions and reports Myrr crashed on rendertrace off, leaving a 0 KB file; Cioara's successful render trace supplied locally.
+- Cutscene Banks 1: runtime directlink1-cutscene1 / Controls 9.14-cutscene1. New `bank <layer> cutscenes on|off`, saved per character/bank as AllowCutscenes, default false. Any enabled bank keeps messages available during status-4 scenes; Lua authorizes only the selected enabled layer. AHK handles the explicit cutscene context without ordinary native D-pad/click/touch/R shortcuts. Transitions cancel prior output; ordinary trigger slots, unapproved banks and implicit pair Tab/R1 R remain guarded. Existing chat/focus/editor/input-test constraints and normal/Menu/drawing policies remain separate.
+- Render trace saving now assembles the bounded text before invoking the existing Windows staged-replacement helper; failed assembly/backend calls report errors, and prior captures are not opened/truncated at the start. Empty Myrr file has no recoverable events. The ordering improvement is not proof of the native client crash cause or a confirmed crash fix.
+- Cioara trace examined: 95,047 bytes, 658 frames, 1,080 retained events, no overwritten entries, one MARK and a final stop; about 11.6 seconds, max recorded frame gap 56.8 ms. It includes set selection through Job Default/All Jobs Default, but records Lua requests rather than actual GPU pixels. It does not establish Myrr's crash cause. Earlier uploaded All Jobs Default contains Check and Job Default labels that also occur in the trace; that older XML cannot settle the latest ghost-label report. Empty icon picker, ghost labels and actual icon flicker remain separate pending investigations, not fixes claimed here.
+- Verification: 60 top-level Lua regressions passed and all 141 Lua files parsed using the documented Lua 5.4 temporary Windower-syntax normalization fallback. Seven JS suites passed, including actual AHK full-poll scene arming and prior stick-click release, plus AHK structural checks, layout checks and git diff --check. Actual root context/receiver/bank dispatch tested, including default-off/opt-in/off, unapproved ordinary routes, normal/Menu selection, drawing policy, transitions and real XML boolean persistence. Trace assembly/failure routing tested against the shared replacement boundary; backend rollback tests pass. No native Windows/AHK/Windower/FFXI execution available.
+- Delivery: cumulative changed-files patch from Cleanup 1 (28304f4) or a newer DirectLink build. No personal data/artwork/bindings. Matched Lua/AHK update needs shared-wrapper restart. New options stay OFF until explicitly enabled. README/WORKFLOW/TESTING and docs/CUTSCENE-BANKS-TEST.md included inside xivcrossbar.
+- Live acceptance: opt into the actual NPC/test bank on each desired character; verify one familiar scene, correct menu/normal map, release, transition/focus cleanup and disabled ordinary actions. Verify staged trace saving without claiming crash reproduction is necessary. See focused guide. Next: icon-picker discovery and ghost-label reproduction from current files/trace; press feedback and transport pruning remain proposed, not included.
+
+---
+
+# Cutscene Banks 1 — October 21, 2026
+
+Ideal: a deliberately selected bank can control NPC/dialogue tools during scenes,
+with no broad cutscene-guard bypass. Existing code guarded both Lua eligibility/
+message lifetime and AHK personal contexts, so a settings-only toggle would not
+make the buttons work. This implementation carries a restricted cutscene context
+through the existing acknowledged stream and keeps per-layer permission in Lua.
+
+AllowCutscenes is declared in the persisted bank shape so the existing XML
+storage validates/reloads booleans correctly. It is false for existing/missing
+settings. Existing menuactions chooses normal/Menu bindings independently;
+menus chooses drawing over native menus. Permission changes release current
+slot ownership/output. This option does not turn the main crossbar into a
+cutscene controller and does not alter NPCMirror/SlowEnter's own command guards.
+
+Myrr's 0 KB trace cannot reveal its prior buffer. Old M.save opened/truncated the
+file before evaluating M.dump. The new saver evaluates the complete dump first
+and delegates replacement to the tested shared helper, with protected error
+reporting. This mitigates data loss from failed saves but cannot guarantee a
+completed write if FFXI or Windows terminates during saving. Cioara's complete
+trace disproves a duration/buffer-overflow explanation for that capture only;
+it supplies no native crash stack for Myrr.
+
+Current source/root tests and supplied trace reviewed. Scope is the requested
+cutscene option plus closely related trace-save hardening. No speculative icon,
+feedback, binding-file or Apps-retirement changes are mixed into this delivery.
+Previous status/history remain below.
+
+---
+
+# Current Development Status — October 21, 2026 (America/Chicago)
+
 - Branch development/directlink; reviewed baseline 60cd89d8eea9418f2076b26f808dec225b4e14ce, tree 2a6d5d0b11bfc25a4ab04202835034fd99539c29. Current root AGENTS/WORKFLOW/TESTING and original transport/fork code reviewed. Master and preserved snapshots stay unchanged.
 - User confirms Blood Pact menus are usable. User still reports native-menu stickiness and asks for the next investigation/improvement. Additional supplied Myrr capture is pre-registry tuning: Controls 9.11-timing1 / Lua directlink1-status1, UTC 20261021010935.
 - Myrr evidence: 68 logged slow cycles; max callback 375 ms, max logged start interval 391 ms. Housekeeping is largest (ties included) in 47/68, max 344 ms. Ten Down press/release pairs travel through Apps/F3 then Lua native k down/up; no new Up or shoulder press in the capture. Receiver repeatedly reports context-disabled, not active acknowledged DirectLink. The disabled condition was not recorded, so its cause cannot be inferred from subsequently supplied settings. An Up already latched before trace start remains unproven and cannot be excluded.
