@@ -1,3 +1,4 @@
+local status_format=require('libs/chat_status')
 -- A: saved companion definitions and the single physical-input owner. Rendering
 -- reads these same entries. The old L1 section remains untouched for recovery.
 local M={buttons={'Left','Down','Right','Up','Square','Cross','Circle','Triangle'}}
@@ -274,7 +275,7 @@ function M.new(options)
     end
     function self:help()
         for _,row in ipairs({
-            {'bank <layer> status','Show saved closed/menu entries and input/output state.'},
+            {'bank <layer> status [details]','Show panel state; details lists normal/menu bindings.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
             {'bank <layer> edit on|off','Pin/unlock this bank for mouse-only dragging; off hides preview and locks.'},
             {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
@@ -291,18 +292,28 @@ function M.new(options)
             {'bank <layer> pos <x> <y>','Move the shared left/right panel.'},
         }) do options.help(row[1],row[2]) end
     end
-    function self:status(layer)
-        options.say('Banks v2 | layer='..(self.layer~='' and self.layer or 'ordinary')..' | native menu='..tostring(self.menu)..
-            ' | executed='..self.executed..' | empty='..self.empty..' | native ack='..self.output.ack..'/'..self.output.seq)
+    function self:summary(layer)
         local b=self:settings()[layers[layer]]
-        options.say(layer..' visible='..tostring(b.Visible)..' | draw on native menus='..tostring(b.ShowOnMenu)..' | menu actions='..tostring(b.MenuActions))
+        options.say(status_format.row(layer:upper(),'draw '..status_format.toggle(b.Visible)..
+            ' | over menus '..status_format.toggle(b.ShowOnMenu)..' | menu bindings '..status_format.toggle(b.MenuActions)))
+    end
+    function self:status(layer,details)
+        local b=self:settings()[layers[layer]]
+        options.say(status_format.heading('XIVCrossbar | '..layer:upper()..' bank'))
+        self:summary(layer)
         local p=self:settings()[(layer:sub(1,1)=='l' and 'Left' or 'Right')..'Panel']
-        options.say('Position: //xb bank '..layer..' pos '..tostring(p.X)..' '..tostring(p.Y)..' | scale='..tostring(p.Scale)..' | follows main='..tostring(p.FollowCrossbar))
+        options.say(status_format.row('Position','//xb bank '..layer..' pos '..tostring(p.X)..' '..tostring(p.Y)))
+        options.say(status_format.row('Panel','scale '..tostring(p.Scale)..' | follow crossbar '..status_format.toggle(p.FollowCrossbar)..' | locked '..status_format.toggle(p.Locked)))
+        if not details then options.say(status_format.notice('Bindings: //xb bank '..layer..' status details'));return end
+        options.say(status_format.row('Input','active '..(self.layer~='' and self.layer or 'ordinary')..' | native menu '..status_format.toggle(self.menu)..
+            ' | executed '..self.executed..' | empty '..self.empty..' | native ack '..self.output.ack..' / '..self.output.seq))
         for _,context in ipairs({'Closed','Menu'}) do
-            local entries={}
-            for i,name in ipairs(M.buttons) do local e=self:entry(layer,i,context=='Menu');local source=self:stored_entry(layer,i,context=='Menu').Kind=='default' and 'default' or 'override'
-                entries[#entries+1]=name..'='..e.Alias..' ['..(e.Kind=='key' and e.Key..(e.Hold and ' hold' or '') or e.Command)..'; '..source..']' end
-            options.say(layer..' '..context..': '..table.concat(entries,'; '))
+            options.say(status_format.heading(context=='Menu' and 'Menu bindings' or 'Normal bindings'))
+            for i,name in ipairs(M.buttons) do
+                local e=self:entry(layer,i,context=='Menu')
+                local source=self:stored_entry(layer,i,context=='Menu').Kind=='default' and 'default' or 'override'
+                options.say(status_format.row(name,e.Alias..' | '..(e.Kind=='key' and e.Key..(e.Hold and ' hold' or '') or e.Command)..' | '..source))
+            end
         end
     end
     function self:command(args)
@@ -310,13 +321,13 @@ function M.new(options)
         if layer=='swap' then
             if args[4] or not layers[args[2]] or not layers[args[3]] or args[2]==args[3] then self:help();return false end
             self:release_slots();self.output:cancel();self.r1used=true
-            self:swap(args[2],args[3]);options.save();self:status(args[2]);self:status(args[3]);return true
+            self:swap(args[2],args[3]);options.save();options.say(status_format.notice('Swapped '..args[2]:upper()..' and '..args[3]:upper()..' bindings and visibility.'));return true
         end
         if layer=='preset' then
             if args[2]~='cioara' or args[3]~='apply' or args[4] then self:help();return false end
             self:release_slots();self.output:cancel();self.r1used=true
             require('libs/banks/presets').cioara(self)
-            options.save();options.say('Cioara banks applied. Inventory is on L1+L2; menu actions OFF retains its inventory-opening bindings.');return true
+            options.save();options.say(status_format.notice('Cioara preset applied; L1+L2 keeps normal inventory bindings in menus.'));return true
         end
         if not layers[layer] then self:help();return false end
         local offset=args[2]=='menu' and 1 or 0;local menu=offset==1
@@ -324,7 +335,9 @@ function M.new(options)
         local side=layer:sub(1,1)=='l' and 'Left' or 'Right';local p=self:settings()[side..'Panel']
         local changed=false
         if op=='help' then self:help();return
-        elseif op=='status' then self:status(layer);return
+        elseif op=='status' then
+            if args[3] and args[3]~='details' then self:help();return false end
+            self:status(layer,args[3]=='details');return
         elseif op=='edit' and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
             local enabled=args[3]=='on';p.Locked=not enabled
             self.previews[side]=enabled and {layer=layer,until_time=math.huge,editing=true} or nil
@@ -373,7 +386,19 @@ function M.new(options)
         end
         if not changed then options.say('Invalid bank command.');self:help();return false end
         self:release_slots();self.output:cancel();self.r1used=true
-        options.save();self:status(layer);return true
+        options.save()
+        local message
+        local label=layer:upper()
+        if op=='menus' then message=label..': draw over menus '..status_format.toggle(self:settings()[layers[layer]].ShowOnMenu)
+        elseif op=='menuactions' then message=label..': automatic menu bindings '..status_format.toggle(self:settings()[layers[layer]].MenuActions)
+        elseif op=='show' or op=='hide' then message=label..': drawing '..status_format.toggle(self:settings()[layers[layer]].Visible)
+        elseif op=='edit' then message=label..': edit '..status_format.toggle(args[3]=='on')
+        elseif op=='pos' or op=='resetpos' then message=label..': position '..tostring(p.X)..', '..tostring(p.Y)
+        elseif op=='scale' then message=label..': scale '..(p.FollowCrossbar and 'follows crossbar' or tostring(p.Scale))
+        elseif op=='lock' or op=='unlock' then message=label..': panel '..(p.Locked and 'locked' or 'unlocked')
+        elseif op=='defaults' then message=label..': '..(menu and 'menu' or 'normal')..' bindings restored'
+        else message=label..': '..(menu and 'menu' or 'normal')..' '..tostring(args[2+offset+((op=='key' or op=='clear' or op=='append' or op=='default') and 1 or 0)])..' binding updated' end
+        options.say(status_format.notice(message));return true
     end
     function self:legacy(args)
         local copy={'l1l2'}

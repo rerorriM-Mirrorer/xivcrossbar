@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261020.directlink1-timing1'
+_addon.version = '0.4.0-a.20261020.directlink1-status1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -156,7 +156,7 @@ companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1
     context=function() if companion_context then return companion_context() end;return false,false end,
     execute=function(command) windower.send_command(command) end,
     save=function() bank_storage:save() end,
-    say=function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end,
+    say=function(message) windower.add_to_chat(0,message) end,
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
 local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion'})
@@ -420,71 +420,13 @@ local controller_switcher
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
-local function report_controller_status()
-    local selected = settings.ControllerProfile .. ' / device ' .. settings.ControllerDevice
-    local requested=settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' and 'messages' or 'keys'
-    windower.add_to_chat(207, '[XIVCrossbar] Selected: ' .. selected .. ' | requested route=' .. requested .. ' | key fallback=' .. controller_modifier)
-    if controller_switcher and controller_switcher.pending then
-        windower.add_to_chat(207, '[XIVCrossbar] Controller change: ' .. controller_switcher.pending.phase)
-    end
-    local status = controller_status()
-    windower.add_to_chat(207,'[XIVCrossbar] Controller messages configured='..tostring(settings.ControllerMessages)..
-        ' | received='..controller_message_bridge.received..' | rejected='..controller_message_bridge.rejected)
-    windower.add_to_chat(207,'[XIVCrossbar] Real IJKL configured='..tostring(settings.ControllerRealKeys==true))
-    if status and status.running then
-        if settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' and status.button_protocol~='1' then
-            windower.add_to_chat(123,'[XIVCrossbar] Restart the AHK wrapper for controller messages (Controls 9.5 required).')
-        end
-        windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
-            ' | active route=' .. (status.button_route or 'keys') .. ' | key fallback=' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
-        if status.profile=='ps5-extended' then
-            windower.add_to_chat(0,'[XIVCrossbar] Banks: wrapper protocol='..(status.bank_protocol or 'absent')..
-                ' | enabled='..(status.banks_enabled or '0')..' | native ack='..(status.bank_native_ack or '0')..
-                ' | receiver='..tostring(companion_banks.active==true))
-            if settings.ControllerMessages and status.bank_protocol~='1' then
-                windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for companion banks (Controls 9.9 required).')
-            end
-            windower.add_to_chat(0,'[XIVCrossbar] Hold recovery: protocol='..(status.hold_recovery_protocol or 'absent')..
-                ' | last reset='..(controller_message_bridge.last_reason or 'none')..' | recovering='..tostring(controller_message_bridge.recovering==true))
-            if settings.ControllerMessages and status.hold_recovery_protocol~='1' then
-                windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for held-input recovery (Controls 9.10 required).')
-            end
-            windower.add_to_chat(0,'[XIVCrossbar] R1 Trust menu commands: wrapper protocol='..(status.r1_menu_protocol or 'absent')..
-                ' | permission='..(status.r1_menus or '0')..' | requires messages route')
-            if settings.ControllerMessages and status.r1_menu_protocol~='1' then
-                windower.add_to_chat(123,'[XIVCrossbar] Restart updated AHK for direct R1 Trust menu commands (Controls 9.8 required).')
-            end
-            windower.add_to_chat(0,'[XIVCrossbar] IJKL output permission='..(status.dpad_output or 'lua')..
-                ' | AHK realkeys protocol='..(status.realkeys_protocol or 'absent')..' (context/combo guards still apply)')
-            if settings.ControllerRealKeys and status.realkeys_protocol~='1' then
-                windower.add_to_chat(123,'[XIVCrossbar] Restart the updated AHK wrapper for real IJKL (Controls 9.7 required).')
-            end
-            windower.add_to_chat(207, '[XIVCrossbar] Personal: '..(status.personal_context or 'starting')..
-                ' | Controls='..(status.personal_version or 'older wrapper; stop/start required')..
-                ' | PS='..(status.ps_action or status.ps_hold or 'unknown')..
-                ' | Ctrl/Alt pairs='..(status.ctrl_pair or '0')..'/'..(status.alt_pair or '0'))
-            windower.add_to_chat(0,'[XIVCrossbar] F8 trials configured R2/R3='..
-                tostring(settings.ControllerTargetR2)..'/'..tostring(settings.ControllerTargetR3)..
-                ' | active wrapper='..(status.target_r2 or '0')..'/'..(status.target_r3 or '0')..
-                ' | short context pauses='..(status.context_pauses or '0'))
-        end
-        if status.button_route then
-            windower.add_to_chat(207,'[XIVCrossbar] Button route='..status.button_route..' | sent/ack='..
-                (status.button_sent or '?')..'/'..(status.button_ack or '?')..' | write error='..(status.button_error or '?'))
-        end
-        if status.poll_max_ms then
-            windower.add_to_chat(0,'[XIVCrossbar] Input diagnosis: trace='..tostring(status.input_trace)..
-                ' | max poll/gap='..status.poll_max_ms..'/'..status.poll_gap_max_ms..' ms'..
-                ' | max read/personal='..status.read_max_ms..'/'..status.personal_max_ms..' ms'..
-                ' | lease misses='..status.context_misses..' | trace write error='..status.trace_error)
-        end
-        if not controller_profiles.matches(status, settings.ControllerProfile, settings.ControllerDevice, controller_modifier)
-            and not (controller_switcher and controller_switcher.pending) then
-            windower.add_to_chat(123, '[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
-        end
-    else
-        windower.add_to_chat(207, '[XIVCrossbar] No fresh running-wrapper status. It may be stopped, starting, or an older wrapper.')
-    end
+local function report_controller_status(details,embedded)
+    local status=controller_status()
+    local lines=require('libs/chat_status').controller({settings=settings,status=status,
+        bridge=controller_message_bridge,modifier=controller_modifier,banks_active=companion_banks.active,
+        hide_hint=embedded,lua_trace=input_timing.active,pending=controller_switcher and controller_switcher.pending and controller_switcher.pending.phase,
+        mismatch=status and status.running and not controller_profiles.matches(status,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)},details)
+    for _,line in ipairs(lines) do windower.add_to_chat(0,line) end
 end
 function start_controller_wrappers(profile, device, modifier)
     profile = profile or settings.ControllerProfile
@@ -1170,7 +1112,7 @@ function display_help_menu()
     local help=require('libs/chat_help')
     help.heading('XIVCrossbar commands')
     help.command('help','Show this command list.')
-    help.command('status','Show version, storage, controller and display state.')
+    help.command('status [details]','Show version, storage, controller and display state.')
     help.command('reload','Re-read crossbar files without unloading the addon.')
     help.command('restart','Fade out, clean up, then reload the addon.')
     help.command('unload','Fade out and unload; shared wrapper follows last-client policy.')
@@ -1195,7 +1137,8 @@ function display_help_menu()
     help.command('messages [on|off|status]','Experimental controller message stream; bare toggles.')
     help.command('x [device]','Personal shortcut: select PS5 Extended.')
     help.command('r2|r3|both [on|off|status]','Personal F8 shortcuts; bare toggles the named button(s).')
-    help.command('controller status|start|stop|profiles','Report/control the shared wrapper or list profiles.')
+    help.command('controller status [details]','Show readiness; details adds counters and protocols.')
+    help.command('controller start|stop|profiles','Control the shared wrapper or list profiles.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
@@ -1437,7 +1380,9 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
         elseif mode == 'profile' then select_controller_profile(name, device)
-        elseif mode == 'status' then report_controller_status()
+        elseif mode == 'status' then
+            if name and name~='details' then require('libs/chat_help').command('controller status [details]','Show controller readiness and optional diagnostics.');return end
+            report_controller_status(name=='details')
         elseif mode == 'trace' then request_controller_trace(name)
         elseif mode == 'target' then
             local changed=require('libs/controller/target').command(settings,name,device,
@@ -1476,7 +1421,11 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(207, '[XIVCrossbar] Gameplay D-pad: ' .. settings.GameplayDPad)
         return
     elseif command == 'inputstatus' then
-        windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version .. ' | ' .. controller_modifier .. ' | Profile=' .. settings.ControllerProfile .. ' | InputTest=' .. tostring(settings.InputTest) .. ' | InputTrace=' .. tostring(settings.InputTrace))
+        local format=require('libs/chat_status')
+        windower.add_to_chat(0,format.heading('XIVCrossbar | Input'))
+        windower.add_to_chat(0,format.row('Version',_addon.version))
+        windower.add_to_chat(0,format.row('Profile',settings.ControllerProfile..' | key fallback '..controller_modifier))
+        windower.add_to_chat(0,format.row('Diagnostics','dummy actions '..format.toggle(settings.InputTest)..' | chat trace '..format.toggle(settings.InputTrace)..' | Lua timing trace '..format.toggle(input_timing.active)))
         return
     end
     local args = {...}
@@ -1513,21 +1462,32 @@ windower.register_event('addon command', function(command, ...)
         return
     end
     if command == 'status' then
-        local directory = storage.identity_valid and storage.directory or 'awaiting character login'
-        windower.add_to_chat(0,'[XIVCrossbar] Catalog saves: '..player:catalog_save_scope()..' | Storage: '..directory)
-        windower.add_to_chat(0,'[XIVCrossbar] Client registration: '..tostring(client_registry and client_registry.loaded or false)..' | Last-client shutdown: '..tostring(settings.on_unload_killahk))
-        windower.add_to_chat(207, '[XIVCrossbar] ' .. _addon.version)
-        windower.add_to_chat(0,'[XIVCrossbar] Bank storage: '..bank_storage.source..' | Character: '..bank_storage.character)
-        report_controller_status()
-        windower.add_to_chat(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
-        windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | Text fade: ' .. tostring(settings.Animation.TextFade) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
-        windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
-        windower.add_to_chat(207, '[XIVCrossbar] Autoattack estimate: ' .. tostring(settings.AutoAttackIndicator.Enabled) .. ' | Opacity: ' .. tostring(settings.AutoAttackIndicator.Opacity))
-        companion_banks:status('l1')
-        windower.add_to_chat(0,'[XIVCrossbar] L1 bridge: received='..l1_bridge.received..' | rejected='..l1_bridge.rejected..' | ack='..l1_bridge.ack)
-        windower.add_to_chat(207, '[XIVCrossbar] Ready: ' .. tostring(xivcrossbar.ready == true) ..
-            ' | Setup: ' .. tostring(gamepad_mapper.is_showing == true) .. ' (state ' .. tostring(gamepad_mapper.state) ..
-            ') | Capture: ' .. tostring(gamepad_state.capturing == true))
+        if args[1] and args[1]~='details' then require('libs/chat_help').command('status [details]','Show addon state and optional diagnostics.');return end
+        local details=args[1]=='details'
+        local format=require('libs/chat_status')
+        local function row(label,value) windower.add_to_chat(0,format.row(label,value)) end
+        windower.add_to_chat(0,format.heading('XIVCrossbar | Status'))
+        row('Version',_addon.version)
+        row('State',xivcrossbar.ready and 'Ready' or 'Initializing')
+        row('Set',player.hotbar_settings and player.hotbar_settings.active_environment or 'Awaiting character login')
+        windower.add_to_chat(0,format.heading('Crossbars'))
+        row('Layout',(settings.iscompact and 'Compact' or 'Full')..' | scale '..tostring(settings.CrossbarScale)..' | visibility '..tostring(settings.VisibilityMode))
+        row('Position','//xb pos '..tostring(settings.Style.OffsetX)..' '..tostring(settings.Style.OffsetY))
+        row('Animation','fades '..format.toggle(settings.Animation.Enabled)..' | text fade '..format.toggle(settings.Animation.TextFade))
+        row('Input','D-pad '..settings.GameplayDPad..' | text entry '..format.toggle(text_input_guard.active))
+        windower.add_to_chat(0,format.heading('Companion banks'))
+        for _,layer in ipairs({'l1','l1l2','r1','r1r2'}) do companion_banks:summary(layer) end
+        report_controller_status(details,true)
+        if details then
+            windower.add_to_chat(0,format.heading('Storage and lifecycle'))
+            row('Catalog saves',player:catalog_save_scope())
+            row('Catalog path',storage.identity_valid and storage.directory or 'Awaiting character login')
+            row('Bank file',tostring(bank_storage.source)..' | character '..tostring(bank_storage.character))
+            row('Lifecycle','registered '..format.toggle(client_registry and client_registry.loaded)..' | stop after last client '..format.toggle(settings.on_unload_killahk))
+            row('Autoattack','estimate '..format.toggle(settings.AutoAttackIndicator.Enabled)..' | opacity '..tostring(settings.AutoAttackIndicator.Opacity))
+            row('Editor','setup '..format.toggle(gamepad_mapper.is_showing)..' | state '..tostring(gamepad_mapper.state)..' | capture '..format.toggle(gamepad_state.capturing))
+            row('Legacy L1 bridge','received '..l1_bridge.received..' | rejected '..l1_bridge.rejected..' | ack '..l1_bridge.ack)
+        else windower.add_to_chat(0,format.notice('More: //xb status details | //xb bank <layer> status details')) end
         return
     end
 

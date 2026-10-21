@@ -1,5 +1,48 @@
 # Current Development Status — October 20, 2026 (America/Chicago)
 
+- Repository/branch: rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting source d383d2d8d369f49a9acf3da1b6a61f5facd6297a (Controller Timing 1).
+- Runtime: directlink1-status1. Shared Controls 9.11-timing1 is unchanged. User reports Timing 1 installed; no new live diagnostic findings or input fix inferred.
+- Status Cleanup 1: help-palette formatting, compact status summaries, explicit details for protocols/counters/storage/full bank bindings, single-line feedback for bank changes and swaps. No input-route, timer, bank mapping, visibility default or saved-data changes.
+- Live checks pending: //xb status and //xb controller status with and without details; //xb inputstatus; change a bank visibility/menuactions setting and expect one confirmation; //xb bank l1 status details lists bindings. Verify readable colors/line lengths in actual client windows. Reload Lua only after overlay; no AHK restart needed when Timing 1 is already running.
+- Automated validation: see dated entry below. All checks are simulated/static; no Windows/Windower/FFXI runtime available.
+- Next: collect the Timing 1 paired logs for input stickiness. Blood Pact chooser, Share/Options swap, menu hold repeat and other controller behavior requests remain separate pending work.
+
+---
+
+# Status Cleanup 1 — October 20, 2026
+
+Current GitHub AGENTS/WORKFLOW/TESTING read before changes. Ideal: clear first-line
+state, stable ordering, the established chat/help palette and one confirmation
+per change. Established problem: each bank mutation called full status (including
+both binding maps); root status mixed storage, controller compatibility and UI
+fields in long ungrouped lines. Baseline d383d2d / Timing 1 retained unchanged
+input/AHK behavior. This batch replaces presentation and command feedback only.
+
+Commands:
+- //xb status: version/readiness/set, crossbar layout/input, four bank summaries,
+  then controller summary. //xb status details adds controller diagnostics and
+  storage/lifecycle/editor state.
+- //xb controller status: Controls version, readiness, selected device, active
+  versus requested route, reset/recovery and tracing. details adds counters,
+  protocols, timing maxima, IJKL/F8 settings and launch source. Missing/old wrapper
+  warnings are consolidated; absence never displays an active messages route.
+- //xb bank <layer> status: short panel report, including copyable position.
+  details lists each normal/menu binding on its own row and input/output counters.
+- Bank mutations and swaps produce one specific confirmation, no automatic
+  binding dump. Existing save/release behavior is preserved.
+- //xb inputstatus uses the same headings, labels and neutral white values.
+
+Install: back up, unload/reload XIVCrossbar in each client after merging the
+cumulative code-only ZIP. Keep data and artwork. The wrapper bytes match Timing 1;
+do not restart a working 9.11-timing1 process solely for this presentation update.
+If updating from an older build, follow the Timing 1 matched-wrapper instructions.
+Rollback: restore previous Lua files while unloaded; saved data is unchanged.
+
+Validation: all 57 top-level Lua regressions passed with the Lua 5.4 normalization fallback; all 137 Lua files parsed. All seven JS routing suites passed. Focused checks cover one-line bank mutations/swaps, compact versus detailed reports, stopped/neutral/legacy wrapper states, help-palette fragments and pre-login status. git diff --check passed. No Lua 5.1 or Windows/Windower/FFXI execution is claimed. Pending live acceptance
+is readability in FFXI, not proof of any controller responsiveness improvement.
+
+# Current Development Status — October 20, 2026 (America/Chicago)
+
 - Branch: development/directlink. Tested starting source: 28304f405e7824e1b7dbc5f9e20378985007ea84.
 - Diagnostic-only Controller Timing 1: runtime directlink1-timing1, shared Controls 9.11-timing1.
 - `//xb controller trace on|off` now also controls a bounded per-character Lua receiver/native-request log. AHK adds actual start-gap, named-stage and slow context-read/button-write measurements. Input routing, filtering and watchdog policy are unchanged.

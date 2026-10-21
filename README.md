@@ -1,3 +1,8 @@
+Status Cleanup 1: `//xb status` and `//xb controller status` show ordered summaries;
+append `details` for diagnostics. `//xb bank <layer> status details` lists bindings.
+Bank edits now give one confirmation. Runtime directlink1-status1; unchanged
+Controls 9.11-timing1. Current testing/status is at the start of TESTING.md.
+
 Controller Timing 1 diagnostic build: see [capture instructions](docs/CONTROLLER-TIMING-TEST.md)
 and the current status at the start of TESTING.md. This build measures input delays;
 it does not claim to fix them. Runtime directlink1-timing1 / Controls 9.11-timing1.
@@ -1179,3 +1184,10 @@ asset compatibility and relocation-byte regressions. Runtime cleanup1; AHK uncha
 Paired controller/Lua traces, actual poll-start gaps, slow-stage/I/O timings,
 receiver sequence/context and native-key request observations. Bounded buffered
 Lua logging; no controller behavior or saved-setting changes.
+
+## October 20, 2026 — Status Cleanup 1
+
+Use the help palette for ordered status and input reports. Default reports stay
+compact; explicit details retain transport counters/protocols and storage state.
+Bank edits/swaps confirm once instead of printing both binding maps. No controller
+behavior or AHK changes; paired Timing 1 diagnostics remain available.
