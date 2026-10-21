@@ -26,7 +26,14 @@ local env=setmetatable({input_timing={record=function()end},gamepad=require('lib
     finish_set_chooser=function()chooser.shown=false end}, {__index=_G})
 function env.close_left_doublepress_window()env.is_left_doublepress_window_open=false;env.left_trigger_lifted_during_doublepress_window=false end
 function env.close_right_doublepress_window()env.is_right_doublepress_window_open=false;env.right_trigger_lifted_during_doublepress_window=false end
-assert(load(source:sub(start,finish-1),'actual controller routing','t',env))()
+env.l1_epoch=0;env.message_epoch=0
+env.l1_bridge={reset=function()end};env.l1_bank={cancel=function()end}
+env.l1_drag={finish=function()end};env.r1_drag={finish=function()end}
+env.text_input_guard={reset_confirmation=function()end}
+env.focus_events={};env.windower.register_event=function(name,fn)env.focus_events[name]=fn end
+local focus_start=assert(source:find('local focus_release_keys = {}',1,true))
+local focus_end=assert(source:find('local catalog_clock=',focus_start,true))
+assert(load(source:sub(start,finish-1)..source:sub(focus_start,focus_end-1),'actual controller routing and focus','t',env))()
 local receiver=require('libs/controller/messages').new({session='routing',clock=function()return now end,wallclock=function()return 100 end,
     capture=env.message_capture,event=env.message_button,cancel=env.message_cancel})
 local seq=0
@@ -136,3 +143,21 @@ info.menu_open=false;empty()
 new_session();send('down,13','down,7');assert(commands[1]=='input /satchel')
 send('up,13','up,7');assert(#commands==1,'companion Circle leaked Escape');empty()
 print('Actual bank owner + root router: six bars, both L1/L2 orders, empty-bank isolation, Trust dispatch, native-menu actions and Circle release isolation passed.')
+
+-- Both transports must retain only their own injected keys across cancellation.
+env.controller_message_bridge=receiver
+for button,key in ipairs({'i','l','k','j','enter'}) do
+    new_session();send('down,'..button);assert(commands[#commands]=='setkey '..key..' down')
+    env.focus_events['lose focus']();assert(commands[#commands]=='setkey '..key..' up')
+    env.focus_events['lose focus']() -- repeated loss must not discard the retry
+    commands={};env.focus_events['gain focus']()
+    assert(#commands==1 and commands[1]=='setkey '..key..' up','DirectLink lost focus retry for '..key)
+    commands={};env.focus_events['gain focus']();assert(#commands==0,'retry was not retired')
+end
+new_session();receiver:reset()
+events.keyboard(221,true,0,false);events.keyboard(59,true,0,false)
+assert(commands[#commands]=='setkey i down')
+env.focus_events['lose focus']();commands={};env.focus_events['gain focus']()
+assert(#commands==1 and commands[1]=='setkey i up','keyboard fallback lost focus retry')
+commands={};env.focus_events['gain focus']();assert(#commands==0)
+print('Actual focus callbacks: DirectLink and keyboard fallback preserve owned key-ups before cancellation, retry on regain, retain across repeated loss and retire retries once.')

@@ -2229,16 +2229,22 @@ local frame = 0
 -- local controller ownership without submitting or discarding menu drafts.
 local focus_release_keys = {}
 local function clear_controller_input(regained)
+    -- Preserve these before reset(): DirectLink cancellation releases and
+    -- clears gameplay_down. A background release may need retry on regain.
+    for _, key in pairs(gameplay_down) do focus_release_keys[key] = true end
+    input_timing:record('focus '..(regained and 'gained' or 'lost'))
     message_epoch=message_epoch+1;controller_message_bridge:reset()
     l1_epoch=l1_epoch+1;l1_bridge:reset();l1_bank:cancel();l1_drag:finish();r1_drag:finish()
     set_chooser_button_down=false
     menu_escape_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
     text_input_guard:reset_confirmation()
-    for _, key in pairs(gameplay_down) do focus_release_keys[key] = true end
     release_gameplay_keys()
     if regained then
-        for key in pairs(focus_release_keys) do windower.send_command('setkey ' .. key .. ' up') end
+        for key in pairs(focus_release_keys) do
+            input_timing:record('native request '..key..' up focus-retry')
+            windower.send_command('setkey ' .. key .. ' up')
+        end
         focus_release_keys = {}
     end
     transport:reset()
