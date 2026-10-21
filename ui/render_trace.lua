@@ -120,14 +120,17 @@ function M.dump()
     return table.concat(lines,'\n')..'\n'
 end
 
-function M.save(path)
-    local f,err=io.open(path,'w')
-    if not f then return false,err end
-    local ok,write_err=f:write(M.dump())
-    local closed,close_err=f:close()
-    if not ok then return false,write_err end
-    if not closed then return false,close_err end
-    return true
+function M.save(path,replace)
+    -- Assemble before touching the destination. The shared replacement helper
+    -- stages a complete file and rolls back failed Windows swaps, preserving
+    -- an earlier capture instead of truncating it at the start of a save.
+    local assembled,body=pcall(M.dump)
+    if not assembled then return false,body end
+    local ok,saved,err=pcall(function()
+        return (replace or require('libs/windows_file').new().replace)(path,body)
+    end)
+    if not ok then return false,saved end
+    return saved,err
 end
 
 function M.command(mode,path,report)

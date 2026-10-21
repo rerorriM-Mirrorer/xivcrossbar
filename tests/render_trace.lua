@@ -50,19 +50,24 @@ local old_count=trace.status().count
 assert(not trace.start() and trace.status().count==old_count,'on erased running history')
 local report={};local function say(s)report[#report+1]=s end
 trace.command('mark','unused',say);assert(trace.dump():find('\tMARK\t',1,true))
-local open=io.open;local writes,files=0,{}
-io.open=function(path,mode)
-    assert(mode=='w');files[#files+1]=path
-    return {write=function(_,value)writes=writes+1;assert(value:find('render trace v1',1,true));return true end,
-        close=function()return true end}
-end
+local previous_backend=package.loaded['libs/windows_file']
+local writes,files=0,{}
+package.loaded['libs/windows_file']={new=function()return {replace=function(path,body)
+    writes=writes+1;files[#files+1]=path
+    assert(body:find('render trace v1',1,true));return true
+end}end}
 assert(writes==0,'capture wrote to disk')
 trace.command('save','data/render-trace-Franklet.log',say)
 trace.command('off','data/render-trace-Lionstag.log',say)
 assert(writes==2 and files[1]~=files[2] and not trace.enabled)
-io.open=function()return nil,'denied' end
+local dump_fn=trace.dump;trace.dump=function()error('assembly failed')end
+assert(not trace.save('existing-capture') and writes==2,'failed assembly touched a destination')
+trace.dump=dump_fn
+assert(not trace.save('existing-capture',function()return false,'disk full'end))
+assert(not trace.save('existing-capture',function()error('backend error')end))
+package.loaded['libs/windows_file']={new=function()return {replace=function()return false,'denied'end}end}
 trace.command('save','denied',say);assert(report[#report]:find('denied',1,true))
-io.open=open
+package.loaded['libs/windows_file']=previous_backend
 trace.start();trace.capacity=20
 for i=1,50 do now=now+.01;trace.event('sequence',nil,i) end
 assert(trace.status().count==20 and trace.status().dropped==31)
