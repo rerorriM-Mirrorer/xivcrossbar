@@ -82,7 +82,7 @@ print('Actual root L1 bridge: ordered layers, stable ordinary-trigger sessions, 
 -- Feed the full bank receiver through that same actual publish/read/lease path.
 settings.ControllerMessages=true;settings.InputTest=false;character.status=0;focused=true;info.menu_open=false;context='gameplay'
 local banks=require('libs/banks/banks').new({settings=settings,clock=function()return now end,
-    context=function()return context=='gameplay',info.menu_open end,ordinary=function()end,
+    context=function()return context=='gameplay',info.menu_open,character.status==4 end,ordinary=function()end,
     execute=function(s)sent[#sent+1]=s end,save=function()end,say=function()end,help=function()end})
 env.companion_banks=banks
 env.controller_message_bridge=require('libs/controller/messages').new({session='bank-root-test',clock=function()return now end,
@@ -106,3 +106,16 @@ info.menu_open=false;step();buttons('11,down,14\n12,down,1\n',23)
 assert(env_lease.native:find('d,up',1,true))
 now=now+.36;step();assert(messages.token~=message_token and env_lease.button_recover and banks.layer=='' and env_lease.native=='','native backlog did not replace and clear session')
 print('Actual root bank pipeline: ordered mailbox -> Lua map -> native lease, menu-context generation change, output acknowledgment and overdue-session cancellation passed.')
+
+-- The root must keep the negotiated stream alive only for opted-in scene banks.
+settings.ControllerMessages=true;character.status=4;step();assert(not env_lease.messages)
+assert(banks:command({'r1r2','cutscenes','on'}));step()
+assert(env_lease.messages and env_context=='cutscene' and env_lease.banks)
+local before=#sent
+buttons('1,banks,0\n2,down,14\n3,down,12\n4,down,8\n5,up,8\n6,up,12\n7,up,14\n',100)
+assert(#sent==before+1 and sent[#sent]=='npcmirror interact')
+buttons('8,down,11\n9,down,5\n10,up,5\n11,up,11\n',101)
+assert(#sent==before+1 and env_lease.native=='','ordinary native output leaked in a scene')
+assert(banks:command({'r1r2','cutscenes','off'}));step();assert(not env_lease.messages)
+character.status=0
+print('Actual root cutscene lease: opt-in message lifetime, restricted context, NPC dispatch and off transition passed.')

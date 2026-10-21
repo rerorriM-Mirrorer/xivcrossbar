@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261021.directlink1-response1'
+_addon.version = '0.4.0-a.20261021.directlink1-cutscene1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2008,10 +2008,11 @@ local function input_context()
 end
 companion_context=function()
     local info=windower.ffxi.get_info();local character=windower.ffxi.get_player();local context=input_context()
+    local cutscene=character~=nil and character.status==4
     return not restart_pending and xivcrossbar.ready and settings.ControllerProfile=='ps5-extended'
         and settings.ControllerMessages and not settings.InputTest and windower.has_focus() and info.logged_in
-        and not info.chat_open and character~=nil and character.status~=4
-        and (context=='gameplay' or context=='crossbar'),info.menu_open==true
+        and not info.chat_open and character~=nil and (not cutscene or (companion_banks and companion_banks:cutscene_enabled()))
+        and (context=='gameplay' or context=='crossbar'),info.menu_open==true,cutscene
 end
 -- A: both transports call this router. The source determines how a physical
 -- edge arrives; menu ownership, native translation and slot execution stay here.
@@ -2122,6 +2123,7 @@ publish_personal_context = function()
     local info=windower.ffxi.get_info()
     local character=windower.ffxi.get_player()
     if info.chat_open then context='text' end
+    if character and character.status==4 and (context=='gameplay' or context=='crossbar') then context='cutscene' end
     local now=l1_clock()
     if l1_last_tick>0 and now-l1_last_tick>.5 then
         l1_epoch=l1_epoch+1;controller_message_bridge:reset('stall')
@@ -2141,7 +2143,7 @@ publish_personal_context = function()
         end
     end
     local message_enabled=settings.ControllerMessages==true and xivcrossbar.ready and not restart_pending
-        and windower.has_focus() and character and character.status~=4
+        and windower.has_focus() and character and (character.status~=4 or (companion_banks and companion_banks:cutscene_enabled()))
     local message_key=table.concat({player.server or '',player.name or '',tostring(message_epoch)},':')
     controller_message_bridge:context(message_key,message_enabled)
     if controller_message_bridge.token then
@@ -2161,6 +2163,7 @@ publish_personal_context = function()
     end
     context=(restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
     if info.chat_open then context='text' end
+    if character and character.status==4 and (context=='gameplay' or context=='crossbar') then context='cutscene' end
     local native_token,native,native_base
     if companion_banks then
         if companion_banks.output:stale() then
@@ -2290,7 +2293,7 @@ windower.register_event('prerender',function()
     local l1_character=windower.ffxi.get_player()
     local l1_display=xivcrossbar.ready and not restart_pending and settings.ControllerProfile=='ps5-extended'
         and action_binder.is_hidden and not env_chooser:is_showing() and not gamepad_mapper.is_showing
-        and l1_character and l1_character.status~=4 and not l1_info.chat_open
+        and l1_character and (l1_character.status~=4 or (companion_banks and companion_banks:cutscene_enabled())) and not l1_info.chat_open
     local viewport=windower.get_windower_settings()
     if render_trace.enabled then
         render_trace.context(gamepad_state.active_bar,player.hotbar_settings and player.hotbar_settings.active_environment,

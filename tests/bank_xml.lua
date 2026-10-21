@@ -48,3 +48,12 @@ if bank_settings_attachment then
     assert(files['main.before-bank-cleanup.bak']==original)
 end
 print('Actual shipped XML parser: bank migration, persistence, attributes, escape roundtrip, invalid/newer input and recovery passed.')
+
+local Store=require('libs/banks/storage')
+local raw=Store.encode({global={CompanionBanks=require('libs/banks/banks').defaults()},
+    test={CompanionBanks={R1R2={AllowCutscenes=true}}}})
+local records=assert(Store.decode(raw,bank_test_parse))
+assert(records.test.CompanionBanks.R1R2.AllowCutscenes==true)
+assert(records.global.CompanionBanks.R1R2.AllowCutscenes==false)
+assert(not Store.decode(raw:gsub('<AllowCutscenes>true</AllowCutscenes>','<AllowCutscenes>invalid</AllowCutscenes>'),bank_test_parse))
+print('Cutscene bank permission: real XML boolean roundtrip and malformed-value rejection passed.')

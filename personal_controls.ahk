@@ -76,7 +76,7 @@ PersonalPoll(states, active) {
     PC.contextPaused := false
     if (mode = "gameplay" or mode = "crossbar")
         PC.contextSeen := now
-    contextAllowed := active and (mode = "gameplay" or mode = "crossbar") and !raw[9] and !raw[10]
+    contextAllowed := active and (mode = "gameplay" or mode = "crossbar" or (mode = "cutscene" and PC.banks)) and !raw[9] and !raw[10]
     allowed := contextAllowed and mode = "gameplay" and !raw[11] and !raw[12] and !appsOwned
     neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
     Loop, 12
@@ -88,7 +88,7 @@ PersonalPoll(states, active) {
         return PersonalFilter(states, raw)
     }
     if (!PC.ready) {
-        if (allowed and neutral) {
+        if ((allowed or (contextAllowed and mode = "cutscene" and PC.banks)) and neutral) {
             PC.ready := true
             PC.touch.phase := "idle", PC.clicks.phase := "idle", PC.r1.phase := "idle"
         }
@@ -701,6 +701,16 @@ PersonalBanksPoll(states, raw, mode, now) {
     PersonalNativeDPad(states, raw, mode, now)
     states := PersonalFilter(states, raw)
     states[13] := raw.l1, states[14] := raw.r1
+    if (mode = "cutscene") {
+        ; Lua authorizes the selected bank. Ordinary click/touch/R shortcuts
+        ; and real IJKL must not acquire keys in this restricted context.
+        PC.touch.phase := "cancelled", PC.clicks.phase := "cancelled", PC.r1.phase := "cancelled"
+        PersonalKey("vkBCsc033", false)
+        PersonalKey("vkBEsc034", false)
+        PersonalNativePoll(now)
+        PC.previous := raw
+        return states
+    }
     busy := raw.l1 or raw.r1 or raw.ps or raw.mute
     Loop, 12
         if (raw[A_Index])

@@ -7,7 +7,7 @@ function extract(name){const a=source.indexOf('\n'+name+'(')+1;assert(a>0);
 const gestures=fs.readFileSync('personal_gestures.ahk','utf8');
 const r1start=gestures.indexOf('\nPersonalR1Step(')+1;
 let code=gestures.slice(r1start,gestures.indexOf('\n}\n',r1start)+2)+'\n'+
-  ['PersonalPoll','PersonalNativeDPad','PersonalR1Menus','PersonalR1MenuLease','PersonalR1Tap','PersonalFilter','PersonalRealKeyLease','PersonalKey','PersonalRelease'].map(extract).join('\n');
+  ['PersonalPoll','PersonalBanksPoll','PersonalNativeDPad','PersonalR1Menus','PersonalR1MenuLease','PersonalR1Tap','PersonalFilter','PersonalRealKeyLease','PersonalKey','PersonalRelease'].map(extract).join('\n');
 code=code.replace(/^\s*global .*$/gm,'').replace(/^\s*;[^\n]*$/gm,'')
   .replace(/SendEvent, % ([^\n]+)/g,'SendEvent($1)')
   .replace(/ControlSend,, % ([^\n]+), ahk_id %owner%/g,'ControlSend($1,owner)');
@@ -136,3 +136,23 @@ assert.equal(poll({r1:true,6:true})[6],false,'waiting-neutral R1 Square leaked')
 assert(!/PersonalChord|PersonalKey|SendEvent|NumpadAdd/.test(extract('PersonalR1Menus')));
 console.log('Actual AHK R1 menu sender: full-poll one-shot masking, face-first suppression, combo/context/transport guards, no native shortcut and old-Lua capability handoff passed.');
 module.exports={ctx,fresh,poll,extract,emitted,messages,traces,physical,object,ahkEnum};
+
+// The actual full poll can arm a negotiated bank in a cutscene, without
+// acquiring ordinary IJKL/touch/click output in that restricted context.
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:true,ready:false});
+ctx.mode='cutscene';let nativePolls=0;ctx.PersonalNativePoll=()=>nativePolls++;
+poll();assert(ctx.PC.ready,'cutscene bank failed neutral arming');
+const cutsceneStates=poll({r1:true,12:true,8:true});
+assert(cutsceneStates[14]&&cutsceneStates[12]&&cutsceneStates[8]);
+assert.equal(emitted.length,0);assert.equal(messages.length,0);
+assert.equal(ctx.PC.touch.phase,'cancelled');assert(nativePolls>0);
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:false,ready:false});
+poll();assert(!ctx.PC.ready,'unnnegotiated cutscene mode armed personal shortcuts');
+ctx.mode='gameplay';
+console.log('Actual AHK cutscene full poll: negotiated-bank neutral arming, physical shoulder forwarding, native-bank service and ordinary personal-output suppression passed.');
+
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:true});ctx.mode='cutscene';
+ctx.PC.keys['vkBCsc033']=1;ctx.PC.keys['vkBEsc034']=1;
+poll();assert(!ctx.PC.keys.HasKey('vkBCsc033')&&!ctx.PC.keys.HasKey('vkBEsc034'));
+ctx.mode='gameplay';
+console.log('Actual AHK scene transition also releases previously held stick-click keys.');

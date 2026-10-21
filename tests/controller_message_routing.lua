@@ -176,3 +176,18 @@ assert(snapshots[#snapshots]:find('lua_route=keys',1,true))
 assert(snapshots[#snapshots]:find('gameplay_owned=none',1,true))
 env.input_timing.active=false;local count=#snapshots;env.trace_snapshot('gameplay');assert(#snapshots==count)
 print('Actual trace snapshot: initial owned key, route permission/selection, cleanup state and inactive silence passed.')
+
+-- Real root context plus real bank/router: only the opted-in scene bank works.
+new_session();character.status=4
+local allowed,_,cutscene=env.companion_context();assert(not allowed and cutscene)
+assert(banks:command({'r1','cutscenes','on'}));assert(env.companion_context())
+assert(banks:command({'r1','triangle','Scene NPC','npcmirror interact'}))
+commands={};actions={}
+send('down,14','down,8','up,8','up,14')
+assert(#commands==1 and commands[1]=='npcmirror interact' and #actions==0)
+send('down,12','down,7','up,7','up,12')
+assert(#commands==1 and #actions==0,'ordinary bar leaked during cutscene bank permission')
+info.chat_open=true;assert(not env.companion_context());info.chat_open=false
+assert(banks:command({'r1','cutscenes','off'}));assert(not env.companion_context())
+character.status=0
+print('Actual root cutscene guard: default-off, opted-in bank command, blocked ordinary bar and chat/off guards passed.')

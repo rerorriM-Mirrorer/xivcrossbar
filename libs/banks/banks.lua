@@ -46,7 +46,7 @@ function M.defaults()
     -- a fresh process can reload saved banks without losing names or types.
     local d={Version=0,Preset=''}
     for _,name in pairs(layers) do
-        d[name]={Closed={},Menu={},Visible=true,ShowOnMenu=false,MenuActions=true,Title=''}
+        d[name]={Closed={},Menu={},Visible=true,ShowOnMenu=false,MenuActions=true,AllowCutscenes=false,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
             d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false}
         end end
@@ -67,6 +67,7 @@ function M.ensure(settings)
         local b=d[name]
         b.Visible=b.Visible~=false;b.ShowOnMenu=b.ShowOnMenu==true
         b.MenuActions=b.MenuActions~=false;b.Title=type(b.Title)=='string' and b.Title or ''
+        b.AllowCutscenes=b.AllowCutscenes==true
         for _,context in ipairs({'Closed','Menu'}) do
             if type(d[name][context])~='table' then d[name][context]={} end
             for i=1,8 do
@@ -120,6 +121,10 @@ function M.new(options)
         if normalized~=options.settings.CompanionBanks then normalized=M.ensure(options.settings) end
         return normalized
     end
+    function self:cutscene_enabled()
+        for _,name in pairs(layers) do if self:settings()[name].AllowCutscenes then return true end end
+        return false
+    end
     function self:stored_entry(layer,slot,menu) return self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot] end
     function self:uses_menu(layer,menu)
         return menu==true and self:settings()[layers[layer]].MenuActions~=false
@@ -142,7 +147,7 @@ function M.new(options)
         self.down={};self.owners={};self.blocked={};self.layer='';self.left=false;self.right=false
         self.tailL=false;self.tailR=false;self.r1used=true
     end
-    function self:choose()
+    function self:choose_layer()
         local d=self.down
         if not self.eligible or d[9] or d[10] then return '' end
         if self.tailL or self.tailR then return 'tail' end
@@ -152,14 +157,24 @@ function M.new(options)
         if d[14] then return d[12] and 'r1r2' or 'r1' end
         return ''
     end
+    function self:choose()
+        local layer=self:choose_layer()
+        -- Consume every unapproved cutscene gesture, including ordinary
+        -- trigger bars and the implicit L1+R1 Tab shortcut.
+        if self.cutscene and (not layers[layer] or not self:settings()[layers[layer]].AllowCutscenes) then
+            return 'blocked'
+        end
+        return layer
+    end
     function self:refresh()
-        local eligible,menu=options.context()
+        local eligible,menu,cutscene=options.context()
+        cutscene=cutscene==true
         if self.eligible and not eligible then
             self:release_slots();self.output:cancel();self.r1used=true
-        elseif self.menu~=menu then
+        elseif self.menu~=menu or self.cutscene~=cutscene then
             self:release_slots();self.output:cancel();self.r1used=true
         end
-        self.eligible,self.menu=eligible,menu
+        self.eligible,self.menu,self.cutscene=eligible,menu,cutscene
         local layer=self:choose()
         if layer~=self.layer then self:release_slots();self.layer=layer end
     end
@@ -194,12 +209,12 @@ function M.new(options)
             self.r1used=true
             local slots=false;for i=1,12 do if self.down[i] then slots=true end end
             if self.eligible and not slots then self.output:pulse('tab') end
-        elseif button==14 and not pressed and not used and before=='r1' and self.eligible then
+        elseif button==14 and not pressed and not used and before=='r1' and self.eligible and not self.cutscene then
             self.output:pulse('r')
         end
         if button>=13 then return end
         if button>=9 then
-            if pressed and (button<=10 or self.layer=='') then
+            if pressed and not self.cutscene and (button<=10 or self.layer=='') then
                 options.ordinary(button,true);self.owners[button]='ordinary'
             end
             return
@@ -245,7 +260,7 @@ function M.new(options)
             opacity=function(_,eligible)
                 local preview=parent.previews[side];local b=parent:settings()[layers[selected()]]
                 local editing=preview and preview.editing and selected()==preview.layer
-                return eligible and (editing or b.Visible) and (editing or not parent.menu or b.ShowOnMenu)
+                return eligible and (not parent.cutscene or b.AllowCutscenes) and (editing or b.Visible) and (editing or not parent.menu or b.ShowOnMenu)
                     and (names[parent.layer] or preview and options.clock()<preview.until_time) and 1 or 0
             end,
         }
@@ -281,6 +296,7 @@ function M.new(options)
             {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
             {'bank <layer> menus on|off','Allow this bank to draw over native game menus.'},
             {'bank <layer> menuactions on|off','Use menu bindings automatically, or always use Closed bindings.'},
+            {'bank <layer> cutscenes on|off','Allow this bank during cutscenes; other controls stay blocked.'},
             {'bank preset cioara apply','Replace four bank layouts with the Cioara template; back up settings first.'},
             {'bank <layer> [menu] <button> <label> <command...>','Assign a console command; layer: l1, l1l2, r1, r1r2.'},
             {'bank <layer> [menu] key <button> <label> <key> [hold]','Native key, e.g. ctrl+i or alt+left; pulse by default.'},
@@ -295,7 +311,8 @@ function M.new(options)
     function self:summary(layer)
         local b=self:settings()[layers[layer]]
         options.say(status_format.row(layer:upper(),'draw '..status_format.toggle(b.Visible)..
-            ' | over menus '..status_format.toggle(b.ShowOnMenu)..' | menu bindings '..status_format.toggle(b.MenuActions)))
+            ' | over menus '..status_format.toggle(b.ShowOnMenu)..' | menu bindings '..status_format.toggle(b.MenuActions)..
+            ' | cutscenes '..status_format.toggle(b.AllowCutscenes)))
     end
     function self:status(layer,details)
         local b=self:settings()[layers[layer]]
@@ -345,8 +362,9 @@ function M.new(options)
         elseif (op=='show' or op=='hide') and offset==0 and not args[3] then
             self:settings()[layers[layer]].Visible=op=='show';changed=true
             if op=='hide' and self.previews[side] and self.previews[side].layer==layer then self.previews[side]=nil end
-        elseif (op=='menus' or op=='menuactions') and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
-            self:settings()[layers[layer]][op=='menus' and 'ShowOnMenu' or 'MenuActions']=args[3]=='on';changed=true
+        elseif (op=='menus' or op=='menuactions' or op=='cutscenes') and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
+            local field=op=='menus' and 'ShowOnMenu' or op=='menuactions' and 'MenuActions' or 'AllowCutscenes'
+            self:settings()[layers[layer]][field]=args[3]=='on';changed=true
         elseif op=='defaults' and not args[3+offset] then
             for i=1,8 do self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..i]=inherited() end
             changed=true
@@ -391,6 +409,7 @@ function M.new(options)
         local label=layer:upper()
         if op=='menus' then message=label..': draw over menus '..status_format.toggle(self:settings()[layers[layer]].ShowOnMenu)
         elseif op=='menuactions' then message=label..': automatic menu bindings '..status_format.toggle(self:settings()[layers[layer]].MenuActions)
+        elseif op=='cutscenes' then message=label..': cutscene access '..status_format.toggle(self:settings()[layers[layer]].AllowCutscenes)
         elseif op=='show' or op=='hide' then message=label..': drawing '..status_format.toggle(self:settings()[layers[layer]].Visible)
         elseif op=='edit' then message=label..': edit '..status_format.toggle(args[3]=='on')
         elseif op=='pos' or op=='resetpos' then message=label..': position '..tostring(p.X)..', '..tostring(p.Y)
