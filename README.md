@@ -1191,3 +1191,6 @@ Use the help palette for ordered status and input reports. Default reports stay
 compact; explicit details retain transport counters/protocols and storage state.
 Bank edits/swaps confirm once instead of printing both binding maps. No controller
 behavior or AHK changes; paired Timing 1 diagnostics remain available.
+
+The shared action-editor selector now wraps Left/Right within its row and Up/Down
+within its column, skipping unavailable cells without automatically changing pages.

@@ -1,13 +1,34 @@
 # Current Development Status — October 20, 2026 (America/Chicago)
 
 - Repository/branch: rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting source d383d2d8d369f49a9acf3da1b6a61f5facd6297a (Controller Timing 1).
-- Runtime: directlink1-status1. Shared Controls 9.11-timing1 is unchanged. User reports Timing 1 installed; no new live diagnostic findings or input fix inferred.
-- Status Cleanup 1: help-palette formatting, compact status summaries, explicit details for protocols/counters/storage/full bank bindings, single-line feedback for bank changes and swaps. No input-route, timer, bank mapping, visibility default or saved-data changes.
+- Runtime: directlink1-status1. Shared Controls 9.11-timing1 is unchanged. User reports Timing 1 installed; paired live logs identify housekeeping as the dominant slow stage (details below). No input fix claimed.
+- Status Cleanup 1 + menu wrap: shared editor selector wraps within its current row/column, skipping missing/disabled cells without changing pages. Help-palette formatting, compact status summaries, explicit details for protocols/counters/storage/full bank bindings, single-line feedback for bank changes and swaps. No input-route, timer, bank mapping, visibility default or saved-data changes. Wrapping affects editor selection only.
 - Live checks pending: //xb status and //xb controller status with and without details; //xb inputstatus; change a bank visibility/menuactions setting and expect one confirmation; //xb bank l1 status details lists bindings. Verify readable colors/line lengths in actual client windows. Reload Lua only after overlay; no AHK restart needed when Timing 1 is already running.
 - Automated validation: see dated entry below. All checks are simulated/static; no Windows/Windower/FFXI runtime available.
-- Next: collect the Timing 1 paired logs for input stickiness. Blood Pact chooser, Share/Options swap, menu hold repeat and other controller behavior requests remain separate pending work.
+- Next: isolate lifecycle registration/stop-request housekeeping costs in the supplied Timing 1 capture. Blood Pact chooser, Share/Options swap, menu hold repeat and other controller behavior requests remain separate pending work.
 
 ---
+
+# Menu wrapping addendum — October 20, 2026
+
+User requested row/column wrapping while Status Cleanup 1 was being packaged.
+Included as a separate coherent selector change. Left/Right wrap in the same row;
+Up/Down wrap in the same column. Missing/disabled cells are skipped. Existing
+page-button cells remain selectable; wrapping never changes the page itself.
+A lone selectable cell stays selected without extra highlight calls. Empty rows
+and columns terminate safely. This does not add held-repeat or modify native
+FFXI menus or the separate environment chooser.
+
+Timing 1 live capture received: controller-input-trace(8).log and
+controller-lua-trace-Cioara.log (UTC start 20261021003145). Of 124 logged slow
+cycles, housekeeping was the largest measured stage in 117. Its maximum was
+344 ms; controller hardware was generally 0 ms. Housekeeping encloses the
+client-registration lifecycle check and stop-request check; it does not yet
+isolate an individual Windows I/O call. This narrows the next investigation to
+that path rather than proving a device fault or changing timeouts here.
+
+---
+
 
 # Status Cleanup 1 — October 20, 2026
 
@@ -38,7 +59,7 @@ do not restart a working 9.11-timing1 process solely for this presentation updat
 If updating from an older build, follow the Timing 1 matched-wrapper instructions.
 Rollback: restore previous Lua files while unloaded; saved data is unchanged.
 
-Validation: all 57 top-level Lua regressions passed with the Lua 5.4 normalization fallback; all 137 Lua files parsed. All seven JS routing suites passed. Focused checks cover one-line bank mutations/swaps, compact versus detailed reports, stopped/neutral/legacy wrapper states, help-palette fragments and pre-login status. git diff --check passed. No Lua 5.1 or Windows/Windower/FFXI execution is claimed. Pending live acceptance
+Validation: all 58 top-level Lua regressions passed with the Lua 5.4 normalization fallback; all 138 Lua files parsed. All seven JS routing suites passed. Focused checks cover one-line bank mutations/swaps, compact versus detailed reports, stopped/neutral/legacy wrapper states, help-palette fragments and pre-login status. git diff --check passed. No Lua 5.1 or Windows/Windower/FFXI execution is claimed. Pending live acceptance
 is readability in FFXI, not proof of any controller responsiveness improvement.
 
 # Current Development Status — October 20, 2026 (America/Chicago)
