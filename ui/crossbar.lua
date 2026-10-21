@@ -2143,24 +2143,8 @@ function ui:maybe_use_enchanted_item(hotbar, slot)
 end
 
 function maybe_get_default_action(hotbar, environment, hb, slot)
-    if (environment == 'shared') then return nil end
-
-    local h = 'hotbar_' .. hb
-    local i = 'slot_' .. slot
-    local action = nil
-
-    if (environment ~= 'job-default' and environment ~= 'all-jobs-default' and
-        hotbar['default'] and hotbar['default'][h] and hotbar['default'][h][i]) then
-        action = hotbar['default'][h][i]
-        action.source_environment = 'default'
-    elseif (environment ~= 'all-jobs-default' and hotbar['job-default'] and hotbar['job-default'][h] and hotbar['job-default'][h][i]) then
-        action = hotbar['job-default'][h][i]
-        action.source_environment = 'job-default'
-    elseif (hotbar['all-jobs-default'] and hotbar['all-jobs-default'][h] and hotbar['all-jobs-default'][h][i]) then
-        action = hotbar['all-jobs-default'][h][i]
-        action.source_environment = 'all-jobs-default'
-    end
-
+    local action, source = require('libs/slot_inheritance').fallback(hotbar, environment, hb, slot)
+    if action then action.source_environment = source end
     return action
 end
 

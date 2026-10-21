@@ -690,15 +690,8 @@ function player:execute_action(slot)
     local action = self.hotbar[env]['hotbar_' .. h]['slot_' .. slot]
     local is_missing = action == nil or action.action == nil
 
-    if (is_missing and env ~= 'default' and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['default'] and self.hotbar['default']['hotbar_' .. h] and
-        self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]
-    elseif (is_missing and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['job-default'] and self.hotbar['job-default']['hotbar_' .. h] and
-        self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]
-    elseif (is_missing and env ~= 'all-jobs-default' and self.hotbar['all-jobs-default'] and self.hotbar['all-jobs-default']['hotbar_' .. h] and
-        self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]
+    if is_missing then
+        action = require('libs/slot_inheritance').fallback(self.hotbar, env, h, slot)
     end
 
     if action and action.catalog_id then self:refresh_custom_catalogs() end
