@@ -1,7 +1,7 @@
 Cutscene Banks 1: `//xb bank <layer> cutscenes on|off` grants cutscene access
 per bank and character (default OFF), while ordinary actions remain guarded in
 the restricted message route. Render traces now stage complete saves before
-replacement. Runtime directlink1-cutscene1 / Controls 9.14-cutscene1.
+replacement. Runtime directlink1-slots-icons1 / Controls 9.14-cutscene1.
 [Installation and live check](docs/CUTSCENE-BANKS-TEST.md). Restart the wrapper.
 
 Controller Response 1: retain owned native-key releases across DirectLink focus
@@ -1244,3 +1244,13 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   the start of a save. Myrr's native crash remains unexplained.
 - User confirms Controller Response 1 feels much more responsive, including
   L1 banks. This batch's new cutscene behavior needs native live verification.
+
+### Slot inheritance and icon discovery — October 21, 2026
+
+- Clear old captions when a selected slot contains only saved metadata. Empty
+  Default/Job Default placeholders now fall through to actual inherited actions,
+  using the same resolver for display and execution. Shared remains independent.
+- Change Icon scans use Windows directory separators while saved icon paths and
+  artwork locations remain unchanged. No icon-generation BAT is required.
+- Runtime directlink1-slots-icons1; Controls 9.14-cutscene1 unchanged. Native
+  picker verification and remaining icon flicker investigation are pending.

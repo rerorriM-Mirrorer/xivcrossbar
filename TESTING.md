@@ -1,3 +1,36 @@
+# Current Development Status — October 21, 2026
+
+- Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting checkpoint c6b97c2f827a28df412a8293a4209323c86b3221 / tree af6f25224e96c6db8af0758726be843f354550eb. Current root AGENTS/WORKFLOW/TESTING reviewed; master remains unchanged.
+- Runtime directlink1-slots-icons1; shared Controls 9.14-cutscene1 unchanged. Latest live confirmations remain the more responsive controller/L1 banks and usable Blood Pact chooser; this batch has no native acceptance yet.
+- New local materials: render-trace-Cioara(1).log (869 frames, max gap 33.226 ms, 1,666 retained events, zero overwritten), SMN-DEFAULT.xml and ALL-JOBS-DEFAULT(4).xml. Global right D-pad slots contain metadata-only placeholders; corresponding SMN Job Default slots contain BloodPacts/Summon/Weaponskills/WhiteMagic. Switching to the empty global layer reproduced the stale caption with the real UI loader under drawing mocks. text(nil) acts as a getter, leaving the prior label while icons/actions clear. This is a display defect, not evidence those Job Default actions should inherit upward into All Jobs Default.
+- Fix: one small shared fallback resolver skips metadata-only slots and respects layer direction. Both display and execution use it. All Jobs Default has no fallback; Job Default inherits global; Default inherits job/global; other ordinary sets inherit Default/job/global. Shared has no inheritance in either display or execution (execution previously could fire an invisible inherited action). Empty placeholders do not mask real lower-layer bindings. Intentional empty-string custom commands retain existing semantics. No saved files are rewritten.
+- Icon picker: normalized asset roots were passed directly to Windows dir with forward slashes. Convert only the scan command to backslashes, preserving normalized comparisons, artwork precedence and saved stems. Source/actual-picker mocks reproduce empty results under Windows-path rules before the change and find artwork afterward. Native Windows execution is unavailable; this remains a candidate fix for the reported empty picker until live verification. The earlier mock accepted forward-slash commands and was tightened. No icon BAT, asset move or generated artwork is needed.
+- Verification: 62 top-level Lua regressions passed; 144 Lua sources parsed with the documented temporary Windower-syntax normalization / Lua 5.4 fallback. Seven JS suites, AHK structural checks, canonical layout check and git diff --check passed. New actual-loader/dispatcher regression failed before the slot fix; actual-picker regression failed before the scan fix. No native Windows/AHK/Windower/FFXI execution available.
+- Delivery: cumulative changed-files patch from Cleanup 1 (28304f4) or newer DirectLink builds; no personal data/settings/bindings/artwork. README/WORKFLOW/TESTING included inside xivcrossbar. Contains prior Cutscene Banks 1 permissions and trace-save hardening.
+- Live check: switch SMN Job Default -> All Jobs Default repeatedly; the four empty right D-pad captions must disappear, while actual global bindings remain. Return to Job Default and verify its actions. Open Change Icon on the curesmart custom action and verify usable artwork is listed. Check one inherited action through an empty placeholder. Back up data as usual; no binding edits should be necessary. If upgrading from before Controls 9.14, stop the shared wrapper, unload all clients, merge patch, load clients and start the wrapper once with neutral controls.
+- Still open: native icon flicker and Myrr's native crash cause. The healthy new trace records Lua requests rather than GPU pixels and cannot establish either cause. Next: live acceptance of these two repairs, then a targeted flicker trace if it remains. Apps pruning and shared bank press feedback remain proposed, not included.
+
+---
+
+# Slots and Icons 1 — October 21, 2026
+
+Ideal: labels, artwork and dispatch describe the same resolved binding; an empty
+selected global slot stays empty. New supplied XML established a concrete slot
+shape for reproducing the report. Existing caption-preservation optimization is
+kept for populated same-caption replacements; the repair rejects empty fallback
+tables before rendering. No blanket text invalidation or new render delay.
+
+The picker change is confined to the shell-command boundary. Existing legacy,
+override and canonical roots, fallback visibility and structural-image exclusions
+remain intact. The fresh source regression includes spaces in the addon path.
+The broad regression initially failed because the prior asset-path mock keyed
+normalized forward-slash commands; that mock now explicitly requires native
+separators and normalizes returned folder lookup, preserving its existing cases.
+
+Previous cumulative status and history remain below.
+
+---
+
 # Current Development Status — October 21, 2026 (America/Chicago)
 
 - Branch development/directlink. Reviewed current root AGENTS/WORKFLOW/TESTING, baseline published 7bdede0a8a8f46dc02a5f78101bfd88a4978005e / tree eb3a535809057d3bfd137e46900eeb14cd3cd783. Preserved master/snapshots unchanged.
