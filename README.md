@@ -1,3 +1,8 @@
+Startup/Pacts/Registry 1: matching single-line startup feedback, native available
+Blood Pact choices with explicit icon fallbacks, and reduced repeated registry I/O.
+Runtime directlink1-startup-pacts1 / Controls 9.12-registry1. Read
+[patch installation and live tests](docs/STARTUP-PACTS-REGISTRY-TEST.md).
+
 Status Cleanup 1: `//xb status` and `//xb controller status` show ordered summaries;
 append `details` for diagnostics. `//xb bank <layer> status details` lists bindings.
 Bank edits now give one confirmation. Runtime directlink1-status1; unchanged
@@ -1194,3 +1199,11 @@ behavior or AHK changes; paired Timing 1 diagnostics remain available.
 
 The shared action-editor selector now wraps Left/Right within its row and Up/Down
 within its column, skipping unavailable cells without automatically changing pages.
+
+## October 20, 2026 — Startup, Blood Pacts and registry tuning 1
+
+Match startup feedback to status colors. Filter Rage/Ward binding choices using
+the native available ability lists and use specific, generic or shipped pact
+icons consistently. Replace five INI reads per registration with one record read,
+reuse retired session metadata, and expose registry operation timing. Input
+routing/recovery rules remain unchanged; live responsiveness needs confirmation.

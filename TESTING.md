@@ -1,5 +1,53 @@
 # Current Development Status — October 20, 2026 (America/Chicago)
 
+- Branch: development/directlink. Tested source baseline a8ea46128c394fb0e90effde3ebeae24cc4ce773 (Status Cleanup 1). User confirmed status readability improved and requested startup matching, Blood Pact chooser fixes, then controller investigation.
+- Runtime directlink1-startup-pacts1; shared Controls 9.12-registry1. Startup load feedback uses the existing help/status palette in one line. Pact selectors use native job_abilities/pet_commands availability, category-check ids, preserve target data and alphabetical order, and resolve specific -> generic -> shipped Rage/Ward fallback artwork. This does not change already-bound actions.
+- Investigation: paired Timing 1 capture at UTC 20261021003145 had housekeeping largest in 117/124 slow cycles, max 344 ms. Source checks found five synchronous INI key reads per registration on a 250 ms lifecycle scan, including historical sessions. Tuning uses one atomic record read and caches validated records only after owner closure. New tokens are discovered normally; live owners still refresh and uncertain live owners block automatic exit. Existing last-client preference/grace and input routing/recovery thresholds are unchanged. Added operation timing for registry scan, record read and owner check. Improvement remains unmeasured on Windows.
+- Verification: 59 top-level Lua regressions passed with the Lua 5.4 temporary Windower-syntax normalization fallback; all 140 Lua files parsed. All seven JS suites passed, including actual AHK registry record parser/scan with native I/O mocked, cache/new-client handling and last-client decision logic. No Windows AHK interpreter/Windower/FFXI runtime available. git diff --check passed.
+- Delivery: cumulative changed-files patch against Cleanup 1 (28304f4) or a newer DirectLink build, not a full code or artwork package. README/WORKFLOW/TESTING included. Preserves all data/artwork. Matched Lua/AHK update: stop wrapper, unload all clients, merge patch, load all clients, start shared wrapper once with neutral controls. See docs/STARTUP-PACTS-REGISTRY-TEST.md.
+- Live acceptance: startup formatting, Rage/Ward filtering with available summons/levels and all fallback icons, controller feel and lifecycle across client reload/closure. Keep the paired trace if stickiness recurs. Master remains unchanged; no native performance or fix acceptance inferred from simulation.
+- Next: compare actual registry/cycle/start-gap timings after this tuning. Share/Options swap, held menu-repeat, deeper menu recognition and Blood Pact level/avatar grouping remain separate pending requests.
+
+---
+
+# Startup, Blood Pacts and registry tuning 1 — October 20, 2026
+
+Current GitHub AGENTS/WORKFLOW/TESTING reviewed before editing; upstream binder,
+Windower Resources and existing availability usage reviewed. Ideal: quiet coherent
+load feedback, only available binding choices with reliable art, and controller
+polling free of repeated work for dead client sessions. Three small code changes
+are kept separate in Git history. Existing bank/config/slot assignments retained.
+
+Blood Pact availability deliberately uses the game-reported ability lists rather
+than guessing levels/avatars from names or a hand-maintained database. Nil or
+empty live lists do not fall back to listing every resource action. Resource
+ability type separates Rage/Ward and excludes wyvern/monster entries. Unknown
+resource IDs and duplicates are ignored. All available pacts remain alphabetic;
+no claim of level sorting or cross-avatar grouping is made. Reopen the selector
+after a job/avatar/level change to refresh its snapshot. Generic pact overrides
+are optional; shipped 00173/00174 icons always remain the final fallback.
+
+Registry records belong to unique Lua-session tokens (timestamp plus bound port).
+Owner handles are established before loaded metadata and close at Lua unload or
+process exit. A retired token cannot become the next session; reload uses a new
+filename. Only validated snapshots with a closed owner enter the retired cache.
+Transient malformed/read-failed records with live/uncertain ownership count as
+loaded, preserving the conservative shutdown policy. No registration files are
+deleted and no timeout is loosened. The first cold scan still reads old records;
+steady scans reuse retired metadata and refresh live records with one read.
+
+Sources checked:
+- https://github.com/Windower/Resources/blob/master/resources_data/job_abilities.lua
+- https://github.com/Windower/Resources/blob/master/resources_data/spells.lua
+- https://github.com/Ivaar/Addons-2/blob/master/Skillchains/skillchains.lua (uses native job_abilities IDs for blood-pact availability)
+- https://github.com/qEagleStrikerp/xivcrossbar/blob/master/action_binder.lua
+
+Validation is recorded above. Actual native menu response and available-pact list
+contents require live testing. This patch is the first measured-path tuning pass,
+not a claim that all sticky input or repeated menu movement is fixed.
+
+# Current Development Status — October 20, 2026 (America/Chicago)
+
 - Repository/branch: rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting source d383d2d8d369f49a9acf3da1b6a61f5facd6297a (Controller Timing 1).
 - Runtime: directlink1-status1. Shared Controls 9.11-timing1 is unchanged. User reports Timing 1 installed; paired live logs identify housekeeping as the dominant slow stage (details below). No input fix claimed.
 - Status Cleanup 1 + menu wrap: shared editor selector wraps within its current row/column, skipping missing/disabled cells without changing pages. Help-palette formatting, compact status summaries, explicit details for protocols/counters/storage/full bank bindings, single-line feedback for bank changes and swaps. No input-route, timer, bank mapping, visibility default or saved-data changes. Wrapping affects editor selection only.
