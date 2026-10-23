@@ -10,7 +10,7 @@ function M.new(options)
         self.held={}
     end
     function self:reset()
-        self.held={};self.blocked={}
+        self.held={};self.blocked={};self.r1=false
     end
     function self:update(contents,id)
         -- Atomic replacement can leave a brief Windows rename gap. A cached
@@ -40,6 +40,7 @@ function M.new(options)
             self.token,self.sequence,options.clock(),action))
     end
     function self:edge(button,pressed,mapping,r1)
+        if button==14 then self.r1=pressed;return false end
         if button<1 or button>8 then return false end
         if not pressed then
             if self.blocked[button] or self.held[button] then
@@ -51,9 +52,10 @@ function M.new(options)
         if not self.token then return false end
         self.held[button]={token=self.token,next=options.clock()+.4}
         local action=directions[button]
-        if faces[button]==mapping.confirm_button then action='confirm'
+        if button==6 and (r1 or self.r1) then action='close'
+        elseif faces[button]==mapping.confirm_button then action='confirm'
         elseif faces[button]==mapping.cancel_button then action='back'
-        elseif button==6 and r1 then action='close' end
+        end
         if self.mode=='paused' then return true end
         if self.mode=='text' and action~='confirm' and action~='back' and action~='close' then return true end
         if action then

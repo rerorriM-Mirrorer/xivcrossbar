@@ -119,3 +119,35 @@ assert(#sent==before+1 and env_lease.native=='','ordinary native output leaked i
 assert(banks:command({'r1r2','cutscenes','off'}));step();assert(not env_lease.messages)
 character.status=0
 print('Actual root cutscene lease: opt-in message lifetime, restricted context, NPC dispatch and off transition passed.')
+
+-- Actual root Trust lease reader, wrapper-context publication and physical
+-- callback. The old native output queue must remain empty for menu navigation.
+info.server=1;info.chat_open=false;character.id=42;character.status=0;focused=true
+settings.ControllerMessages=true;settings.ControllerProfile='ps5-extended';settings.InputTest=false
+settings.ControllerRealKeys=true;settings.GameplayDPad='ijkl'
+env.windower.windower_path='windower/'
+env.action_binder={is_hidden=true};env.env_chooser={capturing=false,is_showing=function()return false end}
+env.gamepad_mapper={is_showing=false}
+local direct={}
+env.buttonmapping={confirm_button='cross',cancel_button='circle'}
+env.trust_menu=require('libs/controller/trust_menu').new({clock=function()return now end,
+    execute=function(command)direct[#direct+1]=command end})
+env.input_context=function()return env.trust_menu.token and 'trust' or 'gameplay' end
+local callback=assert(source:match('(physical=function%(button,pressed%).-\n    end,)'))
+callback=assert(load('return {'..callback..'}','actual Trust physical callback','t',env))().physical
+env.controller_message_bridge=require('libs/controller/messages').new({session='trust-root-test',clock=function()return now end,
+    wallclock=function()return 100 end,cancel=function()env.trust_menu:reset();banks:cancel()end,
+    capture=function()end,physical=callback,ready=function()banks.active=true end})
+local leasepath='windower/addons/trust/data/controller-menu-1-42.txt'
+files[leasepath]=string.format('trust-menu1\n42\ntrust-root-1\nnavigation\n%.6f\nEND\n',now)
+step();assert(env_context=='trust' and not env_lease.realkeys and env_lease.messages)
+callback(1,true);callback(1,false);callback(5,true);callback(5,false)
+assert(#direct==2 and direct[1]:find(' up$') and direct[2]:find(' confirm$'))
+assert(#banks.output.pending==0,'Trust navigation requested a native key')
+callback(14,true);callback(6,true);callback(6,false);callback(14,false)
+assert(#direct==3 and direct[3]:find(' close$'))
+info.chat_open=true
+files[leasepath]=string.format('trust-menu1\n42\ntrust-root-2\npaused\n%.6f\nEND\n',now)
+step();assert(env_context=='text');callback(1,true);callback(1,false);assert(#direct==3)
+focused=false;step();assert(not env.trust_menu.token and not env_lease.messages)
+print('Actual root Trust integration: character/server lease path, direct physical dispatch, wrapper context, no native output, R1 close and chat/focus guards passed.')

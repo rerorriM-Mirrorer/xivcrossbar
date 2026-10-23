@@ -29,6 +29,9 @@ bridge:edge(2,true,mapping);bridge:edge(2,false,mapping);assert(#commands==befor
 bridge:edge(5,true,mapping);bridge:edge(5,false,mapping);assert(commands[#commands]:find(' confirm$'))
 bridge:edge(7,true,mapping);bridge:edge(7,false,mapping);assert(commands[#commands]:find(' back$'))
 bridge:edge(6,true,mapping,true);bridge:edge(6,false,mapping);assert(commands[#commands]:find(' close$'))
+bridge:edge(14,true,mapping);bridge:update(lease('text-2','text'),42)
+bridge:edge(6,true,mapping);bridge:edge(6,false,mapping);assert(commands[#commands]:find(' close$'),'held R1 lost across a focus change')
+bridge:edge(14,false,mapping)
 bridge:update(lease('pause-1','paused'),42);before=#commands
 for b=1,8 do assert(bridge:edge(b,true,mapping));bridge:edge(b,false,mapping) end
 assert(#commands==before,'paused controller input leaked')
