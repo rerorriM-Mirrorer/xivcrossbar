@@ -13,6 +13,7 @@ function M.new(options)
         self.held={};self.blocked={};self.r1=false
     end
     function self:update(contents,id)
+        if type(contents)=='string' then contents=contents:gsub('\r\n','\n') end
         -- Atomic replacement can leave a brief Windows rename gap. A cached
         -- complete lease is usable only until its original timestamp expires.
         if type(contents)=='string' and #contents<=512

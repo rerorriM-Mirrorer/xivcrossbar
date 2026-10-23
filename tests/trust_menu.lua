@@ -7,6 +7,8 @@ local function lease(token,mode,stamp,id)
     return string.format('trust-menu1\n%d\n%s\n%s\n%.6f\nEND\n',id or 42,token or 'session-1',mode or 'navigation',stamp or now)
 end
 bridge:update(lease(),42)
+bridge:update(lease():gsub('\n','\r\n'),42)
+assert(bridge.token=='session-1','Windows CRLF lease was rejected')
 assert(bridge:edge(1,true,mapping) and #commands==1)
 assert(commands[1]:find('lua c trust __controller session%-1 1 100%.000000 up'))
 assert(bridge:edge(1,true,mapping) and #commands==1,'duplicate physical down repeated')
