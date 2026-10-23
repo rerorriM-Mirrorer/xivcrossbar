@@ -1,6 +1,13 @@
 -- A: logical controller identifiers shared by message and Apps/F-key routes.
 -- The keyboard route gates these with Apps; ordinary keyboard F-keys pass through.
 local M = {down = {}}
+-- Physical messages have stable positions. The setup wizard stores the names
+-- printed on the selected controller, so compare roles in that same vocabulary.
+local face_names = {
+    xbox={cross='a',circle='b',square='x',triangle='y'},
+    gamecube={cross='a',circle='x',square='b',triangle='y'},
+    nintendo={cross='b',circle='a',square='y',triangle='x'},
+}
 M.signals = {
     [59] = {name='D-pad Up', logical=59, arrow='up'},       -- F-key transport
     [60] = {name='D-pad Right', logical=60, arrow='right'}, -- F-key transport
@@ -28,6 +35,10 @@ function M:edge(dik, pressed, context)
     return signal, 'up', owner
 end
 function M:reset() self.down = {} end
+function M:face_name(signal,mapping)
+    local names=face_names[mapping.button_layout]
+    return names and names[signal.button] or signal.button
+end
 function M:gameplay_key(signal, mapping, dpad_mode)
     if signal.arrow then
         if dpad_mode == 'ijkl' then
@@ -35,7 +46,7 @@ function M:gameplay_key(signal, mapping, dpad_mode)
         end
         return signal.arrow
     end
-    local b = signal.button
+    local b = self:face_name(signal,mapping)
     if not b then return nil end
     if b == mapping.confirm_button then return 'enter' end
     if b == mapping.cancel_button then return 'escape' end
@@ -46,7 +57,9 @@ function M:login_key(signal,mapping)
     -- Before character settings are available, use ordinary menu arrows.
     local defaults={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'}
     local selected={}
-    for key,fallback in pairs(defaults) do selected[key]=mapping[key] or fallback end
+    local names=face_names[mapping.button_layout]
+    for key,fallback in pairs(defaults) do selected[key]=mapping[key] or (names and names[fallback] or fallback) end
+    selected.button_layout=mapping.button_layout
     return self:gameplay_key(signal,selected,'arrows')
 end
 return M
