@@ -1,3 +1,9 @@
+Xbox Extended 1: `//xb controller profile xbox 1` selects XInput with the same
+messages, companion banks and release guards as PS5 Extended. Saved Xbox face
+roles now translate correctly in gameplay. Guide replaces touchpad when the
+optional reader is available. Runtime directlink1-xbox1 / Controls 9.15-xbox1.
+[Install and live check](docs/XBOX-EXTENDED-TEST.md). Update Lua and AHK together.
+
 Cutscene Banks 1: `//xb bank <layer> cutscenes on|off` grants cutscene access
 per bank and character (default OFF), while ordinary actions remain guarded in
 the restricted message route. Render traces now stage complete saves before
@@ -748,10 +754,13 @@ across clients sharing a controller.
 | `f710` | Logitech F710 DirectInput | Experimental |
 | `fightpadpro` | FightPadPro DirectInput | Experimental |
 | `xinput` | Xbox-style XInput; Start opens the chooser | Experimental |
+| `xbox` | XInput Extended: messages, LB/RB banks, stick clicks; optional Guide touchpad | Experimental; native acceptance pending |
 | `xinputalt` | XInput; R1 opens the chooser instead of Start | Experimental |
 
-The profile selects how the script reads the controller; the button artwork selection in the setup wizard only selects the labels shown by the addon. The first four profiles are offered in setup;
-`xinputalt` is available through its command.
+The profile selects how the script reads the controller. The setup wizard's
+button layout supplies artwork and the vocabulary for saved face-button roles.
+In this personal build, setup offers Xbox Extended alongside PS5 Extended;
+ordinary `xinput` and `xinputalt` remain available through commands for comparison.
 
 `//xb controller profiles` lists choices.
 `//xb controller status` reports the selected and running profiles.
@@ -1254,3 +1263,20 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   artwork locations remain unchanged. No icon-generation BAT is required.
 - Runtime directlink1-slots-icons1; Controls 9.14-cutscene1 unchanged. Native
   picker verification and remaining icon flicker investigation are pending.
+
+### Xbox Extended 1 — October 23, 2026
+
+- Add `xbox` / `xinput-extended` with the existing acknowledged messages and
+  companion-bank policies. LB/LT and RB/RT reuse the existing four saved banks.
+  Sample shoulders/clicks from the same XInput snapshot, avoiding Joy-number
+  reads from another device. Extended diagonal handling matches PS5's single
+  cardinal policy; legacy XInput profiles retain their previous behavior.
+- Fix gameplay and pre-login role translation after Xbox/Nintendo/GameCube
+  setup. The positional messages now match the names saved by the wizard.
+- Guide replaces touchpad through optional GetStateEx discovery with standard
+  GetState fallback. Details report reader availability. No mute assignment.
+- Include profile/device in message-session identity. Keep existing trigger
+  threshold (>4/255), timer and native key delays; add raw trigger values to
+  opt-in trace state reports. Trigger stickiness is not a confirmed fix here.
+- Runtime directlink1-xbox1 / Controls 9.15-xbox1. Simulated checks pass;
+  Windows/FFXI and Guide delivery remain pending. See the focused test guide.

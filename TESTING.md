@@ -1,3 +1,40 @@
+# Current Development Status — October 23, 2026
+
+- Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting published checkpoint 0c38b9df5dd957d444694727d47b868b5db54f0f / tree 44c1bfb818320095e147714c8eed3ad7fa227d82. Current root AGENTS/WORKFLOW/TESTING reviewed. Master unchanged.
+- Runtime directlink1-xbox1 / Controls 9.15-xbox1. User configured a wired Xbox 360 with native XInput, remapped via //xb remap and selected ordinary xinput. Triggered slots work, menu-opening faces do not behave correctly, some triggers feel sticky. D-pad moves native menus with wrapper running and stops when wrapper stops. That narrows the observed D-pad path; it does not prove Apps transport caused stickiness or exclude native assignments on other buttons. User requests Xbox Guide = PS5 touchpad and no mute function.
+- Proven role defect: setup stores Xbox A/B/X/Y while positional transport signals use Cross/Circle/Square/Triangle. Gameplay translator compared these strings directly, leaving native face roles unmapped; trigger-slot dispatch bypasses that comparison. Translate through the selected layout vocabulary for gameplay/prelogin and diagnostic role captions. Test all four layouts and arbitrary remapped roles; preserve existing positional bindings.
+- Xbox Extended: new xbox / xinput-extended profile enables the existing acknowledged message stream, companion eligibility/visibility, real-IJKL permission and native bank output. Shared profile capability helper replaces PS5-only gates. XInput samples LB/RB, both stick clicks and optional Guide atomically with faces/triggers; PersonalPoll uses those fields instead of reading DirectInput JoyN. LB/LB+LT/RB/RB+RT reuse existing saved banks. Extended D-pad diagonal selection follows the same one-cardinal rule as PS5; legacy profiles retain their prior raw-bit behavior. Profile/device changes create a new receiver identity, preventing cross-hardware hold recovery. Personal setup offers Xbox Extended; public/base setup and defaults remain compatible.
+- Guide maps to touchpad gesture only; no PS focus-toggle/mute mapping. Optional GetProcAddress ordinal 100 follows SDL's GetStateEx discovery, falling back to documented GetState if unavailable. Only that optional reader authorizes Guide's otherwise-reserved bit. Details report entry-point availability, not proof of native delivery; Windows Guide interception and native execution remain untested.
+- Trigger threshold >4/255, polling interval, SendEvent delays, Apps compatibility and existing gesture timings remain unchanged. Opt-in trace state now includes raw LT/RT values and current Controls version. No stickiness cure claimed; next evidence is whether raw released trigger values cross the existing threshold or release routing diverges.
+- Verification: 63 top-level Lua regressions / 145 parsed Lua sources using the documented Lua 5.4 temporary Windower normalization fallback; eight JavaScript suites, AHK structural checks, layout checks and git diff --check. New checks execute actual XInput decoder/personal full poll, layout transport, root receiver/native roles, context publisher/bank mailbox and persistence/status boundaries. No native Windows/AHK/Windower/FFXI execution is available; live acceptance is pending.
+- Delivery: cumulative changed-files patch from Cleanup 1 (28304f4) or newer DirectLink builds, including prior slots/icons and cutscene changes. No user data/config/artwork. Stop wrapper and unload all clients before merge, then load clients and select xbox 1 / messages on on participating characters. Confirm Controls 9.15-xbox1 and active/requested messages. See docs/XBOX-EXTENDED-TEST.md.
+- Open: native Xbox/Guide acceptance and trigger/menu responsiveness; prior icon flicker and Myrr crash cause remain unresolved. The prior slot/icon batch is not newly live-confirmed by the user's controller observations. Next: focused Xbox checks, then paired trace with raw trigger values if sticking remains. No Apps retirement or animation changes in this batch.
+
+---
+
+# Xbox Extended 1 — October 23, 2026
+
+Ideal: changing physical controller preserves the same logical messages and saved
+bank behavior. Audit compared current readers with base upstream XInput and
+Microsoft's documented fields. Existing PS5-only context gates prevented the
+ordinary XInput profile from using messages at all. The new opt-in profile shares
+those policies rather than duplicating the bank logic or changing legacy mode.
+
+The menu-role defect is independently reproducible from the exact Xbox vocabulary
+saved by setup. The fix respects arbitrary remapped roles in all supported layouts.
+No personal settings or action definitions are distributed. Guide support follows
+SDL's optional entry point and reports capability honestly; native delivery and
+possible operating-system interception need a live check.
+
+The first full regression caught a stale setup expectation (personal Xbox reader
+was previously legacy xinput); the test now checks Extended in the personal build
+and unchanged legacy selection in public/base setup. New JS translation tests
+were corrected to preserve AHK named array fields through the mock boundary and
+allow physical keyboard modifier checks while rejecting DirectInput JoyN reads.
+These were fixture issues, not native test results. Previous history follows.
+
+---
+
 # Current Development Status — October 21, 2026
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting checkpoint c6b97c2f827a28df412a8293a4209323c86b3221 / tree af6f25224e96c6db8af0758726be843f354550eb. Current root AGENTS/WORKFLOW/TESTING reviewed; master remains unchanged.
