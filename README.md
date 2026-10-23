@@ -1,3 +1,5 @@
+> Controller menu Test 1 (October 22, 2026): paired direct Trust navigation. See [docs/TRUST-MENU-TEST1.md](docs/TRUST-MENU-TEST1.md) and the current status in [TESTING.md](TESTING.md). Native acceptance pending.
+
 Cutscene Banks 1: `//xb bank <layer> cutscenes on|off` grants cutscene access
 per bank and character (default OFF), while ordinary actions remain guarded in
 the restricted message route. Render traces now stage complete saves before
@@ -1254,3 +1256,8 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   artwork locations remain unchanged. No icon-generation BAT is required.
 - Runtime directlink1-slots-icons1; Controls 9.14-cutscene1 unchanged. Native
   picker verification and remaining icon flicker investigation are pending.
+
+
+### October 22, 2026 — controller menu Test 1
+
+Added paired direct controller navigation for Trust, contextual native-input suppression, session/release guards and status diagnostics. See docs/TRUST-MENU-TEST1.md.

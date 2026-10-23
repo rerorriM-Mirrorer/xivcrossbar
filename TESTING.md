@@ -1,3 +1,13 @@
+# Current Development Status — October 22, 2026 (Trust menu Test 1)
+
+- Repository rerorriM-Mirrorer/xivcrossbar, branch test/trust-menu-20261022. Starting development/directlink checkpoint 0c38b9df5dd957d444694727d47b868b5db54f0f; published runtime source d85bb136259acb2678bb645b02b72f85ab88dd4a. Runtime directlink1-trustmenu1; shared Controls 9.15-trustmenu1. Paired Trust source bbe08c310016cd2ca40e44de6d64045160220cb3 on test/controller-menu-20261022. Master, snapshots and ongoing development/directlink remain unchanged.
+- Added Trust ownership to the existing physical message pipeline. A fresh server/character-specific Trust lease routes D-pad and configured Confirm/Back directly to Trust; R1+Square requests validated Close All. Press ownership survives close/focus transitions, repeats are bounded, old leases/actions expire, and text/chat contexts suppress unwanted directions. AHK Trust context forwards physical buttons while suppressing ordinary native IJKL/touch/stick-click shortcuts. The former native-key navigation route remains for installations without this paired adapter.
+- Verification: all 63 top-level Lua regression scripts passed; 146 Lua sources parsed with temporary Windower quoted-string normalization / Lua 5.4 fallback. Seven JavaScript AHK suites passed, including actual full-poll Trust forwarding/neutral arming/no-native-output checks. AHK structural and canonical layout checks passed. New actual-root test exercises the lease path, physical callback, wrapper context, disabled real IJKL, direct commands, R1 close and chat/focus guards. Trust's seven menu suites also passed with mocks. These are simulated/source checks; no Windows/AHK/Windower/FFXI run claimed.
+- Delivery: paired cumulative Trust full runtime + xivcrossbar code-only ZIP. Compatible with installed DirectLink Cleanup 1 or newer; retains installed artwork and all user data/bindings. Both Lua addons and the shared AHK wrapper need updating/restarting. See docs/TRUST-MENU-TEST1.md for single-client-first checks and rollback.
+- Latest user-confirmed behavior remains prior more responsive controller/L1 banks and usable Blood Pact chooser. Trust navigation, current slots/icons fixes, live latency/held-release behavior and prior native crash/flicker investigations remain pending; no new live result inferred. Next: test direct Trust navigation before additional mapping/menu changes.
+
+---
+
 # Current Development Status — October 21, 2026
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting checkpoint c6b97c2f827a28df412a8293a4209323c86b3221 / tree af6f25224e96c6db8af0758726be843f354550eb. Current root AGENTS/WORKFLOW/TESTING reviewed; master remains unchanged.
