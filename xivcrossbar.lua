@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261021.directlink1-slots-icons1'
+_addon.version = '0.4.0-a.20261022.directlink1-trustmenu1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -103,6 +103,7 @@ local publish_personal_context
 local controller_message_bridge
 local message_capture, message_button, message_cancel, message_menu
 local companion_banks,companion_context
+local trust_menu
 local message_epoch=0
 local visibility = require('libs/visibility')
 local storage = require('libs/storage')
@@ -166,7 +167,10 @@ controller_message_bridge=require('libs/controller/messages').new({session=requi
     capture=function(pressed) if message_capture then message_capture(pressed) end end,
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
     menu=function(button) if message_menu then message_menu(button) end end,
-    physical=function(button,pressed) companion_banks:edge(button,pressed) end,
+    physical=function(button,pressed)
+        if trust_menu and trust_menu:edge(button,pressed,buttonmapping,companion_banks.down[14]) then return end
+        companion_banks:edge(button,pressed)
+    end,
     can_recover=function() return companion_context and companion_context() end,
     resume=function(button)
         if companion_context and companion_context() then companion_banks:resume(button) end
@@ -174,6 +178,12 @@ controller_message_bridge=require('libs/controller/messages').new({session=requi
     ready=function() companion_banks.active=true end,
     key_ack=function(ack) companion_banks.output:accept(ack) end,
     cancel=function() if message_cancel then message_cancel() end end})
+trust_menu=require('libs/controller/trust_menu').new({clock=l1_clock,
+    execute=function(command) windower.send_command(command) end,
+    changed=function()
+        companion_banks:cancel()
+        if release_gameplay_keys then release_gameplay_keys() end
+    end})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui/drag').new({
     enabled=function() return l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
@@ -427,6 +437,7 @@ local function report_controller_status(details,embedded)
         hide_hint=embedded,lua_trace=input_timing.active,pending=controller_switcher and controller_switcher.pending and controller_switcher.pending.phase,
         mismatch=status and status.running and not controller_profiles.matches(status,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)},details)
     for _,line in ipairs(lines) do windower.add_to_chat(0,line) end
+    if trust_menu then windower.add_to_chat(0,'[XIVCrossbar] Trust menu: '..trust_menu.mode..' | direct actions sent: '..trust_menu.sent) end
 end
 function start_controller_wrappers(profile, device, modifier)
     profile = profile or settings.ControllerProfile
@@ -1294,6 +1305,7 @@ windower.register_event('unload',function()
     if client_registry then client_registry:close(settings.on_unload_killahk) end
     ui.autoattack:set_enabled(false)
     personal_controls:close()
+    if trust_menu then trust_menu:cancel() end
     controller_message_bridge:reset()
     l1_drag:finish();r1_drag:finish();l1_bridge:reset();l1_view:destroy();r1_view:destroy()
     controller_switcher:cancel()
@@ -2003,6 +2015,7 @@ local function input_context()
     if env_chooser:is_showing() then return 'sets' end
     if action_binder:is_capturing_text() then return 'text' end
     if not action_binder.is_hidden then return 'menu:' .. tostring(action_binder.state) end
+    if trust_menu and trust_menu.token then return 'trust' end
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
@@ -2097,6 +2110,7 @@ message_menu = function(button)
 end
 
 message_cancel = function()
+    if trust_menu then trust_menu:reset() end
     input_timing:record("router cancel")
     if companion_banks then companion_banks:cancel();companion_banks.active=false end
     local chooser_held=set_chooser_button_down or action_binder.chooser_active
@@ -2113,6 +2127,21 @@ message_cancel = function()
 end
 
 publish_personal_context = function()
+    -- Trust's lease is read only for this character in this focused client.
+    -- The receiver validates freshness again when the queued action arrives.
+    if trust_menu then
+        local character=windower.ffxi.get_player()
+        local eligible=character and windower.has_focus() and xivcrossbar.ready and not restart_pending
+            and settings.ControllerProfile=='ps5-extended' and settings.ControllerMessages and not settings.InputTest
+            and action_binder.is_hidden and not env_chooser:is_showing() and not env_chooser.capturing
+            and not gamepad_mapper.is_showing
+        local contents
+        if eligible then
+            local f=io.open(windower.windower_path..'addons/trust/data/controller-menu-'..tostring(windower.ffxi.get_info().server)..'-'..character.id..'.txt','rb')
+            if f then contents=f:read(513);f:close() end
+        end
+        trust_menu:update(contents,eligible and character.id or -1)
+    end
     input_timing:tick(input_context())
     if input_timing.active then trace_controller_state(input_context()) end
     if companion_banks then companion_banks:refresh() end
@@ -2161,6 +2190,7 @@ publish_personal_context = function()
             end
         end
     end
+    if trust_menu and controller_message_bridge.token then trust_menu:tick() end
     context=(restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
     if info.chat_open then context='text' end
     if character and character.status==4 and (context=='gameplay' or context=='crossbar') then context='cutscene' end
@@ -2176,7 +2206,7 @@ publish_personal_context = function()
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
-            realkeys=require('libs/controller/realkeys').enabled(settings,controller_message_bridge.token),
+            realkeys=not (trust_menu and trust_menu.token) and require('libs/controller/realkeys').enabled(settings,controller_message_bridge.token),
             r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
             banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack,

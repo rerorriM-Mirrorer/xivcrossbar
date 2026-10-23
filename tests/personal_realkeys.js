@@ -156,3 +156,16 @@ ctx.PC.keys['vkBCsc033']=1;ctx.PC.keys['vkBEsc034']=1;
 poll();assert(!ctx.PC.keys.HasKey('vkBCsc033')&&!ctx.PC.keys.HasKey('vkBEsc034'));
 ctx.mode='gameplay';
 console.log('Actual AHK scene transition also releases previously held stick-click keys.');
+
+// Trust owns logical menu actions. Forward physical edges to Lua while
+// suppressing native IJKL, stick-click and touch shortcuts in the wrapper.
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:true,ready:false});
+ctx.mode='trust';poll();assert(ctx.PC.ready,'Trust menu failed neutral arming');
+const trustStates=poll({r1:true,1:true,5:true,l3:true,touch:true});
+assert(trustStates[14]&&trustStates[1]&&trustStates[5]);
+assert.equal(emitted.length,0);assert.equal(messages.length,0);
+assert.equal(ctx.PC.touch.phase,'cancelled');assert.equal(ctx.PC.clicks.phase,'cancelled');
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:false,ready:false});
+poll();assert(!ctx.PC.ready,'Trust context armed without negotiated banks');
+ctx.mode='gameplay';
+console.log('Actual AHK Trust full poll: neutral arming, physical navigation forwarding and native shortcut suppression passed.');
