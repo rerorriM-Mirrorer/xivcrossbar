@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261021.directlink1-slots-icons1'
+_addon.version = '0.4.0-a.20261023.directlink1-xbox1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2009,7 +2009,7 @@ end
 companion_context=function()
     local info=windower.ffxi.get_info();local character=windower.ffxi.get_player();local context=input_context()
     local cutscene=character~=nil and character.status==4
-    return not restart_pending and xivcrossbar.ready and settings.ControllerProfile=='ps5-extended'
+    return not restart_pending and xivcrossbar.ready and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and settings.ControllerMessages and not settings.InputTest and windower.has_focus() and info.logged_in
         and not info.chat_open and character~=nil and (not cutscene or (companion_banks and companion_banks:cutscene_enabled()))
         and (context=='gameplay' or context=='crossbar'),info.menu_open==true,cutscene
@@ -2042,8 +2042,8 @@ message_button = function(dik,pressed,flags,blocked)
     if edge == 'repeat' then return true end
     if settings.InputTrace then
         local role = item.name
-        if item.button == buttonmapping.confirm_button then role = role .. ' / Confirm' end
-        if item.button == buttonmapping.cancel_button then role = role .. ' / Back' end
+        if transport:face_name(item,buttonmapping) == buttonmapping.confirm_button then role = role .. ' / Confirm' end
+        if transport:face_name(item,buttonmapping) == buttonmapping.cancel_button then role = role .. ' / Back' end
         windower.add_to_chat(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
     end
     if gameplay_down[dik] and not pressed then
@@ -2084,7 +2084,7 @@ end
 -- A: two deliberate personal commands share the acknowledged button stream.
 -- Trust owns its own menu/editor policy; native FFXI menus may remain open.
 message_menu = function(button)
-    if restart_pending or not xivcrossbar.ready or settings.ControllerProfile~='ps5-extended'
+    if restart_pending or not xivcrossbar.ready or not require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         or not settings.ControllerMessages or settings.InputTest or not windower.has_focus()
         or input_context()~='gameplay' then return false end
     local info=windower.ffxi.get_info()
@@ -2116,7 +2116,7 @@ publish_personal_context = function()
     input_timing:tick(input_context())
     if input_timing.active then trace_controller_state(input_context()) end
     if companion_banks then companion_banks:refresh() end
-    if settings.ControllerProfile~='ps5-extended' or not windower.ffxi.get_info().logged_in then
+    if not require('libs/controller/profiles').is_extended(settings.ControllerProfile) or not windower.ffxi.get_info().logged_in then
         l1_bridge:reset();controller_message_bridge:reset();personal_controls:close();return
     end
     local context = (restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
@@ -2144,7 +2144,8 @@ publish_personal_context = function()
     end
     local message_enabled=settings.ControllerMessages==true and xivcrossbar.ready and not restart_pending
         and windower.has_focus() and character and (character.status~=4 or (companion_banks and companion_banks:cutscene_enabled()))
-    local message_key=table.concat({player.server or '',player.name or '',tostring(message_epoch)},':')
+    local message_key=table.concat({player.server or '',player.name or '',settings.ControllerProfile,
+        tostring(settings.ControllerDevice or 1),tostring(message_epoch)},':')
     controller_message_bridge:context(message_key,message_enabled)
     if controller_message_bridge.token then
         -- Check the heartbeat before accepting a replacement file. A recovered
@@ -2291,7 +2292,7 @@ windower.register_event('prerender',function()
     publish_personal_context()
     local l1_info=windower.ffxi.get_info()
     local l1_character=windower.ffxi.get_player()
-    local l1_display=xivcrossbar.ready and not restart_pending and settings.ControllerProfile=='ps5-extended'
+    local l1_display=xivcrossbar.ready and not restart_pending and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and action_binder.is_hidden and not env_chooser:is_showing() and not gamepad_mapper.is_showing
         and l1_character and (l1_character.status~=4 or (companion_banks and companion_banks:cutscene_enabled())) and not l1_info.chat_open
     local viewport=windower.get_windower_settings()

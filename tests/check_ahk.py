@@ -30,7 +30,7 @@ assert set(includes)=={'personal_controls.ahk','personal_gestures.ahk','controll
 for name in includes:assert (root/name).is_file()
 assert wrapper.index('instanceMutex := AcquireWrapperMutex()')<wrapper.index('OnExit, TransportExit')
 controls=sources[root/'personal_controls.ahk']
-assert 'enabled:selected = "ps5-extended"' in controls
+assert 'enabled:(selected = "ps5-extended" or selected = "xinput-extended")' in controls
 assert not any(x in controls for x in ['JoyR','raw.zoom','nextZoom','zoomArmed'])
 assert 'PersonalR1Menus(raw, mode, now)' in controls
 # The old R1 helper must not fall back to the Trust keyboard binding. The new

@@ -23,7 +23,7 @@ function M.command(settings,source,mode,save,say)
         save()
     end
     say('F8 trials: R2='..(settings.ControllerTargetR2 and 'on' or 'off')..
-        ', R3='..(settings.ControllerTargetR3 and 'on' or 'off')..'. PS5 Extended; fresh unmodified gameplay presses only.')
+        ', R3='..(settings.ControllerTargetR3 and 'on' or 'off')..'. Extended profiles (x / xbox); fresh unmodified gameplay presses only.')
     return mode and true or nil
 end
 return M

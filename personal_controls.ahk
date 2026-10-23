@@ -1,8 +1,9 @@
-; A: isolated, optional PS5 personal controls. No output in ordinary profiles.
+; A: optional extended controls. PS5 and Xbox share ownership/gesture handling.
 ; This include owns its keys; ordinary button transport stays in the wrapper.
 PersonalInit(selected, prefix) {
     global PC
-    PC := {enabled:selected = "ps5-extended", prefix:prefix, owner:0, ready:false
+    PC := {enabled:(selected = "ps5-extended" or selected = "xinput-extended")
+        , xinput:selected = "xinput-extended", prefix:prefix, owner:0, ready:false
         , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
         , touch:{phase:"idle"}, clicks:{phase:"idle"}, r1:{phase:"idle"}
         , layer:{phase:"idle"}, layerVisible:""
@@ -30,8 +31,11 @@ PersonalPoll(states, active) {
     raw := []
     for i, value in states
         raw[i] := value
-    for name, button in {l1:5, r1:6, l3:11, r3:12, ps:13, touch:14, mute:15}
-        raw[name] := GetKeyState(PC.prefix . "Joy" . button) ? true : false
+    ; XInput named buttons are sampled atomically with faces/triggers. Reading
+    ; JoyN here could mix in another attached controller or the wrong numbering.
+    if (!PC.xinput)
+        for name, button in {l1:5, r1:6, l3:11, r3:12, ps:13, touch:14, mute:15}
+            raw[name] := GetKeyState(PC.prefix . "Joy" . button) ? true : false
     now := DllCall("GetTickCount64", "UInt64")
     if (!PC.connected) {
         PC.connected := true, PC.previous := raw

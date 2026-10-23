@@ -23,7 +23,7 @@ function M.controller(o,details)
     lines[#lines+1]=M.heading('XIVCrossbar | Controller')
     add('Controls',s.running and (s.personal_version or 'unmarked wrapper') or 'No fresh wrapper status')
     add('State',s.running and ((s.state or 'unknown')..' | connected '..M.toggle(s.connected)) or 'Stopped, starting, or status unavailable')
-    local requested=settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' and 'messages' or 'keys'
+    local requested=settings.ControllerMessages and require('libs/controller/profiles').is_extended(settings.ControllerProfile) and 'messages' or 'keys'
     add('Selected',settings.ControllerProfile..' | device '..tostring(settings.ControllerDevice))
     add('Route','active '..(s.running and (s.button_route or 'keys') or 'unknown')..' | requested '..requested)
     if s.running and (s.profile~=settings.ControllerProfile or tostring(s.device)~=tostring(settings.ControllerDevice)) then
@@ -33,7 +33,7 @@ function M.controller(o,details)
     add('Trace','AHK '..M.toggle(s.input_trace)..' | Lua '..M.toggle(o.lua_trace))
     if o.pending then add('Profile change',o.pending) end
     local missing={}
-    if s.running and settings.ControllerMessages and settings.ControllerProfile=='ps5-extended' then
+    if s.running and settings.ControllerMessages and require('libs/controller/profiles').is_extended(settings.ControllerProfile) then
         for _,item in ipairs({{'button_protocol','messages'},{'bank_protocol','banks'},
             {'hold_recovery_protocol','hold recovery'},{'r1_menu_protocol','Trust menu'}}) do
             if s[item[1]]~='1' then missing[#missing+1]=item[2] end
@@ -55,6 +55,9 @@ function M.controller(o,details)
         add('Errors','transport write '..(s.button_error or '?')..' | trace write '..(s.trace_error or '?'))
         add('F8 trials','configured R2 / R3 '..M.toggle(settings.ControllerTargetR2)..' / '..M.toggle(settings.ControllerTargetR3)..' | wrapper '..M.toggle(s.target_r2)..' / '..M.toggle(s.target_r3))
         add('Other controls','PS '..(s.ps_action or s.ps_hold or 'unknown')..' | Ctrl / Alt pairs '..(s.ctrl_pair or '?')..' / '..(s.alt_pair or '?'))
+        if settings.ControllerProfile=='xinput-extended' then
+            add('Xbox Guide','touchpad '..(s.guide_touchpad or 'unknown')..' | LT / RT threshold >4 of 255')
+        end
         add('Launch source',s.origin or 'unknown')
     elseif not o.hide_hint then lines[#lines+1]=M.notice('More: //xb controller status details') end
     return lines

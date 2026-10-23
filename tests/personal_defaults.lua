@@ -34,9 +34,10 @@ mapper.hide_text=function() end;mapper.hide_images=function() end;mapper.create_
 mapper.profile_options={default_profile=defaults.ControllerProfile}
 mapper:display_profile_selector()
 assert(mapper.profile_buttons[1].id=='ps5-extended')
-assert(mapper.profile_buttons[2].id=='xinput')
+assert(mapper.profile_buttons[2].id=='xinput-extended')
 mapper.profile_options.default_profile='ps5-directinput'
 mapper:display_profile_selector()
 assert(mapper.profile_buttons[1].id=='ps5-directinput','public selection changed or old ID retained')
+assert(mapper.profile_buttons[2].id=='xinput','public Xbox selection changed')
 print('Fresh personal defaults, persistent shutdown preference and private/public setup choices passed.')
 

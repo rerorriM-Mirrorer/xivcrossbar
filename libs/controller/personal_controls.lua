@@ -17,7 +17,7 @@ function M.new(options)
         self.path,self.mode,self.next_write,self.payload=nil,nil,nil,nil
     end
     function self:update(directory,name,profile,mode,l1)
-        if profile~='ps5-extended' or type(name)~='string' or not name:match('^%a+$') then
+        if not require('libs/controller/profiles').is_extended(profile) or type(name)~='string' or not name:match('^%a+$') then
             self:close();return false
         end
         local path=directory..name..'.ini'

@@ -41,4 +41,9 @@ assert(not files[path] and not files[path..'.tmp'])
 files['data/Test.l1']='stale';files['data/Test.buttons']='stale';files['data/Test.buttons.tmp']='partial'
 lease:close();assert(not files['data/Test.l1'] and not files['data/Test.buttons'] and not files['data/Test.buttons.tmp'])
 assert(not lease:update('data/','../Bad','ps5-extended','gameplay'))
+fail=false
+assert(lease:update('data/','Test','xinput-extended','gameplay',{messages=true,banks=true}))
+assert(files[path]:find('button_mode=messages',1,true) and files[path]:find('bank_protocol=1',1,true))
+assert(not lease:update('data/','Test','xinput','gameplay',{messages=true,banks=true}))
+assert(not files[path],'ordinary XInput retained an extended lease')
 print('Personal lease: complete publication, immediate ack updates, write throttling, failed-swap safety and mailbox cleanup passed.')

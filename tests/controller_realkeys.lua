@@ -11,6 +11,8 @@ for key,value in pairs({ControllerProfile='ps5-directinput',ControllerMessages=f
     local old=s[key];s[key]=value;assert(not m.enabled(s,'session'),key);s[key]=old
 end
 assert(not m.enabled(s,nil))
+s.ControllerProfile='xinput-extended';assert(m.enabled(s,'session'))
+s.ControllerProfile='ps5-extended'
 assert(command() and not s.ControllerRealKeys and saves==2)
 assert(not command('off') and saves==2)
 assert(command('ON') and command('off') and saves==4)

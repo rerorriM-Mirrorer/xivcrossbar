@@ -1,6 +1,6 @@
 -- A: hardware selection is separate from button artwork and Lua menu routing.
 local M = {}
-M.order = {'ps5-directinput', 'f710-directinput', 'fightpadpro-directinput', 'xinput', 'xinput-r1-chooser'}
+M.order = {'ps5-directinput', 'f710-directinput', 'fightpadpro-directinput', 'xinput', 'xinput-extended', 'xinput-r1-chooser'}
 M.profiles = {
     -- Personal experiment: intentionally absent from M.order and the wizard.
     ['ps5-extended'] = {backend='directinput', label='PS5 Extended (personal)', experimental=true, hidden=true},
@@ -8,11 +8,15 @@ M.profiles = {
     ['f710-directinput'] = {backend='directinput', label='F710 DirectInput', experimental=true},
     ['fightpadpro-directinput'] = {backend='directinput', label='FightPadPro DirectInput', experimental=true},
     ['xinput'] = {backend='xinput', label='XInput', experimental=true},
+    ['xinput-extended'] = {backend='xinput', label='Xbox Extended (messages/banks)', experimental=true},
     ['xinput-r1-chooser'] = {backend='xinput', label='XInput R1 chooser', experimental=true},
 }
 M.aliases = {ps5='ps5-directinput', f710='f710-directinput',
     fightpadpro='fightpadpro-directinput', xinput='xinput', xinputalt='xinput-r1-chooser',
-    ps5extended='ps5-extended', x='ps5-extended'}
+    ps5extended='ps5-extended', x='ps5-extended', xbox='xinput-extended'}
+function M.is_extended(name)
+    return name=='ps5-extended' or name=='xinput-extended'
+end
 function M.short_name(name)
     if name=='ps5-extended' then return 'x' end
     for short, canonical in pairs(M.aliases) do if canonical == name then return short end end

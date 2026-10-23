@@ -2,7 +2,7 @@
 -- those physical directions from DirectLink, avoiding duplicate Lua setkey.
 local M={}
 function M.enabled(settings,token)
-    return settings.ControllerRealKeys==true and settings.ControllerProfile=='ps5-extended'
+    return settings.ControllerRealKeys==true and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and settings.ControllerMessages==true and settings.GameplayDPad=='ijkl'
         and settings.InputTest~=true and token~=nil
 end
@@ -16,7 +16,7 @@ function M.command(settings,mode,save,say)
     local changed=value~=(settings.ControllerRealKeys==true)
     if changed then settings.ControllerRealKeys=value;save() end
     say('Real IJKL '..(value and 'ON' or 'OFF')..
-        '. Requires updated AHK, profile x, messages on, dpad ijkl and inputtest off. Return to neutral; controller status reports permission, not a held key.')
+        '. Requires updated AHK, profile x or xbox, messages on, dpad ijkl and inputtest off. Return to neutral; controller status reports permission, not a held key.')
     return changed
 end
 return M

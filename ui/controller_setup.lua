@@ -229,6 +229,7 @@ function gamepad_mapper:display_profile_selector(message)
     -- ordinary PS5 during setup. Public builds retain the original choices.
     if self.profile_options and self.profile_options.default_profile == 'ps5-extended' then
         options[1] = {id='ps5-extended', label='PS5 Extended - personal default'}
+        options[2] = {id='xinput-extended', label='Xbox Extended - messages / banks'}
     end
     local width = (self.width - 96) / 2
     for i, option in ipairs(options) do

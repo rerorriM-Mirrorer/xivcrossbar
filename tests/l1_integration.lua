@@ -119,3 +119,14 @@ assert(#sent==before+1 and env_lease.native=='','ordinary native output leaked i
 assert(banks:command({'r1r2','cutscenes','off'}));step();assert(not env_lease.messages)
 character.status=0
 print('Actual root cutscene lease: opt-in message lifetime, restricted context, NPC dispatch and off transition passed.')
+local previous_token=messages.token
+settings.ControllerProfile='xinput-extended';settings.ControllerRealKeys=true
+settings.GameplayDPad='ijkl';step()
+assert(env_lease.messages and env_lease.banks and env_lease.realkeys,'Xbox Extended did not negotiate the full stream')
+assert(messages.token~=previous_token,'profile change reused old hardware session')
+buttons('1,banks,0\n2,down,14\n3,down,8\n4,up,8\n5,up,14\n',200)
+assert(sent[#sent]=='trust menu open','Xbox Extended bank failed through actual root publisher/receiver')
+previous_token=messages.token;settings.ControllerDevice=2;step()
+assert(messages.token~=previous_token,'device change reused old hardware session')
+settings.ControllerProfile='xinput';step()
+assert(messages.token==nil,'ordinary XInput retained message receiver')

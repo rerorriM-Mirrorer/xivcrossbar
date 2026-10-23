@@ -1,6 +1,6 @@
 #Requires AutoHotkey v1.1.33+
 ; A: shared controller transport; physical readers are selected at startup.
-; Ordinary profiles use Apps/F1-F12; the extended profile can use messages.
+; Ordinary profiles use Apps/F1-F12; extended PS5/Xbox profiles can use messages.
 #SingleInstance ignore
 #Persistent
 ; A: physical modifier checks must distinguish our injected key-down.
@@ -36,13 +36,14 @@ if (profileArgument = "") {
 }
 profile := profileArgument != "" ? profileArgument : "ps5-directinput"
 device := deviceArgument != "" ? deviceArgument + 0 : 1
-isXInput := (profile = "xinput" or profile = "xinput-r1-chooser")
+isXInput := (profile = "xinput" or profile = "xinput-r1-chooser" or profile = "xinput-extended")
 validProfile := isXInput or profile = "ps5-directinput" or profile = "ps5-extended" or profile = "f710-directinput" or profile = "fightpadpro-directinput"
 if (!validProfile or device < 1 or device > (isXInput ? 4 : 16) or Mod(device, 1))
     ExitApp
 joystickPrefix := device = 1 ? "" : device
 xinputLibrary := 0
 xinputGetState := 0
+xinputGuide := false
 xinputFault := false
 connected := false
 phase := "starting"
@@ -240,7 +241,7 @@ ReleaseTransport(preservePersonal := false) {
 
 ; A: read hardware only. Output, focus cleanup and rearming remain shared.
 ReadTransportStates() {
-    global isXInput, profile, device, joystickPrefix, joys, xinputGetState, povDirection
+    global isXInput, profile, device, joystickPrefix, joys, xinputGetState, xinputGuide, povDirection
     if (!isXInput) {
         if (GetKeyState(joystickPrefix . "JoyName") = "")
             return false
@@ -270,6 +271,17 @@ ReadTransportStates() {
     if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", &state, "UInt") != 0)
         return false
     buttons := NumGet(state, 4, "UShort")
+    global IT
+    IT.triggers := NumGet(state, 6, "UChar") . "/" . NumGet(state, 7, "UChar")
+    return XInputStates(buttons, NumGet(state, 6, "UChar"), NumGet(state, 7, "UChar")
+        , NumGet(state, 8, "Short") / 32768, NumGet(state, 10, "Short") / 32768
+        , profile = "xinput-extended", xinputGuide)
+}
+
+; A: all extended hardware feeds the same positional messages and bank router.
+; Keep the ordinary XInput profiles' legacy behavior for comparison.
+XInputStates(buttons, leftTrigger, rightTrigger, moveX, moveY, extended, guide) {
+    global profile, povDirection
     ; Logical order: Up, Right, Down, Left, bottom, left, right, top, Back, chooser.
     flags := [0x0001, 0x0008, 0x0002, 0x0004, 0x1000, 0x4000, 0x2000, 0x8000, 0x0020]
     flags.Push(profile = "xinput-r1-chooser" ? 0x0200 : 0x0010)
@@ -277,23 +289,44 @@ ReadTransportStates() {
     for i, flag in flags
         states[i] := (buttons & flag) ? true : false
     ; Match upstream's threshold; neither trigger is derived from the other.
-    states[11] := NumGet(state, 6, "UChar") > 4
-    states[12] := NumGet(state, 7, "UChar") > 4
-    states.moveX := NumGet(state, 8, "Short") / 32768
-    states.moveY := NumGet(state, 10, "Short") / 32768
+    states[11] := leftTrigger > 4
+    states[12] := rightTrigger > 4
+    states.moveX := moveX
+    states.moveY := moveY
+    if (extended) {
+        ; Use the same one-cardinal diagonal policy as PS5 Extended. Opposite
+        ; directions/invalid hats are neutral; ordinary XInput is untouched.
+        angles := {1:0, 9:4500, 8:9000, 10:13500, 2:18000, 6:22500, 4:27000, 5:31500}
+        hat := buttons & 0x000F
+        pov := angles.HasKey(hat) ? angles[hat] : -1
+        povDirection := PersonalPovDirection(pov, povDirection)
+        Loop, 4
+            states[A_Index] := povDirection = A_Index
+        states.l1 := (buttons & 0x0100) != 0
+        states.r1 := (buttons & 0x0200) != 0
+        states.l3 := (buttons & 0x0040) != 0
+        states.r3 := (buttons & 0x0080) != 0
+        ; Guide deliberately replaces touchpad, not the PS focus-toggle button.
+        states.touch := guide and (buttons & 0x0400) != 0
+        states.ps := false, states.mute := false
+    }
     return states
 }
 
 InitXInput() {
-    global xinputLibrary, xinputGetState
+    global xinputLibrary, xinputGetState, xinputGuide, profile
     for _, dll in ["xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll"] {
         library := DllCall("LoadLibrary", "Str", dll, "Ptr")
         if (!library)
             continue
         address := DllCall("GetProcAddress", "Ptr", library, "AStr", "XInputGetState", "Ptr")
         if (address) {
+            ; SDL uses ordinal 100 (GetStateEx) for Guide. It is optional and
+            ; undocumented; absent support falls back to standard GetState.
+            extendedAddress := profile = "xinput-extended" ? DllCall("GetProcAddress", "Ptr", library, "Ptr", 100, "Ptr") : 0
+            xinputGuide := extendedAddress != 0
             xinputLibrary := library
-            xinputGetState := address
+            xinputGetState := extendedAddress ? extendedAddress : address
             return true
         }
         DllCall("FreeLibrary", "Ptr", library)
@@ -312,9 +345,9 @@ WriteTransportStatus(force := false) {
     modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
     contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
-    global PC
+    global PC, xinputGuide
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.14-cutscene1`nhold_recovery_protocol=1`nps_action=focus-toggle`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.15-xbox1`nhold_recovery_protocol=1`nps_action=" . (PC.xinput ? "none" : "focus-toggle") . "`nguide_touchpad=" . (PC.xinput ? (xinputGuide ? "available" : "unavailable") : "not-applicable") . "`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
             . "target_r2=" . PC.targetR2 . "`ntarget_r3=" . PC.targetR3 . "`ncontext_pauses=" . PC.contextPauses . "`n"
             . "realkeys_protocol=1`ndpad_output=" . (PC.realDpad ? "ahk" : "lua") . "`n"
             . "r1_menu_protocol=1`nr1_menus=" . PC.r1Menus . "`n"
@@ -339,7 +372,7 @@ WriteTransportStatus(force := false) {
 InputTraceInit() {
     global IT
     IT := {enabled:false, deadline:0, nextRequest:0, buffer:"", signature:"", previous:0
-        , gapMax:0, pollMax:0, readMax:0, personalMax:0, misses:0, error:false, pov:""}
+        , gapMax:0, pollMax:0, readMax:0, personalMax:0, misses:0, error:false, pov:"", triggers:""}
 }
 
 InputTraceStart(now) {
@@ -367,7 +400,7 @@ InputTraceStart(now) {
     if (request = "on") {
         InputTraceClose()
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
-        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.14-cutscene1")
+        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.15-xbox1")
         InputTraceRecord("runtime ahk=" . A_AhkVersion . " batch_lines=" . A_BatchLines
             . " key_delay=" . A_KeyDelay . " key_duration=" . A_KeyDuration . " requested_timer_ms=10")
     } else if (request = "off") {
@@ -394,7 +427,7 @@ InputTraceObserve(raw, routed, active, readMs, personalMs) {
     if (!IT.enabled)
         return
     signature := "hwnd=" . active . " raw=" . raw . " routed=" . InputTraceMask(routed)
-        . " pov=" . IT.pov . " apps=" . appsOwned . " base_ready=" . ready
+        . " pov=" . IT.pov . " triggers=" . IT.triggers . " apps=" . appsOwned . " base_ready=" . ready
         . " context=" . PC.context . " personal_ready=" . PC.ready
         . " route=" . CM.phase . " messages_requested=" . CM.requested
     if (PC.enabled)

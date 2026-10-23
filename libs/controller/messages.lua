@@ -12,7 +12,7 @@ function M.command(settings,mode,save,say)
         save()
     end
     say('Controller messages '..(settings.ControllerMessages and 'ON' or 'OFF')..
-        '. PS5 Extended; return controls to neutral for handoff.')
+        '. Extended profiles (x / xbox); return controls to neutral for handoff.')
     return mode~='status'
 end
 function M.new(options)

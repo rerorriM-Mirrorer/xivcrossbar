@@ -191,3 +191,13 @@ info.chat_open=true;assert(not env.companion_context());info.chat_open=false
 assert(banks:command({'r1','cutscenes','off'}));assert(not env.companion_context())
 character.status=0
 print('Actual root cutscene guard: default-off, opted-in bank command, blocked ordinary bar and chat/off guards passed.')
+env.settings.ControllerProfile='xinput-extended'
+env.buttonmapping={button_layout='xbox',confirm_button='a',cancel_button='b',mainmenu_button='y',activewindow_button='x'}
+for button,key in pairs({[5]='enter',[6]='numpad+',[7]='escape',[8]='numpad-'}) do
+    new_session();send('down,'..button,'up,'..button)
+    assert(commands[1]=='setkey '..key..' down' and commands[2]=='setkey '..key..' up','Xbox role failed through root receiver')
+end
+new_session();send('down,11','down,5','up,5','up,11')
+assert(#actions==1 and actions[1].bar==1 and #commands==0,'Xbox trigger slot failed')
+assert(env.companion_context(),'Xbox companion context disabled')
+print('Actual Xbox root receiver: remapped native face roles, release pairs, trigger slot and companion eligibility passed.')

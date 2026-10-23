@@ -43,4 +43,6 @@ blocked(function()binder.is_hidden=false end,function()binder.is_hidden=true end
 blocked(function()chooser.capturing=true end,function()chooser.capturing=false end)
 info.menu_open=true;assert(env.message_menu(6) and env.message_menu(8),'native menu blocked Trust command')
 assert(not env.message_menu(5),'arbitrary command/button accepted')
+env.settings.ControllerProfile='xinput-extended'
+assert(env.message_menu(8) and env.message_menu(6),'Xbox Extended menu route rejected')
 print('Actual R1 Lua/receiver: direct open/close, ack dedup, cancel preemption, atomic validation, native menu allowance and chat/editor/trigger/focus/login/cutscene guards passed.')
