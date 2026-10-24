@@ -54,21 +54,22 @@ scan=scan.replace(/^\s*global .*$/gm,'').replace(/;[^\n]*/g,'')
  .replace(/Loop, Files, %pattern%, F\s*\{/g,'for (const A_LoopFileFullPath of paths) {')
  .replace(/FileRead, contents, %path%/g,'contents:=readRecord(path)');
 scan=scan.replace(/"(?:[^"]|"")*"|[^"\n]+/g,t=>t.startsWith('"')?JSON.stringify(t.slice(1,-1)):t
- .replace(/ \. /g,' + ').replace(/:=/g,'@ASSIGN@').replace(/(?<![<>!:=+])=(?!=)/g,'===')
+ .replace(/ \. /g,' + ').replace(/\.=/g,'+=').replace(/:=/g,'@ASSIGN@').replace(/(?<![<>!:=+])=(?!=)/g,'===')
  .replace(/@ASSIGN@/g,'=').replace(/\bor\b/g,'||').replace(/\band\b/g,'&&'));
-scan=scan.replace(/^WrapperClientsShouldExit\(\) \{/,'function scan() { var scanStarted,loaded,latestClose,latestKill,pattern,path,readStarted,contents,readFailed,record,ownerStarted,alive,id,state,kill,closed,known;');
+scan=scan.replace(/^WrapperClientsShouldExit\(\) \{/,'function scan() { var scanStarted,loaded,latestClose,latestKill,pattern,path,readStarted,contents,readFailed,record,ownerStarted,alive,id,state,kill,closed,known,exiting;');
 const dict=()=>({HasKey(k){return Object.hasOwn(this,k);}});
 let reads=0,owners=0,lastLoaded;
-const native={A_TickCount:1000,A_ScriptDir:'addon',WC:{seen:false,tokens:dict(),retired:dict(),lastPoll:0,emptySince:0,lastClose:0},
- paths:['one','old'],files:{one:record,old:record.replace('id=123456-1234','id=old').replace('state=loaded','state=closing').replace('closed=0','closed=10')},
+const native={A_TickCount:1000,A_ScriptDir:'addon',WC:{seen:false,tokens:dict(),retired:dict(),lastPoll:0,emptySince:0,lastClose:0,scans:0},
+ A_LoopFileName:'test.ini',paths:['one','old'],files:{one:record,old:record.replace('id=123456-1234','id=old').replace('state=loaded','state=closing').replace('closed=0','closed=10')},
  alive:{one:true,old:false},ErrorLevel:0,
  DllCall:()=>native.A_TickCount,InputTimingOperation:()=>{},IsObject:x=>x!==null&&typeof x==='object',
  WrapperClientRecord:observed.record,WrapperClientsClock:()=>20,
- WrapperOwnerAlive:p=>{owners++;return !!native.alive[p.replace(/\.owner$/,'')];},
+ WrapperOwnerAlive:p=>{owners++;native.WC.ownerError=native.probeError || (native.alive[p.replace(/\.owner$/,'')] ? 32 : 0);return !!native.alive[p.replace(/\.owner$/,'')];},
  readRecord:p=>{reads++;native.ErrorLevel=0;return native.files[p];},
  WrapperClientsDecision:(state,loaded,closed,kill,now)=>{lastLoaded=loaded;return ctx.decision(state,loaded,closed,kill,now);}};
 vm.createContext(native);vm.runInContext(scan,native);
 assert.equal(native.scan(),false);assert.equal(reads,2);assert.equal(owners,2);assert.equal(lastLoaded,1);
+assert.equal(native.WC.reason,'clients-loaded');assert.equal(native.WC.locked,1);assert.equal(native.WC.scans,1);
 native.A_TickCount+=250;native.scan();assert.equal(reads,3);assert.equal(owners,3,'retired session reopened');
 native.paths.push('new');native.files.new=record.replace('id=123456-1234','id=new');native.alive.new=true;
 native.A_TickCount+=250;native.scan();assert.equal(lastLoaded,2,'new session masked by retired cache');
@@ -76,5 +77,27 @@ native.alive.one=false;native.files.one=record.replace('state=loaded','state=clo
 native.A_TickCount+=250;native.scan();assert.equal(lastLoaded,1,'remaining client ignored');
 native.alive.new=false;native.files.new=native.files.one.replace('id=123456-1234','id=new');native.A_TickCount+=250;
 assert.equal(native.scan(),false);native.A_TickCount+=1999;assert.equal(native.scan(),false);
+assert.equal(native.WC.reason,'shutdown-grace');assert.equal(native.WC.loaded,0);assert.equal(native.WC.latestKill,true);
 native.A_TickCount+=250;assert.equal(native.scan(),true,'last-client preference/grace lost');
+assert.equal(native.WC.reason,'exit-requested');
 console.log('Actual lifecycle scan: one-read active refresh, retired-cache bypass, new/reloaded clients, remaining clients and last-close grace passed.');
+// Diagnostic fields explain the unchanged policy and never run another scan.
+let status=all.slice(all.indexOf('WrapperClientsStatus() {'),all.indexOf('\nWrapperClientsInit()'));
+status=status.replace(/^\s*global .*$/gm,'').replace(/;[^\n]*/g,'');
+status=status.replace(/"[^"\n]*"|[^"\n]+/g,t=>t.startsWith('"')?JSON.stringify(t.slice(1,-1).replace(/`n/g,'\n')):t.replace(/ \. /g,' + '));
+status=status.replace(/^WrapperClientsStatus\(/,'function status(');
+vm.runInContext(status,native);
+const scans=native.WC.scans;
+assert(native.status().includes('clients_reason=exit-requested\nclients_seen=true\nclients_loaded=0'));
+assert(native.status().includes('clients_directory=addon\\data\\controller-clients\n'));
+assert.equal(native.WC.scans,scans,'status performed extra scan');
+native.WC.seen=false;native.A_TickCount+=250;assert.equal(native.scan(),false);
+assert.equal(native.WC.reason,'no-client-observed','missing observation must remain distinguishable');
+native.paths.push('invalid');native.files.invalid='broken';native.alive.invalid=true;
+native.A_TickCount+=250;assert.equal(native.scan(),false);
+assert.equal(native.WC.reason,'clients-loaded');assert.equal(native.WC.invalid,1);
+assert(native.WC.blockers.includes('test.ini:32'));
+native.probeError=5;native.A_TickCount+=250;assert.equal(native.scan(),false);
+assert.equal(native.WC.errors,1);assert.equal(native.WC.locked,0);
+assert(native.WC.blockers.includes('test.ini:5'),'access uncertainty hidden as a lock');
+console.log('Lifecycle diagnostics: actual scan reasons/counts/lock codes, unobserved-client protection, invalid-live registration, blockers and status serialization without new probes passed.');

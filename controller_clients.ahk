@@ -1,8 +1,21 @@
 ; A: the mutex prevents duplicates; this registry decides whether anyone still
 ; needs the shared wrapper. No heartbeat expiry: minimized clients count too.
+WrapperClientsStatus() {
+    global WC
+    ; A: reuse the existing scan/status cadence. No extra file or owner probes.
+    return "clients_reason=" . WC.reason . "`nclients_seen=" . WC.seen . "`nclients_loaded=" . WC.loaded
+        . "`nclients_records=" . WC.records . "`nclients_locked=" . WC.locked . "`nclients_owner_errors=" . WC.errors
+        . "`nclients_invalid_records=" . WC.invalid . "`nclients_blockers=" . WC.blockers
+        . "`nclients_last_close=" . WC.latestClose . "`nclients_last_kill=" . WC.latestKill
+        . "`nclients_scan_count=" . WC.scans . "`nclients_scan_tick=" . WC.lastPoll
+        . "`nclients_directory=" . A_ScriptDir . "\data\controller-clients`n"
+}
+
 WrapperClientsInit() {
     global WC
     WC := {seen:false, tokens:{}, retired:{}, lastPoll:0, emptySince:0, lastClose:0, kill:false}
+    WC.reason := "waiting-for-scan", WC.loaded := 0, WC.records := 0, WC.locked := 0, WC.errors := 0
+    WC.invalid := 0, WC.blockers := "", WC.scans := 0, WC.latestClose := 0, WC.latestKill := false
 }
 
 WrapperClientsShouldExit() {
@@ -10,6 +23,7 @@ WrapperClientsShouldExit() {
     if (A_TickCount - WC.lastPoll < 250)
         return false
     WC.lastPoll := A_TickCount
+    WC.scans += 1, WC.records := 0, WC.locked := 0, WC.errors := 0, WC.invalid := 0, WC.blockers := ""
     scanStarted := DllCall("GetTickCount64", "UInt64")
     loaded := 0
     latestClose := 0
@@ -18,6 +32,7 @@ WrapperClientsShouldExit() {
     Loop, Files, %pattern%, F
     {
         path := A_LoopFileFullPath
+        WC.records += 1
         ; Each owner token is a unique Lua session. Once its owner is closed,
         ; that session cannot return; new loads publish a new filename/token.
         if (WC.retired.HasKey(path)) {
@@ -31,8 +46,15 @@ WrapperClientsShouldExit() {
             record := readFailed ? false : WrapperClientRecord(contents)
             ownerStarted := DllCall("GetTickCount64", "UInt64")
             alive := WrapperOwnerAlive(path . ".owner")
+            if (WC.ownerError = 32 or WC.ownerError = 33)
+                WC.locked += 1
+            else if (WC.ownerError and WC.ownerError != 2 and WC.ownerError != 3)
+                WC.errors += 1
+            if (alive and loaded < 3)
+                WC.blockers .= (WC.blockers = "" ? "" : ",") . A_LoopFileName . ":" . WC.ownerError
             InputTimingOperation("client-owner-check", ownerStarted)
             if (!IsObject(record)) {
+                WC.invalid += 1
                 ; An uncertain live owner must not make the wrapper exit.
                 if (alive) {
                     loaded++
@@ -65,7 +87,10 @@ WrapperClientsShouldExit() {
         }
     }
     InputTimingOperation("client-registry-scan", scanStarted)
-    return WrapperClientsDecision(WC, loaded, latestClose, latestKill, A_TickCount)
+    exiting := WrapperClientsDecision(WC, loaded, latestClose, latestKill, A_TickCount)
+    WC.loaded := loaded, WC.latestClose := latestClose, WC.latestKill := latestKill
+    WC.reason := loaded ? "clients-loaded" : !WC.seen ? "no-client-observed" : !latestKill ? "last-client-keeps-running" : exiting ? "exit-requested" : "shutdown-grace"
+    return exiting
 }
 
 ; A: testable lifecycle policy; native enumeration above supplies observations.
@@ -85,11 +110,14 @@ WrapperClientsDecision(state, loaded, latestClose, latestKill, now) {
 }
 
 WrapperOwnerAlive(path) {
+    global WC
+    WC.ownerError := 0
     ; A live Lua session holds a read handle; an exclusive open fails with 32.
     ; Access/query failures are treated as live, so uncertainty never kills it.
     handle := DllCall("CreateFileW", "WStr", path, "UInt", 0x80000000, "UInt", 0, "Ptr", 0, "UInt", 3, "UInt", 128, "Ptr", 0, "Ptr")
     if (handle = -1 or handle = 0xFFFFFFFF) {
         code := A_LastError
+        WC.ownerError := code
         return code != 2 and code != 3
     }
     DllCall("CloseHandle", "Ptr", handle)

@@ -345,9 +345,10 @@ WriteTransportStatus(force := false) {
     modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
     contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
         . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
+    contents .= WrapperClientsStatus()
     global PC, xinputGuide
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.18-bankheld1`nhold_recovery_protocol=1`nps_action=" . (PC.xinput ? "none" : "focus-toggle") . "`nguide_touchpad=" . (PC.xinput ? (xinputGuide ? "available" : "unavailable") : "not-applicable") . "`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.19-lifecycle1`nhold_recovery_protocol=1`nps_action=" . (PC.xinput ? "none" : "focus-toggle") . "`nguide_touchpad=" . (PC.xinput ? (xinputGuide ? "available" : "unavailable") : "not-applicable") . "`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
             . "target_r2=" . PC.targetR2 . "`ntarget_r3=" . PC.targetR3 . "`ncontext_pauses=" . PC.contextPauses . "`n"
             . "realkeys_protocol=1`ndpad_output=" . (PC.realDpad ? "ahk" : "lua") . "`n"
             . "r1_menu_protocol=1`nr1_menus=" . PC.r1Menus . "`n"
@@ -400,7 +401,7 @@ InputTraceStart(now) {
     if (request = "on") {
         InputTraceClose()
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
-        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.18-bankheld1")
+        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.19-lifecycle1")
         InputTraceRecord("runtime ahk=" . A_AhkVersion . " batch_lines=" . A_BatchLines
             . " key_delay=" . A_KeyDelay . " key_duration=" . A_KeyDuration . " requested_timer_ms=10")
     } else if (request = "off") {

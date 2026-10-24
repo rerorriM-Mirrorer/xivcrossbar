@@ -1,3 +1,22 @@
+# Current Development Status — October 24, 2026 — Shutdown Trace 1
+
+- development/directlink, published source baseline 0d56e4b2badb97e2cbbd970d582af1167cfe4c2f, local d70c9b6 tree f11eba24a491d8c57529675490c8c03d77cb6ac3. Master unchanged. Runtime directlink1-shutdowntrace1 / Controls 9.19-lifecycle1.
+- User confirms wrapper stays up after unloading XB; both supplied diagnostics show stop_after_last_client=true, registered=true, scene1 and same wrapper PID 2168 / Controls 9.18. Archive has 36 registrations, all kill=true, 34 closing and two older loaded entries. Latest two closed normally at 2026-10-24T21:08:38.565453Z and 21:08:39.040634Z. Replay of actual scan with uploaded records and simulated released owners exits after grace; cannot transfer live locks in ZIP. User then repeated real read-only PowerShell owner scan after unload, obtaining All owner handles released with wrapper still up. Separate-line else paste error did not invalidate preceding scan; single-line result confirmed.
+- Root cause remains unestablished. Add diagnostic fields to existing wrapper status: decision reason, ever-seen/loaded/record counts, scan count/tick/path, Windows sharing-lock/other owner-error counts, invalid records, first three blocking filenames/error codes and latest closing preference. Existing owner probe/last-client decision function, grace, cache, timers, input routes/settings and userdata remain unchanged. No cleanup or speculative shutdown bypass added. //xb diagnostics inherits extra fields; direct controller-status.ini is needed after all unload without restarting.
+- Checks passed: all 8 controller JS suites, including actual lifecycle scan/parser/decision/status serialization and loaded/grace/exit/unseen/invalid/lock/access-error cases; four focused Lua suites (controller_diagnostics, status_storage, status_feedback, profile_alias), all 158 Lua sources parsed with documented Lua 5.4 temporary Windower normalization; AHK lexical/integration and dependency/layout checks; git diff --check. Initial JS translator lacked AHK .= support for blocker formatting; corrected translator and reran. No native AHK/Windower execution claimed. Prior Scene Transition checkpoint passed all 70 Lua suites; this batch changes only Lua version marker, AHK diagnostic publication and documentation/tests.
+- Live requirement: explicitly stop old wrapper, install/reload all clients and start once; verify Controls 9.19-lifecycle1. Reproduce all-client unload; if still up after ~3 seconds send data/controller-status.ini before any restart/reload/stop. No repeat PowerShell or old-registration deletion needed. See docs/SHUTDOWN-TRACE-TEST.md. Diagnostic checkpoint, not a claimed shutdown fix; scene/controller/visual live acceptance remains pending.
+
+---
+
+# Shutdown Trace 1 — October 24, 2026
+
+Focused observability prompted by confirmed settings, closing records and released
+Windows handles without wrapper exit. Reuse existing scan/status cadence; keep
+behaviour unchanged while making its live internal decision reviewable. Cumulative
+code/docs package includes Scene Transition, Bank Feedback and Menu Swap fixes.
+
+---
+
 # Current Development Status — October 24, 2026 — Scene Transition 1
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/directlink; published source baseline c9fef605e50e8369a5e5c83c1627175c2b136feb (Dialogue Controls 1), local 635883a tree f2f3f2755a82b2741496911d06e9eedbf43cb63c. Master unchanged. Runtime directlink1-scene1 / Controls 9.18-bankheld1 unchanged.

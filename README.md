@@ -1,3 +1,9 @@
+Shutdown Trace 1: adds shutdown reason, client/lock/error counts and scan progress
+to the existing data/controller-status.ini. Shutdown policy/input are unchanged;
+this is an investigation checkpoint, not a claimed shutdown fix.
+Runtime directlink1-shutdowntrace1 / Controls 9.19-lifecycle1: restart the wrapper.
+[Install and one-file live check](docs/SHUTDOWN-TRACE-TEST.md).
+
 Scene Transition 1: scene entry/exit uses the regular visibility policy; reveal
 no longer briefly shows slot images and labels across all bars before selection.
 Includes restored bare confirm/cancel/arrows in dialogue and prior cumulative fixes.
@@ -1357,3 +1363,10 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Route status changes through the normal visibility decision, including autohide.
 - Remove intermediate all-bar slot/image/text reveal; the current renderer selects
   intended layers before showing surfaces. Preserve existing coordinates and fades.
+
+### October 24, 2026 — Shutdown Trace 1
+
+- Expose wrapper lifecycle decision, observed clients, owner errors and scan
+  progress in existing status publication, without changing shutdown/input policy.
+- Investigate confirmed true preferences and released handles with wrapper still up;
+  collect controller-status.ini after failure without reloading the addon.
