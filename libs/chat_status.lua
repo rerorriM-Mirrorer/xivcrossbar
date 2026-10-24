@@ -1,65 +1,71 @@
--- A: the help palette applied to status and single-action feedback.
+-- A: the user's shared chat palette for quiet status and action feedback.
 -- Return complete chat lines so owners retain their existing output callback.
 local M={}
 local function color(value,id)
     local text=tostring(value==nil and 'unknown' or value)
     return string.color and text:color(id) or text
 end
+M.ink=color
+function M.value(value) return color(value,0) end
+function M.command(value)
+    return tostring(value):gsub('//xb',function() return color('//xb',200) end)
+end
+function M.profile(name)
+    return ({['ps5-extended']='PS5', ['xinput-extended']='Xbox',
+        ['ps5-directinput']='PS5 (Legacy)', xinput='Xbox (Legacy)',
+        ['xinput-r1-chooser']='Xbox RB Chooser', ['f710-directinput']='F710',
+        ['fightpadpro-directinput']='FightPadPro'})[name] or tostring(name or 'Unknown')
+end
+function M.state(value)
+    local key=tostring(value or 'unknown'):lower()
+    local text=({ready='Ready',stopped='Stopped',starting='Starting',
+        ['waiting-neutral']='Release Controls',unfocused='Waiting for Game Focus',
+        disconnected='Disconnected',['xinput-unavailable']='XInput Unavailable',
+        initializing='Initializing'})[key] or key:gsub('(%a)([%w]*)',function(a,b)return a:upper()..b end)
+    return color(text,key=='ready' and 158 or 140)
+end
 function M.heading(label)
-    return color('--- ',140)..color(label,167)..color(' ---',140)
+    return color('=== ',140)..color(label:gsub('XIVCrossbar','XIVcrossbar'),200)..color(' ===',140)
 end
 function M.row(label,value)
-    return color('  '..label,207)..color(' -> ',200)..color(value,0)
+    return color('  '..label..': ',207)..color(M.command(value),0)
 end
-function M.notice(value)
-    return color('//xb',200)..color(' -> ',200)..color(value,0)
+function M.notice(value,tone)
+    return color('[XIVcrossbar]',200)..' '..color(M.command(value),tone or 207)
+end
+function M.legacy(tone,message)
+    local text=tostring(message)
+    local body,count=text:gsub('^%[XIV[Cc]rossbar%]%s*','',1)
+    if count==0 then return color(text,tone) end
+    return M.notice(body,tone==123 and 167 or tone==140 and 140 or 207)
 end
 function M.on(value) return value==true or value=='1' end
-function M.toggle(value) return M.on(value) and 'ON' or 'OFF' end
-function M.controller(o,details)
+function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
+function M.controller(o)
     local lines={}
     local function add(label,value) lines[#lines+1]=M.row(label,value) end
-    local s=o.status or {};local settings=o.settings;local bridge=o.bridge
-    lines[#lines+1]=M.heading('XIVCrossbar | Controller')
-    add('Controls',s.running and (s.personal_version or 'unmarked wrapper') or 'No fresh wrapper status')
-    add('State',s.running and ((s.state or 'unknown')..' | connected '..M.toggle(s.connected)) or 'Stopped, starting, or status unavailable')
-    local requested=settings.ControllerMessages and require('libs/controller/profiles').is_extended(settings.ControllerProfile) and 'messages' or 'keys'
-    add('Selected',settings.ControllerProfile..' | device '..tostring(settings.ControllerDevice))
-    add('Route','active '..(s.running and (s.button_route or 'keys') or 'unknown')..' | requested '..requested)
-    if s.running and (s.profile~=settings.ControllerProfile or tostring(s.device)~=tostring(settings.ControllerDevice)) then
-        add('Running',tostring(s.profile)..' | device '..tostring(s.device))
+    local s=o.status or {};local settings=o.settings
+    lines[#lines+1]=M.heading(o.embedded and 'Controller' or 'XIVcrossbar | Controller')
+    add('Controller',M.profile(s.running and s.profile or settings.ControllerProfile)..
+        ' / Device '..tostring(s.running and s.device or settings.ControllerDevice))
+    add('State',M.state(s.running and s.state or 'stopped')..' | Connected: '..M.toggle(s.running and M.on(s.connected)))
+    add('Controls',s.running and (s.personal_version or 'Unmarked Wrapper') or 'Not Running')
+    local wanted=settings.ControllerMessages and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
+    local route=s.running and (s.button_route or 'keys') or 'unknown'
+    add('Input',not s.running and 'Unavailable' or route=='messages' and 'Messages' or
+        wanted and color('Waiting for Messages',140) or 'Keyboard (Legacy)')
+    if settings.ControllerProfile=='xinput-extended' then
+        add('Guide Button',s.guide_touchpad=='available' and 'Touchpad Mapping' or 'Unavailable')
     end
-    add('Recovery','last reset '..(bridge.last_reason or 'none recorded')..' | recovering '..M.toggle(bridge.recovering))
-    add('Trace','AHK '..M.toggle(s.input_trace)..' | Lua '..M.toggle(o.lua_trace))
-    if o.pending then add('Profile change',o.pending) end
-    local missing={}
-    if s.running and settings.ControllerMessages and require('libs/controller/profiles').is_extended(settings.ControllerProfile) then
-        for _,item in ipairs({{'button_protocol','messages'},{'bank_protocol','banks'},
-            {'hold_recovery_protocol','hold recovery'},{'r1_menu_protocol','Trust menu'}}) do
-            if s[item[1]]~='1' then missing[#missing+1]=item[2] end
-        end
+    if o.pending then add('Profile Change',M.state(o.pending)) end
+    if s.running and o.mismatch and not o.pending then
+        add('Action','Select '..M.profile(settings.ControllerProfile)..' with //xb controller profile '..
+            require('libs/controller/profiles').short_name(settings.ControllerProfile)..' '..tostring(settings.ControllerDevice))
+    elseif wanted and s.running and s.button_protocol~='1' then
+        add('Action','Restart the updated AHK wrapper for messages.')
+    elseif s.running and settings.ControllerRealKeys and s.realkeys_protocol~='1' then
+        add('Action','Restart the updated AHK wrapper for direct IJKL output.')
     end
-    if s.running and settings.ControllerRealKeys and s.realkeys_protocol~='1' then missing[#missing+1]='real IJKL' end
-    if #missing>0 then add('Action','Restart the updated AHK wrapper for '..table.concat(missing,', ')..'.') end
-    if s.running and o.mismatch and not o.pending then add('Action','Wrapper selection differs; stop/start from the client with the desired profile.') end
-    if details then
-        lines[#lines+1]=M.heading('Input diagnostics')
-        add('Keys','fallback '..o.modifier..' | IJKL configured '..M.toggle(settings.ControllerRealKeys)..' | output '..(s.dpad_output or 'lua'))
-        add('Messages','received '..tostring(bridge.received)..' | rejected '..tostring(bridge.rejected)..' | sent / ack '..(s.button_sent or '?')..' / '..(s.button_ack or '?'))
-        add('Banks','sender '..M.toggle(s.banks_enabled)..' | receiver '..M.toggle(o.banks_active)..' | native ack '..(s.bank_native_ack or '?'))
-        add('Protocols','buttons '..(s.button_protocol or 'absent')..' | banks '..(s.bank_protocol or 'absent')..' | recovery '..(s.hold_recovery_protocol or 'absent'))
-        add('Menu output','Trust '..M.toggle(s.r1_menus)..' (protocol '..(s.r1_menu_protocol or 'absent')..') | IJKL protocol '..(s.realkeys_protocol or 'absent'))
-        add('Context',(s.personal_context or 'unknown')..' | short pauses '..(s.context_pauses or '?')..' | lease misses '..(s.context_misses or '?'))
-        add('Timing maxima','cycle '..(s.poll_max_ms or '?')..' ms | start gap '..(s.poll_gap_max_ms or '?')..' ms')
-        add('Read / personal',(s.read_max_ms or '?')..' / '..(s.personal_max_ms or '?')..' ms')
-        add('Errors','transport write '..(s.button_error or '?')..' | trace write '..(s.trace_error or '?'))
-        add('F8 trials','configured R2 / R3 '..M.toggle(settings.ControllerTargetR2)..' / '..M.toggle(settings.ControllerTargetR3)..' | wrapper '..M.toggle(s.target_r2)..' / '..M.toggle(s.target_r3))
-        add('Other controls','PS '..(s.ps_action or s.ps_hold or 'unknown')..' | Ctrl / Alt pairs '..(s.ctrl_pair or '?')..' / '..(s.alt_pair or '?'))
-        if settings.ControllerProfile=='xinput-extended' then
-            add('Xbox Guide','touchpad '..(s.guide_touchpad or 'unknown')..' | LT / RT threshold >4 of 255')
-        end
-        add('Launch source',s.origin or 'unknown')
-    elseif not o.hide_hint then lines[#lines+1]=M.notice('More: //xb controller status details') end
     return lines
 end
 return M

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261023.directlink1-xbox1'
+_addon.version = '0.4.0-a.20261023.directlink1-messages1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -26,7 +26,7 @@ local input_timing=require('libs/controller/timing_trace').new({clock=require('s
         local ok,write_error=f:write(contents);local closed,close_error=f:close()
         return ok and closed,write_error or close_error
     end,
-    say=function(message) windower.add_to_chat(123,'[XIVCrossbar] '..message) end})
+    say=function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] '..message)) end})
 local render_trace = require('ui/render_trace')
 -- Register before UI modules so their existing measurements share this frame ID.
 windower.register_event('prerender',function()
@@ -47,7 +47,7 @@ local bank_storage=require('libs/banks/storage').new({
         if not raw or not closed then return nil,read_error or close_error or 'Could not read bank settings.' end
         return raw
     end,
-    say=function(message) windower.add_to_chat(123,'[XIVCrossbar] '..message) end})
+    say=function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] '..message)) end})
 bank_storage:prepare()
 local bank_settings=bank_storage.state
 local settings = config.load(defaults)
@@ -62,7 +62,7 @@ local function normalize_controller_settings()
     local info=windower.ffxi.get_info()
     local character=info.logged_in and windower.ffxi.get_player()
     bank_storage:refresh(nil,character and character.name)
-    if notice then windower.add_to_chat(123,'[XIVCrossbar] '..notice) end
+    if notice then windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] '..notice)) end
     if changed then config.save(settings) end
     if client_registry then client_registry:register(settings.on_unload_killahk) end
 end
@@ -78,7 +78,7 @@ config.register(settings,normalize_controller_settings)
 local controller_modifier = tostring(settings.ControllerModifier or 'apps'):lower()
 if controller_modifier ~= 'apps' and controller_modifier ~= 'ctrl' then
     controller_modifier = 'apps'
-    windower.add_to_chat(123, '[XIVCrossbar] Invalid ControllerModifier; using apps.')
+    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Invalid ControllerModifier; using apps.'))
 end
 local controller_capture_dik = controller_modifier == 'ctrl' and 29 or 221
 local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
@@ -146,7 +146,7 @@ local l1_clock=require('socket').gettime
 local l1_bank=require('libs/banks/legacy').new({settings=bank_settings,clock=l1_clock,
     save=function() bank_storage:save() end,
     execute=function(command) windower.send_command(command) end,
-    say=function(message) windower.add_to_chat(0,('[XIVCrossbar] '):color(200)..message) end,
+    say=function(message) windower.add_to_chat(0,require('libs/chat_status').notice(message)) end,
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local l1_bridge=require('libs/banks/legacy_transport').new({session=require('libs/windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
@@ -211,14 +211,14 @@ local crossbar_drag = require('ui/drag').new({
 
 local function set_crossbar_position(args)
     if #args==0 then
-        windower.add_to_chat(0,'[XIVCrossbar] Copy position: //xb pos '..tostring(settings.Style.OffsetX)..' '..tostring(settings.Style.OffsetY))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Copy position: //xb pos '..tostring(settings.Style.OffsetX)..' '..tostring(settings.Style.OffsetY)))
         return
     end
     local x,y=tonumber(args[1]),tonumber(args[2])
     if #args~=2 or not x or not y or x~=x or y~=y or math.abs(x)==math.huge or math.abs(y)==math.huge then
-        windower.add_to_chat(0,'[XIVCrossbar] Use //xb pos <offset x> <offset y>.');return
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Use //xb pos <offset x> <offset y>.'));return
     end
-    if not ui.is_setup then windower.add_to_chat(0,'[XIVCrossbar] Finish setup before positioning crossbars.');return end
+    if not ui.is_setup then windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Finish setup before positioning crossbars.'));return end
     crossbar_drag:finish()
     settings.Style.OffsetX,settings.Style.OffsetY=x,y
     theme_options.offset_x,theme_options.offset_y=x,y
@@ -228,7 +228,7 @@ end
 local function set_compact_mode(mode)
     mode = mode and mode:lower()
     if mode and mode ~= 'on' and mode ~= 'off' then
-        windower.add_to_chat(123, '[XIVCrossbar] //xb compact [on|off]')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb compact [on|off]'))
         return
     end
     local enabled = mode == 'on' or (not mode and not settings.iscompact)
@@ -238,7 +238,7 @@ local function set_compact_mode(mode)
     if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
     ui_dirty = true
     config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF')))
 end
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
     if r1_drag:mouse(kind,x,y,blocked) then return true end
@@ -259,7 +259,7 @@ end
 -- command to set a crossbar action in action_binder
 function set_hotkey(hotbar, slot, action_type, action, target, command, icon, linked_action, linked_type, explicit_alias, catalog_origin)
     if player.hotbar_load_ok == false then
-        windower.add_to_chat(123, '[XIVCrossbar] Reload successfully before binding. Existing files were not changed.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Reload successfully before binding. Existing files were not changed.'))
         return false
     end
     local environment = player.hotbar_settings.active_environment
@@ -335,7 +335,7 @@ end
 -- command to set a crossbar action in action_binder
 function delete_hotkey(hotbar, slot)
     if player.hotbar_load_ok == false then
-        windower.add_to_chat(123, '[XIVCrossbar] Reload successfully before clearing a binding. Existing files were not changed.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Reload successfully before clearing a binding. Existing files were not changed.'))
         return false
     end
     local environment = player.hotbar_settings.active_environment
@@ -356,7 +356,7 @@ function create_new_set(name)
     if not player:create_new_environment(name) then return false end
     player:save_hotbar()
     reload_hotbar()
-    windower.add_to_chat(207, '[XIVCrossbar] Created crossbar set: ' .. name)
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Created crossbar set: ' .. name))
     return true
 end
 
@@ -372,7 +372,7 @@ function change_slot_icon(hotbar_num, slot_num, icon)
     local environment = player.hotbar_settings.active_environment
     local updated = player:set_slot_icon(environment, hotbar_num, slot_num, icon)
     if (not updated) then
-        windower.add_to_chat(123, '[XIVCrossbar] Change Icon: no action bound at the selected slot.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Change Icon: no action bound at the selected slot.'))
         return
     end
 
@@ -387,7 +387,7 @@ end
 -- action text). Wired into action_binder.lua's :setup().
 function save_global_icon(name, icon)
     if (name == nil or name == '' or icon == nil or icon == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Global Icon Set: missing name or icon.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Global Icon Set: missing name or icon.'))
         return
     end
 
@@ -396,19 +396,19 @@ function save_global_icon(name, icon)
     reload_hotbar()
     set_active_environment(player.hotbar_settings.active_environment)
 
-    windower.add_to_chat(123, '[XIVCrossbar] Global icon set: "' .. name .. '" -> ' .. icon)
+    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Global icon set: "' .. name .. '" -> ' .. icon))
 end
 
 -- A: one entry per locked save; never replace a catalog from a stale client.
 local function save_catalog_change(original,record,verb)
     local ok,saved,detail=pcall(player.save_catalog_edit,player,original,record)
     if not ok or not saved then
-        windower.add_to_chat(123,'[XIVCrossbar] Custom action was not '..verb..'. '..tostring(ok and detail or saved))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Custom action was not '..verb..'. '..tostring(ok and detail or saved)))
         return false
     end
     local name=record and record.name or original
-    windower.add_to_chat(207,'[XIVCrossbar] Custom action '..verb..': "'..tostring(name)..'"'..
-        (record and ' ['..record._scope..']' or '. Existing bound copies remain usable.'))
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Custom action '..verb..': "'..tostring(name)..'"'..
+        (record and ' ['..record._scope..']' or '. Existing bound copies remain usable.')))
     return true
 end
 function save_custom_action(record) return save_catalog_change(nil,record,'saved') end
@@ -420,11 +420,44 @@ local controller_switcher
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
+local function save_diagnostics()
+    local character=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
+    local path=windower.addon_path..'data/diagnostics-'..character..'.log'
+    local snapshot={version=_addon.version,time=os.date('!%Y-%m-%dT%H:%M:%SZ'),
+        character=character,ready=xivcrossbar.ready,controller=controller_status() or {},
+        selected={profile=settings.ControllerProfile,device=settings.ControllerDevice,
+            messages=settings.ControllerMessages,legacy_modifier=controller_modifier,
+            dpad=settings.GameplayDPad,ahk_ijkl=settings.ControllerRealKeys,
+            target_r2=settings.ControllerTargetR2,target_r3=settings.ControllerTargetR3},
+        receiver={ack=controller_message_bridge.ack,received=controller_message_bridge.received,
+            rejected=controller_message_bridge.rejected,last_reset=controller_message_bridge.last_reason,
+            recovering=controller_message_bridge.recovering},
+        trace={lua=input_timing.active},bank_settings=companion_banks:settings(),
+        bank_runtime={active=companion_banks.active,layer=companion_banks.layer,menu=companion_banks.menu,
+            native_ack=companion_banks.output.ack,native_seq=companion_banks.output.seq,
+            executed=companion_banks.executed,empty=companion_banks.empty},
+        set=player.hotbar_settings and player.hotbar_settings.active_environment,
+        storage={catalog=storage.identity_valid and storage.directory or 'Awaiting character login',
+            bank_file=bank_storage.source,bank_character=bank_storage.character,
+            registered=client_registry and client_registry.loaded,
+            stop_after_last_client=settings.on_unload_killahk},
+        editor={state=action_binder.state,page=action_binder.page,
+            setup=gamepad_mapper.is_showing,text_entry=text_input_guard.active},
+        autoattack=settings.AutoAttackIndicator,
+        legacy_bridge={received=l1_bridge.received,rejected=l1_bridge.rejected,ack=l1_bridge.ack}}
+    windower.create_dir(windower.addon_path..'data')
+    local ok,err=require('libs/controller/diagnostics').save(path,snapshot)
+    local format=require('libs/chat_status')
+    windower.add_to_chat(0,format.notice(ok and ('Diagnostics saved: '..path) or
+        ('Could not save diagnostics: '..tostring(err)),ok and 207 or 167))
+    return ok
+end
 local function report_controller_status(details,embedded)
+    if details then return save_diagnostics() end
     local status=controller_status()
     local lines=require('libs/chat_status').controller({settings=settings,status=status,
         bridge=controller_message_bridge,modifier=controller_modifier,banks_active=companion_banks.active,
-        hide_hint=embedded,lua_trace=input_timing.active,pending=controller_switcher and controller_switcher.pending and controller_switcher.pending.phase,
+        hide_hint=embedded,embedded=embedded,lua_trace=input_timing.active,pending=controller_switcher and controller_switcher.pending and controller_switcher.pending.phase,
         mismatch=status and status.running and not controller_profiles.matches(status,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)},details)
     for _,line in ipairs(lines) do windower.add_to_chat(0,line) end
 end
@@ -435,7 +468,10 @@ function start_controller_wrappers(profile, device, modifier)
     local status = controller_status()
     if status and status.running then
         if not controller_profiles.matches(status, profile, device, modifier) then
-            windower.add_to_chat(123, '[XIVCrossbar] Shared wrapper already uses another profile/device/modifier. Use //xb controller profile <name>.')
+            local format=require('libs/chat_status')
+            windower.add_to_chat(0,format.notice('Controller already running: '..format.value(format.profile(status.profile)..
+                ' / Device '..tostring(status.device))..'. Use //xb controller profile '..
+                controller_profiles.short_name(profile)..' '..tostring(device)..'.',140))
             return false
         end
         return true
@@ -447,7 +483,7 @@ function start_controller_wrappers(profile, device, modifier)
         local requested = tonumber(request:read('*a')); request:close()
         if not (status and status.fresh and status.state == 'stopped')
             and (not requested or os.time() - requested < 2) then
-            windower.add_to_chat(207, '[XIVCrossbar] Stop is pending. Wait two seconds, then start again.')
+            windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Stop is pending. Wait two seconds, then start again.'))
             return false
         end
         os.remove(stop_path)
@@ -456,44 +492,44 @@ function start_controller_wrappers(profile, device, modifier)
     local written, err = controller_profiles.write_launch(windower.addon_path .. 'data/controller-launch.ini',
         profile, device, modifier)
     if not written then
-        windower.add_to_chat(123, '[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err)))
         return false
     end
     windower.send_command('run addons/xivcrossbar/ffxi_directinput.ahk ' .. modifier ..
         ' ' .. profile .. ' ' .. device)
-    windower.add_to_chat(207, '[XIVCrossbar] Wrapper start requested: ' .. controller_profiles.short_name(profile) ..
-        ' / device ' .. device .. ' / ' .. modifier)
+    local format=require('libs/chat_status')
+    windower.add_to_chat(0,format.notice('Wrapper start requested: '..format.value(format.profile(profile)..' / Device '..device)))
     return true
 end
 local function stop_controller_wrapper()
     windower.create_dir(windower.addon_path .. 'data')
     local f = io.open(windower.addon_path .. 'data/input-stop.request', 'w')
-    if not f then windower.add_to_chat(123, '[XIVCrossbar] Could not write wrapper stop request.'); return false end
+    if not f then windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Could not write wrapper stop request.')); return false end
     f:write(tostring(os.time())); f:close()
-    windower.add_to_chat(207, '[XIVCrossbar] Shared wrapper stop requested for all clients.')
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Shared wrapper stop requested for all clients.'))
     return true
 end
 local function request_controller_trace(mode)
     if mode~='on' and mode~='off' then
-        windower.add_to_chat(0,'[XIVCrossbar] //xb controller trace on|off');return false
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] //xb controller trace on|off'));return false
     end
     local current=controller_status()
     if not current or not current.running then
-        windower.add_to_chat(0,'[XIVCrossbar] Start the current controller wrapper before requesting a trace.');return false
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Start the current controller wrapper before requesting a trace.'));return false
     end
     local f=io.open(windower.addon_path..'data/controller-trace.request','w')
-    if not f then windower.add_to_chat(0,'[XIVCrossbar] Could not write controller trace request.');return false end
+    if not f then windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Could not write controller trace request.'));return false end
     local written=f:write(mode);local closed=f:close()
     if not written or not closed then
-        windower.add_to_chat(0,'[XIVCrossbar] Controller trace request failed.');return false
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Controller trace request failed.'));return false
     end
     if mode=='on' then
         local name=windower.ffxi.get_player()
         input_timing:start(windower.addon_path..'data/controller-lua-trace-'..(name and name.name or 'login')..'.log',_addon.version)
     else input_timing:stop('manual') end
-    windower.add_to_chat(0,'[XIVCrossbar] Lua trace '..mode..'; data/controller-lua-trace-<character>.log')
-    windower.add_to_chat(0,'[XIVCrossbar] Wrapper trace '..mode..' requested'..
-        (mode=='on' and ' for 30 seconds.' or '.')..' Log: data/controller-input-trace.log')
+    windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Lua trace '..mode..'; data/controller-lua-trace-<character>.log'))
+    windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Wrapper trace '..mode..' requested'..
+        (mode=='on' and ' for 30 seconds.' or '.')..' Log: data/controller-input-trace.log'))
     return true
 end
 controller_switcher = require('libs/controller/switch').new({
@@ -510,20 +546,21 @@ local function select_controller_profile(name, device, done)
     if not name then report_controller_status(); return end
     local profile, result = controller_profiles.validate(name, device or 1)
     if not profile then
-        windower.add_to_chat(123, '[XIVCrossbar] ' .. result)
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] ' .. result))
         if done then done(false, result) end
         return false
     end
     settings.ControllerProfile, settings.ControllerDevice = profile, result
     settings.PersonalProfileMigrated = true
     config.save(settings)
-    windower.add_to_chat(207, '[XIVCrossbar] Selecting ' .. controller_profiles.short_name(profile) ..
-        ' / device ' .. result .. (controller_profiles.profiles[profile].experimental and ' (experimental)' or ''))
+    local format=require('libs/chat_status')
+    windower.add_to_chat(0,format.notice('Selecting '..format.value(format.profile(profile)..' / Device '..result)..
+        (controller_profiles.profiles[profile].experimental and format.ink(' (Experimental)',140) or '')))
     return controller_switcher:request(profile, result, controller_modifier, function(ok, detail)
         if ok then
-            windower.add_to_chat(207, '[XIVCrossbar] Controller: ' .. controller_profiles.short_name(profile) .. ' / ' .. detail.state)
+            windower.add_to_chat(0,format.notice('Controller: '..format.value(format.profile(profile))..' / '..format.state(detail.state)))
         elseif detail ~= 'Controller change cancelled.' and detail ~= 'Replaced by another controller selection.' then
-            windower.add_to_chat(123, '[XIVCrossbar] ' .. tostring(detail))
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] ' .. tostring(detail)))
         end
         if done then done(ok, detail) end
     end)
@@ -595,7 +632,7 @@ function initialize(server_id, expected_name, expected_id)
 
     local default_active_environment = env_chooser:get_default_active_environment(player.hotbar)
     if not default_active_environment then
-        windower.add_to_chat(123, '[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.'))
         xivcrossbar.ready = false
         ui:hide()
         return
@@ -633,7 +670,7 @@ local function check_profile_ready()
         restart_pending = true
         crossbar_drag:finish()
         if ui.is_setup then ui:hide() end
-        windower.add_to_chat(0, '[XIVCrossbar] Character/server changed; reloading for '..server_record.en..'/'..name..'.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Character/server changed; reloading for '..server_record.en..'/'..name..'.'))
         windower.send_command('lua r xivcrossbar')
         return
     end
@@ -700,7 +737,7 @@ function reload_hotbar()
     if not player:is_valid_environment(player.hotbar_settings.active_environment) then
         local selected = env_chooser:get_default_active_environment(player.hotbar)
         if not selected then
-            windower.add_to_chat(123, '[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.')
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.'))
             ui:hide()
             return false
         end
@@ -931,7 +968,7 @@ function new_environment_command(args)
     player:save_hotbar()
     reload_hotbar()
     set_active_environment(environment)
-    windower.add_to_chat(207, '[XIVCrossbar] Created crossbar set: ' .. environment)
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Created crossbar set: ' .. environment))
 end
 
 -- Helpers for the rename / delete environment commands. Reserved keys are
@@ -976,7 +1013,7 @@ end
 -- the old name.
 function rename_environment_command(args)
     if (not args[1] or not args[2]) then
-        windower.add_to_chat(123, '[XIVCrossbar] Usage: //xcb rename <old name> <new name>')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Usage: //xcb rename <old name> <new name>'))
         return
     end
 
@@ -996,28 +1033,28 @@ function rename_environment_command(args)
     local old_key = kebab_casify(old_name)
     local new_key = kebab_casify(new_name)
     if not new_key:match('^[%a_][%w_.%-]*$') then
-        windower.add_to_chat(123, '[XIVCrossbar] Use a set name starting with a letter, with letters, numbers, spaces, hyphens or underscores.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Use a set name starting with a letter, with letters, numbers, spaces, hyphens or underscores.'))
         return
     end
 
     if (PROTECTED_ENV_KEYS[old_key]) then
-        windower.add_to_chat(123, '[XIVCrossbar] Crossbar set "' .. old_name .. '" is reserved and cannot be renamed.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set "' .. old_name .. '" is reserved and cannot be renamed.'))
         return
     end
     if (PROTECTED_ENV_KEYS[new_key]) then
-        windower.add_to_chat(123, '[XIVCrossbar] Crossbar set name "' .. new_name .. '" is reserved.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set name "' .. new_name .. '" is reserved.'))
         return
     end
     if (old_key == new_key) then
-        windower.add_to_chat(123, '[XIVCrossbar] New name resolves to the same key as the old name. Nothing to do.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] New name resolves to the same key as the old name. Nothing to do.'))
         return
     end
     if (player.hotbar[old_key] == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] No crossbar set named "' .. old_name .. '" found in the current job.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No crossbar set named "' .. old_name .. '" found in the current job.'))
         return
     end
     if (player.hotbar[new_key] ~= nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] A crossbar set named "' .. new_name .. '" already exists.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] A crossbar set named "' .. new_name .. '" already exists.'))
         return
     end
 
@@ -1039,9 +1076,9 @@ function rename_environment_command(args)
     player:save_hotbar()
     reload_hotbar()
 
-    windower.add_to_chat(123, '[XIVCrossbar] Crossbar set renamed: "' .. old_name .. '" -> "' .. new_name .. '".')
+    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set renamed: "' .. old_name .. '" -> "' .. new_name .. '".'))
     if (orphan_count > 0) then
-        windower.add_to_chat(123, '[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) still reference the old name and will no longer work until updated.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) still reference the old name and will no longer work until updated.'))
     end
 end
 
@@ -1053,7 +1090,7 @@ end
 -- no aliases to avoid mistakes.
 function delete_environment_command(args)
     if (not args[1]) then
-        windower.add_to_chat(123, '[XIVCrossbar] Usage: //xcb deleteset <name>')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Usage: //xcb deleteset <name>'))
         return
     end
 
@@ -1062,11 +1099,11 @@ function delete_environment_command(args)
     local target_key = kebab_casify(target_name)
 
     if (PROTECTED_ENV_KEYS[target_key]) then
-        windower.add_to_chat(123, '[XIVCrossbar] Crossbar set "' .. target_name .. '" is reserved and cannot be deleted.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set "' .. target_name .. '" is reserved and cannot be deleted.'))
         return
     end
     if (player.hotbar[target_key] == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] No crossbar set named "' .. target_name .. '" found in the current job.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No crossbar set named "' .. target_name .. '" found in the current job.'))
         return
     end
 
@@ -1087,9 +1124,9 @@ function delete_environment_command(args)
     player:save_hotbar()
     reload_hotbar()
 
-    windower.add_to_chat(123, '[XIVCrossbar] Crossbar set deleted: "' .. target_name .. '" (and all its slot bindings).')
+    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set deleted: "' .. target_name .. '" (and all its slot bindings).'))
     if (orphan_count > 0) then
-        windower.add_to_chat(123, '[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) referenced the deleted set and will no longer work.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) referenced the deleted set and will no longer work.'))
     end
 end
 
@@ -1112,7 +1149,7 @@ function display_help_menu()
     local help=require('libs/chat_help')
     help.heading('XIVCrossbar commands')
     help.command('help','Show this command list.')
-    help.command('status [details]','Show version, storage, controller and display state.')
+    help.command('status [details]','Show addon state; details saves a diagnostic file.')
     help.command('reload','Re-read crossbar files without unloading the addon.')
     help.command('restart','Fade out, clean up, then reload the addon.')
     help.command('unload','Fade out and unload; shared wrapper follows last-client policy.')
@@ -1137,8 +1174,9 @@ function display_help_menu()
     help.command('messages [on|off|status]','Experimental controller message stream; bare toggles.')
     help.command('x [device]','Personal shortcut: select PS5 Extended.')
     help.command('r2|r3|both [on|off|status]','Personal F8 shortcuts; bare toggles the named button(s).')
-    help.command('controller status [details]','Show readiness; details adds counters and protocols.')
+    help.command('controller status [details]','Show controller readiness; details saves a diagnostic file.')
     help.command('controller start|stop|profiles','Control the shared wrapper or list profiles.')
+    help.command('diagnostics','Save controller and addon diagnostics to a file.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
@@ -1172,7 +1210,7 @@ end
 local function set_text_fade(mode)
     mode = mode and mode:lower()
     if mode and mode~='on' and mode~='off' and mode~='status' then
-        windower.add_to_chat(123,'[XIVCrossbar] //xb textfade [on|off|status]')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb textfade [on|off|status]'))
         return
     end
     if mode~='status' then
@@ -1182,14 +1220,14 @@ local function set_text_fade(mode)
         ui.geometry:set_text_fade(enabled)
         config.save(settings)
     end
-    windower.add_to_chat(207,'[XIVCrossbar] Text fade: '..
-        (settings.Animation.TextFade and 'ON (with crossbar)' or 'OFF (endpoint visibility)'))
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Text fade: '..
+        (settings.Animation.TextFade and 'ON (with crossbar)' or 'OFF (endpoint visibility)')))
 end
 
 local function set_autoattack(mode)
     mode = mode and mode:lower()
     if mode and mode~='on' and mode~='off' and mode~='status' then
-        windower.add_to_chat(123,'[XIVCrossbar] //xb autoattack [on|off|status]')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb autoattack [on|off|status]'))
         return
     end
     if mode~='status' then
@@ -1203,9 +1241,9 @@ local function set_autoattack(mode)
         end
         config.save(settings)
     end
-    windower.add_to_chat(207,'[XIVCrossbar] Autoattack estimate: '..
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Autoattack estimate: '..
         (settings.AutoAttackIndicator.Enabled and 'ON' or 'OFF')..
-        ' | Display opacity: '..tostring(settings.AutoAttackIndicator.Opacity))
+        ' | Display opacity: '..tostring(settings.AutoAttackIndicator.Opacity)))
 end
 
 -- A: Lua teardown cannot finish an animation. Close first, then ask Windower
@@ -1228,7 +1266,7 @@ local function graceful_restart(unload)
     if release_gameplay_keys then release_gameplay_keys() end
     if ui.is_setup then ui:hide() end
     local delay = theme_options.fade_enabled and math.max(0, tonumber(theme_options.fade_out) or 0) or 0
-    windower.add_to_chat(0,'[XIVCrossbar] '..(unload and 'Unloading.' or 'Restarting.'))
+    windower.add_to_chat(0,require('libs/chat_status').notice(unload and 'Unloading.' or 'Restarting.',140))
     coroutine.schedule(function() windower.send_command(unload and 'lua u xivcrossbar' or 'lua r xivcrossbar') end, delay)
 end
 
@@ -1238,8 +1276,8 @@ windower.register_event('load',function()
     if ok then
         client_registry=registry
         local registered,err=registry:register(settings.on_unload_killahk)
-        if not registered then windower.add_to_chat(123,'[XIVCrossbar] Client registration failed: '..tostring(err)) end
-    else windower.add_to_chat(123,'[XIVCrossbar] Last-client shutdown unavailable: '..tostring(registry)) end
+        if not registered then windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Client registration failed: '..tostring(err))) end
+    else windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Last-client shutdown unavailable: '..tostring(registry))) end
     if (buttonmapping.validate()) then
         start_controller_wrappers()
     end
@@ -1321,14 +1359,16 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'rendertrace' then
         local name=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
         return render_trace.command((...),windower.addon_path..'data/render-trace-'..name..'.log',
-            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+            function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
+    elseif command == 'diagnostics' or command == 'diagnose' then
+        return save_diagnostics()
     elseif command == 'bank' or command == 'l1' or require('libs/banks/banks').aliases[command] then
         local args={...}
         if require('libs/banks/banks').aliases[command] then table.insert(args,1,command);command='bank' end
         local operation=args[1] or 'help'
         if command=='bank' then operation=(args[2]=='menu' and args[3] or args[2]) or 'status' end
         if not xivcrossbar.ready and operation~='help' and operation~='status' then
-            windower.add_to_chat(0,'[XIVCrossbar] Log in and finish setup before changing companion banks.');return
+            windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Log in and finish setup before changing companion banks.'));return
         end
         l1_drag:finish();r1_drag:finish()
         if command=='bank' then companion_banks:command(args) else companion_banks:legacy(args) end
@@ -1338,12 +1378,12 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'textsettle' then
         require('ui/text_measure').command(settings,(...),
             function() config.save(settings) end,
-            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+            function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
         return
     elseif command == 'realkeys' then
         local changed=require('libs/controller/realkeys').command(settings,(...),
             function() config.save(settings) end,
-            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+            function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
         if changed then
             release_gameplay_keys()
             message_epoch=message_epoch+1
@@ -1354,7 +1394,7 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'messages' then
         local changed=require('libs/controller/messages').command(settings,(...),
             function() config.save(settings) end,
-            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+            function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
         if changed then
             message_epoch=message_epoch+1
             controller_message_bridge:reset()
@@ -1367,7 +1407,7 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'r2' or command == 'r3' or command == 'both' then
         local changed=require('libs/controller/target').shortcut(settings,command,(...),
             function() config.save(settings) end,
-            function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+            function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
         if changed then
             l1_epoch=l1_epoch+1
             if publish_personal_context then publish_personal_context() end
@@ -1387,7 +1427,7 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'target' then
             local changed=require('libs/controller/target').command(settings,name,device,
                 function() config.save(settings) end,
-                function(message) windower.add_to_chat(0,'[XIVCrossbar] '..message) end)
+                function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
             if changed then
                 l1_epoch=l1_epoch+1
                 if publish_personal_context then publish_personal_context() end
@@ -1395,9 +1435,9 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
                 local profile = controller_profiles.profiles[id]
-                windower.add_to_chat(207, '[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
+                windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)')))
             end
-        else windower.add_to_chat(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
+        else windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]')) end
         return
     elseif command == 'inputtest' or command == 'inputtrace' then
         local mode = (...)
@@ -1406,19 +1446,19 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'off' then settings[key] = false
         else settings[key] = not settings[key] end
         config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] ' .. key .. ' ' .. (settings[key] and 'ON' or 'OFF'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] ' .. key .. ' ' .. (settings[key] and 'ON' or 'OFF')))
         return
     elseif command == 'dpad' then
         local mode = (...)
         mode = mode and mode:lower()
         if mode and mode ~= 'arrows' and mode ~= 'ijkl' then
-            windower.add_to_chat(123, '[XIVCrossbar] //xb dpad [arrows|ijkl]'); return
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb dpad [arrows|ijkl]')); return
         end
         -- Release the old output before changing mapping; require another press.
         release_gameplay_keys()
         settings.GameplayDPad = mode or (settings.GameplayDPad == 'ijkl' and 'arrows' or 'ijkl')
         config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] Gameplay D-pad: ' .. settings.GameplayDPad)
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Gameplay D-pad: ' .. settings.GameplayDPad))
         return
     elseif command == 'inputstatus' then
         local format=require('libs/chat_status')
@@ -1449,45 +1489,39 @@ windower.register_event('addon command', function(command, ...)
             windower.add_to_chat(0,('//xb'):color(200)..(' catalog [global|character|status]'):color(207)..(' -> '):color(200)..('Choose where new custom actions save; both catalogs are listed.'):color(0))
             return
         end
-        windower.add_to_chat(0,'[XIVCrossbar] New custom actions save to '..player:catalog_save_scope()..'; global and character catalogs remain readable.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] New custom actions save to '..player:catalog_save_scope()..'; global and character catalogs remain readable.'))
         return
     end
     if command == 'unload' then return graceful_restart(true) end
     if command == 'resources' then
         local resources=require('ui/resources')
         local r=resources.snapshot()
-        windower.add_to_chat(0, '[XIVCrossbar] UI cleanup helper: '..tostring(resources.version or 'older/unmarked'))
-        windower.add_to_chat(0, '[XIVCrossbar] UI live: '..r.text..' text, '..r.image..' images | Created/deleted: '..r.created_text..'/'..r.destroyed_text..' text, '..r.created_image..'/'..r.destroyed_image..' images.')
-        windower.add_to_chat(0, '[XIVCrossbar] Counts cover this addon only; compare the same screen after repeating edits.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] UI cleanup helper: '..tostring(resources.version or 'older/unmarked')))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] UI live: '..r.text..' text, '..r.image..' images | Created/deleted: '..r.created_text..'/'..r.destroyed_text..' text, '..r.created_image..'/'..r.destroyed_image..' images.'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Counts cover this addon only; compare the same screen after repeating edits.'))
         return
     end
     if command == 'status' then
         if args[1] and args[1]~='details' then require('libs/chat_help').command('status [details]','Show addon state and optional diagnostics.');return end
-        local details=args[1]=='details'
+        if args[1]=='details' then return save_diagnostics() end
+        local details=false
         local format=require('libs/chat_status')
         local function row(label,value) windower.add_to_chat(0,format.row(label,value)) end
         windower.add_to_chat(0,format.heading('XIVCrossbar | Status'))
         row('Version',_addon.version)
-        row('State',xivcrossbar.ready and 'Ready' or 'Initializing')
-        row('Set',player.hotbar_settings and player.hotbar_settings.active_environment or 'Awaiting character login')
+        row('Addon',format.state(xivcrossbar.ready and 'ready' or 'initializing'))
+        local active=player.hotbar_settings and player.hotbar_settings.active_environment
+        local active_set=active and player.hotbar and player.hotbar[active]
+        row('Current Set',active_set and active_set.name or active or 'Awaiting character login')
         windower.add_to_chat(0,format.heading('Crossbars'))
-        row('Layout',(settings.iscompact and 'Compact' or 'Full')..' | scale '..tostring(settings.CrossbarScale)..' | visibility '..tostring(settings.VisibilityMode))
+        row('Layout',(settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)..' | Visibility: '..
+            (({oninput='On Input',always='Always',hidden='Hidden'})[settings.VisibilityMode] or tostring(settings.VisibilityMode)))
         row('Position','//xb pos '..tostring(settings.Style.OffsetX)..' '..tostring(settings.Style.OffsetY))
-        row('Animation','fades '..format.toggle(settings.Animation.Enabled)..' | text fade '..format.toggle(settings.Animation.TextFade))
-        row('Input','D-pad '..settings.GameplayDPad..' | text entry '..format.toggle(text_input_guard.active))
-        windower.add_to_chat(0,format.heading('Companion banks'))
+        row('Animation','Fades: '..format.toggle(settings.Animation.Enabled)..' | Text Fade: '..format.toggle(settings.Animation.TextFade))
+        row('D-pad',settings.GameplayDPad=='ijkl' and 'IJKL' or 'Arrow Keys')
+        windower.add_to_chat(0,format.heading('Companion Banks'))
         for _,layer in ipairs({'l1','l1l2','r1','r1r2'}) do companion_banks:summary(layer) end
         report_controller_status(details,true)
-        if details then
-            windower.add_to_chat(0,format.heading('Storage and lifecycle'))
-            row('Catalog saves',player:catalog_save_scope())
-            row('Catalog path',storage.identity_valid and storage.directory or 'Awaiting character login')
-            row('Bank file',tostring(bank_storage.source)..' | character '..tostring(bank_storage.character))
-            row('Lifecycle','registered '..format.toggle(client_registry and client_registry.loaded)..' | stop after last client '..format.toggle(settings.on_unload_killahk))
-            row('Autoattack','estimate '..format.toggle(settings.AutoAttackIndicator.Enabled)..' | opacity '..tostring(settings.AutoAttackIndicator.Opacity))
-            row('Editor','setup '..format.toggle(gamepad_mapper.is_showing)..' | state '..tostring(gamepad_mapper.state)..' | capture '..format.toggle(gamepad_state.capturing))
-            row('Legacy L1 bridge','received '..l1_bridge.received..' | rejected '..l1_bridge.rejected..' | ack '..l1_bridge.ack)
-        else windower.add_to_chat(0,format.notice('More: //xb status details | //xb bank <layer> status details')) end
         return
     end
 
@@ -1498,7 +1532,7 @@ windower.register_event('addon command', function(command, ...)
     if command == 'ui' and args[1] == 'fade' then
         local mode = args[2] and args[2]:lower()
         if mode and mode ~= 'on' and mode ~= 'off' then
-            windower.add_to_chat(123, '[XIVCrossbar] //xb fade [on|off]'); return
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb fade [on|off]')); return
         end
         local enabled = mode == 'on' or (not mode and not settings.Animation.Enabled)
         settings.Animation.Enabled = enabled
@@ -1507,40 +1541,40 @@ windower.register_event('addon command', function(command, ...)
         ui.geometry:configure_fade(enabled, settings.Animation.FadeIn, settings.Animation.FadeOut)
         ui.public_visible = nil
         config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. (enabled and 'ON' or 'OFF'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Fades: ' .. (enabled and 'ON' or 'OFF')))
         return
     end
 
     if command == 'ui' and args[1] == 'scale' then
         local scale = tonumber(args[2])
         if not scale or scale ~= scale or scale < .25 or scale > 2 then
-            windower.add_to_chat(123, '[XIVCrossbar] //xb ui scale <0.25-2>'); return
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb ui scale <0.25-2>')); return
         end
         settings.CrossbarScale = scale
         theme_options.crossbar_scale = scale
         ui:set_scale(scale)
         env_chooser:set_anchor(ui:get_set_chooser_anchor())
         config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] Crossbar scale: ' .. tostring(scale))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Crossbar scale: ' .. tostring(scale)))
         return
     end
 
     if command == 'autohide' then
         local mode = args[1] and args[1]:lower()
         if mode and mode ~= 'on' and mode ~= 'off' then
-            windower.add_to_chat(123, '[XIVCrossbar] //xb autohide [on|off]'); return
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] //xb autohide [on|off]')); return
         end
         if mode == 'off' or (not mode and settings.VisibilityMode == 'oninput') then
             settings.VisibilityMode = 'always'
         else settings.VisibilityMode = 'oninput' end
         config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] Visibility: ' .. settings.VisibilityMode)
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Visibility: ' .. settings.VisibilityMode))
         return
     elseif command == 'ui' and (args[1] == 'hide' or args[1] == 'show' or args[1] == 'auto') then
         settings.VisibilityMode = ({hide='hidden',show='always',auto='oninput'})[args[1]]
         ui.public_visible = nil
         config.save(settings)
-        windower.add_to_chat(207, '[XIVCrossbar] Visibility: ' .. settings.VisibilityMode)
+        windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Visibility: ' .. settings.VisibilityMode))
         return
     end
 
@@ -1588,7 +1622,7 @@ windower.register_event('addon command', function(command, ...)
     elseif command == '?' or command == 'help' then
         display_help_menu()
     else
-        windower.add_to_chat(0,'[XIVCrossbar] Unknown command: '..tostring(command))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Unknown command: '..tostring(command)))
         display_help_menu()
     end
 end)
@@ -1852,7 +1886,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
                 ui_dirty=true
             end
         else
-            windower.send_command('input /echo [XIVCrossbar] Crossbar set name "' .. env_chooser:get_new_set_name() .. '" is reserved. Unable to create.')
+            windower.add_to_chat(0,require('libs/chat_status').notice('Crossbar set name "'..env_chooser:get_new_set_name()..'" is reserved. Unable to create.',167))
         end
         return true
     end

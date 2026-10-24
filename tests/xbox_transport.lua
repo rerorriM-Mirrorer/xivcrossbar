@@ -9,6 +9,6 @@ local status=require('libs/chat_status').controller({status={running=true,profil
     button_route='messages',guide_touchpad='unavailable'},settings={ControllerProfile='xinput-extended',
     ControllerMessages=true,ControllerDevice=1},bridge={},modifier='apps'},true)
 local report=table.concat(status,'\n')
-assert(report:find('active messages | requested messages',1,true))
-assert(report:find('touchpad unavailable',1,true))
+assert(report:find('Input: Messages',1,true))
+assert(report:find('Guide Button: Unavailable',1,true))
 print('Actual extended profile bounds and honest message/Guide status passed.')

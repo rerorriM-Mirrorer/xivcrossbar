@@ -5,6 +5,7 @@ local M={buttons={'Left','Down','Right','Up','Square','Cross','Circle','Triangle
 local slot_for={[4]=1,[3]=2,[2]=3,[1]=4,[6]=5,[5]=6,[7]=7,[8]=8}
 local layers={l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}
 local prefixes={l1='L1',l1l2='L1 + L2',r1='R1',r1r2='R1 + R2'}
+local layer_aliases={l2='l1l2',r2='r1r2'}
 local titles={l1='L1  Inventory',l1l2='L1 + L2  Actions',r1='R1  Trust',r1r2='R1 + R2  NPC'}
 M.aliases={l1l2=true,r1=true,r1r2=true} -- l1 retains its older L1L2 editor meaning
 local function clone(t) local r={};for k,v in pairs(t) do r[k]=type(v)=='table' and clone(v) or v end;return r end
@@ -291,6 +292,7 @@ function M.new(options)
     function self:help()
         for _,row in ipairs({
             {'bank <layer> status [details]','Show panel state; details lists normal/menu bindings.'},
+            {'bank l2|r2 <command>','Aliases for bank l1l2 and bank r1r2; bindings are shared.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
             {'bank <layer> edit on|off','Pin/unlock this bank for mouse-only dragging; off hides preview and locks.'},
             {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
@@ -310,9 +312,10 @@ function M.new(options)
     end
     function self:summary(layer)
         local b=self:settings()[layers[layer]]
-        options.say(status_format.row(layer:upper(),'draw '..status_format.toggle(b.Visible)..
-            ' | over menus '..status_format.toggle(b.ShowOnMenu)..' | menu bindings '..status_format.toggle(b.MenuActions)..
-            ' | cutscenes '..status_format.toggle(b.AllowCutscenes)))
+        options.say(status_format.row(layer:upper(),'Draw: '..status_format.toggle(b.Visible)..
+            ' | Draw in Menus: '..status_format.toggle(b.ShowOnMenu)..
+            ' | Menu Input: '..status_format.toggle(true)..' | Bindings in Menus: '..(b.MenuActions and 'Menu' or 'Normal')..
+            ' | Cutscenes: '..status_format.toggle(b.AllowCutscenes)))
     end
     function self:status(layer,details)
         local b=self:settings()[layers[layer]]
@@ -320,12 +323,12 @@ function M.new(options)
         self:summary(layer)
         local p=self:settings()[(layer:sub(1,1)=='l' and 'Left' or 'Right')..'Panel']
         options.say(status_format.row('Position','//xb bank '..layer..' pos '..tostring(p.X)..' '..tostring(p.Y)))
-        options.say(status_format.row('Panel','scale '..tostring(p.Scale)..' | follow crossbar '..status_format.toggle(p.FollowCrossbar)..' | locked '..status_format.toggle(p.Locked)))
+        options.say(status_format.row('Panel','Scale: '..tostring(p.Scale)..' | Follow Crossbar: '..status_format.toggle(p.FollowCrossbar)..' | Locked: '..status_format.toggle(p.Locked)))
         if not details then options.say(status_format.notice('Bindings: //xb bank '..layer..' status details'));return end
-        options.say(status_format.row('Input','active '..(self.layer~='' and self.layer or 'ordinary')..' | native menu '..status_format.toggle(self.menu)..
-            ' | executed '..self.executed..' | empty '..self.empty..' | native ack '..self.output.ack..' / '..self.output.seq))
+        options.say(status_format.row('Input','Active Layer: '..(self.layer~='' and self.layer:upper() or 'Ordinary')..
+            ' | Native Menu: '..status_format.toggle(self.menu)))
         for _,context in ipairs({'Closed','Menu'}) do
-            options.say(status_format.heading(context=='Menu' and 'Menu bindings' or 'Normal bindings'))
+            options.say(status_format.heading(context=='Menu' and 'Menu Bindings' or 'Normal Bindings'))
             for i,name in ipairs(M.buttons) do
                 local e=self:entry(layer,i,context=='Menu')
                 local source=self:stored_entry(layer,i,context=='Menu').Kind=='default' and 'default' or 'override'
@@ -334,6 +337,12 @@ function M.new(options)
         end
     end
     function self:command(args)
+        local normalized={};for i,value in ipairs(args) do normalized[i]=value end
+        args=normalized
+        for _,i in ipairs(args[1]=='swap' and {2,3} or {1}) do
+            local name=type(args[i])=='string' and args[i]:lower()
+            if layer_aliases[name] then args[i]=layer_aliases[name] end
+        end
         local layer=(args[1] or ''):lower()
         if layer=='swap' then
             if args[4] or not layers[args[2]] or not layers[args[3]] or args[2]==args[3] then self:help();return false end
@@ -407,13 +416,13 @@ function M.new(options)
         options.save()
         local message
         local label=layer:upper()
-        if op=='menus' then message=label..': draw over menus '..status_format.toggle(self:settings()[layers[layer]].ShowOnMenu)
-        elseif op=='menuactions' then message=label..': automatic menu bindings '..status_format.toggle(self:settings()[layers[layer]].MenuActions)
-        elseif op=='cutscenes' then message=label..': cutscene access '..status_format.toggle(self:settings()[layers[layer]].AllowCutscenes)
-        elseif op=='show' or op=='hide' then message=label..': drawing '..status_format.toggle(self:settings()[layers[layer]].Visible)
-        elseif op=='edit' then message=label..': edit '..status_format.toggle(args[3]=='on')
-        elseif op=='pos' or op=='resetpos' then message=label..': position '..tostring(p.X)..', '..tostring(p.Y)
-        elseif op=='scale' then message=label..': scale '..(p.FollowCrossbar and 'follows crossbar' or tostring(p.Scale))
+        if op=='menus' then message=label..': Draw in Menus: '..status_format.toggle(self:settings()[layers[layer]].ShowOnMenu)
+        elseif op=='menuactions' then message=label..': Bindings in Menus: '..(self:settings()[layers[layer]].MenuActions and 'Menu' or 'Normal')
+        elseif op=='cutscenes' then message=label..': Cutscenes: '..status_format.toggle(self:settings()[layers[layer]].AllowCutscenes)
+        elseif op=='show' or op=='hide' then message=label..': Draw: '..status_format.toggle(self:settings()[layers[layer]].Visible)
+        elseif op=='edit' then message=label..': Edit: '..status_format.toggle(args[3]=='on')
+        elseif op=='pos' or op=='resetpos' then message=label..': Position: '..tostring(p.X)..', '..tostring(p.Y)
+        elseif op=='scale' then message=label..': Scale: '..(p.FollowCrossbar and 'Follows Crossbar' or tostring(p.Scale))
         elseif op=='lock' or op=='unlock' then message=label..': panel '..(p.Locked and 'locked' or 'unlocked')
         elseif op=='defaults' then message=label..': '..(menu and 'menu' or 'normal')..' bindings restored'
         else message=label..': '..(menu and 'menu' or 'normal')..' '..tostring(args[2+offset+((op=='key' or op=='clear' or op=='append' or op=='default') and 1 or 0)])..' binding updated' end

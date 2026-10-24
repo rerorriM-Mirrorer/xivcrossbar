@@ -866,7 +866,7 @@ function action_binder:submit_selected_option()
         if not selected then return end
         if selected.disabled then
             if selected.disabled_focusable then
-                windower.add_to_chat(207, '[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.')
+                windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.'))
             end
             return
         end
@@ -1028,7 +1028,7 @@ function action_binder:submit_selected_option()
         elseif (self.action_type == action_types.CHANGE_ICON) then
             local valid, warning = self:check_slot_bound_in_active_env()
             if not valid then
-                windower.add_to_chat(123, '[XIVCrossbar] ' .. warning)
+                windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] ' .. warning))
                 self.state=states.SELECT_BUTTON_ASSIGNMENT
                 self:display_button_assigner()
                 return
@@ -1039,7 +1039,7 @@ function action_binder:submit_selected_option()
         elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
             local name = self:capture_global_icon_source_name()
             if (name == nil) then
-                windower.add_to_chat(123, '[XIVCrossbar] No action bound at the selected slot.')
+                windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No action bound at the selected slot.'))
                 self:return_to_action_type_menu()
                 return
             end
@@ -1109,21 +1109,21 @@ function action_binder:submit_selected_option()
         end
     elseif (self.state == states.ENTER_CUSTOM_ACTION_ALIAS) then
         if (self.custom_action_draft.alias == nil or self.custom_action_draft.alias == '') then
-            windower.add_to_chat(123, '[XIVCrossbar] Set the alias first: //xivcrossbar ca a <value>')
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Set the alias first: //xivcrossbar ca a <value>'))
             return
         end
         self.state = states.ENTER_CUSTOM_ACTION_NAME
         self:display_custom_action_field_review('Catalog Name', 'n', self.custom_action_draft.name, '(unique key in CustomActions.xml)')
     elseif (self.state == states.ENTER_CUSTOM_ACTION_NAME) then
         if (self.custom_action_draft.name == nil or self.custom_action_draft.name == '') then
-            windower.add_to_chat(123, '[XIVCrossbar] Set the catalog name first: //xivcrossbar ca n <value>')
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Set the catalog name first: //xivcrossbar ca n <value>'))
             return
         end
         self.state = states.ENTER_CUSTOM_ACTION_COMMAND
         self:display_custom_action_field_review('Command', 'c', self.custom_action_draft.command, '(raw command this action will fire)')
     elseif (self.state == states.ENTER_CUSTOM_ACTION_COMMAND) then
         if (self.custom_action_draft.command == nil or self.custom_action_draft.command == '') then
-            windower.add_to_chat(123, '[XIVCrossbar] Set the command first: //xivcrossbar ca c <value>')
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Set the command first: //xivcrossbar ca c <value>'))
             return
         end
         self.state = states.SELECT_CUSTOM_ACTION_ICON_CHOICE
@@ -1183,7 +1183,7 @@ function action_binder:submit_selected_option()
             local name = option.text
             local record = player_data.custom_actions and player_data.custom_actions[name]
             if (record == nil) then
-                windower.add_to_chat(123, '[XIVCrossbar] Edit Custom Action: entry "' .. tostring(name) .. '" not found.')
+                windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Edit Custom Action: entry "' .. tostring(name) .. '" not found.'))
                 return
             end
             self.custom_action_draft = {
@@ -1268,7 +1268,7 @@ function action_binder:submit_selected_option()
         else
             local name = option.text
             if (player_data.custom_actions == nil or player_data.custom_actions[name] == nil) then
-                windower.add_to_chat(123, '[XIVCrossbar] Delete Custom Action: entry "' .. tostring(name) .. '" not found.')
+                windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Delete Custom Action: entry "' .. tostring(name) .. '" not found.'))
                 return
             end
             self.custom_action_delete_target = name
@@ -2849,7 +2849,7 @@ end
 
 function action_binder:apply_icon_change()
     if (self.change_slot_icon == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Change Icon: callback not wired (please reload addon).')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Change Icon: callback not wired (please reload addon).'))
         return
     end
     self.change_slot_icon(self.active_crossbar, self.hotkey, self.action_icon)
@@ -2887,13 +2887,13 @@ end
 
 function action_binder:on_custom_action_field_set(field, value)
     if (self.custom_action_draft == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] No Custom Action in progress. Open the binder and choose Create Custom Action first.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No Custom Action in progress. Open the binder and choose Create Custom Action first.'))
         return false
     end
 
     -- Reject empty values (whitespace-only counts as empty).
     if field == 'name' and not review.nonempty(value) then
-        windower.add_to_chat(123, '[XIVCrossbar] You must provide a value for "' .. field .. '".')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] You must provide a value for "' .. field .. '".'))
         return false
     end
 
@@ -2910,14 +2910,14 @@ function action_binder:on_custom_action_field_set(field, value)
     if (field == 'command' and (on_command_screen or on_any_all_fields)) then accepted = true end
 
     if (not accepted) then
-        windower.add_to_chat(123, '[XIVCrossbar] Field "' .. field .. '" can only be set on its own review screen or the final review/confirm screen.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Field "' .. field .. '" can only be set on its own review screen or the final review/confirm screen.'))
         return false
     end
 
     if (field == 'name') then
         local is_original = (self.editing_custom_action and value == self.custom_action_original_name)
         if (not is_original and not player_data:custom_name_available(value,self.custom_action_original_name)) then
-            windower.add_to_chat(123, '[XIVCrossbar] A custom action named "' .. value .. '" already exists. Pick a different name.')
+            windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] A custom action named "' .. value .. '" already exists. Pick a different name.'))
             return false
         end
     end
@@ -2928,7 +2928,7 @@ function action_binder:on_custom_action_field_set(field, value)
         self.custom_action_review_field = nil
         self:set_capturing_text(false)
     end
-    windower.add_to_chat(207, '[XIVCrossbar] ' .. field .. ' set to: ' .. value)
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] ' .. field .. ' set to: ' .. value))
 
     if (on_alias_screen) then
         self:display_custom_action_field_review('Alias', 'a', self.custom_action_draft.alias, '(display label shown on the slot)')
@@ -2946,11 +2946,11 @@ end
 
 function action_binder:apply_global_icon()
     if (self.save_global_icon == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Global Icon Set: callback not wired (please reload addon).')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Global Icon Set: callback not wired (please reload addon).'))
         return
     end
     if (self.global_icon_source_name == nil or self.global_icon_source_name == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Global Icon Set: no action name captured.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Global Icon Set: no action name captured.'))
         return
     end
     self.save_global_icon(self.global_icon_source_name, self.action_icon)
@@ -2959,14 +2959,14 @@ end
 function action_binder:apply_custom_action_save()
     local d=self.custom_action_draft
     if not d or not player_data:custom_name_available(d.name,nil) or not self.save_custom_action then
-        windower.add_to_chat(123, '[XIVCrossbar] Enter a unique catalog name before saving.'); return false
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Enter a unique catalog name before saving.')); return false
     end
     return self.save_custom_action(d) ~= false
 end
 
 function action_binder:new_custom_action(name, origin)
-    if not self.title then windower.add_to_chat(123,'[XIVCrossbar] Log in before editing.'); return false end
-    if self.custom_action_draft then windower.add_to_chat(123,'[XIVCrossbar] Save or cancel the current draft first.'); return false end
+    if not self.title then windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Log in before editing.')); return false end
+    if self.custom_action_draft then windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Save or cancel the current draft first.')); return false end
     name=name or ''
     if player_data.refresh_custom_catalogs then player_data:refresh_custom_catalogs() end
     local record,key=player_data:find_custom_action(name)
@@ -3145,19 +3145,19 @@ end
 function action_binder:apply_custom_action_update()
     local d=self.custom_action_draft
     if not d or not player_data:custom_name_available(d.name,self.custom_action_original_name) or not self.update_custom_action then
-        windower.add_to_chat(123,'[XIVCrossbar] Enter a unique catalog name before saving.'); return false
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Enter a unique catalog name before saving.')); return false
     end
     return self.update_custom_action(self.custom_action_original_name,d) ~= false
 end
 
 function action_binder:apply_custom_action_delete()
     if (self.delete_custom_action == nil) then
-        windower.add_to_chat(123, '[XIVCrossbar] Delete Custom Action: callback not wired (please reload addon).')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Delete Custom Action: callback not wired (please reload addon).'))
         return
     end
     local target = self.custom_action_delete_target
     if (target == nil or target == '') then
-        windower.add_to_chat(123, '[XIVCrossbar] Delete Custom Action: no entry selected.')
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Delete Custom Action: no entry selected.'))
         return
     end
     self.delete_custom_action(target)

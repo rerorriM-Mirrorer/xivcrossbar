@@ -11,8 +11,8 @@ function M.command(settings,mode,save,say)
         settings.ControllerMessages=mode and mode=='on' or mode==nil and not settings.ControllerMessages
         save()
     end
-    say('Controller messages '..(settings.ControllerMessages and 'ON' or 'OFF')..
-        '. Extended profiles (x / xbox); return controls to neutral for handoff.')
+    say('Controller Messages: '..require('libs/chat_status').toggle(settings.ControllerMessages)..
+        '. Release controls for handoff.')
     return mode~='status'
 end
 function M.new(options)

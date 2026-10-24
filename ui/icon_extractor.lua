@@ -197,7 +197,7 @@ function icon_extractor.safe_item_by_id(id, output_path)
         failed_items[key] = true
         local captured, saved = pcall(write_diagnostic, output_path, last_item_record, err)
         local note = captured and saved and ' (record diagnostic saved beside the icon cache)' or ''
-        windower.add_to_chat(123, '[XIVCrossbar] Item icon ' .. key .. ': ' .. tostring(err) .. note)
+        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Item icon ' .. key .. ': ' .. tostring(err) .. note))
     end
     return ok
 end

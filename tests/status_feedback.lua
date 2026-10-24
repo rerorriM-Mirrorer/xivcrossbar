@@ -14,22 +14,33 @@ for _,cmd in ipairs({{'r1','menus','on'},{'l1','menuactions','off'},
 end
 assert(saves==9)
 lines={};b:command({'l1','status'});assert(#lines==5)
-assert(not table.concat(lines,'\n'):find('Menu bindings',1,true))
+assert(not table.concat(lines,'\n'):find('Menu Bindings',1,true))
 lines={};b:command({'l1','status','details'});assert(#lines>16)
-assert(table.concat(lines,'\n'):find('Menu bindings',1,true))
+assert(table.concat(lines,'\n'):find('Menu Bindings',1,true))
 local fmt=require('libs/chat_status')
 local o={settings={ControllerProfile='ps5-extended',ControllerDevice=1,ControllerMessages=true},
     bridge={received=0,rejected=0},modifier='apps'}
 local s=table.concat(fmt.controller(o),'\n')
-assert(s:find('active unknown | requested messages',1,true),'stopped wrapper presented as active route')
+assert(s:find('Input: Unavailable',1,true),'stopped wrapper presented as active route')
 o.status={running=true,profile='ps5-extended',device='1',connected='0',state='waiting-neutral',button_route='neutral'}
 s=table.concat(fmt.controller(o),'\n')
-assert(s:find('connected OFF',1,true) and s:find('active neutral',1,true))
-assert(s:find('Restart the updated AHK wrapper for messages, banks, hold recovery, Trust menu.',1,true))
+assert(s:find('Connected: OFF',1,true) and s:find('Waiting for Messages',1,true))
+assert(s:find('Restart the updated AHK wrapper for messages.',1,true))
+assert(not s:find('Recovery',1,true) and not s:find('Trace',1,true) and not s:find('requested',1,true))
 local original=string.color
 string.color=function(value,id)return '['..id..']'..value end
-assert(fmt.heading('Status')=='[140]--- [167]Status[140] ---')
-assert(fmt.row('Mode','Ready')=='[207]  Mode[200] -> [0]Ready')
-assert(fmt.notice('Saved')=='[200]//xb[200] -> [0]Saved')
+assert(fmt.heading('Status')=='[140]=== [200]Status[140] ===')
+assert(fmt.row('Mode','Ready')=='[207]  Mode: [0]Ready')
+assert(fmt.notice('Saved')=='[200][XIVcrossbar] [207]Saved')
+assert(fmt.notice('Restarting.',140)=='[200][XIVcrossbar] [140]Restarting.')
+assert(fmt.state('ready')=='[158]Ready' and fmt.toggle(true)=='[158]ON')
+assert(fmt.legacy(123,'[XIVCrossbar] Failed')=='[200][XIVcrossbar] [167]Failed')
+assert(fmt.row('Position','//xb pos 1 2'):find('[200]//xb',1,true))
 string.color=original
+local alias={'l2','cross','Alias test','input /echo alias'}
+assert(b:command(alias));assert(alias[1]=='l2','bank alias mutated caller arguments')
+assert(b:entry('l1l2',6,false).Alias=='Alias test')
+assert(b:command({'r2','hide'}) and not b:settings().R1R2.Visible)
+lines={};b:summary('l1l2');local summary=table.concat(lines,'\n')
+assert(summary:find('Draw in Menus:',1,true) and summary:find('Menu Input: ON',1,true) and summary:find('Bindings in Menus:',1,true))
 print('Status feedback: single-line edits/swaps, explicit full bindings, stopped/neutral route truth and help palette passed.')

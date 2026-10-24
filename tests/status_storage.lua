@@ -16,6 +16,7 @@ local env=setmetatable({_addon={version='test'},settings=defaults,
     l1_bank={status=function()end},l1_bridge={received=0,rejected=0,ack=0,reset=function()end},
     l1_drag={finish=function()end},l1_view={destroy=function()end},r1_drag={finish=function()end},r1_view={destroy=function()end},personal_controls={close=function()end},
     controller_message_bridge={reset=function()end},
+    save_diagnostics=function()lines[#lines+1]='Snapshot: '..(storage.identity_valid and storage.directory or 'Awaiting character login');return true end,
     windower={add_to_chat=function(_,line)lines[#lines+1]=line end},
 }, {__index=_G})
 local status=assert(load(imported..'\nreturn function(command, args)\nargs=args or {}\n'..body..'\nend','real status branch','t',env))()
@@ -25,7 +26,10 @@ status('status',{'details'})
 assert(table.concat(lines,'\n'):find('Awaiting character login',1,true))
 storage.identity_valid=true;storage.directory='Fenrir/Cioara';lines={}
 status('status',{'details'})
-assert(table.concat(lines,'\n'):find('Fenrir/Cioara',1,true) and table.concat(lines,'\n'):find('registered ON',1,true))
+assert(table.concat(lines,'\n'):find('Fenrir/Cioara',1,true) and #lines==1)
+lines={};status('status')
+assert(table.concat(lines,'\n'):find('Current Set: Basic',1,true))
+assert(not table.concat(lines,'\n'):find('Text Entry',1,true) and not table.concat(lines,'\n'):find('Catalog',1,true))
 local first=assert(source:find('function initialize(',1,true))
 local last=assert(source:find('\n    xivcrossbar.pending_initialize = false',first,true))
 local invalid=source:sub(first,last-1)..'\nend\nreturn initialize'

@@ -584,7 +584,7 @@ function gamepad_mapper:handle_button_press(button_name)
                 self.state = states.COMPLETE
                 self:display_completion_dialog()
             else
-                windower.send_command('input /echo [XIVCrossbar] An error occurred. Configuration file not saved.')
+                windower.add_to_chat(0,require('libs/chat_status').notice('Could not save controller configuration.',167))
             end
         elseif (self.cancel_button == button_name) then
             self.confirm_button = nil

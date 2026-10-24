@@ -23,21 +23,21 @@ local last=assert(text:find('function start_controller_wrappers(',first,true))
 local lines={}
 local status={running=true,profile='ps5-extended',device='1',modifier='apps',state='ready',connected='1',
     button_protocol='1',bank_protocol='1',hold_recovery_protocol='1',r1_menu_protocol='1',button_route='messages',personal_version='9.11-timing1'}
-local status_env=setmetatable({settings={ControllerProfile='ps5-extended',ControllerDevice=1,ControllerMessages=true},
+local snapshots=0
+local status_env=setmetatable({save_diagnostics=function()snapshots=snapshots+1;return true end,
+    settings={ControllerProfile='ps5-extended',ControllerDevice=1,ControllerMessages=true},
     input_timing={active=true},controller_modifier='apps',controller_message_bridge={received=12,rejected=0},companion_banks={active=false},
     controller_status=function()return status end,controller_profiles={matches=function()return true end},
     windower={add_to_chat=function(color,s)assert(color==0);lines[#lines+1]=s end}},{__index=_G})
 local report=assert(load(text:sub(first,last-1)..'\nreturn report_controller_status','actual route status','t',status_env))()
 report();local concise=table.concat(lines,'\n')
-assert(concise:find('active messages | requested messages',1,true) and concise:find('Lua ON',1,true))
+assert(concise:find('Input: Messages',1,true) and not concise:find('Trace',1,true))
 assert(not concise:find('received 12',1,true) and #lines<=10)
-lines={};report(true);local detail=table.concat(lines,'\n')
-assert(detail:find('received 12',1,true) and detail:find('fallback apps',1,true))
+lines={};assert(report(true));assert(snapshots==1 and #lines==0,'details printed diagnostics to chat')
 status_env.settings.ControllerMessages=false;status.button_route='keys';lines={};report()
-assert(table.concat(lines,'\n'):find('active keys | requested keys',1,true))
+assert(table.concat(lines,'\n'):find('Input: Keyboard (Legacy)',1,true))
 status_env.settings.ControllerRealKeys=true;lines={};report()
-assert(table.concat(lines,'\n'):find('Restart the updated AHK wrapper for real IJKL',1,true))
-status.realkeys_protocol='1';status.dpad_output='ahk';lines={};report(true)
-assert(table.concat(lines,'\n'):find('output ahk',1,true))
-assert(not table.concat(lines,'\n'):find('Restart the updated AHK wrapper for real IJKL',1,true))
+assert(table.concat(lines,'\n'):find('Restart the updated AHK wrapper for direct IJKL output.',1,true))
+status.realkeys_protocol='1';status.dpad_output='ahk';lines={};report()
+assert(not table.concat(lines,'\n'):find('Restart the updated AHK wrapper for direct IJKL output.',1,true))
 print('Actual controller status: compact/detail separation, route truth, Lua trace and compatibility notices passed.')
