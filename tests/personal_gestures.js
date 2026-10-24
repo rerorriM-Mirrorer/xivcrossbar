@@ -96,9 +96,10 @@ check('R3 then L3 holds comma, without autorun/heal',()=>{
 check('L3 then R3 holds period',()=>{
   const c=clicks();c(true,false);assert.equal(c(true,true),'vkBEsc034');assert.equal(c(false,false),'');
 });
-check('bare clicks H/R only on release',()=>{
+check('bare L3 heals on release; R3 release never toggles autorun',()=>{
   const c=clicks();assert.equal(c(true,false),'');assert.equal(c(false,false),'h');
-  assert.equal(c(false,true),'');assert.equal(c(false,false),'r');
+  assert.equal(c(false,true),'');assert.equal(c(false,false),'');
+  assert(!fs.readFileSync('personal_controls.ahk','utf8').includes('clickEvent = "r"'));
 });
 check('same sample clicks do not guess order',()=>{
   const c=clicks();assert.equal(c(true,true),'');assert.equal(c(false,true),'');assert.equal(c(false,false),'');

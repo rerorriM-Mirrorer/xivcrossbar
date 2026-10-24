@@ -107,8 +107,8 @@ PersonalClicksStep(g, l3, r3, previousL3, previousR3, consumed) {
         g.phase := "idle"
         if (phase = "l3")
             return "h"
-        if (phase = "r3")
-            return "r"
+        ; R3 retains fresh-press F8 acquisition in PersonalTargetTrial. A bare
+        ; release must not also toggle autorun (applies to Xbox stick click too).
     }
     ; Releasing the first click while the other remains held cancels the pair.
     if ((phase = "l3" and !l3 and r3) or (phase = "r3" and !r3 and l3))

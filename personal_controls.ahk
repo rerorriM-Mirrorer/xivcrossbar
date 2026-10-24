@@ -217,7 +217,7 @@ PersonalPoll(states, active) {
         , PC.previous.l3, PC.previous.r3, busy or raw.l1 or raw.r1 or raw.touch)
     PersonalKey("vkBCsc033", clickEvent = "vkBCsc033")
     PersonalKey("vkBEsc034", clickEvent = "vkBEsc034")
-    if (clickEvent = "h" or clickEvent = "r")
+    if (clickEvent = "h")
         PersonalChord(clickEvent, "", now)
 
     PersonalR1Tap(raw, busy or raw.l1 or raw.l3 or raw.r3 or raw.touch, now)
@@ -727,7 +727,7 @@ PersonalBanksPoll(states, raw, mode, now) {
         , PC.previous.l3, PC.previous.r3, busy or raw.touch)
     PersonalKey("vkBCsc033", clickEvent = "vkBCsc033")
     PersonalKey("vkBEsc034", clickEvent = "vkBEsc034")
-    if (clickEvent = "h" or clickEvent = "r")
+    if (clickEvent = "h")
         PersonalChord(clickEvent, "", now)
     PersonalNativePoll(now)
     PC.previous := raw
