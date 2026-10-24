@@ -1,3 +1,13 @@
+# Current Development Status — October 24, 2026 — Trust Forward Merge 1
+
+- development/directlink; published starting baseline b0e62df4c7546f77c21120c4bc35bdf2d22bf680. Read current AGENTS/WORKFLOW/TESTING. Master unchanged.
+- Runtime directlink1-trustmerge1 / Controls 9.17-trustmerge1. Forward-port source 8e959b9, d85bb13 and 68e10d4 from the separate Trust menu test branch. Preserve Xbox reader/profile gates, chat polish, diagnostics and R3 autorun removal. Trust mode/counters belong in the diagnostic file.
+- User reports Killala and Franklet lost Trust controller navigation after MessagePolish1 + Trust-MenuToggle-Full-20261023. Inspection confirms MessagePolish1 omitted the direct Trust sender; the Trust package contains the receiver. This establishes a package compatibility defect, not proof that every observed paused state shares that cause.
+- Verification: 65 top-level Lua suites / 149 parsed sources pass under the documented temporary Windower normalization; actual Trust/root lease tests pass. AHK realkeys/Trust full-poll simulation and structural/layout checks pass. Native Windows/Windower/FFXI tests pending; see docs/TRUST-FORWARD-MERGE-TEST.md.
+- Next authorized work: icon folder browser; Cioara L1 defaults and supplied-character synchronization; R1 NPC navigation; idle/chat/menu panel drawing without chat input; clear and disable second-level banks. All panel coordinates/placement remain unchanged. Menuactions redesign and press indicators deferred.
+
+---
+
 # Current Development Status — October 23, 2026 — Message Polish 1
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting published checkpoint 06a8349dbdd4b31ca3eb56d772706f3da2b87926 / tree ccace58302ea45f688286d2adfcc3cfa864761d0. Current AGENTS/WORKFLOW/TESTING reviewed on resume; prior partial edits survived the workspace outage. Master unchanged.

@@ -1,3 +1,9 @@
+Trust Forward Merge 1: restores direct Trust menu controller navigation alongside
+Message Polish and Xbox Extended. Runtime directlink1-trustmerge1 / Controls
+9.17-trustmerge1. Keep Trust-MenuToggle-Full-20261023; update XIVcrossbar Lua and
+AHK together, reload all participating clients and restart the shared wrapper.
+See [live checks](docs/TRUST-FORWARD-MERGE-TEST.md).
+
 Message Polish 1: purple `[XIVcrossbar]` tags and titles, light-blue routine text,
 colon-separated status fields, and quieter controller reports. `//xb diagnostics`
 (also `status details` / `controller status details`) saves a diagnostic file.
