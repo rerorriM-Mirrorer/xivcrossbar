@@ -1,3 +1,10 @@
+Message Polish 1: purple `[XIVcrossbar]` tags and titles, light-blue routine text,
+colon-separated status fields, and quieter controller reports. `//xb diagnostics`
+(also `status details` / `controller status details`) saves a diagnostic file.
+`bank l2` and `bank r2` alias the paired banks. R3 no longer injects autorun on
+release. Runtime directlink1-messages1 / Controls 9.16-messages1.
+[Install and live check](docs/MESSAGE-POLISH-TEST.md). Restart the shared wrapper.
+
 Xbox Extended 1: `//xb controller profile xbox 1` selects XInput with the same
 messages, companion banks and release guards as PS5 Extended. Saved Xbox face
 roles now translate correctly in gameplay. Guide replaces touchpad when the
@@ -22,7 +29,7 @@ Runtime directlink1-startup-pacts1 / Controls 9.12-registry1. Read
 [patch installation and live tests](docs/STARTUP-PACTS-REGISTRY-TEST.md).
 
 Status Cleanup 1: `//xb status` and `//xb controller status` show ordered summaries;
-append `details` for diagnostics. `//xb bank <layer> status details` lists bindings.
+append `details` to save diagnostics to a file. `//xb bank <layer> status details` lists bindings.
 Bank edits now give one confirmation. Runtime directlink1-status1; unchanged
 Controls 9.11-timing1. Current testing/status is at the start of TESTING.md.
 
@@ -1280,3 +1287,19 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   opt-in trace state reports. Trigger stickiness is not a confirmed fix here.
 - Runtime directlink1-xbox1 / Controls 9.15-xbox1. Simulated checks pass;
   Windows/FFXI and Guide delivery remain pending. See the focused test guide.
+
+### Message Polish 1 — October 23, 2026
+
+- Use purple `[XIVcrossbar]` identity/titles, light-blue routine text/labels,
+  white values, yellow progress/WIP and green Ready/ON. Status uses colons and
+  `===` headings; routine startup has no arrow or status advertisement.
+- Simplify controller readiness/input reporting and save technical counters to
+  per-character diagnostic files through `//xb diagnostics`, `status details`
+  or `controller status details`. Explicit bank details still lists bindings.
+- Add `bank l2`/`bank r2` aliases for the paired companion banks and distinguish
+  drawing over menus from which bindings execute in those menus.
+- Remove implicit R3/right-stick autorun on release while retaining acquisition,
+  L3/zoom gestures and R1/RB behavior. Restart the shared wrapper after update.
+- Runtime directlink1-messages1 / Controls 9.16-messages1. Simulated checks pass;
+  native colors/line lengths and input acceptance remain pending. Apps transport
+  retirement remains separate work; no retirement is claimed by this batch.

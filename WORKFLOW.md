@@ -270,4 +270,15 @@ At the end of every coherent development or documentation delivery, complete thi
 
 The tracked status cannot contain its own final commit hash: changing the file changes that hash. Identify the tested **starting/source checkpoint** in `TESTING.md`, then give the final published head SHA in the handoff and GitHub history. Do not confuse an older baseline or local-only commit with the remote branch head. Never promote unverified working branches to `main`/`master` merely to refresh status.
 
+### XIVcrossbar chat preferences — October 23, 2026
+
+The user's newer chat preferences specialize the shared palette above: display
+the addon identity as `[XIVcrossbar]` in purple (200); use purple headings with
+`===` separators, light-blue (207) labels/routine text, white (0) values, yellow
+(140) transitions/WIP warnings, green (158) readiness/ON, and red (167) errors.
+Status fields use colons. Ordinary notifications have no arrow or routine status
+advertisement. Help commands retain their explanatory arrow and white prose.
+Keep transport counters in explicit diagnostic files; normal status describes
+usable controls and actionable problems. Preserve internal addon/file identity.
+
 

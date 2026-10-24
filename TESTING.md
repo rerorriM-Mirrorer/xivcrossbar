@@ -1,3 +1,38 @@
+# Current Development Status — October 23, 2026 — Message Polish 1
+
+- Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting published checkpoint 06a8349dbdd4b31ca3eb56d772706f3da2b87926 / tree ccace58302ea45f688286d2adfcc3cfa864761d0. Current AGENTS/WORKFLOW/TESTING reviewed on resume; prior partial edits survived the workspace outage. Master unchanged.
+- Runtime directlink1-messages1 / Controls 9.16-messages1. User supplied Xbox status showing Ready/Connected and active/requested Messages; this establishes reported runtime state, not native latency/Guide acceptance. User asks for purple [XIVcrossbar] identity/titles, light-blue routine wording, white values, yellow progress/WIP, green Ready/ON, colon fields, fewer diagnostic rows, bank aliases and removal of R3 autorun.
+- Chat: centralized formatting, case [XIVcrossbar], === headings, colon fields and colored command prefixes. Routine loaded message has no arrow/status hint/job highlight. Profile/device values are white, Experimental yellow, Ready green, Restarting yellow; start feedback omits the legacy modifier. Existing prefixed root/player/binder/icon messages use the shared formatter without changing their return paths/actions. Help descriptions stay white and command explanation arrows remain. WORKFLOW records the newer user preference without erasing shared history.
+- Normal status now names Addon readiness and Current Set, reports D-pad mapping without ambiguous text-capture/AHK-delivery flags, and embeds one concise controller section. Input reports current Messages/Waiting for Messages/Keyboard (Legacy)/Unavailable. Raw requested/active/recovery/trace/counter/protocol/timing rows were removed from chat. Mismatch/stopped/missing message support still yield honest state/action prompts.
+- New explicit diagnostics command (diagnose alias), plus status details and controller status details, saves data/diagnostics-<Character>.log through the shared staged replacement helper. Build before replace, protect assembly/backend failure, confirm once, never claim a failed write succeeded. Snapshot retains raw wrapper/selection/receiver/bank/output/storage/editor/lifecycle data, including bindings; it is not continuous tracing. Bank status details remains an explicit readable binding list in chat.
+- bank l2/r2 normalize to l1l2/r1r2, including swap operands, without mutating caller arguments or changing saved bindings. Clear Draw/Draw in Menus/Bindings in Menus/Menu Input/Cutscenes fields. Existing bank input remains available in eligible menu contexts; there is no new menu-disable setting. menuactions off still means use Normal assignments. No drawing or execution-policy changes are implied by the labels.
+- R3/right-stick implicit autorun removed in the common gesture function and both dispatch sites. Existing F8 acquisition configuration, L3 H, ordered zoom chords, R1/RB R action and explicit custom bindings remain. Applies to PS5 and Xbox extended readers; native FFXI assignments are untouched.
+- Verification: 64 top-level Lua regressions passed, all 147 Lua sources parsed with documented Lua 5.4 temporary Windower normalization; eight JS suites, AHK structural checks, layout check and git diff --check pass. Focused changed-format regressions rerun after final caption/helper updates. Snapshot tests execute real root collection and saver boundaries; regressions cover save/assembly failures, no diagnostic chat dump, color fragments, stopped/neutral route truth, aliases, R3 release, retained F8/zoom/R1 behavior. No native Windows/AHK/Windower/FFXI execution available.
+- Delivery: cumulative changed-files patch from Cleanup 1 (28304f4) or a newer DirectLink build, including Xbox Extended 1 and prior slot/icon/cutscene fixes. Matched Lua/AHK update requires wrapper stop/restart. No personal data/config/artwork. See docs/MESSAGE-POLISH-TEST.md for exact commands and live acceptance.
+- Next: user verifies colors/line lengths, quiet diagnostics and R3 release. Full Apps retirement remains separate work because startup/login/setup and lease-loss compatibility paths still exist; this batch neither disables nor claims removal of those paths. Prior stickiness, icon flicker, native Guide delivery and Myrr crash cause remain open.
+
+---
+
+# Message Polish 1 — October 23, 2026
+
+Ideal: routine messages identify the addon and describe the action/state without
+making the user interpret transport bookkeeping. Preserve the useful evidence in
+an explicit file. Existing status and chat callbacks were inspected before
+applying the new visual vocabulary. No bulk settings replacement or transport
+timing change is bundled into presentation work. R3 release and bank aliases are
+the two requested input/command changes, covered separately from formatting.
+
+First focused regressions caught old expectations for chat detail dumps and
+arrow/prefix formatting; they now verify the newly requested contract. Prior full
+checks passed, followed by a full final regression and focused presentation
+checks after label updates. The disconnected workspace interrupted an earlier
+patch before application; resumed status confirmed only the known partial files,
+and the unfinished batch was neither tested nor published during the outage.
+
+Previous history remains below.
+
+---
+
 # Current Development Status — October 23, 2026
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/directlink. Tested starting published checkpoint 0c38b9df5dd957d444694727d47b868b5db54f0f / tree 44c1bfb818320095e147714c8eed3ad7fa227d82. Current root AGENTS/WORKFLOW/TESTING reviewed. Master unchanged.
