@@ -2750,40 +2750,37 @@ local icon_picker_excluded_dirs = {
 }
 
 local function list_iconpack_dir(rel_path)
-    local pathbase = get_icon_pathbase()
-    local addon_path = windower.addon_path
-    local sep = ''
-    if (rel_path ~= nil and rel_path ~= '') then
-        sep = '\\'
-    end
-    local full_path = addon_path .. 'images\\' .. pathbase:gsub('/', '\\') .. sep .. (rel_path or ''):gsub('/', '\\')
-
-    local dirs = L{}
-    local handle = io.popen('dir /b /a:d "' .. full_path .. '" 2>nul')
-    if (handle) then
-        for line in handle:lines() do
-            if (line ~= nil and line ~= '' and not icon_picker_excluded_dirs[line:lower()]) then
-                dirs:append(line)
-            end
-        end
-        handle:close()
-    end
-
-    local files = L{}
-    handle = io.popen('dir /b /a:-d "' .. full_path .. '\\*.png" 2>nul')
-    if (handle) then
-        for line in handle:lines() do
-            if (line ~= nil and line ~= '') then
-                local stem = line:gsub('%.png$', ''):gsub('%.PNG$', '')
-                if (not icon_picker_excluded_files[stem:lower()]) then
-                    files:append(stem)
+    -- A: the folder browser and recursive picker must use the same roots as
+    -- rendering. Normalize the entire Windows command path, including addon_path.
+    local dirs,files=L{},L{}
+    local seen_dirs,seen_files={},{}
+    for _,root in ipairs(require('ui/assets').pack_roots(icon_pack)) do
+        local path=(root..((rel_path or '')~='' and '/'..rel_path or '')):gsub('/', '\\')
+        for _,kind in ipairs({'dirs','files'}) do
+            local command=kind=='dirs' and ('dir /b /a:d "'..path..'" 2>nul')
+                or ('dir /b /a:-d "'..path..'\\*.png" 2>nul')
+            local handle=io.popen(command)
+            if handle then
+                for line in handle:lines() do
+                    line=line:gsub('\r$', '')
+                    if kind=='dirs' then
+                        local key=line:lower()
+                        if key~='' and not seen_dirs[key] and not icon_picker_excluded_dirs[key] then
+                            seen_dirs[key]=true;dirs:append(line)
+                        end
+                    else
+                        local stem=line:match('^(.*)%.[pP][nN][gG]$')
+                        local key=stem and stem:lower()
+                        if key and key~='' and not seen_files[key] and not icon_picker_excluded_files[key] then
+                            seen_files[key]=true;files:append(stem)
+                        end
+                    end
                 end
+                handle:close()
             end
         end
-        handle:close()
     end
-
-    return dirs, files
+    return dirs,files
 end
 
 function action_binder:display_icon_selector(rel_path)

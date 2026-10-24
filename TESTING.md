@@ -1,3 +1,11 @@
+# Current Development Status — October 24, 2026 — Icon Folder Browser checkpoint
+
+- Continues Trust Forward Merge 1 on development/directlink. Runtime/Controls remain trustmerge1 / 9.17-trustmerge1. Trust checkpoint published at 261c54cd1547cae16b72bfbe8c41620dc06691a8.
+- User confirms Change Icon offers only Remove Icon. The earlier icon fix covered the recursive picker, while the folder browser retained a separate one-root mixed-path scanner. Folder browser now uses all resolver roots, normalizes the entire command path, deduplicates names case-insensitively, accepts mixed-case PNG suffixes, and retains UI exclusions. Saved stems/artwork unchanged.
+- Actual folder-browser regression and recursive-picker regression pass; all 150 Lua sources parse with the documented normalization. Native acceptance pending. Bank changes continue next; positions remain untouched.
+
+---
+
 # Current Development Status — October 24, 2026 — Trust Forward Merge 1
 
 - development/directlink; published starting baseline b0e62df4c7546f77c21120c4bc35bdf2d22bf680. Read current AGENTS/WORKFLOW/TESTING. Master unchanged.

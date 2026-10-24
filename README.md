@@ -1,3 +1,7 @@
+Icon folder browser repair: Change Icon now scans canonical, legacy and override
+pack folders with fully normalized Windows paths; duplicate names are merged.
+No icon-list BAT or artwork relocation is required. Native acceptance pending.
+
 Trust Forward Merge 1: restores direct Trust menu controller navigation alongside
 Message Polish and Xbox Extended. Runtime directlink1-trustmerge1 / Controls
 9.17-trustmerge1. Keep Trust-MenuToggle-Full-20261023; update XIVcrossbar Lua and
