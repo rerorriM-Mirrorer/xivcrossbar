@@ -1,3 +1,9 @@
+Scene Transition 1: scene entry/exit uses the regular visibility policy; reveal
+no longer briefly shows slot images and labels across all bars before selection.
+Includes restored bare confirm/cancel/arrows in dialogue and prior cumulative fixes.
+Runtime directlink1-scene1 / Controls 9.18-bankheld1 unchanged.
+[Install and live checks](docs/SCENE-TRANSITION-TEST.md). Native acceptance pending.
+
 Dialogue Controls 1: bare configured confirm/cancel and native D-pad arrows work
 during event dialogue. Explicit banks remain available; ordinary trigger actions
 and incidental shortcuts stay suppressed. No settings reset required.
@@ -1345,3 +1351,9 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Restore bare controller confirm/cancel and native arrows in status-4 dialogue,
   retaining chat/editor ownership, explicit banks and held-release cleanup.
 - Keep ordinary triggers and incidental gameplay shortcuts suppressed in scenes.
+
+### October 24, 2026 — Scene Transition 1
+
+- Route status changes through the normal visibility decision, including autohide.
+- Remove intermediate all-bar slot/image/text reveal; the current renderer selects
+  intended layers before showing surfaces. Preserve existing coordinates and fades.

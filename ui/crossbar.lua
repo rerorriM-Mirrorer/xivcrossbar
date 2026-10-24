@@ -796,29 +796,9 @@ function ui:show(player_hotbar, environment)
 
     self:maybe_show_button_hints()
 
-    for h=1,self.theme.hotbar_number,1 do
-        for i=1,8,1 do
-            local slot = i
-            if slot == 10 then slot = 0 end
-
-            local bar = player_hotbar[environment]['hotbar_' .. h]
-            local action = bar and bar['slot_' .. slot]
-
-            if (action == nil or action.action == nil) then
-                action = maybe_get_default_action(player_hotbar, environment, h, slot)
-            end
-
-            if self.theme.hide_empty_slots == false then self.hotbars[h].slot_background[i]:show() end
-            self.hotbars[h].slot_icon[i]:show()
-            if action ~= nil then self.hotbars[h].slot_frame[i]:show() end
-            if self.theme.hide_recast_animation == false then self.hotbars[h].slot_recast[i]:show() end
-            if self.theme.hide_recast_animation == false then self.hotbars[h].slot_warmup[i]:show() end
-            if self.theme.hide_action_element == false then self.hotbars[h].slot_element[i]:show() end
-            if self.theme.hide_action_names == false then self.hotbars[h].slot_text[i]:show() end
-            if self.theme.hide_action_cost == false then self.hotbars[h].slot_cost[i]:show() end
-            if self.theme.hide_recast_text == false then self.hotbars[h].slot_recast_text[i]:show() end
-        end
-    end
+    -- A: check_recasts selects the active/default bars and every slot surface
+    -- in this same render pass. Revealing all six here exposes stacked bars
+    -- and stale captions before that policy can hide the inactive layers.
     return true
 end
 

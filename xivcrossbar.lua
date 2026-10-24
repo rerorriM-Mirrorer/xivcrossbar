@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-dialogue1'
+_addon.version = '0.4.0-a.20261024.directlink1-scene1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2490,14 +2490,10 @@ end)
 windower.register_event('status change', function(new_status_id)
     if (not xivcrossbar.ready) then return end
     ui.public_visible = nil
-    -- hide/show bar in cutscenes
-    if xivcrossbar.hide_hotbars == false and new_status_id == 4 then
-        xivcrossbar.hide_hotbars = true
-        ui:hide()
-    elseif xivcrossbar.hide_hotbars and new_status_id ~= 4 then
-        xivcrossbar.hide_hotbars = false
-        ui:show(player.hotbar, player.hotbar_settings.active_environment)
-    end
+    -- A: invalidate presentation, then let the next render apply visibility
+    -- once. Direct show here bypassed autohide and exposed inactive bar layers.
+    xivcrossbar.hide_hotbars = new_status_id == 4
+    ui_dirty = true
 
     -- Disabling this for now, but we might want it later
     -- -- alternate environment on battle

@@ -1,3 +1,23 @@
+# Current Development Status — October 24, 2026 — Scene Transition 1
+
+- Repository rerorriM-Mirrorer/xivcrossbar, development/directlink; published source baseline c9fef605e50e8369a5e5c83c1627175c2b136feb (Dialogue Controls 1), local 635883a tree f2f3f2755a82b2741496911d06e9eedbf43cb63c. Master unchanged. Runtime directlink1-scene1 / Controls 9.18-bankheld1 unchanged.
+- Combined batch restores configured bare confirm/cancel and native D-pad arrows during status-4 dialogue, then corrects scene reveal. Native chat/editor/Trust ownership and explicit companion banks retained. Trigger actions/other gameplay face roles/incidental R/Tab remain suppressed during dialogue; directions retain paired releases and transition quarantine. Physical message format, AHK timing, user bindings and positions unchanged.
+- User evidence: controller-lua-trace-Franklet.log (240 lines), controller-input-trace(10).log (2866 lines, newest capture at 20261024204624; prior appended captures retained), render-trace-Franklet(3).log (1613 lines). All local uploaded copies analyzed directly. Status 4 begins at 1792874796.418463; receiver then accepts six downs/ups per face and 24 D-pad presses with no ordinary-router calls. Latest AHK uses Messages and Controls 9.18; historical Apps output is not the current route. Render requests briefly show/hide 144 text objects across six bars while active bar is 0. User describes doubled/misaligned-looking images as well as labels; trace does not prove exact pixels/displacement.
+- Source corrections: status callback invalidates policy and forces render rather than directly showing/hiding; ui:show begins fade/hints without blanket slot visibility. Existing check_recasts selects active/default bars and their surfaces in the same render. No all-bar intermediate show for images, frames, backgrounds, labels or recasts. Existing bar-selection settings, geometry and fades retained.
+- Verification: all 70 top-level Lua suites / 158 sources parsed via Lua 5.4 with temporary inherited Windower syntax normalization; 8 JS suites using actual AHK functions; AHK structural and dependency/layout checks; git diff --check. New actual UI/renderer test rejects inactive native show requests across nine slot-surface kinds in 14 selection scenarios and checks real status invalidation. Dialogue tests exercise actual receiver/bank/root confirm/cancel/arrows despite IJKL, other-face/trigger suppression and transition key-up. First focused dialogue run required get_player in the prior root mock fixture; corrected fixture, then focused and full runs passed.
+- Native Windows/Windower/FFXI visual/input acceptance pending, including Fhelm and doubled-crossbar recurrence. docs/SCENE-TRANSITION-TEST.md and docs/DIALOGUE-CONTROLS-TEST.md describe live checks. Shared button swap, bank feedback and preceding Review Keys changes remain cumulative. No claim broader stickiness/all flicker is resolved; no NPCmirror or Trust code changes.
+
+---
+
+# Scene Transition 1 — October 24, 2026
+
+Separate reveal correction after published Dialogue Controls 1, delivered together
+as a cumulative code/docs patch from Cleanup 1. No userdata/artwork snapshots.
+Stop wrapper and unload all clients before merging, reload all, restart once
+neutral. No new commands/settings reset needed; shared swap retains saved state.
+
+---
+
 # Current Development Status — October 24, 2026 — Dialogue Controls 1
 
 - development/directlink; source baseline 97b90e8c8751a943c0d06fbfc9c84b91a2519d5e (Bank Feedback 1), local tree 08d9b4016621ece4e634bb43222c10f944bca73b. Master unchanged. Runtime directlink1-dialogue1 / Controls 9.18-bankheld1 unchanged.
