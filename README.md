@@ -1,3 +1,10 @@
+Shared menu buttons: `//xb controller menuswap on|off|status` exchanges the
+Share/Options roles for every character in this installation. Clients adopt at
+neutral with XIVcrossbar menus closed; Exit and crossbar artwork follow.
+Default OFF; bindings/positions and physical AHK messages stay intact.
+Runtime directlink1-menuswap1 / Controls 9.18-bankheld1.
+[Live checks](docs/MENU-SWAP-TEST.md). Native acceptance pending.
+
 Review Keys 1: arrows/Enter/Escape operate custom-action Review and Save/Edit
 only, with owned releases and existing text-entry behavior. Includes Held Banks 1.
 Runtime directlink1-reviewkeys1 / Controls 9.18-bankheld1.
@@ -1305,3 +1312,9 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Add scoped physical arrows/Enter/Escape to custom-action review; consume owned
   repeats/releases across screen changes, preserve field-confirmation ownership.
 - Other menu/chat keyboard behavior unchanged; one action per fresh press.
+
+### October 24, 2026 — Shared Menu Buttons 1
+
+- Add installation-wide Share/Options swap, neutral adoption and matching Exit
+  and crossbar artwork. Persist separately from character settings.
+- Preserve physical AHK messages and controller ownership through held gestures.

@@ -528,14 +528,15 @@ function ui:load(theme_options)
     self.action_binder_icon = new_image(images_setup)
     self.action_binder_icon:size(40, 40)
     self.action_binder_icon:pos(self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 27)
-    self.action_binder_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/minus_'..self.theme.button_layout..'.png')
+    self.action_binder_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/'..require('libs/controller/menu_buttons').hint('binder',self.theme.button_layout))
     self.action_binder_icon:alpha(255)
     self.action_binder_text = new_text(text_setup)
     setup_text(self.action_binder_text, theme_options, self.is_compact)
     self.action_binder_text:pos(self:get_slot_x(1, 1) + 35, self:get_slot_y(1, 4) - 15)
     self.action_binder_text:text('Bind an action')
     self.environment_selector_icon = new_image(images_setup)
-    self.environment_selector_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/plus_'..self.theme.button_layout..'.png')
+    self.environment_selector_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/'..require('libs/controller/menu_buttons').hint('chooser',self.theme.button_layout))
+    self.menu_swap=require('libs/controller/menu_buttons').swapped
     self.environment_selector_icon:size(40, 40)
     self.environment_selector_icon:pos(self:get_slot_x(2, 5) - 5, self:get_slot_y(1, 4) - 27)
     self.environment_selector_icon:alpha(255)
@@ -2151,6 +2152,15 @@ end
 -----------------------------
 -- Feedback UI
 -----------------------------
+
+-- A: shared controller preference can change without rebuilding the crossbar.
+function ui:update_controller_hints()
+    local buttons=require('libs/controller/menu_buttons')
+    local base=windower.addon_path..'images/'..get_icon_pathbase()..'/'
+    self.action_binder_icon:path(base..buttons.hint('binder',self.theme.button_layout))
+    self.environment_selector_icon:path(base..buttons.hint('chooser',self.theme.button_layout))
+    self.menu_swap=buttons.swapped
+end
 
 -- trigger feedback visuals in given hotbar and slot
 function ui:trigger_feedback(hotbar, slot)

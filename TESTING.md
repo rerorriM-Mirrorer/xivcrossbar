@@ -1,3 +1,21 @@
+# Current Development Status — October 24, 2026 — Shared Menu Buttons 1
+
+- Branch development/directlink; source baseline b15836bc72251b1df3cbdf6b57bfb1e34031c3f6 (Review Keys 1). Master unchanged. Runtime directlink1-menuswap1; Controls 9.18-bankheld1 unchanged.
+- User chooses shared Share/Options preference for every character using the controller. New controller menuswap on|off|status stores one installation-wide preference, checked twice per second and adopted only with controls released and XB menus/setup/typing closed. Default OFF. Lua roles and Exit/crossbar artwork agree; physical AHK stream unchanged.
+- Focused tests: shared independent clients, failed/malformed saves/reads, actual neutral guard, actual Exit artwork and actual root bank/message routing for both editor and held chooser roles. Existing controller/focus/native-role checks pass. Native Windows/Windower/FFXI acceptance pending; see docs/MENU-SWAP-TEST.md.
+- Bank feedback is the next separate checkpoint in this authorized batch. No saved user bindings/positions changed. Latest live report: Franklet second-level enable revealed retained overrides; explained normal and menu defaults separately. Earlier Held Banks/Review Keys native acceptance remains pending.
+
+---
+
+# Shared Menu Buttons 1 — October 24, 2026
+
+Installation-wide saved choice rather than per-character settings. User enables
+once per installation; other clients adopt quietly after neutral/closed menus.
+No hardware or native FFXI controller remapping. Tests do not establish live game
+behavior. Delivery will combine this checkpoint with bank feedback.
+
+---
+
 # Current Development Status — October 24, 2026 — Review Keys 1
 
 - development/directlink; published source baseline 67e0605829aaf7e56749e717eafbe2e96116bea1. Runtime directlink1-reviewkeys1 / Controls 9.18-bankheld1 unchanged. Master unchanged.

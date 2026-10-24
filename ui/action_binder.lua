@@ -2091,22 +2091,23 @@ end
 function action_binder:show_exit_hint()
     local x = self.base_x + 10
     local y = self.base_y + self.height - 50
+    local icon=require('libs/controller/menu_buttons').hint('binder',self.button_layout)
 
     if (self.button_layout == 'gamecube') then
         if (self.confirm_button == 'a') then
-            self:show_hint('Exit', 'ui/binding_icons/minus_' .. self.button_layout .. '.png', x, y)
+            self:show_hint('Exit', icon, x, y)
         end
     elseif (self.button_layout == 'playstation') then
         if (self.confirm_button == 'cross') then
-            self:show_hint('Exit', 'ui/binding_icons/minus_' .. self.button_layout .. '.png', x, y)
+            self:show_hint('Exit', icon, x, y)
         end
     elseif (self.button_layout == 'xbox') then
         if (self.confirm_button == 'a') then
-            self:show_hint('Exit', 'ui/binding_icons/minus_' .. self.button_layout .. '.png', x, y)
+            self:show_hint('Exit', icon, x, y)
         end
     elseif (self.button_layout == 'nintendo') then
         if (self.confirm_button == 'b') then
-            self:show_hint('Exit', 'ui/binding_icons/minus_' .. self.button_layout .. '.png', x, y)
+            self:show_hint('Exit', icon, x, y)
         end
     end
 end

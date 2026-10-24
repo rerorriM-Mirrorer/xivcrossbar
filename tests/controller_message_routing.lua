@@ -208,3 +208,28 @@ new_session();send('down,11','down,5','up,5','up,11')
 assert(#actions==1 and actions[1].bar==1 and #commands==0,'Xbox trigger slot failed')
 assert(env.companion_context(),'Xbox companion context disabled')
 print('Actual Xbox root receiver: remapped native face roles, release pairs, trigger slot and companion eligibility passed.')
+-- Swapping roles must preserve real message routing and held chooser release.
+local menu_buttons=require('libs/controller/menu_buttons')
+function binder:show()self.is_hidden=false end
+function binder:set_chooser_active(value)self.chooser_active=value end
+env.ui={hide_button_hints=function()end,get_set_chooser_anchor=function()return {}end}
+function chooser:temp_hide_default_sets_tooltip()end
+function chooser:raise_layer()end
+function chooser:show_player_environments()self.shown=true end
+function chooser:hide_player_environments()self.shown=false end
+env.player={hotbar={},hotbar_settings={active_environment='default'}}
+local closes=0
+env.close_addon_menus=function()closes=closes+1;binder.is_hidden=true end
+env.finish_set_chooser=function(cancel)assert(not cancel);binder.chooser_active=false end
+for _,swapped in ipairs({false,true}) do
+    new_session();menu_buttons.swapped=swapped
+    local editor,select=swapped and 10 or 9,swapped and 9 or 10
+    send('down,'..editor,'up,'..editor);assert(not binder.is_hidden)
+    send('down,'..editor,'up,'..editor);assert(binder.is_hidden)
+    send('down,'..select);assert(chooser.shown)
+    send('up,'..select);assert(not chooser.shown and not binder.chooser_active)
+    empty()
+end
+menu_buttons.swapped=false
+assert(closes==2)
+print('Actual shared-role routing: both layouts open/exit the editor and hold/release the page chooser through the real bank/message receiver.')

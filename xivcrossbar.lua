@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-reviewkeys1'
+_addon.version = '0.4.0-a.20261024.directlink1-menuswap1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -96,6 +96,15 @@ resource_generator.generate_outdated_resources()
 local action_manager = require('libs/action_manager')
 local keyboard = require('libs/controller/keyboard_mapper')
 local gamepad = require('libs/controller/gamepad')
+local menu_buttons=require('libs/controller/menu_buttons')
+local menu_swap_allowed
+local menu_button_store=menu_buttons.new({path=windower.addon_path..'data/controller-menu-buttons.ini',
+    clock=require('socket').gettime,lock=bank_backend.lock,replace=bank_backend.replace,
+    read=function(path)
+        local f,err=io.open(path,'rb');if not f then return nil,err end
+        local raw=f:read(128);f:close();return raw
+    end})
+menu_button_store:poll(true,true)
 local transport = require('libs/controller/transport')
 local text_input_guard = require('libs/controller/text_input_guard')
 local review_keyboard = require('libs/controller/review_keyboard').new()
@@ -1190,6 +1199,7 @@ function display_help_menu()
     help.command('controller start|stop|profiles','Control the shared wrapper or list profiles.')
     help.command('diagnostics','Save controller and addon diagnostics to a file.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
+    help.command('controller menuswap on|off|status','Swap Share/Options roles for all characters in this installation.')
     help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
     help.command('realkeys [on|off|status]','Test AHK keyboard IJKL in ordinary gameplay; default OFF, bare toggles.')
@@ -1432,6 +1442,10 @@ windower.register_event('addon command', function(command, ...)
         if mode == 'stop' then controller_switcher:cancel(); stop_controller_wrapper()
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
+        elseif mode == 'menuswap' then
+            if device then require('libs/chat_help').command('controller menuswap on|off|status','Swap Share/Options for all characters.');return end
+            local ok,message=menu_button_store:command(name,menu_swap_allowed())
+            windower.add_to_chat(0,require('libs/chat_status').notice(message or 'Could not save menu-button preference.',ok and 207 or 167))
         elseif mode == 'profile' then select_controller_profile(name, device)
         elseif mode == 'status' then
             if name and name~='details' then require('libs/chat_help').command('controller status [details]','Show controller readiness and optional diagnostics.');return end
@@ -1697,6 +1711,11 @@ local keys = {
 -- Port the personal branch's early Options handoff, retaining public rendering.
 local set_chooser_button_down = false
 local chooser_previous_environment
+menu_swap_allowed=function()
+    return not gamepad_state.capturing and not gamepad_state.minus_button and not gamepad_state.plus_button
+        and not set_chooser_button_down and action_binder.is_hidden and not action_binder.capturing_text
+        and not env_chooser:is_showing() and not env_chooser.capturing and not gamepad_mapper.is_showing
+end
 local function finish_set_chooser(cancel)
     if cancel then
         if chooser_previous_environment and player:is_valid_environment(chooser_previous_environment) then
@@ -2373,6 +2392,8 @@ windower.register_event('prerender',function()
     end
     publish_personal_context()
     local l1_info=windower.ffxi.get_info()
+    menu_button_store:poll(menu_swap_allowed())
+    if ui.is_setup and ui.menu_swap~=menu_buttons.swapped then ui:update_controller_hints();ui_dirty=true end
     local l1_character=windower.ffxi.get_player()
     local l1_display=xivcrossbar.ready and not restart_pending and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and action_binder.is_hidden and not env_chooser:is_showing() and not gamepad_mapper.is_showing

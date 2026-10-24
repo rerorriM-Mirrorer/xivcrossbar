@@ -34,11 +34,11 @@ function gamepad.is_face_button_or_dpad(dik)
 end
 
 function gamepad.is_minus(dik)
-  return dik == minus
+  return dik == (require('libs/controller/menu_buttons').swapped and plus or minus)
 end
 
 function gamepad.is_plus(dik)
-  return dik == plus
+  return dik == (require('libs/controller/menu_buttons').swapped and minus or plus)
 end
 
 function gamepad.is_dpad_up(dik)
