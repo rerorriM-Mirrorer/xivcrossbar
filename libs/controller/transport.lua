@@ -62,4 +62,11 @@ function M:login_key(signal,mapping)
     selected.button_layout=mapping.button_layout
     return self:gameplay_key(signal,selected,'arrows')
 end
+function M:dialogue_key(signal,mapping)
+    -- Native event choices use arrows even when gameplay uses IJKL.
+    if signal.arrow then return signal.arrow end
+    local button=self:face_name(signal,mapping)
+    if button and button==mapping.confirm_button then return 'enter' end
+    if button and button==mapping.cancel_button then return 'escape' end
+end
 return M

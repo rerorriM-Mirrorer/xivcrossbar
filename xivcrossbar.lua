@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-bankfeedback1'
+_addon.version = '0.4.0-a.20261024.directlink1-dialogue1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2105,6 +2105,8 @@ message_button = function(dik,pressed,flags,blocked)
         return true
     end
     local context = input_context()
+    local character=windower.ffxi.get_player()
+    if context=='gameplay' and character and character.status==4 then context='dialogue' end
     input_timing:record('router dik='..dik..' pressed='..tostring(pressed)..' context='..context)
     local item, edge, owner = transport:edge(dik, pressed, context)
     if edge == 'repeat' then return true end
@@ -2134,8 +2136,10 @@ message_button = function(dik,pressed,flags,blocked)
         end
         return true
     end
-    if item.logical <= 66 and context == 'gameplay' then
-        local key = transport:gameplay_key(item, buttonmapping, settings.GameplayDPad)
+    if item.logical <= 66 and (context == 'gameplay' or context == 'dialogue') then
+        local key
+        if context=='dialogue' then key=transport:dialogue_key(item,buttonmapping)
+        else key=transport:gameplay_key(item,buttonmapping,settings.GameplayDPad) end
         if settings.InputTest then
             if pressed then windower.add_to_chat(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
         elseif key and pressed then

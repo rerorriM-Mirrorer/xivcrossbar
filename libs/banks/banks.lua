@@ -172,9 +172,14 @@ function M.new(options)
     end
     function self:choose()
         local layer=self:choose_layer()
-        -- Explicit banks remain usable in chat/dialogue. Bare gameplay/trigger
-        -- gestures and the implicit Tab shortcut retain their ordinary owner.
+        -- Dialogue permits bare navigation, never trigger actions or shortcuts.
+        -- Chat retains its separate typing owner. Explicit banks work in both.
         if (self.cutscene or self.chat) and not layers[layer] then
+            if self.cutscene and not self.chat and layer=='' then
+                local modified=false
+                for button=9,14 do if self.down[button] then modified=true end end
+                if not modified then return 'dialogue' end
+            end
             return 'blocked'
         end
         return layer
@@ -236,7 +241,7 @@ function M.new(options)
         end
         if not pressed then self.blocked[button]=nil;return end
         if self.blocked[button] then return end
-        if self.layer=='' then options.ordinary(button,true);self.owners[button]='ordinary';return end
+        if self.layer=='' or self.layer=='dialogue' then options.ordinary(button,true);self.owners[button]='ordinary';return end
         if not layers[self.layer] or not self.eligible then return end
         self.feedback:press(button,self.layer,slot_for[button])
         local e=self:entry(self.layer,slot_for[button],self:uses_menu(self.layer,self.menu))

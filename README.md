@@ -1,3 +1,9 @@
+Dialogue Controls 1: bare configured confirm/cancel and native D-pad arrows work
+during event dialogue. Explicit banks remain available; ordinary trigger actions
+and incidental shortcuts stay suppressed. No settings reset required.
+Runtime directlink1-dialogue1 / Controls 9.18-bankheld1 unchanged.
+[Live checks](docs/DIALOGUE-CONTROLS-TEST.md). Native acceptance pending.
+
 Bank Feedback 1: accepted companion slots flash, settle while held and fade on
 release using elapsed time. Empty slots acknowledge input too; feedback does
 not confirm game action success. Layer/focus/context cancellation clears it.
@@ -1333,3 +1339,9 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Clear feedback on layer/context/focus cancellation; retain panel autohide.
 - Clarify normal/menu defaults confirmations with the other context's command.
 - Saved bindings and positions remain intact; native visual acceptance pending.
+
+### October 24, 2026 — Dialogue Controls 1
+
+- Restore bare controller confirm/cancel and native arrows in status-4 dialogue,
+  retaining chat/editor ownership, explicit banks and held-release cleanup.
+- Keep ordinary triggers and incidental gameplay shortcuts suppressed in scenes.

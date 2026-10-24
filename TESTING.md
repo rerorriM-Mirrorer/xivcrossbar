@@ -1,3 +1,20 @@
+# Current Development Status — October 24, 2026 — Dialogue Controls 1
+
+- development/directlink; source baseline 97b90e8c8751a943c0d06fbfc9c84b91a2519d5e (Bank Feedback 1), local tree 08d9b4016621ece4e634bb43222c10f944bca73b. Master unchanged. Runtime directlink1-dialogue1 / Controls 9.18-bankheld1 unchanged.
+- User's Fhelm Jobeizat failure confirmed by supplied controller-lua-trace-Franklet.log and newest appended controller-input-trace(10).log segment: status 4, Messages delivers all faces/directions, Lua bank guard prevents ordinary routing. Bare dialogue now permits configured confirm/cancel and native arrows; other face roles, trigger actions, R-release/Tab and menu-button shortcuts remain suppressed. Chat, Trust/XB editors and explicit banks keep their ownership. No AHK, packet or saved-binding changes.
+- Focused checks passed: actual receiver/bank/root dialogue arrows despite IJKL, confirm/cancel, suppressed gameplay faces/triggers, status transition key-up, bank native holds, chat/focus guards and existing six-bar/remapped-face routing. Initial run needed the old root test fixture to provide get_player, now used by the real dialogue classifier. Native acceptance pending; docs/DIALOGUE-CONTROLS-TEST.md.
+- User also supplied render-trace-Franklet(3).log and clarified visible doubled/misaligned-looking crossbar with labels. Trace shows a brief all-six-bar text show/hide cycle (144 text objects); source reveal also shows all bar images. Pixels/actual displacement are not established by the trace. Consistent full-crossbar reveal/visibility is the next separate commit in this authorized batch.
+
+---
+
+# Dialogue Controls 1 — October 24, 2026
+
+Corrects the overly broad scene guard proven by the user's capture. Normal event
+navigation is distinct from crossbar action permission. Published delivery follows
+the separate reveal correction; no intermediate package or user settings reset.
+
+---
+
 # Current Development Status — October 24, 2026 — Bank Feedback 1
 
 - Repository rerorriM-Mirrorer/xivcrossbar, branch development/directlink. Published source baseline 78117adbbfe5863a230a58e5e4e4fe435d46e592 (Shared Menu Buttons 1); local checkpoint 50d6c1d has the same tree 99fef143d47250ee14165c89beb67a6ec8e2ae52. Master unchanged. Runtime directlink1-bankfeedback1 / Controls 9.18-bankheld1 unchanged.

@@ -19,7 +19,7 @@ local env=setmetatable({input_timing={record=function()end},gamepad=require('lib
     buttonmapping={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'},
     action_binder=binder,env_chooser=chooser,gamepad_mapper={is_showing=false},xivcrossbar={ready=true},
     theme_options={hotbar_number=6},shift_keys_down={},keys={},shifted_keys={},
-    windower={has_focus=function()return true end,ffxi={get_info=function()return {} end},send_command=function(s)commands[#commands+1]=s end},
+    windower={has_focus=function()return true end,ffxi={get_info=function()return {} end,get_player=function()return {status=0}end},send_command=function(s)commands[#commands+1]=s end},
     coroutine={schedule=function(fn,delay)tasks[#tasks+1]={fn=fn,at=now+delay}end},
     change_active_hotbar=function()end,
     trigger_action=function(slot)actions[#actions+1]={bar=state.active_bar,slot=slot}end,
@@ -179,9 +179,19 @@ assert(snapshots[#snapshots]:find('gameplay_owned=none',1,true))
 env.input_timing.active=false;local count=#snapshots;env.trace_snapshot('gameplay');assert(#snapshots==count)
 print('Actual trace snapshot: initial owned key, route permission/selection, cleanup state and inactive silence passed.')
 
--- Real root context plus real bank/router: only the opted-in scene bank works.
+-- Real root context plus real bank/router: bare dialogue navigation and banks.
 new_session();character.status=4
 local allowed,_,cutscene=env.companion_context();assert(allowed and cutscene)
+for button,key in pairs({[1]='up',[2]='right',[3]='down',[4]='left',[5]='enter',[7]='escape'}) do
+    commands={};send('down,'..button,'up,'..button)
+    assert(#commands==2 and commands[1]=='setkey '..key..' down' and commands[2]=='setkey '..key..' up')
+end
+commands={};send('down,6','up,6','down,8','up,8')
+assert(#commands==0,'dialogue opened a gameplay shortcut')
+send('down,1');assert(commands[1]=='setkey up down')
+character.status=0;banks:refresh();assert(commands[2]=='setkey up up','scene transition retained direction')
+send('up,1');assert(#commands==2,'scene release duplicated key-up')
+character.status=4
 assert(banks:command({'r1','cutscenes','on'}));assert(env.companion_context())
 assert(banks:command({'r1','triangle','Scene NPC','npcmirror interact'}))
 commands={};actions={}

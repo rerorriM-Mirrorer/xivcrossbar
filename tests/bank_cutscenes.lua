@@ -1,4 +1,4 @@
--- Deliberately held banks work in dialogue/chat; ordinary gestures stay masked.
+-- Dialogue permits bare navigation; chat/trigger gestures stay masked.
 local M=require('libs/banks/banks')
 local scene,chat,menu,eligible=false,false,false,true
 local sent,ordinary={},{ }
@@ -11,7 +11,8 @@ for _,context in ipairs({'scene','chat'})do
  bank:cancel();scene=context=='scene';chat=context=='chat';bank:refresh()
  local before=#sent
  for b=1,12 do tap(b)end
- assert(#sent==before and #ordinary==0 and #bank.output.pending==0,'bare input escaped restricted context')
+ assert(#sent==before and #ordinary==(scene and 16 or 0) and #bank.output.pending==0,'incorrect dialogue/chat ownership')
+ ordinary={}
  bank:edge(14,true);assert(bank:panel('Right'):opacity(true)==1)
  tap(8);assert(sent[#sent]=='npc interact')
  bank:edge(14,false);assert(bank:panel('Right'):opacity(true)==0)
