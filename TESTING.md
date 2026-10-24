@@ -1,3 +1,22 @@
+# Current Development Status — October 24, 2026 — Held Banks 1
+
+- development/directlink; published source baseline abe401aaf61fed0fdb965389eeb869bf19b909a5. Runtime directlink1-bankheld1 / Controls 9.18-bankheld1. AGENTS/WORKFLOW/TESTING reread. Master unchanged.
+- User clarified that Bank Defaults 2 permanently visible panels misunderstood the request: keep show-while-held/release-to-hide, also with chatlog open. User additionally approves deliberate bank input in chat and dialogue. Factory Display held; optional per-bank display held|always. Existing hide/menu/disable settings, positions and bindings remain; no reset required. Expired previews no longer retain a second-level selection indefinitely.
+- New chat lease context keeps addon text/editors distinct from native chat. AHK forwards negotiated bank physical state but suppresses ordinary touch/click/real-IJKL. Lua allows bank commands/native-key bindings in chat/status-4 dialogue; bare ordinary bars/pair Tab/unused-R remain restricted. Context changes cancel old native holds and block held-slot replay. Cutscenes flag remains stored for backward compatibility, no longer a gate. Trust owns its editor/navigation controls.
+- 66 Lua suites / 151 parsed sources with documented temporary Windower normalization; 8 JS suites, AHK structural/layout checks. Root bank routing and publisher, explicit native-key output, chat full-poll forwarding, display modes and previews verified in simulations. Native Windows/Windower/FFXI acceptance pending. See docs/BANK-HELD-TEST.md.
+- Next authorized checkpoint: arrows/Enter/Escape only on Review and Save, consuming owned releases across transitions. Shared pages/press indicators remain later work.
+
+---
+
+# Held Banks 1 — October 24, 2026
+
+Restores intended autohide while removing blanket native chat/dialogue bank
+restrictions. Native game/addon command availability remains up to the receiver.
+Earlier chat guards were inherited from keyboard transport; ownership, readiness,
+focus and held-input cleanup remain independent. No personal files rewritten.
+
+---
+
 # Current Development Status — October 24, 2026 — Bank Defaults 2
 
 - development/directlink; starting published checkpoint 261c54cd1547cae16b72bfbe8c41620dc06691a8. Runtime directlink1-banks2 / Controls 9.17-trustmerge1. Master unchanged. No panel-position changes authorized or made.

@@ -19,7 +19,7 @@ local env=setmetatable({input_timing={record=function()end},gamepad=require('lib
     buttonmapping={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'},
     action_binder=binder,env_chooser=chooser,gamepad_mapper={is_showing=false},xivcrossbar={ready=true},
     theme_options={hotbar_number=6},shift_keys_down={},keys={},shifted_keys={},
-    windower={send_command=function(s)commands[#commands+1]=s end},
+    windower={ffxi={get_info=function()return {} end},send_command=function(s)commands[#commands+1]=s end},
     coroutine={schedule=function(fn,delay)tasks[#tasks+1]={fn=fn,at=now+delay}end},
     change_active_hotbar=function()end,
     trigger_action=function(slot)actions[#actions+1]={bar=state.active_bar,slot=slot}end,
@@ -180,7 +180,7 @@ print('Actual trace snapshot: initial owned key, route permission/selection, cle
 
 -- Real root context plus real bank/router: only the opted-in scene bank works.
 new_session();character.status=4
-local allowed,_,cutscene=env.companion_context();assert(not allowed and cutscene)
+local allowed,_,cutscene=env.companion_context();assert(allowed and cutscene)
 assert(banks:command({'r1','cutscenes','on'}));assert(env.companion_context())
 assert(banks:command({'r1','triangle','Scene NPC','npcmirror interact'}))
 commands={};actions={}
@@ -188,10 +188,15 @@ send('down,14','down,8','up,8','up,14')
 assert(#commands==1 and commands[1]=='npcmirror interact' and #actions==0)
 send('down,12','down,7','up,7','up,12')
 assert(#commands==1 and #actions==0,'ordinary bar leaked during cutscene bank permission')
-info.chat_open=true;assert(not env.companion_context());info.chat_open=false
-assert(banks:command({'r1','cutscenes','off'}));assert(not env.companion_context())
+info.chat_open=true;assert(env.companion_context())
+local before_chat=#commands
+send('down,14','down,8','up,8','up,14')
+assert(#commands==before_chat+1 and commands[#commands]=='npcmirror interact','root chat bank blocked')
+assert(#actions==0,'chat bank leaked an ordinary crossbar action')
+info.chat_open=false
+assert(banks:command({'r1','cutscenes','off'}));assert(env.companion_context())
 character.status=0
-print('Actual root cutscene guard: default-off, opted-in bank command, blocked ordinary bar and chat/off guards passed.')
+print('Actual root bank permission: dialogue/chat dispatch, ordinary-bar suppression and legacy setting compatibility passed.')
 env.settings.ControllerProfile='xinput-extended'
 env.buttonmapping={button_layout='xbox',confirm_button='a',cancel_button='b',mainmenu_button='y',activewindow_button='x'}
 for button,key in pairs({[5]='enter',[6]='numpad+',[7]='escape',[8]='numpad-'}) do

@@ -1,3 +1,9 @@
+Held Banks 1: restores hold-to-show/release-to-hide, including chatlog display.
+Deliberate bank actions work during chat/dialogue; editor/focus/release ownership
+remains. `bank <layer> display held|always` chooses display behavior.
+Runtime directlink1-bankheld1 / Controls 9.18-bankheld1. Update Lua and AHK together.
+[Install and checks](docs/BANK-HELD-TEST.md). Bindings/positions preserved.
+
 Bank Defaults 2: Cioara L1 Party, R1 NPC, idle/chat/menu bank drawing, empty
 disabled second levels, and the Change Icon folder-browser repair. Includes the
 forward-merged Trust controller adapter and MessagePolish fixes. Runtime
@@ -181,10 +187,10 @@ See [the recovery checks](docs/HOLD-RECOVERY.md). Native acceptance is pending.
 The [shoulder-bank guide](docs/SHOULDER-BANKS.md) records the implemented bank
 system, saved-setting migration, editing commands and pending live tests.
 
-The current factory layout is L1 Party and R1 NPC, with both panels visible
-at rest and while chat/native menus are open. Chat still blocks actions; the
-XIVcrossbar editor/set picker hides panels. Cutscene drawing does not grant
-cutscene input. Positions and the existing viewport clamp are unchanged.
+The current factory layout is L1 Party and R1 NPC. Panels appear while their
+chord is held, including chat/native menus and dialogue. Explicit bank actions
+remain available there; XB/Trust editors own their controls. Bare ordinary
+shortcuts stay suppressed during chat/dialogue. Positions/clamping unchanged.
 
 Existing saved bindings/policies remain overrides. To apply the agreed layout
 on the current character (including Franklet on a different installation), use:
@@ -223,7 +229,7 @@ pair Tab behavior remain. `bank l2/r2` alias l1l2/r1r2. New factory second-level
 entries are empty. Existing explicit entries are preserved until reset/cleared.
 `show|hide` changes drawing only; `menus on|off` changes native-menu drawing;
 `menuactions on|off` chooses alternate Menu maps versus normal maps. Defaults
-are drawing ON, menus ON, menuactions OFF, and first levels enabled only.
+are drawing ON, display Held, menus ON, menuactions OFF, first levels enabled only.
 
 Short editors `//xb r1`, `//xb r1r2`, `//xb l1l2` still work; legacy `//xb l1`
 means L1L2, so use `//xb bank l1`. `default/defaults` restores current shipped
@@ -1281,3 +1287,10 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Explicit preset and separate snapshot settings update preserve all panel fields.
 - 66 Lua suites / 151 parsed sources plus AHK simulations/structural checks;
   native Windows/Windower/FFXI acceptance pending. No position or job-bar changes.
+
+### October 24, 2026 — Held Banks 1
+
+- Restore held visibility with native chat/dialogue bank input and held/always
+  display choice; retain editor/focus ownership, release cleanup and bindings.
+- Controls 9.18-bankheld1 and Lua directlink1-bankheld1 must be updated together.
+- Legacy cutscenes preference is retained but no longer blocks held banks.

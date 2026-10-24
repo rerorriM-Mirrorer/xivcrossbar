@@ -6,7 +6,7 @@ function M.cioara(bank)
     for layer,name in pairs({l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}) do
         local b=bank:settings()[name]
         b.Enabled=layer=='l1' or layer=='r1'
-        b.Visible=true;b.ShowOnMenu=true;b.MenuActions=false;b.Title=''
+        b.Display='held';b.Visible=true;b.ShowOnMenu=true;b.MenuActions=false;b.Title=''
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
             b[context]['Slot'..i]=Banks.factory(layer,i,context=='Menu')
         end end

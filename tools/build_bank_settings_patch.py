@@ -60,7 +60,7 @@ def build(source, destination, revision):
             bank = banks.find(name)
             if bank is None:
                 bank = ET.SubElement(banks, name)
-            for key, value in {'Enabled': str(layer in ('l1', 'r1')).lower(),
+            for key, value in {'Display': 'held', 'Enabled': str(layer in ('l1', 'r1')).lower(),
                                'Visible': 'true', 'ShowOnMenu': 'true',
                                'MenuActions': 'false', 'Title': titles[layer]}.items():
                 node = bank.find(key)

@@ -71,7 +71,7 @@ left:settings().X=54;assert(settings.CompanionBanks.LeftPanel.X==54)
 assert(settings.CompanionBanks.LeftPanel.Slot1==nil,'rendering duplicated entries into panel settings')
 reset();press(14);tap(8);tap(6)
 assert(commands[1]=='trust menu open' and commands[2]=='trust menu close')
-assert(right:opacity(true)==1 and left:opacity(true)==1)
+assert(right:opacity(true)==1 and left:opacity(true)==0)
 press(1);assert(bank.output.held.up);release(14);assert(not bank.output.held.up)
 tap(1);assert(#commands==2)
 -- Unused R1 release and pair Tab are native output, not console setkey.

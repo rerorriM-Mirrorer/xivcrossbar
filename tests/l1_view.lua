@@ -78,7 +78,7 @@ local left=require('ui/bank_view').new({bank=banks:panel('Left'),resources=resou
 local right=require('ui/bank_view').new({bank=banks:panel('Right'),resources=resources,path='',settings=settings})
 local before=created
 banks:edge(13,true);left:tick(true,960,540);right:tick(true,960,540)
-assert(created==before+84 and left.slots[8].alias.last_text=='Case')
+assert(created==before+42 and left.slots[8].alias.last_text=='Case')
 banks:edge(11,true);left:tick(true,960,540);assert(left.title.last_text=='L1 + L2  Available')
 banks:edge(11,false);banks:edge(13,false);banks:edge(14,true)
 left:tick(true,960,540);right:tick(true,960,540)

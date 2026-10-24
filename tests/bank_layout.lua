@@ -24,7 +24,7 @@ local right=bank:panel('Right');assert(right:opacity(true)==1 and right:opacity(
 now=now+100;assert(bank:previewing('Right'),'edit preview expired')
 assert(not bank.active and bank.layer=='' and not next(bank.down),'edit armed input')
 assert(bank:command({'r1r2','edit','off'}))
-assert(d.RightPanel.Locked and not bank:previewing('Right') and right:opacity(true)==1)
+assert(d.RightPanel.Locked and not bank:previewing('Right') and right:opacity(true)==0)
 assert(not bank:command({'r1','edit','maybe'}))
 -- Actual main-position helper: coordinates remain offsets, not scaled pixels.
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()

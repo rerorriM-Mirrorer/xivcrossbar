@@ -53,7 +53,7 @@ context='gameplay';step();assert(bridge.token==prior)
 packet('1,bank,0\n2,slot,1\n');character.status=4;step()
 assert(bridge.token==nil and #sent==1)
 info.chat_open=true;context='gameplay';character.status=0;step()
-assert(env_context=='text' and bridge.token==nil)
+assert(env_context=='chat' and bridge.token==nil)
 -- The ordinary message stream has its own token: native menus suppress the
 -- companion but must not disable controller menu navigation or trigger releases.
 settings.ControllerMessages=true;info.chat_open=false;info.menu_open=false;character.status=0
@@ -108,18 +108,19 @@ assert(env_lease.native:find('d,up',1,true))
 now=now+.36;step();assert(messages.token~=message_token and env_lease.button_recover and banks.layer=='' and env_lease.native=='','native backlog did not replace and clear session')
 print('Actual root bank pipeline: ordered mailbox -> Lua map -> native lease, menu-context generation change, output acknowledgment and overdue-session cancellation passed.')
 
--- The root must keep the negotiated stream alive only for opted-in scene banks.
-settings.ControllerMessages=true;character.status=4;step();assert(not env_lease.messages)
+-- The root keeps the stream alive for deliberate banks throughout dialogue.
+settings.ControllerMessages=true;character.status=4;step();assert(env_lease.messages)
 assert(banks:command({'r1r2','cutscenes','on'}));step()
 assert(env_lease.messages and env_context=='cutscene' and env_lease.banks)
+env.controller_message_bridge:reset();step();message_token=messages.token
 local before=#sent
 buttons('1,banks,0\n2,down,14\n3,down,12\n4,down,8\n5,up,8\n6,up,12\n7,up,14\n',100)
 assert(#sent==before+1 and sent[#sent]=='npcmirror interact')
 buttons('8,down,11\n9,down,5\n10,up,5\n11,up,11\n',101)
 assert(#sent==before+1 and env_lease.native=='','ordinary native output leaked in a scene')
-assert(banks:command({'r1r2','cutscenes','off'}));step();assert(not env_lease.messages)
+assert(banks:command({'r1r2','cutscenes','off'}));step();assert(env_lease.messages)
 character.status=0
-print('Actual root cutscene lease: opt-in message lifetime, restricted context, NPC dispatch and off transition passed.')
+print('Actual root dialogue lease: message lifetime, restricted context, NPC dispatch and legacy flag independence passed.')
 local previous_token=messages.token
 settings.ControllerProfile='xinput-extended';settings.ControllerRealKeys=true
 settings.GameplayDPad='ijkl';step()

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-banks2'
+_addon.version = '0.4.0-a.20261024.directlink1-bankheld1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2050,6 +2050,7 @@ local function input_context()
     if action_binder:is_capturing_text() then return 'text' end
     if not action_binder.is_hidden then return 'menu:' .. tostring(action_binder.state) end
     if trust_menu and trust_menu.token then return 'trust' end
+    if windower.ffxi.get_info().chat_open then return 'chat' end
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
@@ -2058,8 +2059,8 @@ companion_context=function()
     local cutscene=character~=nil and character.status==4
     return not restart_pending and xivcrossbar.ready and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and settings.ControllerMessages and not settings.InputTest and windower.has_focus() and info.logged_in
-        and not info.chat_open and character~=nil and (not cutscene or (companion_banks and companion_banks:cutscene_enabled()))
-        and (context=='gameplay' or context=='crossbar'),info.menu_open==true,cutscene
+        and character~=nil and (context=='gameplay' or context=='crossbar' or context=='chat'),
+        info.menu_open==true,cutscene,info.chat_open==true
 end
 -- A: both transports call this router. The source determines how a physical
 -- edge arrives; menu ownership, native translation and slot execution stay here.
@@ -2185,7 +2186,10 @@ publish_personal_context = function()
     local context = (restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
     local info=windower.ffxi.get_info()
     local character=windower.ffxi.get_player()
-    if info.chat_open then context='text' end
+    if info.chat_open then
+        if context=='gameplay' or context=='crossbar' then context='chat'
+        elseif context=='trust' then context='text' end
+    end
     if character and character.status==4 and (context=='gameplay' or context=='crossbar') then context='cutscene' end
     local now=l1_clock()
     if l1_last_tick>0 and now-l1_last_tick>.5 then
@@ -2206,7 +2210,7 @@ publish_personal_context = function()
         end
     end
     local message_enabled=settings.ControllerMessages==true and xivcrossbar.ready and not restart_pending
-        and windower.has_focus() and character and (character.status~=4 or (companion_banks and companion_banks:cutscene_enabled()))
+        and windower.has_focus() and info.logged_in and character
     local message_key=table.concat({player.server or '',player.name or '',settings.ControllerProfile,
         tostring(settings.ControllerDevice or 1),tostring(message_epoch)},':')
     controller_message_bridge:context(message_key,message_enabled)
@@ -2227,7 +2231,10 @@ publish_personal_context = function()
     end
     if trust_menu and controller_message_bridge.token then trust_menu:tick() end
     context=(restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
-    if info.chat_open then context='text' end
+    if info.chat_open then
+        if context=='gameplay' or context=='crossbar' then context='chat'
+        elseif context=='trust' then context='text' end
+    end
     if character and character.status==4 and (context=='gameplay' or context=='crossbar') then context='cutscene' end
     local native_token,native,native_base
     if companion_banks then
@@ -2241,7 +2248,8 @@ publish_personal_context = function()
     personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
         settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
-            realkeys=not (trust_menu and trust_menu.token) and require('libs/controller/realkeys').enabled(settings,controller_message_bridge.token),
+            realkeys=not info.chat_open and character and character.status~=4 and not (trust_menu and trust_menu.token)
+                and require('libs/controller/realkeys').enabled(settings,controller_message_bridge.token),
             r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
             banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack,

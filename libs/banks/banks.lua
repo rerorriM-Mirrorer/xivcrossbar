@@ -45,7 +45,7 @@ function M.defaults()
     -- a fresh process can reload saved banks without losing names or types.
     local d={Version=0,Preset=''}
     for _,name in pairs(layers) do
-        d[name]={Closed={},Menu={},Enabled=name=='L1' or name=='R1',Visible=true,ShowOnMenu=true,MenuActions=false,AllowCutscenes=false,Title=''}
+        d[name]={Closed={},Menu={},Display='held',Enabled=name=='L1' or name=='R1',Visible=true,ShowOnMenu=true,MenuActions=false,AllowCutscenes=false,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
             d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false}
         end end
@@ -66,6 +66,7 @@ function M.ensure(settings)
         local b=d[name]
         if b.Enabled==nil then b.Enabled=name=='L1' or name=='R1' end
         b.Enabled=b.Enabled==true
+        b.Display=b.Display=='always' and 'always' or 'held'
         b.Visible=b.Visible~=false;b.ShowOnMenu=b.ShowOnMenu~=false
         b.MenuActions=b.MenuActions==true;b.Title=type(b.Title)=='string' and b.Title or ''
         b.AllowCutscenes=b.AllowCutscenes==true
@@ -169,22 +170,23 @@ function M.new(options)
     end
     function self:choose()
         local layer=self:choose_layer()
-        -- Consume every unapproved cutscene gesture, including ordinary
-        -- trigger bars and the implicit L1+R1 Tab shortcut.
-        if self.cutscene and (not layers[layer] or not self:settings()[layers[layer]].AllowCutscenes) then
+        -- Explicit banks remain usable in chat/dialogue. Bare gameplay/trigger
+        -- gestures and the implicit Tab shortcut retain their ordinary owner.
+        if (self.cutscene or self.chat) and not layers[layer] then
             return 'blocked'
         end
         return layer
     end
     function self:refresh()
-        local eligible,menu,cutscene=options.context()
+        local eligible,menu,cutscene,chat=options.context()
+        chat=chat==true
         cutscene=cutscene==true
         if self.eligible and not eligible then
             self:release_slots();self.output:cancel();self.r1used=true
-        elseif self.menu~=menu or self.cutscene~=cutscene then
+        elseif self.menu~=menu or self.cutscene~=cutscene or self.chat~=chat then
             self:release_slots();self.output:cancel();self.r1used=true
         end
-        self.eligible,self.menu,self.cutscene=eligible,menu,cutscene
+        self.eligible,self.menu,self.cutscene,self.chat=eligible,menu,cutscene,chat
         local layer=self:choose()
         if layer~=self.layer then self:release_slots();self.layer=layer end
     end
@@ -219,12 +221,12 @@ function M.new(options)
             self.r1used=true
             local slots=false;for i=1,12 do if self.down[i] then slots=true end end
             if self.eligible and not slots then self.output:pulse('tab') end
-        elseif button==14 and not pressed and not used and before=='r1' and self.eligible and not self.cutscene then
+        elseif button==14 and not pressed and not used and before=='r1' and self.eligible and not self.cutscene and not self.chat then
             self.output:pulse('r')
         end
         if button>=13 then return end
         if button>=9 then
-            if pressed and not self.cutscene and (button<=10 or self.layer=='') then
+            if pressed and not self.cutscene and not self.chat and (button<=10 or self.layer=='') then
                 options.ordinary(button,true);self.owners[button]='ordinary'
             end
             return
@@ -257,7 +259,8 @@ function M.new(options)
         local parent=self
         local names=side=='Left' and {l1=true,l1l2=true} or {r1=true,r1r2=true}
         local function selected()
-            return names[parent.layer] and parent.layer or parent.previews[side] and parent.previews[side].layer or (side=='Left' and 'l1' or 'r1')
+            local preview=parent.previews[side]
+            return names[parent.layer] and parent.layer or preview and options.clock()<preview.until_time and preview.layer or (side=='Left' and 'l1' or 'r1')
         end
         local proxy=setmetatable({}, {__index=function(_,key)return parent:settings()[side..'Panel'][key] end,
             __newindex=function(_,key,value) parent:settings()[side..'Panel'][key]=value end})
@@ -269,8 +272,11 @@ function M.new(options)
                 return title~='' and title or titles[mode] end,
             opacity=function(_,eligible)
                 local preview=parent.previews[side];local b=parent:settings()[layers[selected()]]
-                local editing=preview and preview.editing and selected()==preview.layer
-                return eligible and (editing or b.Enabled and b.Visible) and (editing or not parent.menu or b.ShowOnMenu) and 1 or 0
+                local showing=preview and options.clock()<preview.until_time and selected()==preview.layer
+                local editing=showing and preview.editing
+                local held=names[parent.layer] and parent.layer==selected()
+                return eligible and (editing or b.Enabled and b.Visible) and (editing or not parent.menu or b.ShowOnMenu)
+                    and (showing or b.Display=='always' or held) and 1 or 0
             end,
         }
     end
@@ -302,12 +308,13 @@ function M.new(options)
             {'bank <layer> status [details]','Show panel state; details lists normal/menu bindings.'},
             {'bank l2|r2 <command>','Aliases for bank l1l2 and bank r1r2; bindings are shared.'},
             {'bank <layer> enable|disable','Enable input/drawing, or disable this layer without deleting its bindings.'},
+            {'bank <layer> display held|always','Draw while held (default), or keep this bank visible at rest.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
             {'bank <layer> edit on|off','Pin/unlock this bank for mouse-only dragging; off hides preview and locks.'},
             {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
             {'bank <layer> menus on|off','Allow this bank to draw over native game menus.'},
             {'bank <layer> menuactions on|off','Use menu bindings automatically, or always use Closed bindings.'},
-            {'bank <layer> cutscenes on|off','Allow this bank during cutscenes; other controls stay blocked.'},
+            {'bank <layer> cutscenes on|off','Legacy setting retained for compatibility; held banks now work during dialogue.'},
             {'bank preset cioara apply','Apply Party/NPC defaults; clear/disable second levels; keep positions.'},
             {'bank <layer> [menu] <button> <label> <command...>','Assign a console command; layer: l1, l1l2, r1, r1r2.'},
             {'bank <layer> [menu] key <button> <label> <key> [hold]','Native key, e.g. ctrl+i or alt+left; pulse by default.'},
@@ -324,7 +331,7 @@ function M.new(options)
         options.say(status_format.row(layer:upper(),'Enabled: '..status_format.toggle(b.Enabled)..' | Draw: '..status_format.toggle(b.Visible)..
             ' | Draw in Menus: '..status_format.toggle(b.ShowOnMenu)..
             ' | Menu Input: '..status_format.toggle(b.Enabled)..' | Bindings in Menus: '..(b.MenuActions and 'Menu' or 'Normal')..
-            ' | Cutscenes: '..status_format.toggle(b.AllowCutscenes)))
+            ' | Display: '..(b.Display=='always' and 'Always' or 'Held')))
     end
     function self:status(layer,details)
         local b=self:settings()[layers[layer]]
@@ -377,6 +384,8 @@ function M.new(options)
             local enabled=args[3]=='on';p.Locked=not enabled
             self.previews[side]=enabled and {layer=layer,until_time=math.huge,editing=true} or nil
             changed=true
+        elseif op=='display' and offset==0 and not args[4] and (args[3]=='held' or args[3]=='always') then
+            self:settings()[layers[layer]].Display=args[3];changed=true
         elseif (op=='enable' or op=='disable') and offset==0 and not args[3] then
             self:settings()[layers[layer]].Enabled=op=='enable';changed=true
         elseif (op=='show' or op=='hide') and offset==0 and not args[3] then
@@ -429,7 +438,8 @@ function M.new(options)
         local label=layer:upper()
         if op=='menus' then message=label..': Draw in Menus: '..status_format.toggle(self:settings()[layers[layer]].ShowOnMenu)
         elseif op=='menuactions' then message=label..': Bindings in Menus: '..(self:settings()[layers[layer]].MenuActions and 'Menu' or 'Normal')
-        elseif op=='cutscenes' then message=label..': Cutscenes: '..status_format.toggle(self:settings()[layers[layer]].AllowCutscenes)
+        elseif op=='cutscenes' then message=label..': Held banks work during dialogue; legacy preference retained.'
+        elseif op=='display' then message=label..': Display: '..(self:settings()[layers[layer]].Display=='always' and 'Always' or 'Held')
         elseif op=='enable' or op=='disable' then message=label..': Enabled: '..status_format.toggle(self:settings()[layers[layer]].Enabled)
         elseif op=='show' or op=='hide' then message=label..': Draw: '..status_format.toggle(self:settings()[layers[layer]].Visible)
         elseif op=='edit' then message=label..': Edit: '..status_format.toggle(args[3]=='on')

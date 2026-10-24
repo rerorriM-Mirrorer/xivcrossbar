@@ -158,6 +158,16 @@ ctx.mode='gameplay';
 console.log('Actual AHK scene transition also releases previously held stick-click keys.');
 
 // Trust owns logical menu actions. Forward physical edges to Lua while
+// Chat forwards the same stream for explicit Lua-owned bank chords only.
+fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:true,ready:false});
+ctx.mode='chat';poll();assert(ctx.PC.ready,'Chat bank failed neutral arming');
+const chatStates=poll({r1:true,1:true,5:true,l3:true,touch:true});
+assert(chatStates[14]&&chatStates[1]&&chatStates[5]);
+assert.equal(emitted.length,0);assert.equal(ctx.PC.touch.phase,'cancelled');
+assert.equal(ctx.PC.clicks.phase,'cancelled');
+ctx.mode='gameplay';
+console.log('Actual AHK chat: neutral arming, bank forwarding and no bare IJKL/touch/click output passed.');
+
 // suppressing native IJKL, stick-click and touch shortcuts in the wrapper.
 fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:true,ready:false});
 ctx.mode='trust';poll();assert(ctx.PC.ready,'Trust menu failed neutral arming');
