@@ -19,7 +19,7 @@ local env=setmetatable({input_timing={record=function()end},gamepad=require('lib
     buttonmapping={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'},
     action_binder=binder,env_chooser=chooser,gamepad_mapper={is_showing=false},xivcrossbar={ready=true},
     theme_options={hotbar_number=6},shift_keys_down={},keys={},shifted_keys={},
-    windower={ffxi={get_info=function()return {} end},send_command=function(s)commands[#commands+1]=s end},
+    windower={has_focus=function()return true end,ffxi={get_info=function()return {} end},send_command=function(s)commands[#commands+1]=s end},
     coroutine={schedule=function(fn,delay)tasks[#tasks+1]={fn=fn,at=now+delay}end},
     change_active_hotbar=function()end,
     trigger_action=function(slot)actions[#actions+1]={bar=state.active_bar,slot=slot}end,
@@ -74,6 +74,7 @@ assert(not receiver:accept('token='..previous..'\nstamp=100\n2,down,7\nEND\n') a
 new_session();send('down,5');assert(commands[1]=='setkey enter down')
 now=now+.36;assert(receiver:watchdog());assert(commands[2]=='setkey enter up');empty()
 -- The installed keyboard listener must not interpret real F-keys as slots
+env.review_keyboard=require('libs/controller/review_keyboard').new()
 -- while message capture is active.
 local events={};env.controller_message_bridge=receiver;receiver:context('keys-test',true);seq=0
 env.windower.register_event=function(name,callback)events[name]=callback end

@@ -3085,7 +3085,7 @@ function action_binder:display_edit_custom_action_review()
         if row[4] then self.custom_action_value_texts[row[4]]=text end
     end
     for i,line in ipairs({
-        'Select Edit Name, Edit Alias or Edit Command to type.',
+        self.capturing_text and 'Type your value; Enter applies it.' or 'Arrows select; Enter confirms; Esc goes back. Edit a field to type.',
         'Or use: //xb ca name <name of action> | //xb ca alias <label for action> | //xb ca command <console command to fire>',
     }) do
         local y=self.base_y+self.height-95+(i-1)*18
@@ -3568,6 +3568,11 @@ function action_binder:update_text_entry_display()
     self:center_caption(caption, caption_y)
     self.hints:append(caption)
     self:show_exit_hint()
+end
+
+function action_binder:is_keyboard_review()
+    return not self.is_hidden and not self.chooser_active and not self.capturing_text
+        and (self.state==states.EDIT_CUSTOM_ACTION_REVIEW or self.state==states.CONFIRM_CUSTOM_ACTION)
 end
 
 function action_binder:set_capturing_text(enabled)

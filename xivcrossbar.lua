@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-bankheld1'
+_addon.version = '0.4.0-a.20261024.directlink1-reviewkeys1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -98,6 +98,7 @@ local keyboard = require('libs/controller/keyboard_mapper')
 local gamepad = require('libs/controller/gamepad')
 local transport = require('libs/controller/transport')
 local text_input_guard = require('libs/controller/text_input_guard')
+local review_keyboard = require('libs/controller/review_keyboard').new()
 local personal_controls = require('libs/controller/personal_controls').new()
 local publish_personal_context
 local controller_message_bridge
@@ -2256,6 +2257,15 @@ publish_personal_context = function()
             button_recover=controller_message_bridge.recovering,button_reason=controller_message_bridge.last_reason})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
+    -- Review alone owns these physical keys. Field confirmation keeps its own
+    -- Enter ownership when committing returns to review before key-up.
+    if review_keyboard:edge(dik,pressed,action_binder,
+        not restart_pending and windower.has_focus() and not blocked
+        and not env_chooser:is_showing() and not env_chooser.capturing
+        and not (dik==keyboard.enter and text_input_guard.enter_down)) then
+        publish_personal_context()
+        return true
+    end
     -- Own Escape through key-up after closing: neither repeats nor release
     -- may cancel a native FFXI menu underneath the addon.
     if dik == keyboard.esc then

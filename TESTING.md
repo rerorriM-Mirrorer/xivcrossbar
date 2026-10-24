@@ -1,3 +1,21 @@
+# Current Development Status — October 24, 2026 — Review Keys 1
+
+- development/directlink; published source baseline 67e0605829aaf7e56749e717eafbe2e96116bea1. Runtime directlink1-reviewkeys1 / Controls 9.18-bankheld1 unchanged. Master unchanged.
+- User asked to trial arrows/Enter/Escape specifically on Review and Save after the bank patch, preserving ordinary chat/text entry elsewhere. New physical-key owner routes six keys to existing selector/submit/Go Back on custom-action review/edit and the legacy final confirmation screen. Inline fields/pickers/chooser overlays excluded. Escape reaches review Go Back before generic close-all; Enter field ownership is not stolen on return.
+- One activation per fresh press; owned repeats/key-ups consumed through field/save/bind/back transitions, including when other handlers subsequently mark the event blocked. Keys held before review do not activate it on repeat; their native release remains available. No global keyboard block outside existing text fields, no synthetic keyboard injection, no controller/profile remapping. Review has concise keyboard hints; text-field hint remains typing-specific.
+- Verification: 67 top-level Lua suites / 153 parsed sources with documented temporary Windower normalization, scoped helper/actual binder predicate/root dispatch tests, actual Save Only and UI lifecycle regressions. Held Banks checkpoint already passed 8 JS suites and AHK/layout checks; AHK unchanged here. Native Windows/Windower/FFXI key consumption still needs live verification. See docs/REVIEW-KEYBOARD-TEST.md.
+- Next: user live acceptance of bank hold/chat/dialogue behavior and review keyboard trial. Shared-page scope UI, press feedback, icon/native-stickiness follow-ups remain deferred. Positions and all saved bindings preserved.
+
+---
+
+# Review Keys 1 — October 24, 2026
+
+Separate checkpoint after published Held Banks 1; cumulative package includes
+both. UI review ownership is distinct from the native-chat bank lease and from
+the controller real-IJKL experiment. No blanket editor keyboard capture added.
+
+---
+
 # Current Development Status — October 24, 2026 — Held Banks 1
 
 - development/directlink; published source baseline abe401aaf61fed0fdb965389eeb869bf19b909a5. Runtime directlink1-bankheld1 / Controls 9.18-bankheld1. AGENTS/WORKFLOW/TESTING reread. Master unchanged.

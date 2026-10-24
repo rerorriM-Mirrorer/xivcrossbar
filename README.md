@@ -1,3 +1,8 @@
+Review Keys 1: arrows/Enter/Escape operate custom-action Review and Save/Edit
+only, with owned releases and existing text-entry behavior. Includes Held Banks 1.
+Runtime directlink1-reviewkeys1 / Controls 9.18-bankheld1.
+[Install and checks](docs/REVIEW-KEYBOARD-TEST.md). Native acceptance pending.
+
 Held Banks 1: restores hold-to-show/release-to-hide, including chatlog display.
 Deliberate bank actions work during chat/dialogue; editor/focus/release ownership
 remains. `bank <layer> display held|always` chooses display behavior.
@@ -1294,3 +1299,9 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   display choice; retain editor/focus ownership, release cleanup and bindings.
 - Controls 9.18-bankheld1 and Lua directlink1-bankheld1 must be updated together.
 - Legacy cutscenes preference is retained but no longer blocks held banks.
+
+### October 24, 2026 — Review Keys 1
+
+- Add scoped physical arrows/Enter/Escape to custom-action review; consume owned
+  repeats/releases across screen changes, preserve field-confirmation ownership.
+- Other menu/chat keyboard behavior unchanged; one action per fresh press.
