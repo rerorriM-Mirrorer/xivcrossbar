@@ -1,3 +1,24 @@
+# Current Development Status — October 24, 2026 — Bank Feedback 1
+
+- Repository rerorriM-Mirrorer/xivcrossbar, branch development/directlink. Published source baseline 78117adbbfe5863a230a58e5e4e4fe435d46e592 (Shared Menu Buttons 1); local checkpoint 50d6c1d has the same tree 99fef143d47250ee14165c89beb67a6ec8e2ae52. Master unchanged. Runtime directlink1-bankfeedback1 / Controls 9.18-bankheld1 unchanged.
+- Combined authorized batch: installation-wide optional Share/Options swap, matching prompts, and per-slot companion-bank feedback using existing white artwork. Commands: controller menuswap on|off|status. Default OFF; saved choice shared by all characters in this installation; clients adopt with controls released and XB menus/setup/text entry closed.
+- Bank pulse minimum 60 ms, held settling to alpha 72 by 140 ms, release fade 140 ms. Multiple slots independent; empty slots acknowledge input. Layer/context/focus cancellation clears feedback; blocked/ordinary inputs do not pulse companion slots. Existing held/always/menu drawing policy and panel positions are unchanged. Fixed 8 overlays per side, no new per-frame surfaces, dynamic feedback bypasses static-label cache safely.
+- Verification completed: all 69 top-level Lua suites / 157 parsed sources using Lua 5.4 with temporary inherited Windower literal-method normalization; all 8 JS suites exercising actual AHK functions; AHK structural and dependency/layout checks; git diff --check. New tests cover actual shared adoption guard, Exit artwork, both menu roles through root bank/message receiver, bank ownership/timing/empty slots/context cancellation, view cache and resource lifecycle. First full run stopped on the old 42-object assertion in tests/l1_view.lua; updated to intentional 50 per side, then full run passed. No native Windows/Windower/FFXI acceptance claimed.
+- User live reports: defaults commands worked previously; newly enabling Franklet L2/R2 exposed retained saved overrides. Explained separate Normal/Menu defaults; new reset confirmation names its context and supplies the other command. Code patch does not erase saved bindings, enable banks, move panels or replace userdata/artwork.
+- Pending: user visual/input acceptance for this batch and preceding Held Banks/Review Keys trial. See docs/BANK-FEEDBACK-TEST.md and docs/MENU-SWAP-TEST.md. Main-crossbar feedback remains its existing implementation; this bank trial can inform a later port. Xbox testing, Apps retirement, shared-page UI and broader stickiness investigation remain deferred.
+
+---
+
+# Bank Feedback 1 — October 24, 2026
+
+Separate conceptual commit after the published shared-button checkpoint. Cumulative
+changed-files package includes both plus prior Cleanup 1 forward fixes. No settings
+snapshot is bundled. Install/reload all participating clients with the wrapper stopped,
+then restart once neutral. Enable swap once per installation if desired; the default
+retains existing roles. Feedback means input received, not action success in FFXI.
+
+---
+
 # Current Development Status — October 24, 2026 — Shared Menu Buttons 1
 
 - Branch development/directlink; source baseline b15836bc72251b1df3cbdf6b57bfb1e34031c3f6 (Review Keys 1). Master unchanged. Runtime directlink1-menuswap1; Controls 9.18-bankheld1 unchanged.

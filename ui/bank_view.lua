@@ -41,6 +41,12 @@ function M.new(options)
             frame:hide();self.objects[#self.objects+1]=frame
             self.slots[i]={background=background,icon=icon,frame=frame,number=text(),alias=text()}
         end
+        -- Allocate last so the existing white feedback sits above each slot.
+        for _,slot in ipairs(self.slots) do
+            slot.feedback=options.resources.image({draggable=false})
+            slot.feedback:path(options.path..'images/icons/default/ui/feedback.png')
+            slot.feedback:hide();self.objects[#self.objects+1]=slot.feedback
+        end
     end
     function self:metrics()
         local d=options.bank:settings()
@@ -65,6 +71,7 @@ function M.new(options)
         self:allocate();self:clamp(width,height)
         if self.opacity<=0 then
             if self.visible~=false then for _,o in ipairs(self.objects) do o:hide() end end
+            for _,slot in ipairs(self.slots) do slot.feedback_alpha=nil end
             self.visible=false;return
         end
         local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=d.X,d.Y
@@ -83,6 +90,20 @@ function M.new(options)
             labels[i]=label;parts[#parts+1]=string.format('%q',label)
         end
         local key=table.concat(parts,'|')
+        -- Feedback advances separately from the static caption/layout cache.
+        local layout_changed=not self.visible or self.render_key~=key
+        for i,slot in ipairs(self.slots) do
+            local value=options.bank.feedback and options.bank:feedback(i) or 0
+            local feedback_alpha=math.floor(value*self.opacity+.5)
+            if layout_changed and feedback_alpha>0 or slot.feedback_alpha~=feedback_alpha then
+                if feedback_alpha>0 then
+                    local px,py=30+layout[i][1]*horizontal,36+layout[i][2]*vertical
+                    slot.feedback:pos(x+(px-20)*s,y+py*s);slot.feedback:size(40*s,40*s)
+                    slot.feedback:alpha(feedback_alpha);slot.feedback:show()
+                else slot.feedback:hide() end
+                slot.feedback_alpha=feedback_alpha
+            end
+        end
         -- A held companion is mostly static. Do not repeat native
         -- position/size/font/show calls on every render of every client.
         -- Retry deferred native glyph measurements before allowing the cache.

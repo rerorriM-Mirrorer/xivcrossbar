@@ -1,3 +1,10 @@
+Bank Feedback 1: accepted companion slots flash, settle while held and fade on
+release using elapsed time. Empty slots acknowledge input too; feedback does
+not confirm game action success. Layer/focus/context cancellation clears it.
+Includes Shared Menu Buttons 1, Held Banks 1 and the Review Keys trial.
+Runtime directlink1-bankfeedback1 / Controls 9.18-bankheld1.
+[Install and live checks](docs/BANK-FEEDBACK-TEST.md). Native acceptance pending.
+
 Shared menu buttons: `//xb controller menuswap on|off|status` exchanges the
 Share/Options roles for every character in this installation. Clients adopt at
 neutral with XIVcrossbar menus closed; Exit and crossbar artwork follow.
@@ -1318,3 +1325,11 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Add installation-wide Share/Options swap, neutral adoption and matching Exit
   and crossbar artwork. Persist separately from character settings.
 - Preserve physical AHK messages and controller ownership through held gestures.
+
+### October 24, 2026 — Bank Feedback 1
+
+- Add fixed per-slot companion-bank pulse/held/release overlays using existing
+  artwork and elapsed-time animation, separate from cached static rendering.
+- Clear feedback on layer/context/focus cancellation; retain panel autohide.
+- Clarify normal/menu defaults confirmations with the other context's command.
+- Saved bindings and positions remain intact; native visual acceptance pending.

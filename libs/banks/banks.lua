@@ -117,6 +117,7 @@ end
 function M.new(options)
     local self={down={},owners={},blocked={},layer='',menu=false,eligible=false,executed=0,empty=0,
         previews={},output=require('libs/banks/output').new({clock=options.clock})}
+    self.feedback=require('libs/banks/feedback').new(options.clock)
     self.migrated=select(2,M.ensure(options.settings))
     local normalized=options.settings.CompanionBanks
     function self:settings()
@@ -139,6 +140,7 @@ function M.new(options)
         return e.Kind=='default' and M.factory(layer,slot,menu) or e
     end
     function self:release_slots()
+        self.feedback:cancel()
         local retained={}
         for button,owner in pairs(self.owners) do
             if button>8 then retained[button]=owner
@@ -196,6 +198,7 @@ function M.new(options)
         local used=self.r1used
         if pressed==not not self.down[button] then return end
         self.down[button]=pressed or nil
+        if not pressed then self.feedback:release(button) end
         if button==13 then
             if pressed then self.left=not self.down[11]
             else self.tailL=self.left and self.down[11] or false;self.left=false end
@@ -235,6 +238,7 @@ function M.new(options)
         if self.blocked[button] then return end
         if self.layer=='' then options.ordinary(button,true);self.owners[button]='ordinary';return end
         if not layers[self.layer] or not self.eligible then return end
+        self.feedback:press(button,self.layer,slot_for[button])
         local e=self:entry(self.layer,slot_for[button],self:uses_menu(self.layer,self.menu))
         if e.Kind=='key' and require('libs/banks/keys').parse(e.Key) then
             -- Native navigation can hold. Pulses retain both edges even if the
@@ -265,6 +269,7 @@ function M.new(options)
         local proxy=setmetatable({}, {__index=function(_,key)return parent:settings()[side..'Panel'][key] end,
             __newindex=function(_,key,value) parent:settings()[side..'Panel'][key]=value end})
         return {
+            feedback=function(_,slot) return parent.feedback:alpha(selected(),slot) end,
             settings=function() local layer=selected()
                 for i=1,8 do rawset(proxy,'Slot'..i,parent:entry(layer,i,parent:uses_menu(layer,parent.menu))) end;return proxy end,
             mode=function() return selected() end,
@@ -446,7 +451,8 @@ function M.new(options)
         elseif op=='pos' or op=='resetpos' then message=label..': Position: '..tostring(p.X)..', '..tostring(p.Y)
         elseif op=='scale' then message=label..': Scale: '..(p.FollowCrossbar and 'Follows Crossbar' or tostring(p.Scale))
         elseif op=='lock' or op=='unlock' then message=label..': panel '..(p.Locked and 'locked' or 'unlocked')
-        elseif op=='defaults' then message=label..': '..(menu and 'menu' or 'normal')..' bindings restored'
+        elseif op=='defaults' then message=label..': '..(menu and 'Menu' or 'Normal')..' bindings restored. '..
+            'Other bindings: //xb bank '..layer..(menu and ' defaults' or ' menu defaults')
         else message=label..': '..(menu and 'menu' or 'normal')..' '..tostring(args[2+offset+((op=='key' or op=='clear' or op=='append' or op=='default') and 1 or 0)])..' binding updated' end
         options.say(status_format.notice(message));return true
     end

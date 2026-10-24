@@ -21,7 +21,7 @@ local view=require('ui/bank_view').new({bank=bank,resources=resources,path='',se
 settings.Texts={Font='Arial',Size=9}
 view:tick(true,960,540);assert(created==0,'hidden companion allocated surfaces')
 bank:event('show');view:tick(true,960,540);local fixed=created
-assert(fixed==42)
+assert(fixed==50)
 assert(view.title.last_font=='Arial' and view.title.last_size[1]==9)
 assert(view.slots[1].alias.last_font=='Arial' and view.slots[1].alias.last_size[1]==9)
 settings.CrossbarScale=1.25;settings.L1.FollowCrossbar=false;settings.L1.Scale=1
@@ -67,7 +67,7 @@ bank.held=true;view:tick(true,960,540);assert(created==fixed*2 and view.needs_me
 measurement_ready=true;view:tick(true,960,540);assert(not view.needs_measurement)
 local settled=calls;view:tick(true,960,540);assert(calls==settled)
 view:destroy();assert(next(alive)==nil)
-print('L1 companion: actual main compact coordinates/40px icons, following scale, 42 fixed surfaces, 24 clamps, 300 reveal/hide cycles and teardown passed.')
+print('L1 companion: actual main compact coordinates/40px icons, following scale, 50 fixed surfaces, 24 clamps, 300 reveal/hide cycles and teardown passed.')
 -- Both new-bank panels reuse these actual compact coordinates and resources.
 settings.CompanionBanks=require('libs/banks/banks').defaults();settings.CrossbarScale=1
 local native_menu=false
@@ -78,11 +78,11 @@ local left=require('ui/bank_view').new({bank=banks:panel('Left'),resources=resou
 local right=require('ui/bank_view').new({bank=banks:panel('Right'),resources=resources,path='',settings=settings})
 local before=created
 banks:edge(13,true);left:tick(true,960,540);right:tick(true,960,540)
-assert(created==before+42 and left.slots[8].alias.last_text=='Case')
+assert(created==before+50 and left.slots[8].alias.last_text=='Case')
 banks:edge(11,true);left:tick(true,960,540);assert(left.title.last_text=='L1 + L2  Available')
 banks:edge(11,false);banks:edge(13,false);banks:edge(14,true)
 left:tick(true,960,540);right:tick(true,960,540)
-assert(created==before+84 and right:bounds().x==960-290)
+assert(created==before+100 and right:bounds().x==960-290)
 assert(right.title.last_text=='R1  NPC' and right.slots[8].alias.last_text=='Open Trust')
 banks:edge(12,true);right:tick(true,960,540)
 assert(right.title.last_text=='R1 + R2  Available')
@@ -96,4 +96,4 @@ left:tick(true,960,540);assert(left.slots[8].alias.last_text=='Wave')
 settings.CompanionBanks.L1.Visible=false
 left:tick(true,960,540);assert(left.opacity==0 and left.visible==false)
 left:destroy();right:destroy();assert(next(alive)==nil)
-print('Actual new-bank panels: 84 fixed surfaces, shared side anchors, compact spacing/scale, right recovery, context labels and teardown passed.')
+print('Actual new-bank panels: 100 fixed surfaces, shared side anchors, compact spacing/scale, right recovery, context labels and teardown passed.')
