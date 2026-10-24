@@ -1,3 +1,27 @@
+# Current Development Status — October 24, 2026 — Bank Defaults 2
+
+- development/directlink; starting published checkpoint 261c54cd1547cae16b72bfbe8c41620dc06691a8. Runtime directlink1-banks2 / Controls 9.17-trustmerge1. Master unchanged. No panel-position changes authorized or made.
+- Cioara supplied L1 Party factory map; R1 NPC raw directions, Cross npc enter, Circle npc cancel, Triangle npc interact, Square npc raw enter. NPCmirror t8 command dispatch/tests inspected: cancel already means raw Escape, raw defaults to all discovered same-PC NPCmirror clients, Enter retains session checks. No menuactions redesign; normal maps used by new defaults/preset.
+- New Enabled flag separates activation from drawing. First levels default enabled; second levels default disabled/empty. Shoulder-first extra trigger stays on first level; trigger-first ordinary routes, release tails and pair Tab preserved. Existing explicit definitions are retained until user explicitly applies the preset or snapshot. Disable is reversible without deleting custom commands.
+- Panels draw at rest, in chat/native menus and cutscenes, independently of action eligibility. Chat/cutscene input guards remain; current editor/picker hiding and configured drawing toggles remain. Existing clamping/positions/scale untouched. No press indicator animation included.
+- Preset replaces the four maps/policies on the current character, preserving panel subtrees, cutscene permissions and unrelated settings. Separate snapshot generator exports actual Lua defaults and verifies all original unrelated fields/panels, all 64 entries per section and original recovery bytes. Source upload data(6).zip has Cioara, Clairvaux, Myrr, Killala, Killasisasa, Lionstag and global; Franklet absent. Laptop users should apply the per-character preset rather than replace their file with this desktop snapshot.
+- Tests: 66 top-level Lua suites / 151 parsed sources pass under documented temporary Windower normalization. Old saved maps are explicitly materialized fixtures for backward-compatibility routing tests; new defaults/preset/drawing/disable tests exercise actual new policy. Folder browser, direct Trust and root lease tests pass. AHK simulations, structural/layout checks and snapshot generator pass. Native Windows/Windower/FFXI acceptance pending; docs/BANK-DEFAULTS2-TEST.md contains checks.
+- Remaining: live icon-picker/Trust/bank acceptance, existing stickiness/flicker/crash investigations. All Jobs Default/job-set revision review and press indicators remain future work. No Apps retirement or claimed native controller cure.
+
+---
+
+# Bank Defaults 2 — October 24, 2026
+
+User approved everything except L1/R1 panel placement, requested frequent commits
+and cumulative patches. First checkpoint restored Trust, second repaired the
+folder picker, third adds agreed bank defaults/visibility and separate settings.
+Initial regressions caught assumptions about the retired factory map and hidden
+idle panels; tests now distinguish saved old configurations from new defaults.
+No prior TESTING history removed. Code and supplied-character settings remain
+separate deliverables. See the delivery hashes in the final handoff/Git history.
+
+---
+
 # Current Development Status — October 24, 2026 — Icon Folder Browser checkpoint
 
 - Continues Trust Forward Merge 1 on development/directlink. Runtime/Controls remain trustmerge1 / 9.17-trustmerge1. Trust checkpoint published at 261c54cd1547cae16b72bfbe8c41620dc06691a8.

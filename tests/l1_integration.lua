@@ -84,6 +84,7 @@ settings.ControllerMessages=true;settings.InputTest=false;character.status=0;foc
 local banks=require('libs/banks/banks').new({settings=settings,clock=function()return now end,
     context=function()return context=='gameplay',info.menu_open,character.status==4 end,ordinary=function()end,
     execute=function(s)sent[#sent+1]=s end,save=function()end,say=function()end,help=function()end})
+require('tests/fixtures/bank_legacy')(banks)
 env.companion_banks=banks
 env.controller_message_bridge=require('libs/controller/messages').new({session='bank-root-test',clock=function()return now end,
     wallclock=function()return 100 end,cancel=function()banks:cancel()end,capture=function()end,

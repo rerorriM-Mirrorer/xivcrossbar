@@ -53,9 +53,10 @@ function M.new(options)
         if not self.token then return false end
         self.held[button]={token=self.token,next=options.clock()+.4}
         local action=directions[button]
+        local face=require('libs/controller/transport'):face_name({button=faces[button]},mapping)
         if button==6 and (r1 or self.r1) then action='close'
-        elseif faces[button]==mapping.confirm_button then action='confirm'
-        elseif faces[button]==mapping.cancel_button then action='back'
+        elseif face and face==mapping.confirm_button then action='confirm'
+        elseif face and face==mapping.cancel_button then action='back'
         end
         if self.mode=='paused' then return true end
         if self.mode=='text' and action~='confirm' and action~='back' and action~='close' then return true end

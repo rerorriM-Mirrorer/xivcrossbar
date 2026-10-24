@@ -1,3 +1,11 @@
+# Current bank defaults — October 24, 2026
+
+See [Bank Defaults 2](BANK-DEFAULTS2-TEST.md) and the current README for the Party/NPC
+layout, disabled second levels, persistent drawing and explicit synchronization.
+Positions remain unchanged. Earlier delivery descriptions follow as history.
+
+---
+
 # Bank layout and typography test 1 — October 19, 2026
 
 Source baseline d6a12c8d8356d6abd3e4f747f2130d24dea1ee27. Author A.

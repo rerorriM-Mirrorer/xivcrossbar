@@ -5,6 +5,7 @@ local sent,ordinary={},{}
 local bank=require('libs/banks/banks').new({settings={},clock=function()return now end,
     context=function()return true,false end,save=function()end,say=function()end,help=function()end,
     execute=function(c)sent[#sent+1]=c end,ordinary=function(b,p)ordinary[#ordinary+1]={b,p}end})
+require('tests/fixtures/bank_legacy')(bank)
 local receiver=require('libs/controller/messages').new({session='recovery',clock=function()return now end,
     can_recover=function()return allowed end,
     wallclock=function()return wall end,capture=function()end,

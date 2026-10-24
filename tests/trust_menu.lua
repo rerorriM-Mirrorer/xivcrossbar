@@ -42,4 +42,8 @@ bridge:reset();before=#commands;bridge:edge(1,true,mapping);assert(#commands==be
 bridge:update(lease('nav-3','closed'),42);assert(not bridge.token)
 assert(bridge:edge(1,false,mapping),'owned release escaped after close')
 for _,command in ipairs(commands) do assert(not command:find('setkey') and not command:find('input /')) end
+bridge:reset();bridge:update(lease('xbox-role'),42)
+local xbox={button_layout='xbox',confirm_button='a',cancel_button='b'}
+bridge:edge(5,true,xbox);bridge:edge(5,false,xbox);assert(commands[#commands]:find(' confirm$'))
+bridge:edge(7,true,xbox);bridge:edge(7,false,xbox);assert(commands[#commands]:find(' back$'))
 print('Trust controller bridge: directional repeat, ownership through close/focus changes, complete/fresh/character-scoped leases, text/chat masking, direct command delivery and neutral recovery passed.')

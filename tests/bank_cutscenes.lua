@@ -8,6 +8,7 @@ local bank=M.new({settings=settings,clock=function()return 10 end,
     execute=function(s)sent[#sent+1]=s end,
     ordinary=function(b,p)ordinary[#ordinary+1]={b,p}end,
     save=function()saved=saved+1 end,say=function()end,help=function()end})
+require('tests/fixtures/bank_legacy')(bank)
 assert(not bank:cutscene_enabled())
 assert(bank:command({'r1','triangle','NPC','npcmirror interact'}))
 assert(bank:command({'r1','menu','triangle','Menu NPC','npcmirror enter'}))

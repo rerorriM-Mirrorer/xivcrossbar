@@ -8,6 +8,7 @@ local bank=Banks.new({settings=settings,clock=function()return now end,
     context=function()return allowed,menu end,save=function()saved=saved+1 end,
     execute=function(c)commands[#commands+1]=c end,
     ordinary=function(b,p)ordinary[#ordinary+1]={b,p} end,say=function()end,help=function()end})
+require('tests/fixtures/bank_legacy')(bank)
 local function edge(b,p) bank:edge(b,p) end
 local function press(b)edge(b,true)end
 local function release(b)edge(b,false)end
@@ -21,7 +22,7 @@ assert(settings.L1.Slot1.Command=='input /wardrobe4' and settings.CompanionBanks
 assert(bank:entry('l1',4,false).Key=='ctrl+i' and bank:entry('l1',3,false).Key=='ctrl+e')
 assert(bank:entry('l1',2,false).Command=='input /wardrobe2')
 assert(bank:entry('l1',7,true).Command=='input /yes','Nod uses the native yes emote')
-for i=1,8 do assert(bank:entry('r1r2',i,false).Command==Banks.factory('r1r2',i,false).Command and bank:entry('l1l2',i,true).Command=='') end
+for i=1,8 do assert(bank:entry('r1r2',i,false).Kind=='command' and bank:entry('l1l2',i,true).Command=='') end
 assert(bank:command({'l1l2','clear','left'}));Banks.ensure(settings)
 assert(bank:entry('l1l2',1,false).Command=='' and settings.L1.Slot1.Command=='input /wardrobe4','migration reseeded a cleared slot')
 assert(bank:legacy({'1','Legacy alias','input /echo compatible'}))
@@ -70,7 +71,7 @@ left:settings().X=54;assert(settings.CompanionBanks.LeftPanel.X==54)
 assert(settings.CompanionBanks.LeftPanel.Slot1==nil,'rendering duplicated entries into panel settings')
 reset();press(14);tap(8);tap(6)
 assert(commands[1]=='trust menu open' and commands[2]=='trust menu close')
-assert(right:opacity(true)==1 and left:opacity(true)==0)
+assert(right:opacity(true)==1 and left:opacity(true)==1)
 press(1);assert(bank.output.held.up);release(14);assert(not bank.output.held.up)
 tap(1);assert(#commands==2)
 -- Unused R1 release and pair Tab are native output, not console setkey.

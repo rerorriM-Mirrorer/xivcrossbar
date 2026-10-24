@@ -1,3 +1,9 @@
+Bank Defaults 2: Cioara L1 Party, R1 NPC, idle/chat/menu bank drawing, empty
+disabled second levels, and the Change Icon folder-browser repair. Includes the
+forward-merged Trust controller adapter and MessagePolish fixes. Runtime
+directlink1-banks2 / Controls 9.17-trustmerge1. Positions unchanged.
+[Install and live checks](docs/BANK-DEFAULTS2-TEST.md).
+
 Icon folder browser repair: Change Icon now scans canonical, legacy and override
 pack folders with fully normalized Windows paths; duplicate names are merged.
 No icon-list BAT or artwork relocation is required. Native acceptance pending.
@@ -175,103 +181,54 @@ See [the recovery checks](docs/HOLD-RECOVERY.md). Native acceptance is pending.
 The [shoulder-bank guide](docs/SHOULDER-BANKS.md) records the implemented bank
 system, saved-setting migration, editing commands and pending live tests.
 
-Four editable layers now share Lua input ownership and per-character settings:
-L1 inventory, L1→L2 utility/testing, R1 Trust and R1→R2 NPCMirror/SlowEnter.
-These are the factory roles; the explicit Cioara preset below rearranges them.
-Menu bindings and native-menu drawing are independently configurable per bank.
-Native keys use an acknowledged Lua→AHK service; commands dispatch directly.
-Existing L1→L2 entries migrate once; their old L1 section remains for recovery.
+The current factory layout is L1 Party and R1 NPC, with both panels visible
+at rest and while chat/native menus are open. Chat still blocks actions; the
+XIVcrossbar editor/set picker hides panels. Cutscene drawing does not grant
+cutscene input. Positions and the existing viewport clamp are unchanged.
 
-### Per-bank drawing and the Cioara layout
-
-```
-//xb bank r1 show
-//xb bank r1 menus on
-//xb r1r2 hide
-//xb l1l2 menuactions off
-```
-
-`show|hide` changes artwork only; controls remain active while held. `menus
-on|off` permits drawing over Windower's native `menu_open` flag (default off).
-`menuactions on|off` selects automatic Menu entries or always Closed entries
-(default on). This flag includes menus seen in combat; it does not identify
-which native menu is open. Turning menu actions off keeps Ctrl+I / Ctrl+E and
-container commands routed as assigned. Re-enable them to use stored menu
-scrolling/emotes. We do not infer menu identity from engagement, since actual
-inventory menus can also be opened in combat. Game acceptance remains a live test.
-
-Trust's addon menu is not detected by the native flag. Hiding R1R2 entirely
-keeps its navigation artwork out of the way of Trust without an IPC dependency.
-Show/menus never force a bank on screen without its held chord or preview, and
-never bypass chat/editor/cutscene input guards. Each layer has its own policy;
-coordinates and scale are still shared by the two layers on each side.
-
-After backing up `data/companion_banks.xml`, explicitly apply:
+Existing saved bindings/policies remain overrides. To apply the agreed layout
+on the current character (including Franklet on a different installation), use:
 
 ```
 //xb bank preset cioara apply
 ```
 
-This replaces the four companion-bank definitions in the current character's
-settings, preserving panel placement and ordinary/job crossbar XML. It never runs
-automatically during installation/login. It materializes current L1 closed/menu
-bindings on L1L2 before replacing L1; repeated apply retains L1L2 as the inventory
-source. Previous L1L2 overrides are replaced, so keep your settings backup.
+This replaces all four bank maps, preserves both panel subtrees and unrelated
+settings, sets normal bindings in menus, and clears/disables L1+L2 and R1+R2.
+Back up the bank file first. It never runs automatically. A separate supplied
+snapshot settings ZIP is available; do not install a desktop snapshot over a
+laptop's newer character settings. Applying the command per character merges
+through the normal locked bank store.
 
-| Button | R1 NPC / tests | L1 party |
+| Button | L1 Party | R1 NPC |
 |---|---|---|
-| Left | NPCMirror call | Switch Myrr |
-| Down | SlowEnter toggle | Switch Killala |
-| Right | NPCMirror status | Switch Clairvaux |
-| Up | NPCMirror stop | Switch Cioara |
-| Square | Target NPC / report | Trust menu open |
-| Cross | All Confirm | Party Ready |
-| Circle | All Cancel | Party Stand Down |
-| Triangle | NPCMirror interact | Self Trust toggle |
+| Left | `switch p` | `npc raw left` |
+| Down | `npc call` | `npc raw down` |
+| Right | `switch next` | `npc raw right` |
+| Up | `switch p1` | `npc raw up` |
+| Square | `trust menu` | `npc raw enter` |
+| Cross | Others: Trust start | `npc enter` |
+| Circle | All: Trust stop | `npc cancel` |
+| Triangle | `trust toggle` | `npc interact` |
 
-R1R2 gets held arrow directions, Cross Enter, Circle Escape, Triangle `trust menu
-open`, Square `trust menu close`. It starts hidden. L1 can draw over native
-menus. L1L2 gets inventory; automatic menu actions start OFF to keep battle-menu
-flags from replacing the opening commands. Enable with `//xb l1l2 menuactions on`.
+NPC commands verified against NPCmirror t8: raw directions/Enter and Cancel
+operate without an NPC session; `npc cancel` is raw Escape. `npc enter` retains
+coordinated session checks. Trust's own open menu owns ordinary navigation and
+Confirm/Back; R1+Square closes its menus while it owns focus.
 
-The imported target/confirm/cancel chains match Cioara's ALL-JOBS-DEFAULT exactly.
-They require its existing Send, Switch, SAT, SlowEnter and personal `all` alias
-setup; no missing aliases are installed here. Raw all-client taps can select a
-highlighted choice; the Confirm chain also enables local SlowEnter after two
-seconds. No NPCMirror/SlowEnter delivery or cutscene limitation is repaired by
-copying these commands. Factory defaults remain unchanged; `default/defaults`
-still restores the original shipped bindings, not this personal preset.
+`//xb bank <layer> enable|disable` controls activation independently of drawing.
+Disabled second levels keep the first-level bank on a shoulder-first extra
+trigger; trigger-first ordinary crossbars, release-tail protection and shoulder
+pair Tab behavior remain. `bank l2/r2` alias l1l2/r1r2. New factory second-level
+entries are empty. Existing explicit entries are preserved until reset/cleared.
+`show|hide` changes drawing only; `menus on|off` changes native-menu drawing;
+`menuactions on|off` chooses alternate Menu maps versus normal maps. Defaults
+are drawing ON, menus ON, menuactions OFF, and first levels enabled only.
 
-Short editors: `//xb r1r2 ...`, `//xb r1 ...`, `//xb l1l2 ...` equal their
-`//xb bank <layer> ...` forms; bare shows status. `//xb l1` retains its older
-L1L2 meaning, so use `//xb bank l1` for bare L1. Assignments are saved overrides.
-`//xb r1 default triangle` restores that slot's shipped action/label;
-`//xb r1 defaults` restores Closed entries; `//xb r1 menu defaults` restores Menu
-entries. `clear` remains deliberately empty. These resets preserve panel layout.
-
-R1→R2 now ships with Triangle Interact, Square Stop NPCMirror, Cross guarded
-NPC Enter, Circle guarded NPC Escape; Left Call party, Right NPC status,
-Up SlowEnter raw Enter all, Down raw Escape all. These defaults apply in both
-native-menu contexts. Updating v1 adopts unchanged L1/R1 defaults and fills
-empty R1R2 slots once; custom assignments remain. The old empty v1 slot cannot
-distinguish an unused slot from an explicit clear; clear it again after adoption
-to reserve it permanently. Status labels resolved entries default/override.
-SlowEnter raw taps bypass choice/chat guards and require v1.4.0 on participating
-same-PC clients. Their previously reported live reliability issue remains open.
-The existing status-4 cutscene input guard also remains in force.
-
-Current new shortcuts: R1+Square sends `trust menu close`; R1+Triangle sends
-`trust menu open` directly through Windower. Use profile x with messages ON;
-controller status reports R1 protocol=1 and permission. Both chords consume the
-face press and the R1 hold, so no ordinary face action or release-R follows.
-Native FFXI menus may remain open; chat and XIVCrossbar editors have priority.
-R2-first remains an ordinary bar; R1-first then R2 reveals its separate NPC bank.
-R1 arrows/Enter/Escape remain available through the native service.
-Trust's current menu test branch needs the [explicit-Open addendum](https://github.com/rerorriM-Mirrorer/trust/commit/17d0f9cc1e8dd400c70ae8411e4ff805d9868129)
-supplied with this checkpoint: update only commands/MenuCommands.lua over the
-compatible Test 4 install, reload Trust and check menu status for explicit open.
-Open preserves an existing submenu; Close retains Trust's
-save/validation policy and closes only Trust menus. Native acceptance is pending.
+Short editors `//xb r1`, `//xb r1r2`, `//xb l1l2` still work; legacy `//xb l1`
+means L1L2, so use `//xb bank l1`. `default/defaults` restores current shipped
+bindings in one slot/context, while `clear` explicitly reserves an empty slot.
+See [Bank Defaults 2 live checks](docs/BANK-DEFAULTS2-TEST.md).
 
 The [current roadmap and render diagnostics](docs/ROADMAP-DIRECTLINK.md)
 separates open repairs, controller ideas, older optional work and completed features.
@@ -1313,3 +1270,14 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Runtime directlink1-messages1 / Controls 9.16-messages1. Simulated checks pass;
   native colors/line lengths and input acceptance remain pending. Apps transport
   retirement remains separate work; no retirement is claimed by this batch.
+
+### October 24, 2026 — Trust forward merge, icon folders and Bank Defaults 2
+
+- Restore the paired direct Trust sender without rolling back MessagePolish,
+  Xbox Extended or R3 autorun removal; honor saved face roles in Trust too.
+- Repair Change Icon folder discovery across supported artwork roots.
+- Adopt Cioara L1 Party and R1 NPC factory maps; clear/disable second levels.
+- Draw enabled panels at rest and during chat/native menus; keep input guards.
+- Explicit preset and separate snapshot settings update preserve all panel fields.
+- 66 Lua suites / 151 parsed sources plus AHK simulations/structural checks;
+  native Windows/Windower/FFXI acceptance pending. No position or job-bar changes.

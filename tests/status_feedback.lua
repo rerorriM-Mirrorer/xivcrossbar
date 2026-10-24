@@ -42,5 +42,5 @@ assert(b:command(alias));assert(alias[1]=='l2','bank alias mutated caller argume
 assert(b:entry('l1l2',6,false).Alias=='Alias test')
 assert(b:command({'r2','hide'}) and not b:settings().R1R2.Visible)
 lines={};b:summary('l1l2');local summary=table.concat(lines,'\n')
-assert(summary:find('Draw in Menus:',1,true) and summary:find('Menu Input: ON',1,true) and summary:find('Bindings in Menus:',1,true))
+assert(summary:find('Draw in Menus:',1,true) and summary:find('Menu Input: OFF',1,true) and summary:find('Bindings in Menus:',1,true))
 print('Status feedback: single-line edits/swaps, explicit full bindings, stopped/neutral route truth and help palette passed.')

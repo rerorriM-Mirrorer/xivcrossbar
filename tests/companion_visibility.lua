@@ -1,68 +1,51 @@
--- Use the actual bank owner, native output queue and panel facade. Drawing
--- policy must never turn a hidden bank into ordinary game button input.
+-- Rendering is independent of physical holds and action eligibility.
 local Banks=require('libs/banks/banks')
-local settings={};local menu,allowed=false,true;local sent,saves={},0
+local settings={};local menu,allowed=false,true;local sent={}
 local bank=Banks.new({settings=settings,clock=function()return 10 end,
-    context=function()return allowed,menu end,save=function()saves=saves+1 end,
-    execute=function(c)sent[#sent+1]=c end,ordinary=function()error('bank input leaked')end,
-    say=function()end,help=function()end})
-local function edge(b,p)bank:edge(b,p)end
-local function tap(b)edge(b,true);edge(b,false)end
+ context=function()return allowed,menu end,save=function()end,
+ execute=function(c)sent[#sent+1]=c end,ordinary=function()end,say=function()end,help=function()end})
 local left,right=bank:panel('Left'),bank:panel('Right')
-for _,layer in ipairs({'l1','l1l2','r1','r1r2'}) do
-    bank:cancel();menu=false;bank:refresh()
-    edge(layer:sub(1,1)=='l' and 13 or 14,true)
-    if layer=='l1l2' then edge(11,true) elseif layer=='r1r2' then edge(12,true) end
-    local panel=layer:sub(1,1)=='l' and left or right
-    assert(panel:opacity(true)==1)
-    assert(bank:command({layer,'hide'}));assert(panel:opacity(true)==0)
-    assert(bank:command({layer,'triangle','Marker','input /echo '..layer}))
-    tap(8);assert(sent[#sent]=='input /echo '..layer,'hidden bank stopped executing')
-    assert(bank:command({layer,'show'}));assert(panel:opacity(true)==1)
-    menu=true;bank:refresh();assert(panel:opacity(true)==0)
-    assert(bank:command({layer,'menus','on'}));assert(panel:opacity(true)==1)
-    assert(panel:opacity(false)==0,'visibility bypassed eligibility')
-    assert(bank:command({layer,'menus','off'}));assert(panel:opacity(true)==0)
+bank:refresh();assert(left:opacity(true)==1 and right:opacity(true)==1,'idle panels hidden')
+allowed=false;menu=true;bank:refresh()
+assert(left:opacity(true)==1 and right:opacity(true)==1,'chat/menu hid drawings')
+assert(left:opacity(false)==0)
+bank:edge(13,true);bank:edge(5,true);bank:edge(5,false);bank:edge(13,false)
+assert(#sent==0,'drawing enabled chat input')
+allowed=true;bank:refresh();bank:edge(14,true)
+for b=1,8 do bank:edge(b,true);bank:edge(b,false)end
+assert(table.concat(sent,'|')=='npc raw up|npc raw right|npc raw down|npc raw left|npc enter|npc raw enter|npc cancel|npc interact')
+bank:edge(14,false);bank:cancel()
+assert(bank:command({'l1','hide'}));assert(left:opacity(true)==0)
+assert(bank:command({'l1','show'}));assert(left:opacity(true)==1)
+assert(bank:command({'l1','menus','off'}));assert(left:opacity(true)==0)
+assert(bank:command({'l1','menus','on'}));assert(left:opacity(true)==1)
+for _,pair in ipairs({{13,11,'l1'},{14,12,'r1'}})do
+ bank:cancel();menu=false;bank:refresh()
+ bank:edge(pair[1],true);bank:edge(pair[2],true);assert(bank.layer==pair[3],'disabled level replaced first')
+ bank:edge(pair[1],false);assert(bank.layer=='tail');bank:edge(pair[2],false)
 end
-bank:cancel();menu=true;bank:refresh();edge(13,true)
-assert(left:settings().Slot4.Key=='ctrl+left')
-assert(bank:command({'l1','menuactions','off'}))
-assert(left:settings().Slot4.Key=='ctrl+i','drawn label disagrees with closed binding')
-tap(1);local _,payload=bank.output:payload('test')
-assert(payload:find('d,ctrl+i',1,true),'broad battle-menu flag stole Items')
-assert(bank:command({'l1','menuactions','on'}))
-tap(1);_,payload=bank.output:payload('test')
-assert(payload:find('d,ctrl+left',1,true),'explicit menu scrolling lost')
-local count=saves
-assert(not bank:command({'l1','menus','maybe'}))
-assert(not bank:command({'l1','menu','hide'}))
-assert(not bank:command({'l1','hide','extra'}))
-assert(saves==count)
--- Explicit preset only; old custom settings never adopt a character template.
-assert(not bank:command({'preset','cioara'}))
-bank:cancel();menu=false;bank:refresh()
-assert(bank:command({'l1','left','Custom wardrobe','input /wardrobe4'}))
-local panelX=settings.CompanionBanks.LeftPanel.X
+assert(bank:command({'l2','triangle','Later','input /echo later'}))
+assert(bank:command({'l2','enable'}));bank:cancel();bank:edge(13,true);bank:edge(11,true)
+assert(bank.layer=='l1l2');bank:edge(8,true);assert(sent[#sent]=='input /echo later')
+assert(bank:command({'l2','disable'}));bank:refresh();assert(bank.layer=='l1')
+local before=#sent;bank:edge(8,true);assert(#sent==before,'held slot replayed after disable')
+bank:cancel();settings.CompanionBanks.LeftPanel.X=1657;settings.CompanionBanks.RightPanel.Y=1675
 assert(bank:command({'preset','cioara','apply'}))
-assert(settings.CompanionBanks.LeftPanel.X==panelX)
-assert(bank:entry('l1l2',1,false).Command=='input /wardrobe4')
-assert(bank:entry('l1l2',4,false).Key=='ctrl+i')
-assert(bank:entry('l1',6,false).Command=='send @others trust start; input /echo Asked party to stand ready!')
-assert(bank:entry('l1',7,false).Command=='send @all trust stop; input /echo Asked party to stand down!')
-assert(bank:entry('l1',8,false).Command=='trust toggle')
-assert(bank:entry('r1',8,false).Command=='npcmirror interact')
-assert(bank:entry('r1',6,false).Command=='se all once; wait 2; slowenter on')
-assert(bank:entry('r1',7,false).Command=='all slowenter off; wait 0.1; slowenter all once esc')
-assert(bank:entry('r1r2',5,false).Command=='trust menu close')
-assert(bank:entry('r1r2',8,false).Command=='trust menu open')
-assert(bank:entry('r1r2',6,false).Key=='enter' and bank:entry('r1r2',7,false).Key=='escape')
-assert(settings.CompanionBanks.L1.ShowOnMenu and not settings.CompanionBanks.R1R2.Visible)
-assert(not settings.CompanionBanks.L1L2.MenuActions)
-assert(bank:entry('l1l2',6,false).Command=='input /quest' and bank:entry('l1l2',6,true).Command=='input /quest')
-assert(bank:command({'preset','cioara','apply'}))
-assert(bank:entry('l1l2',1,false).Command=='input /wardrobe4','second apply copied NPC over inventory')
-bank:cancel();menu=true;bank:refresh();edge(13,true)
-assert(left:opacity(true)==1);tap(8);assert(sent[#sent]=='trust toggle')
-edge(13,false);edge(14,true);edge(12,true);assert(bank.layer=='r1r2' and right:opacity(true)==0)
-tap(8);assert(sent[#sent]=='trust menu open','hidden Trust navigation lost commands')
-print('Actual bank visibility/menu routing: four independent layers, hidden execution, broad battle-menu override, native scrolling, explicit Cioara preset, repeated apply and preserved inventory passed.')
+assert(settings.CompanionBanks.LeftPanel.X==1657 and settings.CompanionBanks.RightPanel.Y==1675)
+assert(bank:entry('l1',1,false).Command=='switch p' and bank:entry('l1',4,false).Command=='switch p1')
+for _,layer in ipairs({'l1l2','r1r2'})do
+ assert(not bank:settings()[layer=='l1l2' and 'L1L2' or 'R1R2'].Enabled)
+ for _,mode in ipairs({false,true})do for i=1,8 do assert(bank:entry(layer,i,mode).Command=='')end end
+end
+assert(bank:command({'preset','cioara','apply'}));assert(bank:entry('r1',5,true).Command=='npc raw enter')
+print('Bank visibility/input: idle/menu/chat drawings, blocked chat actions, disabled layers, held-slot isolation, Cioara defaults, repeatable reset and unchanged positions passed.')
+-- Execute the actual root drawing gate with chat/cutscene active; no action
+-- policy is consulted to determine whether the panels may be drawn.
+local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
+local gate=assert(source:match('(local l1_display=.-)\n    local viewport='))
+local env=setmetatable({xivcrossbar={ready=true},settings={ControllerProfile='ps5-extended'},
+ action_binder={is_hidden=true},env_chooser={is_showing=function()return false end},
+ gamepad_mapper={},l1_character={status=4},l1_info={logged_in=true,chat_open=true}}, {__index=_G})
+local draw=assert(load(gate..'\nreturn l1_display','actual bank drawing gate','t',env))
+assert(draw(),'chat/cutscene hid the root bank drawing gate')
+env.l1_info.logged_in=false;assert(not draw(),'logged-out panel drawn')

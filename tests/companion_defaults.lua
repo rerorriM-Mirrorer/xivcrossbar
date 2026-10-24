@@ -16,34 +16,34 @@ local saves,executed=0,{}
 local bank=M.new({settings=s,clock=function()return 10 end,context=function()return true,false end,
     ordinary=function()end,execute=function(c)executed[#executed+1]=c end,save=function()saves=saves+1 end,say=function()end,help=function()end})
 assert(bank.migrated and s.CompanionBanks.Version==2)
-assert(bank:stored_entry('l1',4,false).Kind=='default' and bank:entry('l1',4,false).Key=='ctrl+i')
+assert(bank:stored_entry('l1',4,false).Kind=='default' and bank:entry('l1',4,false).Command=='switch p1')
 assert(bank:stored_entry('l1',7,false).Kind=='command' and bank:entry('l1',7,false).Command=='')
 assert(bank:entry('r1r2',1,false).Command=='input /echo custom')
-assert(bank:stored_entry('r1r2',2,false).Kind=='default' and bank:entry('r1r2',2,false).Command=='slowenter all once esc')
+assert(bank:stored_entry('r1r2',2,false).Kind=='default' and bank:entry('r1r2',2,false).Command=='')
 assert(bank:entry('l1l2',4,false).Command=='input /echo legacy')
 assert(not select(2,M.ensure(s)),'v2 migrated repeatedly')
-assert(bank:command({'l1','default','circle'}));assert(bank:entry('l1',7,false).Command=='input /satchel')
+assert(bank:command({'l1','default','circle'}));assert(bank:entry('l1',7,false).Command=='send @all trust stop; input /echo Asked party to stand down!')
 assert(bank:stored_entry('l1',7,false).Kind=='default')
 assert(bank:command({'r1r2','clear','down'}));M.ensure(s)
 assert(bank:stored_entry('r1r2',2,false).Kind=='command' and bank:entry('r1r2',2,false).Command=='')
-assert(bank:command({'r1r2','default','down'}));assert(bank:entry('r1r2',2,false).Command=='slowenter all once esc')
+assert(bank:command({'r1r2','default','down'}));assert(bank:entry('r1r2',2,false).Command=='')
 assert(bank:command({'r1r2','append','right','input /echo extra'}))
-assert(bank:entry('r1r2',3,false).Command=='npcmirror status; input /echo extra')
-assert(M.factory('r1r2',3,false).Command=='npcmirror status','append modified hardcoded default')
+assert(bank:entry('r1r2',3,false).Command=='input /echo extra')
+assert(M.factory('r1r2',3,false).Command=='','append modified hardcoded default')
 assert(bank:command({'r1r2','menu','triangle','Other','input /echo menu'}))
 assert(bank:command({'r1r2','defaults'}))
 assert(bank:entry('r1r2',8,true).Command=='input /echo menu','closed defaults reset menu overrides')
 assert(bank:command({'r1r2','menu','defaults'}))
-assert(bank:entry('r1r2',8,true).Command=='npcmirror interact')
+assert(bank:entry('r1r2',8,true).Command=='')
 assert(s.CompanionBanks.LeftPanel.X==53 and s.CompanionBanks.LeftPanel.Scale==.7 and not s.CompanionBanks.LeftPanel.Locked)
 local count=saves
 assert(not bank:command({'r1r2','default','down','extra'}))
 assert(not bank:command({'r1r2','defaults','all'}))
 assert(saves==count)
 -- Exact eight-slot routing in both contexts; no generated key shortcuts.
-local expected={[1]='slowenter all once',[2]='npcmirror status',[3]='slowenter all once esc',[4]='npcmirror call',
-    [5]='npcmirror enter',[6]='npcmirror stop',[7]='npcmirror esc',[8]='npcmirror interact'}
-bank:edge(14,true);bank:edge(12,true)
+local expected={[1]='npc raw up',[2]='npc raw right',[3]='npc raw down',[4]='npc raw left',
+    [5]='npc enter',[6]='npc raw enter',[7]='npc cancel',[8]='npc interact'}
+bank:edge(14,true)
 for b=1,8 do bank:edge(b,true);bank:edge(b,false);assert(executed[#executed]==expected[b]) end
 assert(#bank.output.pending==0)
 bank:cancel()
@@ -55,7 +55,7 @@ local env=setmetatable({xivcrossbar={ready=true},companion_banks=bank,l1_epoch=0
 local dispatch=assert(load('return function(command,...) if false then\n'..source:sub(a,b-1)..'end end','actual bank alias branch','t',env))()
 dispatch('r1r2','triangle','Alias test','input /echo alias')
 assert(bank:entry('r1r2',8,false).Command=='input /echo alias')
-dispatch('r1r2','default','triangle');assert(bank:entry('r1r2',8,false).Command=='npcmirror interact')
+dispatch('r1r2','default','triangle');assert(bank:entry('r1r2',8,false).Command=='')
 dispatch('r1','menu','key','up','Scroll','ctrl+left');assert(bank:entry('r1',4,true).Key=='ctrl+left')
 dispatch('l1l2','left','Short','input /echo utility');assert(bank:entry('l1l2',1,false).Command=='input /echo utility')
 dispatch('l1','right','Legacy','input /echo compatibility');assert(bank:entry('l1l2',3,false).Command=='input /echo compatibility')

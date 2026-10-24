@@ -6,7 +6,7 @@ local slot_for={[4]=1,[3]=2,[2]=3,[1]=4,[6]=5,[5]=6,[7]=7,[8]=8}
 local layers={l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}
 local prefixes={l1='L1',l1l2='L1 + L2',r1='R1',r1r2='R1 + R2'}
 local layer_aliases={l2='l1l2',r2='r1r2'}
-local titles={l1='L1  Inventory',l1l2='L1 + L2  Actions',r1='R1  Trust',r1r2='R1 + R2  NPC'}
+local titles={l1='L1  Party',l1l2='L1 + L2  Available',r1='R1  NPC',r1r2='R1 + R2  Available'}
 M.aliases={l1l2=true,r1=true,r1r2=true} -- l1 retains its older L1L2 editor meaning
 local function clone(t) local r={};for k,v in pairs(t) do r[k]=type(v)=='table' and clone(v) or v end;return r end
 local function action(label,kind,value,hold)
@@ -16,23 +16,21 @@ local function empty() return action('','command','') end
 local function finite(n) return type(n)=='number' and n==n and math.abs(n)<math.huge end
 local function inherited() return {Alias='',Kind='default',Command='',Key='',Hold=false} end
 local factory={}
-factory.l1={Closed={action('Wardrobe','command','input /wardrobe'),action('Wardrobe 2','command','input /wardrobe2'),
-    action('Equipment','key','ctrl+e'),action('Items','key','ctrl+i'),action('Sack','command','input /sack'),
-    action('Jump','command','input /jump'),action('Satchel','command','input /satchel'),action('Case','command','input /case')},
-    Menu={action('Previous','key','alt+left'),action('List next','key','ctrl+right'),
-    action('Next','key','alt+right'),action('List previous','key','ctrl+left'),action('Bow','command','input /bow'),
-    action('Jump','command','input /jump'),action('Nod','command','input /yes'),action('Wave','command','input /wave')}}
-factory.r1={Closed={action('Left','key','left',true),action('Down','key','down',true),action('Right','key','right',true),
-    action('Up','key','up',true),action('Close Trust','command','trust menu close'),action('Confirm','key','enter'),
-    action('Back','key','escape'),action('Open Trust','command','trust menu open')}}
+-- A: Cioara's supplied October 23 L1 layout, with no fixed character names.
+factory.l1={Closed={action('Back','command','switch p'),action('Call','command','npc call'),
+    action('Next','command','switch next'),action('Leader','command','switch p1'),
+    action('Trust','command','trust menu'),
+    action('Ready','command','send @others trust start; input /echo Asked party to stand ready!'),
+    action('Stand Down','command','send @all trust stop; input /echo Asked party to stand down!'),
+    action('Toggle','command','trust toggle')}}
+factory.l1.Menu=factory.l1.Closed
+factory.r1={Closed={action('Left','command','npc raw left'),action('Down','command','npc raw down'),
+    action('Right','command','npc raw right'),action('Up','command','npc raw up'),
+    action('Raw Enter','command','npc raw enter'),action('Enter','command','npc enter'),
+    action('Cancel','command','npc cancel'),action('Interact','command','npc interact')}}
 factory.r1.Menu=factory.r1.Closed
--- Guarded NPC steps stay on Confirm/Back. Raw all-client taps are deliberately
--- separate D-pad actions; they bypass SlowEnter's dialogue/choice guards.
-factory.r1r2={Closed={action('Call party','command','npcmirror call'),action('Raw Esc all','command','slowenter all once esc'),
-    action('NPC status','command','npcmirror status'),action('Raw Enter all','command','slowenter all once'),
-    action('Stop NPC','command','npcmirror stop'),action('NPC Enter','command','npcmirror enter'),
-    action('NPC Escape','command','npcmirror esc'),action('Interact','command','npcmirror interact')}}
-factory.r1r2.Menu=factory.r1r2.Closed
+-- Empty second levels are disabled independently of drawing; a shoulder-first
+-- extra trigger keeps its first-level bank, while trigger-first stays ordinary.
 function M.factory(layer,slot,menu)
     local bank=factory[layer];local entries=bank and bank[menu and 'Menu' or 'Closed']
     return clone(entries and entries[slot] or empty())
@@ -47,7 +45,7 @@ function M.defaults()
     -- a fresh process can reload saved banks without losing names or types.
     local d={Version=0,Preset=''}
     for _,name in pairs(layers) do
-        d[name]={Closed={},Menu={},Visible=true,ShowOnMenu=false,MenuActions=true,AllowCutscenes=false,Title=''}
+        d[name]={Closed={},Menu={},Enabled=name=='L1' or name=='R1',Visible=true,ShowOnMenu=true,MenuActions=false,AllowCutscenes=false,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
             d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false}
         end end
@@ -66,8 +64,10 @@ function M.ensure(settings)
     for layer,name in pairs(layers) do
         if type(d[name])~='table' then d[name]={} end
         local b=d[name]
-        b.Visible=b.Visible~=false;b.ShowOnMenu=b.ShowOnMenu==true
-        b.MenuActions=b.MenuActions~=false;b.Title=type(b.Title)=='string' and b.Title or ''
+        if b.Enabled==nil then b.Enabled=name=='L1' or name=='R1' end
+        b.Enabled=b.Enabled==true
+        b.Visible=b.Visible~=false;b.ShowOnMenu=b.ShowOnMenu~=false
+        b.MenuActions=b.MenuActions==true;b.Title=type(b.Title)=='string' and b.Title or ''
         b.AllowCutscenes=b.AllowCutscenes==true
         for _,context in ipairs({'Closed','Menu'}) do
             if type(d[name][context])~='table' then d[name][context]={} end
@@ -123,7 +123,10 @@ function M.new(options)
         return normalized
     end
     function self:cutscene_enabled()
-        for _,name in pairs(layers) do if self:settings()[name].AllowCutscenes then return true end end
+        for _,name in pairs(layers) do
+            local b=self:settings()[name]
+            if b.Enabled and b.AllowCutscenes then return true end
+        end
         return false
     end
     function self:stored_entry(layer,slot,menu) return self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..slot] end
@@ -154,8 +157,14 @@ function M.new(options)
         if self.tailL or self.tailR then return 'tail' end
         if d[11] and not (d[13] and self.left) or d[12] and not (d[14] and self.right) then return '' end
         if d[13] and d[14] then return 'pair' end
-        if d[13] then return d[11] and 'l1l2' or 'l1' end
-        if d[14] then return d[12] and 'r1r2' or 'r1' end
+        if d[13] then
+            if d[11] and self:settings().L1L2.Enabled then return 'l1l2' end
+            return self:settings().L1.Enabled and 'l1' or 'blocked'
+        end
+        if d[14] then
+            if d[12] and self:settings().R1R2.Enabled then return 'r1r2' end
+            return self:settings().R1.Enabled and 'r1' or 'blocked'
+        end
         return ''
     end
     function self:choose()
@@ -261,8 +270,7 @@ function M.new(options)
             opacity=function(_,eligible)
                 local preview=parent.previews[side];local b=parent:settings()[layers[selected()]]
                 local editing=preview and preview.editing and selected()==preview.layer
-                return eligible and (not parent.cutscene or b.AllowCutscenes) and (editing or b.Visible) and (editing or not parent.menu or b.ShowOnMenu)
-                    and (names[parent.layer] or preview and options.clock()<preview.until_time) and 1 or 0
+                return eligible and (editing or b.Enabled and b.Visible) and (editing or not parent.menu or b.ShowOnMenu) and 1 or 0
             end,
         }
     end
@@ -293,13 +301,14 @@ function M.new(options)
         for _,row in ipairs({
             {'bank <layer> status [details]','Show panel state; details lists normal/menu bindings.'},
             {'bank l2|r2 <command>','Aliases for bank l1l2 and bank r1r2; bindings are shared.'},
+            {'bank <layer> enable|disable','Enable input/drawing, or disable this layer without deleting its bindings.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
             {'bank <layer> edit on|off','Pin/unlock this bank for mouse-only dragging; off hides preview and locks.'},
             {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
             {'bank <layer> menus on|off','Allow this bank to draw over native game menus.'},
             {'bank <layer> menuactions on|off','Use menu bindings automatically, or always use Closed bindings.'},
             {'bank <layer> cutscenes on|off','Allow this bank during cutscenes; other controls stay blocked.'},
-            {'bank preset cioara apply','Replace four bank layouts with the Cioara template; back up settings first.'},
+            {'bank preset cioara apply','Apply Party/NPC defaults; clear/disable second levels; keep positions.'},
             {'bank <layer> [menu] <button> <label> <command...>','Assign a console command; layer: l1, l1l2, r1, r1r2.'},
             {'bank <layer> [menu] key <button> <label> <key> [hold]','Native key, e.g. ctrl+i or alt+left; pulse by default.'},
             {'bank <layer> [menu] clear <button>','Reserve a slot without executing anything.'},
@@ -312,9 +321,9 @@ function M.new(options)
     end
     function self:summary(layer)
         local b=self:settings()[layers[layer]]
-        options.say(status_format.row(layer:upper(),'Draw: '..status_format.toggle(b.Visible)..
+        options.say(status_format.row(layer:upper(),'Enabled: '..status_format.toggle(b.Enabled)..' | Draw: '..status_format.toggle(b.Visible)..
             ' | Draw in Menus: '..status_format.toggle(b.ShowOnMenu)..
-            ' | Menu Input: '..status_format.toggle(true)..' | Bindings in Menus: '..(b.MenuActions and 'Menu' or 'Normal')..
+            ' | Menu Input: '..status_format.toggle(b.Enabled)..' | Bindings in Menus: '..(b.MenuActions and 'Menu' or 'Normal')..
             ' | Cutscenes: '..status_format.toggle(b.AllowCutscenes)))
     end
     function self:status(layer,details)
@@ -353,7 +362,7 @@ function M.new(options)
             if args[2]~='cioara' or args[3]~='apply' or args[4] then self:help();return false end
             self:release_slots();self.output:cancel();self.r1used=true
             require('libs/banks/presets').cioara(self)
-            options.save();options.say(status_format.notice('Cioara preset applied; L1+L2 keeps normal inventory bindings in menus.'));return true
+            options.save();options.say(status_format.notice('Party/NPC preset applied; second levels cleared and disabled; positions preserved.'));return true
         end
         if not layers[layer] then self:help();return false end
         local offset=args[2]=='menu' and 1 or 0;local menu=offset==1
@@ -368,6 +377,8 @@ function M.new(options)
             local enabled=args[3]=='on';p.Locked=not enabled
             self.previews[side]=enabled and {layer=layer,until_time=math.huge,editing=true} or nil
             changed=true
+        elseif (op=='enable' or op=='disable') and offset==0 and not args[3] then
+            self:settings()[layers[layer]].Enabled=op=='enable';changed=true
         elseif (op=='show' or op=='hide') and offset==0 and not args[3] then
             self:settings()[layers[layer]].Visible=op=='show';changed=true
             if op=='hide' and self.previews[side] and self.previews[side].layer==layer then self.previews[side]=nil end
@@ -419,6 +430,7 @@ function M.new(options)
         if op=='menus' then message=label..': Draw in Menus: '..status_format.toggle(self:settings()[layers[layer]].ShowOnMenu)
         elseif op=='menuactions' then message=label..': Bindings in Menus: '..(self:settings()[layers[layer]].MenuActions and 'Menu' or 'Normal')
         elseif op=='cutscenes' then message=label..': Cutscenes: '..status_format.toggle(self:settings()[layers[layer]].AllowCutscenes)
+        elseif op=='enable' or op=='disable' then message=label..': Enabled: '..status_format.toggle(self:settings()[layers[layer]].Enabled)
         elseif op=='show' or op=='hide' then message=label..': Draw: '..status_format.toggle(self:settings()[layers[layer]].Visible)
         elseif op=='edit' then message=label..': Edit: '..status_format.toggle(args[3]=='on')
         elseif op=='pos' or op=='resetpos' then message=label..': Position: '..tostring(p.X)..', '..tostring(p.Y)

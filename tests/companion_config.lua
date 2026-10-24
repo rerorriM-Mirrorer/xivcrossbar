@@ -29,6 +29,6 @@ assert(not fresh.CompanionBanks.L1L2.MenuActions and fresh.CompanionBanks.L1L2.T
 assert(fresh.CompanionBanks.Preset=='cioara')
 assert(fresh.CompanionBanks.L1.Closed.Slot4.Kind=='default' and fresh.CompanionBanks.L1.Closed.Slot4.Key=='')
 assert(type(fresh.CompanionBanks.R1.Closed.Slot4.Hold)=='boolean')
-assert(Banks.factory('r1',4,false).Hold)
+assert(not Banks.factory('r1',4,false).Hold and not fresh.CompanionBanks.R1R2.Enabled)
 assert(fresh.CompanionBanks.l1==nil and fresh.CompanionBanks.L1.menu==nil,'unknown lowercased keys survived')
 print('Actual Windower config merge: complete default shape, lowercase XML reload, typed entries, cleared-slot preservation, legacy import and saved panel positions passed.')

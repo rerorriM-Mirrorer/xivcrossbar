@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-trustmerge1'
+_addon.version = '0.4.0-a.20261024.directlink1-banks2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2358,7 +2358,7 @@ windower.register_event('prerender',function()
     local l1_character=windower.ffxi.get_player()
     local l1_display=xivcrossbar.ready and not restart_pending and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and action_binder.is_hidden and not env_chooser:is_showing() and not gamepad_mapper.is_showing
-        and l1_character and (l1_character.status~=4 or (companion_banks and companion_banks:cutscene_enabled())) and not l1_info.chat_open
+        and l1_character and l1_info.logged_in
     local viewport=windower.get_windower_settings()
     if render_trace.enabled then
         render_trace.context(gamepad_state.active_bar,player.hotbar_settings and player.hotbar_settings.active_environment,
@@ -2367,11 +2367,11 @@ windower.register_event('prerender',function()
             viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res,
             settings.CrossbarScale,ui_dirty,companion_banks.active and companion_banks.layer or l1_bank:mode(),controller_message_bridge.ack)
     end
-    l1_view.options.bank=(companion_banks.active or companion_banks:previewing('Left')) and companion_left or l1_bank
-    -- The retired fallback view retains its native-menu guard. New panels own
-    -- their per-bank drawing policy independently from action context.
-    l1_view:tick(l1_display and (l1_view.options.bank==companion_left or not l1_info.menu_open),viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
-    r1_view:tick(l1_display and (companion_banks.active or companion_banks:previewing('Right')),viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
+    l1_view.options.bank=companion_left
+    -- Drawing remains available during chat/cutscenes; action guards remain in
+    -- companion_context and the Trust adapter. Each panel owns its menu policy.
+    l1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
+    r1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
     if not l1_display then l1_drag:finish();r1_drag:finish() end
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then
         next_catalog_refresh=catalog_clock()+1

@@ -7,14 +7,14 @@ local d=settings.CompanionBanks;d.LeftPanel.X=39;d.RightPanel.X=508
 d.L1.Visible=false;d.R1.ShowOnMenu=true
 assert(bank:command({'r1','triangle','Personal','input /echo preserved'}))
 assert(bank:command({'swap','l1','r1'}))
-assert(bank:entry('r1',1,false).Command=='input /wardrobe')
-assert(bank:entry('r1',1,true).Key=='alt+left')
-assert(bank:entry('l1',1,false).Key=='left' and bank:entry('l1',8,false).Command=='input /echo preserved')
+assert(bank:entry('r1',1,false).Command=='switch p')
+assert(bank:entry('r1',1,true).Command=='switch p')
+assert(bank:entry('l1',1,false).Command=='npc raw left' and bank:entry('l1',8,false).Command=='input /echo preserved')
 assert(d.L1.ShowOnMenu and not d.R1.Visible)
-assert(d.L1.Title=='L1  Trust' and d.R1.Title=='R1  Inventory')
+assert(d.L1.Title=='L1  NPC' and d.R1.Title=='R1  Party')
 assert(d.LeftPanel.X==39 and d.RightPanel.X==508)
 assert(bank:command({'swap','l1','r1'}))
-assert(bank:entry('l1',1,false).Command=='input /wardrobe')
+assert(bank:entry('l1',1,false).Command=='switch p')
 local count=saved
 assert(not bank:command({'swap','l1','l1'}));assert(not bank:command({'swap','bad','r1'}));assert(saved==count)
 assert(bank:command({'r1r2','hide'}))
@@ -24,7 +24,7 @@ local right=bank:panel('Right');assert(right:opacity(true)==1 and right:opacity(
 now=now+100;assert(bank:previewing('Right'),'edit preview expired')
 assert(not bank.active and bank.layer=='' and not next(bank.down),'edit armed input')
 assert(bank:command({'r1r2','edit','off'}))
-assert(d.RightPanel.Locked and not bank:previewing('Right') and right:opacity(true)==0)
+assert(d.RightPanel.Locked and not bank:previewing('Right') and right:opacity(true)==1)
 assert(not bank:command({'r1','edit','maybe'}))
 -- Actual main-position helper: coordinates remain offsets, not scaled pixels.
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()

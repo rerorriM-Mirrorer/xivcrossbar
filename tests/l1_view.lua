@@ -73,18 +73,19 @@ settings.CompanionBanks=require('libs/banks/banks').defaults();settings.Crossbar
 local native_menu=false
 local banks=require('libs/banks/banks').new({settings=settings,clock=function()return now end,
     context=function()return true,native_menu end,ordinary=function()end,execute=function()end})
+require('tests/fixtures/bank_legacy')(banks)
 local left=require('ui/bank_view').new({bank=banks:panel('Left'),resources=resources,path='',settings=settings})
 local right=require('ui/bank_view').new({bank=banks:panel('Right'),resources=resources,path='',settings=settings})
 local before=created
 banks:edge(13,true);left:tick(true,960,540);right:tick(true,960,540)
-assert(created==before+42 and left.slots[8].alias.last_text=='Case')
-banks:edge(11,true);left:tick(true,960,540);assert(left.title.last_text=='L1 + L2  Actions')
+assert(created==before+84 and left.slots[8].alias.last_text=='Case')
+banks:edge(11,true);left:tick(true,960,540);assert(left.title.last_text=='L1 + L2  Available')
 banks:edge(11,false);banks:edge(13,false);banks:edge(14,true)
 left:tick(true,960,540);right:tick(true,960,540)
 assert(created==before+84 and right:bounds().x==960-290)
-assert(right.title.last_text=='R1  Trust' and right.slots[8].alias.last_text=='Open Trust')
+assert(right.title.last_text=='R1  NPC' and right.slots[8].alias.last_text=='Open Trust')
 banks:edge(12,true);right:tick(true,960,540)
-assert(right.title.last_text=='R1 + R2  NPC')
+assert(right.title.last_text=='R1 + R2  Available')
 assert(right:bounds().x==960-290 and settings.CompanionBanks.RightPanel.Slot1==nil)
 right:tick(false,960,540);assert(right.opacity==0)
 banks:cancel();banks:edge(13,true);native_menu=true;banks:refresh()

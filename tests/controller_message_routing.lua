@@ -118,6 +118,7 @@ binder.cancel_button='circle';chooser.shown=false
 local banks=require('libs/banks/banks').new({settings=env.settings,clock=function()return now end,
     context=env.companion_context,execute=env.windower.send_command,save=function()end,say=function()end,help=function()end,
     ordinary=function(button,pressed)env.message_button(require('libs/controller/messages').diks[button],pressed,0,false)end})
+require('tests/fixtures/bank_legacy')(banks)
 env.companion_banks=banks
 receiver=require('libs/controller/messages').new({session='full-bank-routing',clock=function()return now end,wallclock=function()return 100 end,
     capture=env.message_capture,physical=function(b,p)banks:edge(b,p)end,cancel=env.message_cancel,
