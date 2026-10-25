@@ -78,6 +78,7 @@ ControllerMessageAdd(kind, button) {
     global CM
     CM.seq += 1
     CM.pending.Push({seq:CM.seq, kind:kind, button:button, tick:A_TickCount})
+    DiagRecord("DirectLink seq=" . CM.seq . " " . kind . " button=" . button . " ack=" . CM.ack)
 }
 ControllerMessageCancel() {
     global CM
@@ -125,6 +126,7 @@ ControllerMessagePoll(states, hwnd) {
         if (CM.phase = "messages")
             ControllerMessageCancel()
         CM.phase := "uncertain"
+        DiagRecord("DirectLink uncertain lease_age_ms=" . (now-CM.seen))
         if (neutral and now - CM.seen > 2500) {
             CM.requested := false, CM.token := "", CM.phase := "keys"
         }
@@ -147,6 +149,7 @@ ControllerMessagePoll(states, hwnd) {
     if (CM.pending.Length() > 96 or (CM.pending.Length() and now - CM.pending[1].tick > 350)) {
         ControllerMessageCancel()
         CM.phase := "backpressure"
+        DiagRecord("DirectLink backpressure pending=" . CM.pending.Length())
         return true
     }
     changed := false
