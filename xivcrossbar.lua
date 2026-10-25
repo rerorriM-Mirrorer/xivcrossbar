@@ -1786,7 +1786,7 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
-local function controller_keyboard(dik, pressed, flags, blocked)
+local function controller_keyboard(dik, pressed, flags, blocked, source)
     -- Own Escape through key-up after closing: neither repeats nor release
     -- may cancel a native FFXI menu underneath the addon.
     if dik == keyboard.esc then
@@ -1834,7 +1834,7 @@ local function controller_keyboard(dik, pressed, flags, blocked)
     end
     local signal = transport.signals[dik]
     -- Consume owned releases even if capture was lost; no orphan game key-ups.
-    if signal and (gamepad_state.capturing or transport.down[dik]) then
+    if signal and (source=='message' or gamepad_state.capturing or transport.down[dik]) then
         -- The wizard bootstraps button configuration and can be visible before
         -- hotbar initialization finishes. Gameplay still requires readiness.
         if restart_pending then return true end
@@ -1899,8 +1899,15 @@ windower.register_event('keyboard', controller_keyboard)
 local message_session='beta1-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
 message_bridge=require('controller_messages').new({
     session=message_session,clock=profile_clock,wallclock=os.time,
-    event=function(dik,pressed) controller_keyboard(dik,pressed,0,false) end,
-    capture=function(pressed) controller_keyboard(controller_capture_dik,pressed,0,false) end,
+    event=function(dik,pressed)
+        -- Message delivery must not latch the Apps capture bit: a physical
+        -- keyboard F-key pressed during a held PS5 trigger still passes through.
+        local captured=gamepad_state.capturing
+        gamepad_state.capturing=true
+        controller_keyboard(dik,pressed,0,false,'message')
+        gamepad_state.capturing=captured
+    end,
+    capture=function() end,
     cancel=function()
         if release_gameplay_keys then release_gameplay_keys() end
         transport:reset()
