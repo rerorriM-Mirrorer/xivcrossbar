@@ -43,6 +43,8 @@ assert(#writes==2 and output[filename] and output[second],'unload must flush its
 print('Unified diagnostic: per-request files, AHK merge, render events, boundaries, save grace, unload and overwrite prevention passed.')
 
 -- Exercise actual render recorder and resource proxy without native getter changes.
+-- CI has no LuaSocket: inject a monotonic clock as the Windower test harness does.
+package.loaded.socket={gettime=function()return clock end}
 local trace=require('ui/render_trace')
 local calls,extents=0,0
 local function object()
