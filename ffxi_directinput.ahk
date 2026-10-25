@@ -3,8 +3,11 @@
 ; All twelve buttons send consistent F1-F12 signals, with Apps capture.
 #SingleInstance ignore
 #Persistent
+#Include %A_ScriptDir%\controller_messages.ahk
 ; A: physical modifier checks must distinguish our injected key-down.
 #InstallKeybdHook
+; Do not pause the controller poll between physical edges.
+SetBatchLines, -1
 SetWorkingDir, %A_ScriptDir%
 FileCreateDir, %A_ScriptDir%\data
 OnExit, TransportExit
@@ -53,6 +56,7 @@ ready := false
 appsOwned := false
 Loop, 12
     previous[A_Index] := false
+ControllerMessageInit()
 WriteTransportStatus(true)
 SetTimer, TransportPoll, 10
 return
@@ -97,6 +101,10 @@ if (!ready) {
         ready := true
     return
 }
+; PS5 DirectLink owns all twelve ordinary signals when the focused Lua lease is active.
+; Other profiles still follow the unchanged Apps/F1-F12 route below.
+if (ControllerMessagePoll(states, active))
+    return
 if (anyDown and !appsOwned) {
     appsOwned := true
     SendEvent, % "{Blind}{" . captureKey . " down}"
@@ -132,6 +140,7 @@ ExitApp
 
 ReleaseTransport() {
     global keys, previous, owner, appsOwned, captureKey
+    ControllerMessageCancel()
     Loop, 12 {
         i := A_Index
         if (previous[i]) {
