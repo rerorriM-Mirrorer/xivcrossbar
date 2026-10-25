@@ -27,7 +27,8 @@ local env=setmetatable({xivcrossbar=state,storage=storage,player=player,ui=ui,
     set_active_environment=function()end,gamepad_state={},controller_bind_prefix='#',
     skillchains={load=function()end,login=function()end,logout=function()end},
     start_controller_wrappers=function()started=started+1 end,
-    release_gameplay_keys=function()released=released+1 end,transport={reset=function()end}}, {__index=_G})
+    release_gameplay_keys=function()released=released+1 end,transport={reset=function()end},
+    message_lease={close=function()end},message_bridge=nil}, {__index=_G})
 local first=assert(source:find('function initialize(',1,true))
 local last=assert(source:find('-- Continue observing after initialization:',first,true))
 assert(load(source:sub(first,last-1),'real initialize','t',env))()
