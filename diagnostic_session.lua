@@ -48,7 +48,7 @@ function M.new(opts)
         snapshot(name,object or {},lines,{},0)
         for _,line in ipairs(lines) do record('STATE',line) end
     end
-    function self:start(name,state)
+    function self:start(name,state,skip_ahk)
         if self.active or self.pending then return nil,'A diagnostic is already active or saving.' end
         name=tostring(name or 'prelogin'):gsub('[^%w_-]','_')
         self.serial=self.serial+1
@@ -58,6 +58,7 @@ function M.new(opts)
         -- another client started in the same second.
         local id=stamp..'-'..string.format('%06d',usec)..'-'..self.serial..'-'..name
         self.id=id
+        self.skip_ahk=skip_ahk==true
         self.name=name
         self.path=opts.directory..'/'..name..'-'..id..'.log'
         self.feed=opts.staging..'/'..id..'.ahk'
@@ -67,7 +68,7 @@ function M.new(opts)
         if opts.mkdir then opts.mkdir(opts.directory);opts.mkdir(opts.staging) end
         append(clock(),'SESSION','start id='..id..' character='..name..' duration=30s')
         self:state('start',state)
-        if opts.request then
+        if opts.request and not self.skip_ahk then
             local ok,err=opts.request('on '..id..' '..name)
             if not ok then record('WARNING','AHK capture request failed: '..tostring(err)) end
         end
@@ -92,7 +93,7 @@ function M.new(opts)
             local t,frame,kind,details=line:match('^(%d+%.%d+)\t([^\t]+)\t([^\t]+)\t(.*)$')
             if t then entries[#entries+1]={tonumber(t),'RENDER',kind..' frame='..frame..' '..details} end
         end
-        local feed=read(self.feed)
+        local feed=not self.skip_ahk and read(self.feed) or nil
         local ahk_count=0
         local ahk_dropped=0
         if type(feed)=='string' and #feed<=1048576 then
@@ -109,7 +110,9 @@ function M.new(opts)
             end
         end
         if ahk_count==0 then
-            entries[#entries+1]={clock(),'WARNING','AHK feed absent or unreadable at finalization; temporary feed may have arrived late'}
+            entries[#entries+1]={clock(),self.skip_ahk and 'INFO' or 'WARNING',
+                self.skip_ahk and 'Instantaneous snapshot: AHK capture intentionally omitted'
+                or 'AHK feed absent or unreadable at finalization; temporary feed may have arrived late'}
         end
         table.sort(entries,function(a,b)
             if a[1]==b[1] then return a[2]<b[2] end
@@ -159,7 +162,7 @@ function M.new(opts)
         self.pending=true
         self.pending_reason=reason or 'manual'
         self.finish_at=clock()+.75
-        if opts.request then opts.request('off '..self.id..' '..self.name) end
+        if opts.request and not self.skip_ahk then opts.request('off '..self.id..' '..self.name) end
         if opts.render_stop then opts.render_stop() end
         return true,nil,self.path
     end
