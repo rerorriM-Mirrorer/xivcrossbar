@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261025.ps5-directlink-test1'
+_addon.version = '0.4.0-beta1.20261025.ps5-directlink-diag1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -379,6 +379,8 @@ function delete_custom_action(name)
 end
 
 -- A: the saved selection is per client; the running wrapper is shared.
+-- Optional, on-demand observation only: inactive in normal gameplay.
+local diagnostic
 local controller_switcher
 local message_lease=require('controller_lease').new({clock=profile_clock})
 local message_bridge
@@ -406,6 +408,35 @@ local function report_controller_status()
         windower.add_to_chat(207, '[XIVCrossbar] No fresh running-wrapper status. It may be stopped, starting, or an older wrapper.')
     end
 end
+-- The one diagnostic owns its output file. AHK contributes only a temporary feed.
+diagnostic=require('diagnostic_bridge').new({
+    path=windower.addon_path,clock=profile_clock,
+    mkdir=windower.create_dir,
+    say=function(message) windower.add_to_chat(207,'[XIVCrossbar] '..message) end,
+    snapshot=function()
+        local p=windower.ffxi.get_player()
+        local info=windower.ffxi.get_info()
+        local viewport=windower.get_windower_settings()
+        return {
+            version=_addon.version,character=p and p.name or 'prelogin',
+            server=info and info.server,player_id=p and p.id,
+            profile=settings.ControllerProfile,device=settings.ControllerDevice,
+            ready=xivcrossbar.ready,focus=windower.has_focus(),
+            chat_open=info and info.chat_open,menu_open=info and info.menu_open,
+            character_status=p and p.status,modifier=controller_modifier,
+            controller=controller_status() or {},
+            receiver=message_bridge and {token=message_bridge.token,ack=message_bridge.ack,
+                received=message_bridge.received,rejected=message_bridge.rejected,
+                reason=message_bridge.reason} or {},
+            ui_objects=require('ui/resources').snapshot(),
+            viewport={width=viewport.ui_x_res or viewport.x_res,height=viewport.ui_y_res or viewport.y_res},
+            scale=settings.CrossbarScale,set=player.hotbar_settings and player.hotbar_settings.active_environment,
+            bar=gamepad_state.active_bar,
+            triggers={l2=gamepad_state.left_trigger,r2=gamepad_state.right_trigger},
+            editor={state=action_binder.state,page=action_binder.page,showing=not action_binder.is_hidden},
+        }
+    end,
+})
 function start_controller_wrappers(profile, device, modifier)
     profile = profile or settings.ControllerProfile
     device = device or settings.ControllerDevice
@@ -1095,6 +1126,7 @@ function display_help_menu()
     windower.add_to_chat(207, 'alias/al/caption <env> <hb> <slot> <text>   Set slot caption')
     windower.add_to_chat(207, '//xb compact [on|off]             Switch compact layout immediately')
     windower.add_to_chat(207, '//xb resources                    Report live UI object counts')
+    windower.add_to_chat(207, '//xb diagnose [stop|mark|status|snapshot]  Unified 30-second diagnostic capture')
     windower.add_to_chat(207, 'controller status|start|stop|profiles')
     windower.add_to_chat(207, 'controller profile <name> [device]  Save controller reader selection (PS5 DirectLink; others Apps)')
     windower.add_to_chat(207, '--- Custom Actions ---')
@@ -1185,6 +1217,7 @@ windower.register_event('logout', function()
     player.identity_confirmed = false
     if release_gameplay_keys then release_gameplay_keys() end
     transport:reset()
+    if diagnostic then diagnostic:record('LIFECYCLE','logout') end
     if message_bridge then message_bridge:reset('logout') end
     message_lease:close()
     gamepad_state.left_trigger, gamepad_state.right_trigger = false, false
@@ -1199,6 +1232,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    if diagnostic then diagnostic:close() end
     controller_switcher:cancel()
     if message_bridge then message_bridge:reset('unload') end
     message_lease:close()
@@ -1222,6 +1256,9 @@ windower.register_event('addon command', function(command, ...)
     -- an action; the keyboard router independently handles the actual slot.
     if command == 'inputconsume' then
         return
+    elseif command == 'diagnose' or command == 'diagnostics' then
+        local mode,note=...
+        return diagnostic:command(mode,note)
     elseif command == 'controller' then
         local mode, name, device = ...
         mode = type(mode) == 'string' and mode:lower() or 'status'
@@ -1772,6 +1809,7 @@ end
 local gameplay_down = {}
 release_gameplay_keys = function()
     for dik, key in pairs(gameplay_down) do
+        if diagnostic then diagnostic:record('NATIVE','request '..key..' up cleanup') end
         windower.send_command('setkey ' .. key .. ' up')
         gameplay_down[dik] = nil
     end
@@ -1788,6 +1826,14 @@ local function input_context()
 end
 local message_down={} -- never confuse a DirectLink hold with a physical keyboard F-key
 local function controller_keyboard(dik, pressed, flags, blocked, source)
+    -- Only mapped controller input is traced; never record typed text or chat.
+    if diagnostic and diagnostic.recorder.active and
+        (source=='message' or dik==controller_capture_dik or
+            (gamepad_state.capturing and transport.signals[dik])) and
+        not action_binder:is_capturing_text() and not env_chooser.capturing then
+        diagnostic:record('ROUTER','dik='..tostring(dik)..' pressed='..tostring(pressed)..
+            ' source='..tostring(source or 'keyboard')..' context='..input_context())
+    end
     -- Own Escape through key-up after closing: neither repeats nor release
     -- may cancel a native FFXI menu underneath the addon.
     if dik == keyboard.esc then
@@ -1854,6 +1900,7 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
             windower.add_to_chat(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
         end
         if gameplay_down[dik] and not pressed then
+            if diagnostic then diagnostic:record('NATIVE','request '..gameplay_down[dik]..' up') end
             windower.send_command('setkey ' .. gameplay_down[dik] .. ' up')
             gameplay_down[dik] = nil
         end
@@ -1865,6 +1912,7 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
             local key = transport:login_key(item, buttonmapping)
             if key and pressed then
                 gameplay_down[dik] = key
+                if diagnostic then diagnostic:record('NATIVE','request '..key..' down context='..context) end
                 windower.send_command('setkey ' .. key .. ' down')
             end
             return true
@@ -1901,6 +1949,9 @@ windower.register_event('keyboard', controller_keyboard)
 local message_session='beta1-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
 message_bridge=require('controller_messages').new({
     session=message_session,clock=profile_clock,wallclock=os.time,
+    observe=function(message)
+        if diagnostic then diagnostic:record('DIRECTLINK',message) end
+    end,
     event=function(dik,pressed)
         message_down[dik]=pressed or nil
         -- Message delivery must not latch the Apps capture bit: a physical
@@ -1992,6 +2043,8 @@ windower.register_event('gain focus', function() clear_controller_input(true) en
 -- ON PRERENDER
 local next_identity_retry = 0
 windower.register_event('prerender',function()
+    -- Diagnostic timing is observed before rendering/transport work begins.
+    diagnostic:tick(input_context())
     if not restart_pending and profile_clock() >= next_identity_retry then
         next_identity_retry = profile_clock() + .25
         check_profile_ready()
