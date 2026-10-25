@@ -1913,13 +1913,21 @@ message_bridge=require('controller_messages').new({
         transport:reset()
         gamepad_state.capturing=false
         gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
+        gamepad_state.minus_button=false;gamepad_state.plus_button=false
         gamepad_state.active_bar=0
+        set_chooser_button_down=false
+        if action_binder.chooser_active then finish_set_chooser(true) end
         ui_dirty=true
     end,
 })
 local next_message_poll=0
 local function poll_directlink()
-    if settings.ControllerProfile~='ps5-directinput' then return end
+    if settings.ControllerProfile~='ps5-directinput' then
+        -- Retire the previous PS5 lease immediately during a profile switch.
+        message_bridge:context('',false)
+        message_lease:close()
+        return
+    end
     local info=windower.ffxi.get_info()
     local character=windower.ffxi.get_player()
     local active=windower.has_focus() and info.logged_in and character and type(character.name)=='string'
