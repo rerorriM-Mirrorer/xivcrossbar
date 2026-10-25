@@ -397,7 +397,7 @@ local function report_controller_status()
             windower.add_to_chat(207, '[XIVCrossbar] PS5 transport: DirectLink when logged in and ready; Apps during login/setup. Local stream: '..(message_bridge and message_bridge.token and 'messages' or 'keys')..'.')
         end
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
-            ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
+            ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | route=' .. (status.route or 'legacy') .. ' | connected=' .. tostring(status.connected == '1'))
         if not controller_profiles.matches(status, settings.ControllerProfile, settings.ControllerDevice, controller_modifier)
             and not (controller_switcher and controller_switcher.pending) then
             windower.add_to_chat(123, '[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
