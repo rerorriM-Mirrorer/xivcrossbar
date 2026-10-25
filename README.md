@@ -1,3 +1,8 @@
+Installer receiver 1: an explicit local installer request can gracefully unload
+XB clients, waiting while their editing menus are open. No normal input changes.
+Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged.
+[Receiver checks](docs/INSTALLER-BRIDGE-TEST.md). Windows handoff pending.
+
 Shutdown Trace 1: adds shutdown reason, client/lock/error counts and scan progress
 to the existing data/controller-status.ini. Shutdown policy/input are unchanged;
 this is an investigation checkpoint, not a claimed shutdown fix.
@@ -1370,3 +1375,9 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   progress in existing status publication, without changing shutdown/input policy.
 - Investigate confirmed true preferences and released handles with wrapper still up;
   collect controller-status.ini after failure without reloading the addon.
+
+### October 24, 2026 — Installer receiver 1
+
+- Add strict expiring unload-only requests for the local installer, busy-menu
+  acknowledgements and per-request graceful-unload dedup. Reload stays manual.
+- User confirms controller navigation at Survival Guide is restored; Felm pending.

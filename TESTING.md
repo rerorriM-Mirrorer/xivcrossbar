@@ -1,3 +1,20 @@
+# Current Development Status — October 24, 2026 — Installer receiver 1
+
+- development/directlink; published source baseline e29cf4c6705f2accd86c330c35673c9a4819cdd9, local a367c44 tree 80ed6679480d371ee8cf5e86a8092584d6d94506. Master unchanged. Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged.
+- User authorizes a local Windower-root patch launcher: choose download, extract/check, back up affected files, coordinate unloading/stop, install and report versions; client reload remains manual. Optional ZIP deletion only after successful install. First implementation scoped to XIVcrossbar code/docs, with no user data/artwork/settings copying.
+- This separate first checkpoint adds the Lua handoff: bounded expiring protocol-1 unload-only request, at-most-once-per-second polling on existing callback, busy-menu/setup/chooser deferral, atomic session acknowledgements and once-only existing graceful unload. Normal input permissions and AHK policy unchanged. Initial bootstrap requires manual unload on old clients; future clients can respond. See docs/INSTALLER-BRIDGE-TEST.md.
+- Focused install-bridge and actual controller routing suites pass / 160 Lua sources parsed using documented Lua 5.4 temporary Windower normalization. Native Windows/Windower handoff pending. Windows installer implementation/testing is next separate checkpoint; do not describe the helper as already live verified.
+- Latest user acceptance: controller works perfectly again at Survival Guide; user is fairly sure about Felm and will check. Record Survival Guide as confirmed and Felm/similar scenes as pending. Wrapper shutdown cause still unresolved; preceding diagnostics remain cumulative.
+
+---
+
+# Installer receiver 1 — October 24, 2026
+
+Small separate source checkpoint for explicitly initiated local install handoff.
+No game-input scope expansion, package application or arbitrary commands inside Lua.
+
+---
+
 # Current Development Status — October 24, 2026 — Shutdown Trace 1
 
 - development/directlink, published source baseline 0d56e4b2badb97e2cbbd970d582af1167cfe4c2f, local d70c9b6 tree f11eba24a491d8c57529675490c8c03d77cb6ac3. Master unchanged. Runtime directlink1-shutdowntrace1 / Controls 9.19-lifecycle1.

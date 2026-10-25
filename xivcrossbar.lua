@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-shutdowntrace1'
+_addon.version = '0.4.0-a.20261024.directlink1-installer1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1293,7 +1293,26 @@ local function graceful_restart(unload)
 end
 
 -- ON LOAD
+local install_bridge=require('libs/controller/install_bridge').new({
+    clock=require('socket').gettime,wallclock=os.time,
+    read=function()
+        local f=io.open(windower.addon_path..'data/installer-request.ini','rb')
+        if not f then return end
+        local raw=f:read(513);f:close();return raw
+    end,
+    busy=function()
+        return restart_pending or (action_binder.selector and not action_binder.is_hidden) or env_chooser:is_showing()
+            or env_chooser.capturing or gamepad_mapper.is_showing
+    end,
+    ack=function(id,state)
+        return bank_backend.replace(windower.addon_path..'data/installer-ack-'..id..'-'..bank_backend.session_id..'.ini',
+            '[InstallerAck]\nprotocol=1\nid='..id..'\nsession='..bank_backend.session_id..'\nstate='..state..
+            '\ncharacter='..tostring(player.name or 'prelogin')..'\nversion='.._addon.version..'\n')
+    end,
+    unload=function() graceful_restart(true) end})
 windower.register_event('load',function()
+    install_bridge:poll()
+    if restart_pending then return end
     local ok,registry=pcall(require('libs/controller/clients').new,{directory=windower.addon_path..'data/controller-clients/'})
     if ok then
         client_registry=registry
@@ -2390,6 +2409,7 @@ local next_catalog_refresh=0
 local next_identity_retry=0
 -- ON PRERENDER
 windower.register_event('prerender',function()
+    install_bridge:poll()
     if not restart_pending and catalog_clock()>=next_identity_retry then
         next_identity_retry=catalog_clock()+.25
         check_profile_ready()
