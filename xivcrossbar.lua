@@ -413,6 +413,15 @@ diagnostic=require('diagnostic_bridge').new({
     path=windower.addon_path,clock=profile_clock,
     mkdir=windower.create_dir,
     say=function(message) windower.add_to_chat(207,'[XIVCrossbar] '..message) end,
+    frame_state=function()
+        local v=windower.get_windower_settings()
+        return {bar=gamepad_state.active_bar,
+            set=player.hotbar_settings and player.hotbar_settings.active_environment,
+            editor=action_binder.state,
+            width=v.ui_x_res or v.x_res,height=v.ui_y_res or v.y_res,
+            scale=settings.CrossbarScale,
+            route=message_bridge and message_bridge.token and 'messages' or 'keys'}
+    end,
     snapshot=function()
         local p=windower.ffxi.get_player()
         local info=windower.ffxi.get_info()
