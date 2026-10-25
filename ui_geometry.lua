@@ -4,6 +4,7 @@
 -- follow exactly the same transform. Other addons' Windower objects are untouched.
 local geometry = {}
 geometry.__index = geometry
+local trace=require('ui/render_trace')
 
 function geometry.new()
     return setmetatable({scale = 1, x = 0, y = 0, screen_x = 0, screen_y = 0,
@@ -51,6 +52,7 @@ local function draw_surface(g, object, m)
     end
     if m.center_x then
         local width=object:extents()
+        if trace.enabled then trace.call(object,'center-measure',m.center_x,m.center_y,width,g.scale) end
         if width and width>0 then
             m.x,m.y=m.center_x-width/g.scale/2,m.center_y
             draw_position(g,object,m,m.x,m.y)
@@ -266,6 +268,7 @@ function geometry:surface(object, kind, options)
     -- Store the tile center, not a fixed left edge. Recalculate after font or
     -- caption changes so short and long aliases share the same visual center.
     function methods:center(x, y)
+        if trace.enabled then trace.call(object,'center-request',x,y) end
         m.center_x, m.center_y = x, y
         draw_surface(g, object, m)
     end
@@ -314,6 +317,7 @@ function geometry:surface(object, kind, options)
     end
     function methods:destroy()
         if m.disposed then return end
+        if trace.enabled then trace.event('surface-retire',object) end
         m.disposed = true
         g.surfaces[proxy] = nil
         if g.deferring_hide and (m.visible or m.defer_visible) then
@@ -331,6 +335,8 @@ function geometry:surface(object, kind, options)
         return method
     end})
     self.surfaces[proxy] = m
+    trace.alias(proxy,object,'public-geometry',kind)
+    if trace.enabled then trace.event('surface-create',object,kind) end
     draw_opacity(self, m)
     if kind == 'image' then proxy:fit(false); proxy:size(40, 40) end
     return proxy
