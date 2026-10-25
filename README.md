@@ -15,7 +15,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261025.ps5-directlink-test1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261025.ps5-directlink-diag1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -52,6 +52,33 @@ Switch profiles only with controls released.
 This is a **PS5 live-test candidate**. Original public RC3 Apps mapping was tested
 in game; the newly ported DirectLink route has NOT been accepted in FFXI yet.
 See the safety/rollback instructions and the single focused checklist in TESTING.md.
+
+### Unified diagnostics in this beta (new)
+
+Run \`//xb diagnose\` on a character to capture **30 seconds** of PS5/Apps
+AHK hardware observations, Lua button reception, routing and key requests,
+context/focus/transport state, and public text/image rendering observations.
+All go into a **single new file** per request under
+\`data/diagnostics/<Character>-<timestamp>-<session>.log\`. AHK writes only a
+temporary bounded observation feed under \`data/diagnostics-staging/\`;
+Lua combines and removes the feed after a successful save. Previous captures
+are never appended to or replaced. Only **one AHK capture** can be active on
+the shared reader at a time; other clients are unaffected by the logging.
+
+\`//xb diagnose mark\` adds an observation marker; \`//xb diagnose stop\` ends
+early and saves after a short handoff; \`//xb diagnose status\` shows progress;
+\`//xb diagnose snapshot\` records a near-immediate state capture. A normal
+capture saves automatically around 30 seconds. Wait for "Diagnostic saved"
+before copying the file, especially after manually stopping. Addon unload
+also attempts to preserve the partial Lua capture.
+
+Render observation tracks real native text/image calls, measured extents,
+positions, center requests, visibility, object lifetimes and long frame gaps
+through opt-in instrumentation. **It does not see GPU pixels or confirm how
+FFXI interpreted an injected key.** Diagnostic timestamps are clock-based
+observations, not proof of game engine timing; high-rate tracing may itself
+add overhead. The personal build's text-settling algorithm and banks are
+not imported. No normal gameplay logging is active until you request it.
 
 ## Important: gamepad configuration
 
@@ -238,3 +265,11 @@ non-blocking AutoHotkey polling, stream cancellation/watchdog tests, untouched
 upstream auxiliary references and a reproducible single-folder CI package.
 No personal shoulder banks, movement controls or controller shortcuts ship.
 **In-game Beta 1 acceptance is still pending.**
+
+2026-10-25: Beta 1 Diagnostic Test 1 adds \`//xb diagnose\` single-file
+30-second per-character captures: focused AHK raw/route events, Lua message
+sequences and native key requests, lifecycle snapshots, render object changes,
+native text extents and frame gaps. Includes restart-safe bounded buffers,
+manual markers and scoped CI tests. Personal rendering algorithms remain
+outside the release candidate; native Windows/Windower/FFXI acceptance
+is still pending.
