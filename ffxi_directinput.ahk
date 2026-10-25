@@ -356,7 +356,7 @@ WriteTransportStatus(force := false) {
     global CM
     contents .= "button_protocol=1`nbutton_route=" . CM.phase . "`nbutton_sent=" . CM.seq . "`nbutton_ack=" . CM.ack . "`nbutton_error=" . CM.error . "`n"
     global TM
-    contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
+    contents .= "movement_version=0.2.0-trust1`nmovement_policy=" . TM.policy . "`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
     global IT
     contents .= "input_trace=" . IT.enabled . "`npoll_max_ms=" . IT.pollMax . "`npoll_gap_max_ms=" . IT.gapMax
         . "`nread_max_ms=" . IT.readMax . "`npersonal_max_ms=" . IT.personalMax . "`ncontext_misses=" . IT.misses . "`ntrace_error=" . IT.error . "`n"

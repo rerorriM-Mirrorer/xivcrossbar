@@ -1,3 +1,12 @@
+# Current Development Status — October 25, 2026 — Trust movement Send/Ready Test 1
+
+- Isolated branch test/trust-movement-20261025, starting personal development/directlink 7959a99d9871b00e18bd3faaf4b3946c85595fc1. Development/public beta/master are not overwritten. Controls stays 9.19-lifecycle1; movement_version becomes 0.2.0-trust1 with policy/sent/reason status fields.
+- Sender reads fresh integrated Trust data/movement/NAME.lease before legacy trustmovement data. Send is default and consumes first joystick movement without context/readiness waiting; Ready retains readiness/personal-context waiting. Immediate Trust receiver accept/ignore, no delayed retry. Original focus latch, threshold, native-key edges and release preserved.
+- Nine JS suites pass (including actual new movement decision/latch functions with mocked native/lease observations). Seven AHK files pass lexical, include and dependency checks; whitespace check passes. No unrelated Lua runtime edits. Native Windows/AHK/Windower acceptance pending, no new live result inferred.
+- Paired cumulative Trust payload includes integrated receiver; separate trustmovement must be unloaded/removed from autoload. Existing personal DirectLink install/artwork required for cumulative code-only XB payload. Details in Trust docs/MOVEMENT-SEND-READY-TEST1.md. First native test: two clients, Send/Ready, ignored menu input, quiet follow/assist and focus switching. No expanded AUTO/MANUAL actions yet.
+
+---
+
 # Current Development Status — October 24, 2026 — Windower Patch Installer 1
 
 - development/directlink; published receiver checkpoint f93f56f93f4a02345075b7feeb8ce8bf3f0b6de6, local c4b5e22 tree 6fd9e50df6c1eccf7bf5dad8cb2417431338ce50. Master unchanged. Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged from prior checkpoint.
