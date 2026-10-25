@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261016.public-rc3-maintenance2'
+_addon.version = '0.4.0-beta1.20261025.ps5-directlink-test1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -380,6 +380,8 @@ end
 
 -- A: the saved selection is per client; the running wrapper is shared.
 local controller_switcher
+local message_lease=require('controller_lease').new({clock=profile_clock})
+local message_bridge
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
@@ -391,6 +393,9 @@ local function report_controller_status()
     end
     local status = controller_status()
     if status and status.running then
+        if settings.ControllerProfile=='ps5-directinput' then
+            windower.add_to_chat(207, '[XIVCrossbar] PS5 transport: DirectLink when logged in and ready; Apps during login/setup. Local stream: '..(message_bridge and message_bridge.token and 'messages' or 'keys')..'.')
+        end
         windower.add_to_chat(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
             ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | connected=' .. tostring(status.connected == '1'))
         if not controller_profiles.matches(status, settings.ControllerProfile, settings.ControllerDevice, controller_modifier)
@@ -1091,7 +1096,7 @@ function display_help_menu()
     windower.add_to_chat(207, '//xb compact [on|off]             Switch compact layout immediately')
     windower.add_to_chat(207, '//xb resources                    Report live UI object counts')
     windower.add_to_chat(207, 'controller status|start|stop|profiles')
-    windower.add_to_chat(207, 'controller profile <name> [device]  Save controller reader selection')
+    windower.add_to_chat(207, 'controller profile <name> [device]  Save controller reader selection (PS5 DirectLink; others Apps)')
     windower.add_to_chat(207, '--- Custom Actions ---')
     windower.add_to_chat(207, 'ca <name>                       Create/edit one custom-action review')
     windower.add_to_chat(207, 'ca name/alias/command <value>    Edit the current draft')
@@ -1130,6 +1135,8 @@ local function graceful_restart()
     xivcrossbar.ready = false
     crossbar_drag:finish()
     controller_switcher:cancel()
+    if message_bridge then message_bridge:reset('restart') end
+    message_lease:close()
     if env_chooser.is_setup then env_chooser:close() end
     if action_binder.selector then
         action_binder:hide()
@@ -1178,6 +1185,8 @@ windower.register_event('logout', function()
     player.identity_confirmed = false
     if release_gameplay_keys then release_gameplay_keys() end
     transport:reset()
+    if message_bridge then message_bridge:reset('logout') end
+    message_lease:close()
     gamepad_state.left_trigger, gamepad_state.right_trigger = false, false
     gamepad_state.active_bar = 0
     ui:hide()
@@ -1191,6 +1200,8 @@ end)
 -- ON UNLOAD
 windower.register_event('unload',function()
     controller_switcher:cancel()
+    if message_bridge then message_bridge:reset('unload') end
+    message_lease:close()
     crossbar_drag:finish()
     text_input_guard:reset_confirmation()
     text_input_guard:release(windower.send_command)
@@ -1775,7 +1786,7 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
-windower.register_event('keyboard', function(dik, pressed, flags, blocked)
+local function controller_keyboard(dik, pressed, flags, blocked)
     -- Own Escape through key-up after closing: neither repeats nor release
     -- may cancel a native FFXI menu underneath the addon.
     if dik == keyboard.esc then
@@ -1880,7 +1891,51 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
         if settings.InputTest then return true end
     end
     return handle_controller_key(dik, pressed, flags, blocked)
-end)
+end
+windower.register_event('keyboard', controller_keyboard)
+
+-- A: PS5 DirectLink feeds the existing keyboard router with synthetic logical
+-- DIKs, never native keyboard injection. Other profiles still use Apps.
+local message_session='beta1-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
+message_bridge=require('controller_messages').new({
+    session=message_session,clock=profile_clock,wallclock=os.time,
+    event=function(dik,pressed) controller_keyboard(dik,pressed,0,false) end,
+    capture=function(pressed) controller_keyboard(controller_capture_dik,pressed,0,false) end,
+    cancel=function()
+        if release_gameplay_keys then release_gameplay_keys() end
+        transport:reset()
+        gamepad_state.capturing=false
+        gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
+        gamepad_state.active_bar=0
+        ui_dirty=true
+    end,
+})
+local next_message_poll=0
+local function poll_directlink()
+    if settings.ControllerProfile~='ps5-directinput' then return end
+    local info=windower.ffxi.get_info()
+    local character=windower.ffxi.get_player()
+    local active=windower.has_focus() and info.logged_in and character and type(character.name)=='string'
+    local enabled=active and xivcrossbar.ready and not restart_pending and not gamepad_mapper.is_showing
+    local key=active and table.concat({tostring(info.server),character.name,tostring(character.id),tostring(settings.ControllerDevice)},':') or ''
+    message_bridge:context(key,enabled)
+    if enabled and message_bridge:watchdog() then message_bridge:context(key,true) end
+    local now=profile_clock()
+    if enabled and message_bridge.token and now>=next_message_poll then
+        next_message_poll=now+.02
+        local f=io.open(windower.addon_path..'data/directlink/'..character.name..'.buttons','rb')
+        if f then
+            local contents=f:read(8193);f:close()
+            message_bridge:accept(contents)
+        end
+    end
+    if active then
+        message_lease:update(windower.addon_path..'data/directlink/',character.name,
+            enabled and 'gameplay' or 'setup',message_bridge.token,message_bridge.ack)
+    else
+        message_lease:close()
+    end
+end
 
 local frame = 0
 
@@ -1900,6 +1955,8 @@ local function clear_controller_input(regained)
         focus_release_keys = {}
     end
     transport:reset()
+    if message_bridge then message_bridge:reset('focus') end
+    message_lease:close()
     for _, key in ipairs({'capturing','left_trigger','right_trigger','minus_button','plus_button',
         'left_trigger_doublepress','right_trigger_doublepress'}) do gamepad_state[key] = false end
     gamepad_state.active_bar = 0
@@ -1920,6 +1977,7 @@ windower.register_event('prerender',function()
         next_identity_retry = profile_clock() + .25
         check_profile_ready()
     end
+    poll_directlink()
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.
