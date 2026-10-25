@@ -243,7 +243,7 @@ InitXInput() {
 }
 
 WriteTransportStatus(force := false) {
-    global profile, device, modifierArgument, phase, connected, ready, lastStatusTick, origin
+    global profile, device, modifierArgument, phase, connected, ready, lastStatusTick, origin, CM
     if (!force and A_TickCount - lastStatusTick < 1000)
         return
     lastStatusTick := A_TickCount
@@ -251,8 +251,9 @@ WriteTransportStatus(force := false) {
     EnvSub, timestamp, 19700101000000, Seconds
     pid := phase = "stopped" ? 0 : DllCall("GetCurrentProcessId", "UInt")
     modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
+    route := profile = "ps5-directinput" and CM.requested ? CM.phase : "apps"
     contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
-        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`ntimestamp=" . timestamp . "`n"
+        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`nroute=" . route . "`ntimestamp=" . timestamp . "`n"
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
