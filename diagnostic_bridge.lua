@@ -89,9 +89,9 @@ function M.new(opts)
             if now>=recorder.deadline then
                 recorder:stop('deadline',opts.snapshot())
             else
-                local st=opts.snapshot()
-                render.context(st.bar,st.set,context,st.editor and st.editor.state,st.viewport and st.viewport.width,
-                    st.viewport and st.viewport.height,st.scale,st.controller and st.controller.route)
+                local st=opts.frame_state()
+                render.context(st.bar,st.set,context,st.editor,st.width,
+                    st.height,st.scale,st.route)
             end
         end
         recorder:tick()
