@@ -1,6 +1,7 @@
 -- A: ownership for this addon's Windower text/image objects only. Windower's
 -- libraries retain hidden objects until destroy; dropping a Lua list is not cleanup.
 local M = {version='public-cleanup1'}
+local trace=require('ui/render_trace')
 local live = {}
 local disposed_objects = setmetatable({}, {__mode='k'})
 local created = {text=0,image=0}
@@ -12,8 +13,11 @@ local function new(kind, library, ...)
     local proxy, methods, disposed = {}, {}, false
     created[kind] = created[kind] + 1
     live[proxy] = kind
+    trace.track(proxy,kind,'public-resource',kind)
+    if trace.enabled then trace.event('create',proxy) end
     function methods:destroy()
         if disposed then return end
+        if trace.enabled then trace.event('destroy',proxy) end
         object:destroy()
         disposed = true
         live[proxy] = nil
@@ -26,6 +30,19 @@ local function new(kind, library, ...)
         if type(value) ~= 'function' then return value end
         local method = function(_, ...)
             assert(not disposed, 'UI object used after disposal: ' .. kind .. '.' .. key)
+            if trace.enabled then
+                if kind=='text' and key=='extents' then
+                    -- Observe the requested getter's actual return. Never add
+                    -- another native extents call merely for tracing.
+                    local w,h=value(object,...)
+                    trace.call(proxy,'extents',w,h)
+                    return w,h
+                end
+                if select('#',...)>0 or key=='hide' or key=='show' then
+                    if key=='text' and select('#',...)>0 then trace.caption(proxy,(...)) end
+                    trace.call(proxy,'native.'..key,...)
+                end
+            end
             return value(object, ...)
         end
         methods[key] = method
