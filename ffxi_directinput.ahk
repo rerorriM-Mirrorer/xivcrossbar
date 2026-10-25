@@ -4,6 +4,7 @@
 #SingleInstance ignore
 #Persistent
 #Include %A_ScriptDir%\controller_messages.ahk
+#Include %A_ScriptDir%\controller_diagnostics.ahk
 ; A: physical modifier checks must distinguish our injected key-down.
 #InstallKeybdHook
 ; Do not pause the controller poll between physical edges.
@@ -58,11 +59,13 @@ appsOwned := false
 Loop, 12
     previous[A_Index] := false
 ControllerMessageInit()
+DiagInit()
 WriteTransportStatus(true)
 SetTimer, TransportPoll, 10
 return
 
 TransportPoll:
+DiagTick()
 if FileExist(A_ScriptDir . "\data\input-stop.request") {
     FileDelete, %A_ScriptDir%\data\input-stop.request
     ExitApp
@@ -72,6 +75,7 @@ if (!active) {
     ReleaseTransport()
     ready := false
     phase := "unfocused"
+    DiagSample(false,active,phase)
     WriteTransportStatus()
     return
 }
@@ -86,6 +90,7 @@ if (!connected) {
     ReleaseTransport()
     ready := false
     phase := xinputFault ? "xinput-unavailable" : "disconnected"
+    DiagSample(false,active,phase)
     WriteTransportStatus()
     return
 }
@@ -96,6 +101,7 @@ Loop, 12 {
 }
 anyDown := !neutral
 phase := ready ? "ready" : "waiting-neutral"
+DiagSample(states,active,phase)
 WriteTransportStatus()
 if (!ready) {
     if (neutral)
@@ -109,6 +115,7 @@ if (ControllerMessagePoll(states, active))
 if (anyDown and !appsOwned) {
     appsOwned := true
     SendEvent, % "{Blind}{" . captureKey . " down}"
+    DiagRecord("Apps " . captureKey . " down")
 }
 Loop, 12 {
     i := A_Index
@@ -116,6 +123,7 @@ Loop, 12 {
         key := keys[i]
         edge := states[i] ? "down" : "up"
         SendEvent, % "{Blind}{" . key . " " . edge . "}"
+        DiagRecord("Apps " . key . " " . edge)
         previous[i] := states[i]
     }
 }
@@ -123,6 +131,7 @@ if (!anyDown and appsOwned) {
     physicallyHeld := GetKeyState(captureKey, "P")
     if (!physicallyHeld)
         SendEvent, % "{Blind}{" . captureKey . " up}"
+    DiagRecord("Apps " . captureKey . " up")
     appsOwned := false
 }
 return
@@ -131,6 +140,7 @@ return
 ^!F12::ExitApp
 
 TransportExit:
+DiagClose("wrapper exit")
 ; A: a v1 OnExit label must explicitly finish termination.
 ReleaseTransport()
 phase := "stopped"
@@ -141,6 +151,7 @@ ExitApp
 
 ReleaseTransport() {
     global keys, previous, owner, appsOwned, captureKey
+    DiagRecord("transport release owner=" . owner)
     ControllerMessageCancel()
     Loop, 12 {
         i := A_Index
