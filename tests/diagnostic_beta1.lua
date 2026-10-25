@@ -40,7 +40,15 @@ local second=assert(recorder:start('Franklet',{profile='ps5'}))
 assert(second~=filename and #writes==1,'new session must not overwrite previous log')
 recorder:force('unload',{ready=false})
 assert(#writes==2 and output[filename] and output[second],'unload must flush its own capture')
-print('Unified diagnostic: per-request files, AHK merge, render events, boundaries, save grace, unload and overwrite prevention passed.')
+clock=105
+local requests_before=#requests
+local instant=assert(recorder:start('Franklet',{profile='ps5'},true))
+assert(#requests==requests_before,'instant snapshot must not arm shared AHK reader')
+assert(recorder:stop('snapshot',{profile='ps5'}))
+assert(#requests==requests_before,'instant snapshot must not race AHK stop request')
+clock=106;recorder:tick()
+assert(output[instant]:find('AHK capture intentionally omitted',1,true))
+print('Unified diagnostic: per-request files, AHK merge, render events, stop/instant snapshot, unload and overwrite prevention passed.')
 
 -- Exercise actual render recorder and resource proxy without native getter changes.
 -- CI has no LuaSocket: inject a monotonic clock as the Windower test harness does.
