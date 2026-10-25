@@ -49,7 +49,7 @@ function M.new(opts)
         for _,line in ipairs(lines) do record('STATE',line) end
     end
     function self:start(name,state)
-        if self.active then self:stop('replaced') end
+        if self.active or self.pending then return nil,'A diagnostic is already active or saving.' end
         name=tostring(name or 'prelogin'):gsub('[^%w_-]','_')
         self.serial=self.serial+1
         local stamp=wall('!%Y%m%d-%H%M%S')
@@ -75,11 +75,14 @@ function M.new(opts)
     end
     function self:mark(note) record('MARK',note or 'user observation') end
     function self:status()
-        return {active=self.active,path=self.path,count=#self.events,dropped=self.dropped,
+        return {active=self.active,pending=self.pending==true,path=self.path,
+            count=#self.events,dropped=self.dropped,
             remaining=self.active and math.max(0,self.deadline-clock()) or 0}
     end
+    local finalize
     function self:tick()
         if self.active and clock()>=self.deadline then self:stop('deadline') end
+        if self.pending and clock()>=self.finish_at then finalize() end
     end
     local function assemble(reason)
         local entries={}
@@ -129,20 +132,31 @@ function M.new(opts)
         body[#body+1]='# End diagnostic'
         return table.concat(body,'\n')..'\n'
     end
+    finalize=function()
+        if not self.pending then return end
+        local ok,body=pcall(assemble,self.pending_reason)
+        local saved,err=false,nil
+        if ok then saved,err=opts.write(self.path,body)
+        else err=body end
+        if saved and opts.remove then opts.remove(self.feed) end
+        self.pending=false
+        self.last_path=self.path
+        self.last_error=not saved and err or nil
+        if opts.say then opts.say(saved and 'Diagnostic saved: '..self.path
+            or 'Diagnostic save failed: '..tostring(err)) end
+        return saved,err,self.path
+    end
     function self:stop(reason,ending_state)
         if not self.active then return false,'No diagnostic is active' end
         self:state('end',ending_state)
         record('SESSION','stop reason='..(reason or 'manual'))
         self.active=false
+        self.pending=true
+        self.pending_reason=reason or 'manual'
+        self.finish_at=clock()+.75
         if opts.request then opts.request('off '..self.id..' '..self.name) end
         if opts.render_stop then opts.render_stop() end
-        local ok,body=pcall(assemble,reason or 'manual')
-        if not ok then return false,body end
-        local saved,err=opts.write(self.path,body)
-        if saved and opts.remove then opts.remove(self.feed) end
-        self.last_path=self.path
-        self.last_error=not saved and err or nil
-        return saved,err,self.path
+        return true,nil,self.path
     end
     return self
 end
