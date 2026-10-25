@@ -57,6 +57,14 @@ ControllerMessageSelect(requested, token, ack, path) {
         }
     }
     CM.seen := A_TickCount
+    ; A brief lease publication gap must never permanently freeze this token.
+    ; Rejoin only after a neutral gesture and tell Lua to cancel old ownership.
+    if (requested and CM.phase = "uncertain") {
+        CM.previous := []
+        CM.phase := "neutral"
+        ControllerMessageAdd("cancel", 0)
+        ControllerMessageFlush(true)
+    }
     if (requested) {
         CM.ack := ack
         retained := []
