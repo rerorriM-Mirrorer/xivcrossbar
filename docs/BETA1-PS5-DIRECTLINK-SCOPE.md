@@ -1,6 +1,6 @@
 # Beta 1 scope — PS5 DirectLink, upstream-compatible Apps profiles
 
-Status: **scope checkpoint only**, 2026-10-25 (America/Chicago). No runtime changes or new live acceptance are claimed by this document.
+Status: **implemented test candidate**, 2026-10-25 (America/Chicago). Code is published on this branch. Source/simulated CI verification is available; native AutoHotkey/Windower/FFXI acceptance has not been performed.
 Repository: `rerorriM-Mirrorer/xivcrossbar`. Working branch: `release/beta1-ps5-directlink` created from published public baseline `a73a6c6754a1edccd6515a7b641733e044a1f7f9`.
 The public baseline is derived from qEagleStrikerp/xivcrossbar master `15d8381dfad0f9efdb84fe2d24655afc150faec4`.
 
@@ -53,8 +53,8 @@ Run source/regression checks before the live pass; specifically add assertions t
 
 ## Optional future Companion Banks separation (NOT part of Beta 1)
 
-A separately installable companion-bank Lua addon does **not** need a second simultaneously running AHK reader. One authority should arbitrate physical edges and the L2/R2 versus L1/R1 precedence, then deliver owned high-level events to crossbar and bank consumers. Initially it can depend on XIVCrossbar's router via a narrowly defined same-client handoff. If genuinely independent use is desired, extract a tiny shared controller-service addon instead of having two owners poll the same controller. Evaluate Windower add-on-command or a carefully designed same-client module/bridge for communication; do not assume instance IPC automatically routes between different addon names. Preserve held release, focus and unload ownership. Decide on this architecture separately after Beta 1 acceptance.
+A separately installable *personal* Companion Banks addon does **not** need a second simultaneously running AHK reader. First try independent read-only Lua receivers for the same event stream, as NPCMirror currently does, with distinct per-consumer sequence tracking and context decisions. Only introduce a shared event broker or exclusive action arbiter if simultaneous interpretation actually causes duplicate actions or missed acknowledgement windows. Keep this experiment exclusively on the personal development track, not Beta 1.
 
 ## Release gate
 
-This branch is for implementation and tests. Keep `public/rc3-maintenance`, `development/directlink` and `master` unchanged until code has passed source checks and the user has live-tested the candidate. No GitHub Release, upstream PR, forum post or community availability is implied by this document.
+This branch now contains the Beta 1 test implementation and its CI packaging workflow. Keep `public/rc3-maintenance`, `development/directlink` and `master` unchanged until the user has live-tested the candidate. No GitHub Release, upstream PR, forum post or community availability is implied by this document.
