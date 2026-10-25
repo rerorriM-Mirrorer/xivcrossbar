@@ -1,11 +1,12 @@
-# XIVCrossbar — PUBLIC RC3 maintenance complete testing installation
+# XIVCrossbar — Beta 1 PS5 DirectLink testing candidate
 
-Current branch verification, last live-confirmed behavior and outstanding tests:
-[Current Development Status](TESTING.md#current-development-status--october-18-2026-americachicago).
+Current verification and pending in-game checks: [TESTING.md](TESTING.md).
+Focused PS5 acceptance checklist: [Beta 1 scope](docs/BETA1-PS5-DIRECTLINK-SCOPE.md).
 
-This is a **complete installation**, including required images/themes. It is
-not an update patch. Maintenance 2 adds four public-candidate improvements for
-live testing. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and
+This is a **complete testing installation**, including required images/themes.
+It is not a released stable version. Beta 1 adds ordinary PS5 DirectLink
+messages to the public RC3 Maintenance 2 foundation. Community publication
+and final hardware verification are pending. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and
 [the branch map](docs/BRANCH-MAP.md) before testing or opening a new development
 conversation. Package-root TESTING.md gives installation and first tests.
 
@@ -14,10 +15,10 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **public-rc3-maintenance2**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261025.ps5-directlink-test1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
-controller profile, personal catalogs, movement signaling or the future L1 banks.
+controller profile, personal catalogs, movement signaling or any L1/R1 banks.
 A dedicated //xb unload alias is pending; use //lua u xivcrossbar.
 
 ---
@@ -38,6 +39,20 @@ Based on qEagleStrikerp's consolidated XIVCrossbar repository, with updates by A
 - Item icons, Superwarp bindings, draft navigation, chat messages and XML
   read/write safeguards received fixes developed during testing.
 
+### Beta 1 controller transport
+
+The ordinary **PS5 DirectInput** profile sends the twelve face/D-pad/menu/trigger
+signals over a token/acknowledged message stream when the FFXI client is focused,
+logged in and ready. The same public Lua input router interprets them, without
+synthetic Apps/F-key events in that mode. During login and the controller wizard
+the PS5 reader uses the Apps+F1–F12 keyboard path. Other profiles always keep
+their existing Apps route, selected through the one unified AutoHotkey v1 script.
+Switch profiles only with controls released.
+
+This is a **PS5 live-test candidate**. Original public RC3 Apps mapping was tested
+in game; the newly ported DirectLink route has NOT been accepted in FFXI yet.
+See the safety/rollback instructions and the single focused checklist in TESTING.md.
+
 ## Important: gamepad configuration
 
 In **FINAL FANTASY XI GAMEPAD Config**, disable **hat switches** and duplicate D-pad, face-button and trigger assignments
@@ -51,7 +66,7 @@ to L2/R2 and the face buttons used for XIVCrossbar. The yellow markings identify
 
 ## Controls
 
-Apps+F1–F12 are reserved for controller input. Follow the setup
+Apps+F1–F12 are reserved for legacy-profile and PS5 login/setup input; PS5 gameplay uses DirectLink messages. Follow the setup
 wizard to assign functions to face buttons.
 On PlayStation 5 controllers:
 
@@ -162,11 +177,17 @@ across clients sharing a controller.
 
 | Profile command | Controller mapping | Test status |
 | --- | --- | --- |
-| `ps5` | PS5 DirectInput | Default; tested in game |
+| `ps5` | PS5 DirectInput, DirectLink in gameplay and Apps during setup | Beta 1 live acceptance pending |
 | `f710` | Logitech F710 DirectInput | Experimental |
 | `fightpadpro` | FightPadPro DirectInput | Experimental |
 | `xinput` | Xbox-style XInput; Start opens the chooser | Experimental |
 | `xinputalt` | XInput; R1 opens the chooser instead of Start | Experimental |
+
+Legacy upstream controller scripts are preserved under `compat/upstream/` as
+**optional reference utilities only**, not as simultaneously running profiles.
+The separate `FFXI_Input.py` and `FFXI_Input.sh` support the original Linux
+path and do not implement DirectLink; they are untested here.
+See `compat/README.md` before running anything from that directory.
 
 The profile selects how the script reads the controller; the button artwork selection in the setup wizard only selects the labels shown by the addon. The first four profiles are offered in setup;
 `xinputalt` is available through its command.
@@ -209,3 +230,11 @@ the selected spell and its original page. Public port of personal 2f462fa.
 Stroke alpha now uses Windower's 0..255 alpha API for text outlines, preventing the invalid transparency values associated with fade flicker.
 
 Menu transitions and crossbar rebuilds now explicitly release replaced drawing objects. `//xb resources` reports live text/image counts for diagnostics; compare the same screen after repeated edits. This fixes demonstrated retained objects and does not establish the cause of earlier native crashes.
+
+2026-10-25: Beta 1 test candidate ports the ordered, acknowledged DirectLink
+message transport for ordinary PS5 DirectInput only. Login/setup and other
+hardware profiles retain Apps+F1-F12. Includes PS5 diagonal D-pad continuity,
+non-blocking AutoHotkey polling, stream cancellation/watchdog tests, untouched
+upstream auxiliary references and a reproducible single-folder CI package.
+No personal shoulder banks, movement controls or controller shortcuts ship.
+**In-game Beta 1 acceptance is still pending.**
