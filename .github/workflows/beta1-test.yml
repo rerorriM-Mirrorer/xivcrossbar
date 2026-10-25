@@ -1,0 +1,28 @@
+name: Beta 1 verification and installable ZIP
+on:
+  push:
+    branches:
+      - release/beta1-ps5-directlink
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install temporary Lua 5.4 runtime for simulated tests
+        run: sudo apt-get update && sudo apt-get install -y liblua5.4-0
+      - name: Parse sources and run Lua regression suites
+        run: python3 tests/run_lua.py tests/*.lua
+      - name: Check legacy Steam Deck Python script syntax
+        run: python3 -m py_compile FFXI_Input.py
+      - name: Build complete single-folder installation
+        run: python3 packaging/beta1_make.py
+      - name: Publish testing package
+        uses: actions/upload-artifact@v4
+        with:
+          name: xivcrossbar-beta1-ps5-directlink
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
