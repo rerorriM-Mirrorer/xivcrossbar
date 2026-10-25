@@ -55,19 +55,19 @@ See the safety/rollback instructions and the single focused checklist in TESTING
 
 ### Unified diagnostics in this beta (new)
 
-Run \`//xb diagnose\` on a character to capture **30 seconds** of PS5/Apps
+Run `//xb diagnose` on a character to capture **30 seconds** of PS5/Apps
 AHK hardware observations, Lua button reception, routing and key requests,
 context/focus/transport state, and public text/image rendering observations.
 All go into a **single new file** per request under
-\`data/diagnostics/<Character>-<timestamp>-<session>.log\`. AHK writes only a
-temporary bounded observation feed under \`data/diagnostics-staging/\`;
+`data/diagnostics/<Character>-<timestamp>-<session>.log`. AHK writes only a
+temporary bounded observation feed under `data/diagnostics-staging/`;
 Lua combines and removes the feed after a successful save. Previous captures
 are never appended to or replaced. Only **one AHK capture** can be active on
 the shared reader at a time; other clients are unaffected by the logging.
 
-\`//xb diagnose mark\` adds an observation marker; \`//xb diagnose stop\` ends
-early and saves after a short handoff; \`//xb diagnose status\` shows progress;
-\`//xb diagnose snapshot\` records a near-immediate state capture. A normal
+`//xb diagnose mark` adds an observation marker; `//xb diagnose stop` ends
+early and saves after a short handoff; `//xb diagnose status` shows progress;
+`//xb diagnose snapshot` records a near-immediate state capture. A normal
 capture saves automatically around 30 seconds. Wait for "Diagnostic saved"
 before copying the file, especially after manually stopping. Addon unload
 also attempts to preserve the partial Lua capture.
@@ -266,7 +266,7 @@ upstream auxiliary references and a reproducible single-folder CI package.
 No personal shoulder banks, movement controls or controller shortcuts ship.
 **In-game Beta 1 acceptance is still pending.**
 
-2026-10-25: Beta 1 Diagnostic Test 1 adds \`//xb diagnose\` single-file
+2026-10-25: Beta 1 Diagnostic Test 1 adds `//xb diagnose` single-file
 30-second per-character captures: focused AHK raw/route events, Lua message
 sequences and native key requests, lifecycle snapshots, render object changes,
 native text extents and frame gaps. Includes restart-safe bounded buffers,
