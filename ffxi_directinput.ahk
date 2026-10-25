@@ -51,6 +51,7 @@ joys := profile = "fightpadpro-directinput"
     ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
     : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
 previous := []
+povDirection := 0
 owner := 0
 ready := false
 appsOwned := false
@@ -164,14 +165,42 @@ ReleaseTransport() {
     }
 }
 
+; PS5-only diagonal policy from our extended-reader experiments.
+Beta1PovCardinal(pov, previous) {
+    if (pov = 0)
+        return 1
+    if (pov = 9000)
+        return 2
+    if (pov = 18000)
+        return 3
+    if (pov = 27000)
+        return 4
+    if (pov = 4500)
+        return previous = 1 or previous = 2 ? previous : 1
+    if (pov = 13500)
+        return previous = 2 or previous = 3 ? previous : 2
+    if (pov = 22500)
+        return previous = 3 or previous = 4 ? previous : 3
+    if (pov = 31500)
+        return previous = 4 or previous = 1 ? previous : 4
+    return 0
+}
+
 ; A: read hardware only. Output, focus cleanup and rearming remain shared.
 ReadTransportStates() {
-    global isXInput, profile, device, joystickPrefix, joys, xinputGetState
+    global isXInput, profile, device, joystickPrefix, joys, xinputGetState, povDirection
     if (!isXInput) {
         if (GetKeyState(joystickPrefix . "JoyName") = "")
             return false
         pov := GetKeyState(joystickPrefix . "JoyPOV")
-        states := [pov == 0, pov == 9000, pov == 18000, pov == 27000]
+        if (profile = "ps5-directinput") {
+            ; Keep the adjacent cardinal during a diagonal roll. Other legacy
+            ; profiles retain their upstream DirectInput POV behavior.
+            povDirection := Beta1PovCardinal(pov, povDirection)
+            states := [povDirection = 1, povDirection = 2, povDirection = 3, povDirection = 4]
+        } else {
+            states := [pov == 0, pov == 9000, pov == 18000, pov == 27000]
+        }
         Loop, 8 {
             i := A_Index + 4
             states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
