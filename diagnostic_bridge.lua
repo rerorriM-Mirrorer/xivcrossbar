@@ -17,6 +17,8 @@ function M.new(opts)
         local written,werr=f:write(body)
         local closed,cerr=f:close()
         if not written or not closed then os.remove(temporary);return false,werr or cerr end
+        -- The shared AHK request is a replaceable handoff, not a user log.
+        if path:sub(-12)=='/request.txt' then os.remove(path) end
         local moved,merr=os.rename(temporary,path)
         if not moved then os.remove(temporary);return false,merr end
         return true
@@ -67,9 +69,13 @@ function M.new(opts)
                 or 'Diagnostic OFF; last: '..tostring(status.path or 'none'))
             return true
         elseif mode=='snapshot' then
-            local ok=self:command('start')
-            if ok then recorder:stop('snapshot',opts.snapshot()) end
-            return ok
+            local state=opts.snapshot()
+            local path,err=recorder:start(state.character or 'prelogin',state,true)
+            if not path then tell('Snapshot not started: '..tostring(err));return false end
+            render.start()
+            recorder:stop('snapshot',opts.snapshot())
+            tell('Snapshot finalizing: '..path)
+            return true
         end
         tell('Use //xb diagnose [start|stop|mark|status|snapshot]')
         return false
