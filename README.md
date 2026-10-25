@@ -1,3 +1,9 @@
+Windower Patch Installer 1: keep the CMD/PowerShell launcher in Windower root.
+First run applies its bundled cumulative update; later choose/drag a downloaded
+XIVcrossbar code ZIP. It stages/checks, coordinates unload/stop, backs up, installs
+and reports results. Reload clients manually; ZIP deletion is optional after success.
+[Setup and test limits](docs/INSTALLER-TEST.md). Native Windows trial pending.
+
 Installer receiver 1: an explicit local installer request can gracefully unload
 XB clients, waiting while their editing menus are open. No normal input changes.
 Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged.
@@ -1381,3 +1387,11 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Add strict expiring unload-only requests for the local installer, busy-menu
   acknowledgements and per-request graceful-unload dedup. Reload stays manual.
 - User confirms controller navigation at Survival Guide is restored; Felm pending.
+
+### October 24, 2026 — Windower Patch Installer 1
+
+- Add root CMD/PowerShell launcher, checked ZIP/manifest staging, affected-file
+  backups, explicit unload/stop coordination, verified writes and caught-failure rollback.
+- Keep client reload manual and userdata/artwork intact; report hashes, versions,
+  acknowledgements and backup paths. Offer ZIP deletion only after success.
+- One non-nested bootstrap kit; first manual unload, future coordinated updates.

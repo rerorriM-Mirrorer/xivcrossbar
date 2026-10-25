@@ -1,3 +1,23 @@
+# Current Development Status — October 24, 2026 — Windower Patch Installer 1
+
+- development/directlink; published receiver checkpoint f93f56f93f4a02345075b7feeb8ce8bf3f0b6de6, local c4b5e22 tree 6fd9e50df6c1eccf7bf5dad8cb2417431338ce50. Master unchanged. Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged from prior checkpoint.
+- User requests local Windower-root double-click installer: find directed download/extract, backup, coordinate unload/stop, install, optional delete downloaded ZIP; reload clients manually. Implementation scoped to recognised XIVcrossbar code/docs ZIPs and bundled first update; no data/artwork/XML/settings copying, background watcher or other-addon support yet. No ordinary input-permission change.
+- Root CMD + PowerShell 5.1-compatible script uses picker/drag-drop or explicit Package. Stage/check paths, source version, manifest hashes/legacy package layout before unload; request expires, busy XB menus defer, owner handles and explicit wrapper stop gate code writes. Backup only affected files, skip identical files, temporary replacements/final hashes and rollback on caught failure. Power loss/forced termination may need manual backup restore. Report records source/version, initial owners, received character/session/version acknowledgements, changed count and backup; never claims live client reload.
+- Package is one non-nested kit with launcher/readme and manifest+cumulative code under WindowerPatchSupport/bootstrap. First manual unload required by old clients; launcher installs receiver once, keeps completion receipt, then future launches choose ZIPs. Optional successful-download deletion defaults Keep. No automatic old-backup deletion. Existing Cleanup 1+ XIVcrossbar installation required; no full artwork distribution.
+- Verification passed: real PowerShell 7.4.6/Linux integration tests (actual ZIP/filesystem transactions, invalid paths/duplicates/manifest mismatch/unsupported data, hash checks, backup/skip, injected partial-write rollback, owner lifetime, missing/stopped/invalid wrapper status, unload request/ack, child CLI install/bootstrap/report/receipt and success-only archive deletion); all 71 top-level Lua suites / 160 source parses via documented Lua 5.4 temporary normalization; all 8 actual-AHK-function JS suites; AHK structural and dependency/layout checks; git diff --check. Early PS failures: null backup-string binding in File.Replace corrected via NullString; Linux fixture could not read own process Path, corrected fixture via PSHOME. Tests subsequently passed. Native Windows PowerShell 5.1, CMD drag/drop, GUI picker and actual Windower/AHK handoff remain untested; docs/INSTALLER-TEST.md.
+- Latest live acceptance: user confirms Survival Guide controller restored; Felm/similar NPCs still to check. Wrapper auto-shutdown remains unresolved; installer uses explicit stop and keeps Shutdown Trace diagnostics. Review/Escape command-origin close behaviour identified but unchanged here. Diagnostic bundling and selective Cioara/settings copying remain proposed, not included.
+
+---
+
+# Windower Patch Installer 1 — October 24, 2026
+
+Separate installer-source checkpoint after the committed unload receiver. Linux
+PowerShell tests exercise the real engine, not a copied implementation. Native
+Windows acceptance and live first-kit install remain pending. Kit builder binds
+all payload hashes to one committed source/published development checkpoint.
+
+---
+
 # Current Development Status — October 24, 2026 — Installer receiver 1
 
 - development/directlink; published source baseline e29cf4c6705f2accd86c330c35673c9a4819cdd9, local a367c44 tree 80ed6679480d371ee8cf5e86a8092584d6d94506. Master unchanged. Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged.
