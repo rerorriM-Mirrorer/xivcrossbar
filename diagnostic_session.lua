@@ -146,6 +146,11 @@ function M.new(opts)
             or 'Diagnostic save failed: '..tostring(err)) end
         return saved,err,self.path
     end
+    function self:force(reason,ending_state)
+        if self.active then self:stop(reason or 'unload',ending_state) end
+        if self.pending then return finalize() end
+        return false,'No pending diagnostic'
+    end
     function self:stop(reason,ending_state)
         if not self.active then return false,'No diagnostic is active' end
         self:state('end',ending_state)
