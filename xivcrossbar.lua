@@ -1786,6 +1786,7 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
+local message_down={} -- never confuse a DirectLink hold with a physical keyboard F-key
 local function controller_keyboard(dik, pressed, flags, blocked, source)
     -- Own Escape through key-up after closing: neither repeats nor release
     -- may cancel a native FFXI menu underneath the addon.
@@ -1834,7 +1835,8 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
     end
     local signal = transport.signals[dik]
     -- Consume owned releases even if capture was lost; no orphan game key-ups.
-    if signal and (source=='message' or gamepad_state.capturing or transport.down[dik]) then
+    if signal and (source=='message' or gamepad_state.capturing or
+        (transport.down[dik] and not message_down[dik])) then
         -- The wizard bootstraps button configuration and can be visible before
         -- hotbar initialization finishes. Gameplay still requires readiness.
         if restart_pending then return true end
@@ -1900,6 +1902,7 @@ local message_session='beta1-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
 message_bridge=require('controller_messages').new({
     session=message_session,clock=profile_clock,wallclock=os.time,
     event=function(dik,pressed)
+        message_down[dik]=pressed or nil
         -- Message delivery must not latch the Apps capture bit: a physical
         -- keyboard F-key pressed during a held PS5 trigger still passes through.
         local captured=gamepad_state.capturing
@@ -1911,6 +1914,7 @@ message_bridge=require('controller_messages').new({
     cancel=function()
         if release_gameplay_keys then release_gameplay_keys() end
         transport:reset()
+        message_down={}
         gamepad_state.capturing=false
         gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
         gamepad_state.minus_button=false;gamepad_state.plus_button=false
