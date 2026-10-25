@@ -15,8 +15,8 @@ assert(source:find("if not xivcrossbar.ready then return 'login' end",1,true))
 print('Pre-login arrow/confirm/cancel transport, ignored trigger/set signals and edge ownership passed.')
 
 -- Execute the real root keyboard callback, not just the transport helper.
-local first=assert(source:find("windower.register_event('keyboard', function",1,true))
-local last=assert(source:find('local frame =',first,true))
+local first=assert(source:find("local function controller_keyboard(dik, pressed, flags, blocked, source)",1,true))
+local last=assert(source:find("\nend\nwindower.register_event('keyboard', controller_keyboard)",first,true))
 local handler,commands
 commands={}
 local ready=false
@@ -28,7 +28,7 @@ local env=setmetatable({keyboard={esc=1,enter=28},text_input_guard={enter_edge=f
     windower={register_event=function(_,fn)handler=fn end,
         send_command=function(c)commands[#commands+1]=c end},
     handle_controller_key=function()error('login signal reached gameplay handler')end}, {__index=_G})
-assert(load(source:sub(first,last-1),'root keyboard','t',env))()
+handler=assert(load(source:sub(first,last+3)..'\nreturn controller_keyboard','root keyboard','t',env))()
 t:reset()
 assert(handler(59,true)==true and commands[#commands]=='setkey up down')
 assert(handler(59,true)==true and #commands==1,'repeat emitted a second key-down')
