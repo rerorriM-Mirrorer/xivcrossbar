@@ -1,3 +1,13 @@
+# Current Development Status — October 26, 2026 — Movement AHK companion repair
+
+- Branch test/trust-movement-20261025, source checkpoint c216ac2bb90738347d5b60efa5ef205fe6077d37. Runtime unchanged: Controls 9.19-lifecycle1, movement 0.2.0-trust1. No merge to development/directlink or public beta/master.
+- User confirms Condensed Trust menu is better and integrated movement following works. A second installation (Cioara) fails at ffxi_directinput.ahk line 348: nonexistent WrapperClientsStatus(). Main script calls this helper from controller_clients.ahk; an older included companion explains the observed failure. Installed companion bytes were not supplied, so its exact revision is unverified.
+- Correction to prior chat installation advice: replacing only ffxi_directinput.ahk and movement_signal.ahk is sufficient only when all other AHK companions already match. Deliver all six root runtime AHK files together for this repair. The previous paired cumulative package already contained these matching companions. No runtime changes needed; Trust/Lua/data/artwork are excluded from the repair payload.
+- Verification: all nine top-level JS sender/decision suites and seven-file AHK lexical/include checks pass. Expanded helper-resolution check now covers Wrapper, Movement and input timing/trace helpers as well as Personal/ControllerMessage, including a missing-WrapperClientsStatus regression fixture. ZIP include closure, exact committed bytes and hashes verified at packaging. Windows/AHK startup on the affected installation remains pending.
+- Install: stop the shared wrapper, back up all six root AHK files, merge the repair xivcrossbar folder into the existing addon folder, replace all six, then start the wrapper once per PC. Do not change data or artwork. Details: docs/MOVEMENT-AHK-COMPANIONS.md. Ready mode and blocked-context cases still need native acceptance; the general movement success report does not establish those cases.
+
+---
+
 # Current Development Status — October 25, 2026 — Trust movement Send/Ready Test 1
 
 - Isolated branch test/trust-movement-20261025, starting personal development/directlink 7959a99d9871b00e18bd3faaf4b3946c85595fc1. Development/public beta/master are not overwritten. Controls stays 9.19-lifecycle1; movement_version becomes 0.2.0-trust1 with policy/sent/reason status fields.

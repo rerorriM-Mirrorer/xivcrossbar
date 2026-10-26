@@ -46,6 +46,20 @@ for name in ['personal_controls.ahk','personal_gestures.ahk','controller_message
 assert len(functions)==len(set(functions)), 'duplicate function'
 calls=set(re.findall(r'\b((?:Personal|ControllerMessage)\w+)\(',wrapper+controls+sources[root/'personal_gestures.ahk']+sources[root/'controller_messages.ahk']))
 assert calls<=set(functions),calls-set(functions)
+# A: validate the complete runtime include closure, including the lifecycle
+# status helper missed by the earlier Personal/ControllerMessage-only check.
+runtime=[wrapper]+[sources[root/name] for name in includes]
+prefix=r'(?:Personal|ControllerMessage|Wrapper|Movement|InputTrace|InputTiming)\w+'
+definitions=[]
+for source in runtime:
+    definitions+=re.findall(r'^('+prefix+r')\([^\n]*\) \{',source,re.M)
+assert len(definitions)==len(set(definitions)), 'duplicate runtime helper'
+runtime_calls=set(re.findall(r'\b('+prefix+r')\(', '\n'.join(runtime)))
+assert runtime_calls<=set(definitions), runtime_calls-set(definitions)
+assert 'WrapperClientsStatus' in definitions
+# Reproduce the reported mixed-install failure: an older companion lacking
+# this helper must fail the dependency check even if every include exists.
+assert runtime_calls-set(definitions).difference({'WrapperClientsStatus'})=={'WrapperClientsStatus'}
 probe=sources[root/'tools/keyprobe/keyboard_probe.ahk']
 assert 'OnExit, ProbeExit' in probe and 'ProbeReleaseKeys()' in probe
 assert 'WinActive("ahk_class FFXiClass") != probeOwner' in probe

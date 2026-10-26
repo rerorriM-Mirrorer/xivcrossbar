@@ -1395,6 +1395,7 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Keep client reload manual and userdata/artwork intact; report hashes, versions,
   acknowledgements and backup paths. Offer ZIP deletion only after success.
 - One non-nested bootstrap kit; first manual unload, future coordinated updates.
+
 # Trust movement Send/Ready Test 1 — October 25, 2026
 
 Personal test branch over development/directlink 7959a99. Matching integrated
@@ -1402,3 +1403,11 @@ Trust receiver required. Send is default; Ready waits for readiness. Unload the
 separate trustmovement addon before testing. Movement version 0.2.0-trust1;
 Controls version remains 9.19-lifecycle1. See TESTING.md and the paired Trust
 movement guide. Native acceptance pending; public beta unchanged.
+
+# Movement AHK companion repair — October 26, 2026
+
+An older controller_clients.ahk can cause nonexistent WrapperClientsStatus()
+when paired with the movement test's main script. Install the six matching root
+runtime AHK files together; see docs/MOVEMENT-AHK-COMPANIONS.md. Runtime code is
+unchanged. User reports movement following and Condensed Trust menus working;
+startup on the affected Cioara installation remains to verify.
