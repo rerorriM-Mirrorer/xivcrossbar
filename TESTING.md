@@ -1,3 +1,13 @@
+# Current Development Status — October 28, 2026 — Starter Page Correction 1
+
+- Personal development/directlink, source published 72d9459a413bf734c46dd9acd17d518a7b1cc360 (local identical tree at bdcb3cb). Runtime directlink1-startup1; Controls 9.20-diagnostics1 unchanged. Master/public beta untouched.
+- User reports Cioara/Myrr/Clairvaux client-switching binds visible at load and duplicate Trust chooser entries after installing the supplied starter pages. Confirmed source: chooser's existing alphabetical startup picks all-switch ahead of Basic; starter added all-trust but also retained job-scoped trust with the same label.
+- Initialization now explicitly selects all-jobs-default when present; legacy fallback retained if absent. Ordinary chooser order and manual page changes are unchanged. Generated six SMN-WHM replacement files remove only the obsolete trust page; universal all-trust and all existing links remain valid. No bank data, layout, controller or rendering changes.
+- Verification: actual root startup choice tested against all-switch/all-trust/Basic and missing-All-Jobs fallback; focused page/storage/inheritance regressions and all Lua syntax parses pass. Six generated XML files parse; semantic comparison confirms every remaining page/slot preserved and all-trust entry/link availability for all six characters. Native FFXI acceptance pending.
+- Replacement settings derive from the previously delivered October 27 starter ZIP, not a fresh live settings snapshot. Later edits to those six SMN-WHM files require merging. Existing modified curing-waltz-iv artwork in local worktree is left untouched and excluded from commit/package.
+
+---
+
 # Current Development Status — October 27, 2026 — Personal Unified Diagnostics 1
 
 - Personal development/directlink; source checkpoint 7959a99d9871b00e18bd3faaf4b3946c85595fc1. Public beta and master are unchanged. Runtime directlink1-diagnostics1 / Controls 9.20-diagnostics1.

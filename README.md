@@ -1,3 +1,10 @@
+# Personal update — Starter Page Correction 1
+
+Initialization selects All Jobs Default ahead of alphabetically named utility
+pages. The companion settings correction removes duplicate job-scoped Trust
+pages, retaining the universal Trust page. This corrects the October 27 starter
+delivery; manually selecting another page still works normally.
+
 # Personal update — Unified Diagnostics 1
 
 `//xb diagnostics` records status, Lua/controller input and rendering into one
@@ -1413,3 +1420,10 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   existing bank/menu ownership restrictions.
 - Show held primary banks independently of action eligibility; add bank l/r
   aliases. Preserve second levels, settings, positions and Trust movement policy.
+
+### Starter Page Correction 1 — October 28, 2026
+
+- Select All Jobs Default explicitly at initialization; retain the existing
+  missing-page fallback and ordinary chooser ordering.
+- Correct the starter settings by removing six redundant SMN/WHM Trust pages;
+  preserve all other bindings and existing universal Trust links.

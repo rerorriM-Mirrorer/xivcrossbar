@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261027.directlink1-diagnostics1'
+_addon.version = '0.4.0-a.20261028.directlink1-startup1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -673,7 +673,10 @@ function initialize(server_id, expected_name, expected_id)
         config.save(settings)
     end)
 
-    local default_active_environment = env_chooser:get_default_active_environment(player.hotbar)
+    -- Utility pages may sort before Basic. Startup is an explicit choice;
+    -- ordinary chooser order and later page changes remain independent.
+    local default_active_environment = player.hotbar['all-jobs-default'] and 'all-jobs-default'
+        or env_chooser:get_default_active_environment(player.hotbar)
     if not default_active_environment then
         windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.'))
         xivcrossbar.ready = false
