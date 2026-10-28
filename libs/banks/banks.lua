@@ -5,7 +5,7 @@ local M={buttons={'Left','Down','Right','Up','Square','Cross','Circle','Triangle
 local slot_for={[4]=1,[3]=2,[2]=3,[1]=4,[6]=5,[5]=6,[7]=7,[8]=8}
 local layers={l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}
 local prefixes={l1='L1',l1l2='L1 + L2',r1='R1',r1r2='R1 + R2'}
-local layer_aliases={l2='l1l2',r2='r1r2'}
+local layer_aliases={l='l1',r='r1',l2='l1l2',r2='r1r2'}
 local titles={l1='L1  Party',l1l2='L1 + L2  Available',r1='R1  NPC',r1r2='R1 + R2  Available'}
 M.aliases={l1l2=true,r1=true,r1r2=true} -- l1 retains its older L1L2 editor meaning
 local function clone(t) local r={};for k,v in pairs(t) do r[k]=type(v)=='table' and clone(v) or v end;return r end
@@ -241,6 +241,12 @@ function M.new(options)
         end
         if not pressed then self.blocked[button]=nil;return end
         if self.blocked[button] then return end
+        -- Bare Cancel dismisses native chat; modified bank actions are unchanged.
+        if self.chat and self.eligible and self.layer=='blocked' and options.chat_cancel and options.chat_cancel(button) then
+            local modified=false
+            for i=9,14 do if self.down[i] then modified=true end end
+            if not modified then options.ordinary(button,true);self.owners[button]='ordinary';return end
+        end
         if self.layer=='' or self.layer=='dialogue' then options.ordinary(button,true);self.owners[button]='ordinary';return end
         if not layers[self.layer] or not self.eligible then return end
         self.feedback:press(button,self.layer,slot_for[button])
@@ -285,6 +291,12 @@ function M.new(options)
                 local showing=preview and options.clock()<preview.until_time and selected()==preview.layer
                 local editing=showing and preview.editing
                 local held=names[parent.layer] and parent.layer==selected()
+                -- A controller menu may own actions without hiding a held
+                -- primary bank. Drawing never grants permission to execute.
+                if not parent.eligible and selected()==(side=='Left' and 'l1' or 'r1') then
+                    held=side=='Left' and parent.down[13] and parent.left and not parent.down[14]
+                        or side=='Right' and parent.down[14] and parent.right and not parent.down[13]
+                end
                 return eligible and (editing or b.Enabled and b.Visible) and (editing or not parent.menu or b.ShowOnMenu)
                     and (showing or b.Display=='always' or held) and 1 or 0
             end,
@@ -317,6 +329,7 @@ function M.new(options)
         for _,row in ipairs({
             {'bank <layer> status [details]','Show panel state; details lists normal/menu bindings.'},
             {'bank l2|r2 <command>','Aliases for bank l1l2 and bank r1r2; bindings are shared.'},
+            {'bank l|r <command>','Aliases for bank l1 and bank r1.'},
             {'bank <layer> enable|disable','Enable input/drawing, or disable this layer without deleting its bindings.'},
             {'bank <layer> display held|always','Draw while held (default), or keep this bank visible at rest.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},

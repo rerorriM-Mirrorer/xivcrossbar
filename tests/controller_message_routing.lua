@@ -117,6 +117,7 @@ env.windower.has_focus=function()return true end
 env.settings.ControllerProfile='ps5-extended';env.settings.ControllerMessages=true
 binder.cancel_button='circle';chooser.shown=false
 local banks=require('libs/banks/banks').new({settings=env.settings,clock=function()return now end,
+    chat_cancel=function(button) return button==7 end,
     context=env.companion_context,execute=env.windower.send_command,save=function()end,say=function()end,help=function()end,
     ordinary=function(button,pressed)env.message_button(require('libs/controller/messages').diks[button],pressed,0,false)end})
 require('tests/fixtures/bank_legacy')(banks)
@@ -204,6 +205,14 @@ local before_chat=#commands
 send('down,14','down,8','up,8','up,14')
 assert(#commands==before_chat+1 and commands[#commands]=='npcmirror interact','root chat bank blocked')
 assert(#actions==0,'chat bank leaked an ordinary crossbar action')
+info.chat_open=false
+-- Circle must release Escape even when its down closes chat before the up.
+banks:cancel();info.chat_open=true;commands={}
+banks:edge(7,true);assert(commands[1]=='setkey escape down')
+info.chat_open=false;banks:edge(7,false)
+assert(commands[2]=='setkey escape up' and #commands==2)
+info.chat_open=true;commands={};banks:edge(5,true);banks:edge(5,false)
+assert(#commands==0,'Confirm submitted native chat')
 info.chat_open=false
 assert(banks:command({'r1','cutscenes','off'}));assert(env.companion_context())
 character.status=0

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261024.directlink1-installer1'
+_addon.version = '0.4.0-a.20261027.directlink1-diagnostics1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -163,6 +163,10 @@ local l1_bridge=require('libs/banks/legacy_transport').new({session=require('lib
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
 local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
 companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1_clock,
+    chat_cancel=function(button)
+        local signal=transport.signals[require('libs/controller/messages').diks[button]]
+        return signal and transport:face_name(signal,buttonmapping)==buttonmapping.cancel_button
+    end,
     ordinary=function(button,pressed) if message_button then message_button(require('libs/controller/messages').diks[button],pressed,0,false) end end,
     context=function() if companion_context then return companion_context() end;return false,false end,
     execute=function(command) windower.send_command(command) end,
@@ -440,9 +444,8 @@ local controller_switcher
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
-local function save_diagnostics()
+local function diagnostic_snapshot()
     local character=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
-    local path=windower.addon_path..'data/diagnostics-'..character..'.log'
     local snapshot={version=_addon.version,time=os.date('!%Y-%m-%dT%H:%M:%SZ'),
         character=character,ready=xivcrossbar.ready,controller=controller_status() or {},
         selected={profile=settings.ControllerProfile,device=settings.ControllerDevice,
@@ -466,7 +469,14 @@ local function save_diagnostics()
             setup=gamepad_mapper.is_showing,text_entry=text_input_guard.active},
         autoattack=settings.AutoAttackIndicator,
         legacy_bridge={received=l1_bridge.received,rejected=l1_bridge.rejected,ack=l1_bridge.ack}}
-    windower.create_dir(windower.addon_path..'data')
+    return snapshot
+end
+local function save_diagnostics()
+    local directory=windower.addon_path..'data/diagnostics/'
+    windower.create_dir(directory)
+    local character=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
+    local path=directory..'status-'..character..'.log'
+    local snapshot=diagnostic_snapshot()
     local ok,err=require('libs/controller/diagnostics').save(path,snapshot)
     local format=require('libs/chat_status')
     windower.add_to_chat(0,format.notice(ok and ('Diagnostics saved: '..path) or
@@ -530,29 +540,41 @@ local function stop_controller_wrapper()
     windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Shared wrapper stop requested for all clients.'))
     return true
 end
+local diagnostic_capture
 local function request_controller_trace(mode)
     if mode~='on' and mode~='off' then
         windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] //xb controller trace on|off'));return false
     end
+    return diagnostic_capture:command(mode)
+end
+local function capture_request(mode,id)
     local current=controller_status()
     if not current or not current.running then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Start the current controller wrapper before requesting a trace.'));return false
+        return false,'Start the controller wrapper before recording diagnostics.'
     end
-    local f=io.open(windower.addon_path..'data/controller-trace.request','w')
-    if not f then windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Could not write controller trace request.'));return false end
-    local written=f:write(mode);local closed=f:close()
-    if not written or not closed then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Controller trace request failed.'));return false
-    end
-    if mode=='on' then
-        local name=windower.ffxi.get_player()
-        input_timing:start(windower.addon_path..'data/controller-lua-trace-'..(name and name.name or 'login')..'.log',_addon.version)
-    else input_timing:stop('manual') end
-    windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Lua trace '..mode..'; data/controller-lua-trace-<character>.log'))
-    windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Wrapper trace '..mode..' requested'..
-        (mode=='on' and ' for 30 seconds.' or '.')..' Log: data/controller-input-trace.log'))
-    return true
+    if tostring(current.diagnostic_protocol)~='1' then return false,'Restart the updated AHK wrapper for unified diagnostics.' end
+    if mode=='on' and tostring(current.input_trace)=='1' then return false,'The shared wrapper is already recording; finish that capture first.' end
+    return bank_backend.replace(windower.addon_path..'data/controller-trace.request',mode..'\n'..id)
 end
+diagnostic_capture=require('libs/controller/capture').new({
+    directory=windower.addon_path..'data/diagnostics/',clock=require('socket').gettime,
+    identity=function() return os.date('!%Y%m%dT%H%M%SZ')..'-'..tostring(player.name or 'prelogin'):gsub('[^%w]','')..'-'..bank_backend.session_id end,
+    mkdir=windower.create_dir,remove=os.remove,write=bank_backend.replace,
+    snapshot=function() return require('libs/controller/diagnostics').render(diagnostic_snapshot()) end,
+    read=function(path) local f=io.open(path,'rb');if not f then return end;local body=f:read(1048576);f:close();return body end,
+    begin=function(id,path)
+        local current=controller_status()
+        if current and current.running then
+            local ok,err=capture_request('on',id);if not ok then return false,err end
+        end
+        input_timing:start(path,_addon.version);render_trace.start();return true
+    end,
+    stop=function(reason) input_timing:stop(reason);render_trace.stop() end,
+    request_stop=function(id) return capture_request('off',id) end,
+    render=render_trace.dump,
+    mark=function() input_timing:record('MARK');render_trace.event('MARK') end,
+    report=function(message) windower.add_to_chat(0,require('libs/chat_status').notice(message)) end})
+windower.register_event('prerender',function() diagnostic_capture:tick() end)
 controller_switcher = require('libs/controller/switch').new({
     clock=require('socket').gettime, status=controller_status,
     stop=stop_controller_wrapper, start=start_controller_wrappers,
@@ -1197,10 +1219,10 @@ function display_help_menu()
     help.command('r2|r3|both [on|off|status]','Personal F8 shortcuts; bare toggles the named button(s).')
     help.command('controller status [details]','Show controller readiness; details saves a diagnostic file.')
     help.command('controller start|stop|profiles','Control the shared wrapper or list profiles.')
-    help.command('diagnostics','Save controller and addon diagnostics to a file.')
+    help.command('diagnostics [on|off|mark|status]','Capture status, controller, Lua and rendering into data/diagnostics.')
     help.command('controller profile <name> [device]','Select a controller reader and optional device.')
     help.command('controller menuswap on|off|status','Swap Share/Options roles for all characters in this installation.')
-    help.command('controller trace on|off','Capture 30 seconds of wrapper input routing for diagnosis.')
+    help.command('controller trace on|off','Alias for the unified diagnostics capture.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
     help.command('realkeys [on|off|status]','Test AHK keyboard IJKL in ordinary gameplay; default OFF, bare toggles.')
     help.command('scale <0.25-2>','Scale crossbars independently of menus.')
@@ -1215,9 +1237,9 @@ function display_help_menu()
     help.command('textsettle [on|off|status]','Settle centered captions before reveal; default ON, bare toggles.')
     help.command('autoattack [on|off|status]','Enable/stop swing estimation independently of opacity.')
     help.command('inputtest [on|off]','Enable input test messages; bare toggles.')
-    help.command('inputtrace [on|off]','Enable input diagnostics; bare toggles.')
+    help.command('inputtrace [on|off]','Alias for unified diagnostics; bare toggles.')
     help.command('resources',"Report this addon's live UI objects and creation/deletion totals.")
-    help.command('rendertrace [on|mark|save|off|status]','Quiet bounded layout capture; off saves and stops.')
+    help.command('rendertrace [on|mark|save|off|status]','Alias for unified diagnostics; save/off finishes the capture.')
     help.command('inputstatus','Report input settings.')
     help.command('remap','Open controller setup.')
     help.command('regenerate','Rebuild generated resources.')
@@ -1399,11 +1421,9 @@ windower.register_event('addon command', function(command, ...)
     if command == 'inputconsume' then
         return
     elseif command == 'rendertrace' then
-        local name=tostring(player.name or 'prelogin'):gsub('[^%w_-]','_')
-        return render_trace.command((...),windower.addon_path..'data/render-trace-'..name..'.log',
-            function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
+        return diagnostic_capture:command((...))
     elseif command == 'diagnostics' or command == 'diagnose' then
-        return save_diagnostics()
+        return diagnostic_capture:command((...))
     elseif command == 'bank' or command == 'l1' or require('libs/banks/banks').aliases[command] then
         local args={...}
         if require('libs/banks/banks').aliases[command] then table.insert(args,1,command);command='bank' end
@@ -1485,7 +1505,10 @@ windower.register_event('addon command', function(command, ...)
             end
         else windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]')) end
         return
-    elseif command == 'inputtest' or command == 'inputtrace' then
+    elseif command == 'inputtrace' then
+        local mode=(...)
+        return diagnostic_capture:command(mode or (diagnostic_capture.active and 'off' or 'on'))
+    elseif command == 'inputtest' then
         local mode = (...)
         local key = command == 'inputtest' and 'InputTest' or 'InputTrace'
         if mode == 'on' then settings[key] = true
@@ -2155,9 +2178,11 @@ message_button = function(dik,pressed,flags,blocked)
         end
         return true
     end
-    if item.logical <= 66 and (context == 'gameplay' or context == 'dialogue') then
+    if item.logical <= 66 and (context == 'gameplay' or context == 'dialogue' or context=='chat') then
         local key
-        if context=='dialogue' then key=transport:dialogue_key(item,buttonmapping)
+        if context=='chat' then
+            if transport:face_name(item,buttonmapping)==buttonmapping.cancel_button then key='escape' end
+        elseif context=='dialogue' then key=transport:dialogue_key(item,buttonmapping)
         else key=transport:gameplay_key(item,buttonmapping,settings.GameplayDPad) end
         if settings.InputTest then
             if pressed then windower.add_to_chat(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
@@ -2645,4 +2670,7 @@ windower.register_event('zone change', function()
     skillchains.zone_change()
 end)
 
-windower.register_event('unload',function() input_timing:stop('unload') end)
+windower.register_event('unload',function()
+    if diagnostic_capture.active then capture_request('off',diagnostic_capture.id);diagnostic_capture:finish('unload; wrapper may not have flushed yet') end
+    input_timing:stop('unload')
+end)

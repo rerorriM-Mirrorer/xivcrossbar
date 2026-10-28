@@ -348,7 +348,7 @@ WriteTransportStatus(force := false) {
     contents .= WrapperClientsStatus()
     global PC, xinputGuide
     if (PC.enabled)
-        contents .= "personal_context=" . PC.context . "`npersonal_version=9.19-lifecycle1`nhold_recovery_protocol=1`nps_action=" . (PC.xinput ? "none" : "focus-toggle") . "`nguide_touchpad=" . (PC.xinput ? (xinputGuide ? "available" : "unavailable") : "not-applicable") . "`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
+        contents .= "personal_context=" . PC.context . "`npersonal_version=9.20-diagnostics1`nhold_recovery_protocol=1`nps_action=" . (PC.xinput ? "none" : "focus-toggle") . "`nguide_touchpad=" . (PC.xinput ? (xinputGuide ? "available" : "unavailable") : "not-applicable") . "`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
             . "target_r2=" . PC.targetR2 . "`ntarget_r3=" . PC.targetR3 . "`ncontext_pauses=" . PC.contextPauses . "`n"
             . "realkeys_protocol=1`ndpad_output=" . (PC.realDpad ? "ahk" : "lua") . "`n"
             . "r1_menu_protocol=1`nr1_menus=" . PC.r1Menus . "`n"
@@ -356,7 +356,8 @@ WriteTransportStatus(force := false) {
     global CM
     contents .= "button_protocol=1`nbutton_route=" . CM.phase . "`nbutton_sent=" . CM.seq . "`nbutton_ack=" . CM.ack . "`nbutton_error=" . CM.error . "`n"
     global TM
-    contents .= "movement_version=0.1.0`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
+    contents .= "movement_version=0.2.0-trust1`nmovement_policy=" . TM.policy . "`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
+    contents .= "diagnostic_protocol=1`n"
     global IT
     contents .= "input_trace=" . IT.enabled . "`npoll_max_ms=" . IT.pollMax . "`npoll_gap_max_ms=" . IT.gapMax
         . "`nread_max_ms=" . IT.readMax . "`npersonal_max_ms=" . IT.personalMax . "`ncontext_misses=" . IT.misses . "`ntrace_error=" . IT.error . "`n"
@@ -398,13 +399,20 @@ InputTraceStart(now) {
     FileRead, request, %path%
     FileDelete, %path%
     request := Trim(request, " `t`r`n")
+    captureId := ""
+    if (RegExMatch(request, "^(on|off)\n([A-Za-z0-9-]{1,120})$", capture)) {
+        request := capture1, captureId := capture2
+    }
     if (request = "on") {
         InputTraceClose()
+        IT.captureId := captureId
+        FileCreateDir, %A_ScriptDir%\data\diagnostics
+        IT.path := A_ScriptDir . "\data\diagnostics\" . (captureId != "" ? captureId . "-ahk.log" : "controller-input-trace.log")
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
-        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.19-lifecycle1")
+        InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.20-diagnostics1 id=" . captureId)
         InputTraceRecord("runtime ahk=" . A_AhkVersion . " batch_lines=" . A_BatchLines
             . " key_delay=" . A_KeyDelay . " key_duration=" . A_KeyDuration . " requested_timer_ms=10")
-    } else if (request = "off") {
+    } else if (request = "off" and (captureId = "" or captureId = IT.captureId)) {
         InputTraceRecord("capture manually stopped")
         InputTraceClose()
     }
@@ -460,7 +468,7 @@ InputTraceFlush() {
     global IT
     if (IT.buffer = "")
         return
-    path := A_ScriptDir . "\data\controller-input-trace.log"
+    path := IT.path
     text := IT.buffer
     IT.buffer := ""
     FileAppend, %text%, %path%

@@ -88,8 +88,9 @@ local first=assert(source:find("    elseif command == 'rendertrace' then",1,true
 local last=assert(source:find("    elseif command == 'bank' or command == 'l1' or",first,true))
 local routed
 local env=setmetatable({player={name='Franklet'},windower={addon_path='addon/',add_to_chat=function()end},
-    render_trace={command=function(mode,path)routed={mode,path}end}},{__index=_G})
+    diagnostic_capture={command=function(_,mode)routed={mode}end}},{__index=_G})
 local dispatch=assert(load('return function(command,...) if false then\n'..source:sub(first,last-1)..'end end',
     'actual render command dispatch','t',env))()
-dispatch('rendertrace','on');assert(routed[1]=='on' and routed[2]=='addon/data/render-trace-Franklet.log')
-env.player.name=nil;dispatch('rendertrace');assert(routed[2]=='addon/data/render-trace-prelogin.log')
+dispatch('rendertrace','on');assert(routed[1]=='on')
+env.player.name=nil;dispatch('rendertrace','off');assert(routed[1]=='off')
+dispatch('diagnostics','mark');assert(routed[1]=='mark')

@@ -1,3 +1,12 @@
+# Personal update — Unified Diagnostics 1
+
+`//xb diagnostics` records status, Lua/controller input and rendering into one
+dated log under `data/diagnostics/`. Existing controller/input/render trace
+commands use the same capture. Restart the updated shared AHK wrapper once.
+Primary banks retain hold-to-show behavior and existing action restrictions;
+`//xb bank l` / `r` alias L1 / R1. Bare Cancel dismisses native chat.
+See [capture, installation and test instructions](docs/PERSONAL-DIAGNOSTICS1.md).
+
 Windower Patch Installer 1: keep the CMD/PowerShell launcher in Windower root.
 First run applies its bundled cumulative update; later choose/drag a downloaded
 XIVcrossbar code ZIP. It stages/checks, coordinates unload/stop, backs up, installs
@@ -1395,3 +1404,12 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Keep client reload manual and userdata/artwork intact; report hashes, versions,
   acknowledgements and backup paths. Offer ZIP deletion only after success.
 - One non-nested bootstrap kit; first manual unload, future coordinated updates.
+
+### Personal Unified Diagnostics 1 — October 27, 2026
+
+- Collect status, Lua/AHK input and rendering through one bounded capture under
+  data/diagnostics; keep legacy trace commands as aliases and preserve old logs.
+- Fix bare configured Cancel in native chat, retaining paired releases and
+  existing bank/menu ownership restrictions.
+- Show held primary banks independently of action eligibility; add bank l/r
+  aliases. Preserve second levels, settings, positions and Trust movement policy.

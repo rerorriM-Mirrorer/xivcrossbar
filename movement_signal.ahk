@@ -1,10 +1,10 @@
-; A: Trust movement experiment 0.1.0, AutoHotkey v1.
+; A: integrated Trust movement Send/Ready test 1, AutoHotkey v1.
 ; One signal per observed FFXI focus session. Neutral, modifier releases,
 ; disconnection and trips to other applications do not reset that latch.
 MovementInit() {
     global TM
     TM := {client:0, fired:false, sent:0, signalOwner:0, due:0
-        , nextLease:0, ready:false, reason:"waiting-client", threshold:0.24}
+        , nextLease:0, ready:false, policy:"Send", policies:{}, reason:"waiting-client", threshold:0.24}
 }
 
 MovementTick(active) {
@@ -27,14 +27,17 @@ MovementPoll(states, active) {
         return
     ; Existing personal controls expose addon menus as well as text entry.
     ; Holding a crossbar trigger alone still permits movement takeover.
-    if (PC.enabled) {
+    ready := MovementReceiverReady(active)
+    ; Send consumes the first movement even in a blocked context. Trust makes
+    ; the immediate accept/ignore decision; there is no delayed retry.
+    if (TM.policy = "Ready" and PC.enabled) {
         context := PersonalContext(active)
         if (context != "gameplay" and context != "crossbar") {
             TM.reason := "personal-" . context
             return
         }
     }
-    if (!MovementReceiverReady(active))
+    if (TM.policy = "Ready" and !ready)
         return
     ; Recheck immediately before injecting. Blind preserves held modifiers;
     ; this is a separate scan code, outside the wrapper's F1-F12 signals.
@@ -45,8 +48,9 @@ MovementPoll(states, active) {
     TM.due := DllCall("GetTickCount64", "UInt64") + 30
     SendEvent, {Blind}{vk1Dsc07B down}
     WinGetTitle, title, ahk_id %active%
-    line := A_NowUTC . " hwnd=" . active . " title=" . title . " x=" . states.moveX . " y=" . states.moveY . "`n"
-    FileAppend, %line%, %A_ScriptDir%\data\trust-movement.log
+    line := A_NowUTC . " hwnd=" . active . " title=" . title . " policy=" . TM.policy . " sent=" . TM.sent . " x=" . states.moveX . " y=" . states.moveY . "`n"
+    FileCreateDir, %A_ScriptDir%\data\diagnostics
+    FileAppend, %line%, %A_ScriptDir%\data\diagnostics\trust-movement.log
 }
 
 MovementReceiverReady(active) {
@@ -55,13 +59,20 @@ MovementReceiverReady(active) {
     if (nowTick < TM.nextLease)
         return TM.ready
     TM.nextLease := nowTick + 100, TM.ready := false
+    ; A transient file gap must not turn an already selected Ready into Send.
+    TM.policy := TM.policies.HasKey(active) ? TM.policies[active] : "Send"
     TM.reason := "receiver-not-ready"
     WinGetTitle, title, ahk_id %active%
     now := A_NowUTC
     EnvSub, now, 19700101000000, Seconds
     ; The receiver publishes only while its own client has focus. Match the
     ; character in the title, as the existing personal-controls bridge does.
-    Loop, Files, %A_ScriptDir%\..\trustmovement\data\*.lease
+    ; Prefer the integrated Trust receiver. RC3 remains a Ready-only fallback
+    ; for users who have not migrated; never run both receivers together.
+    Loop, 2
+    {
+    folder := A_Index = 1 ? "trust\data\movement" : "trustmovement\data"
+    Loop, Files, %A_ScriptDir%\..\%folder%\*.lease
     {
         timingReadStart := DllCall("GetTickCount64", "UInt64")
         FileRead, lease, %A_LoopFileFullPath%
@@ -77,9 +88,17 @@ MovementReceiverReady(active) {
             TM.reason := "receiver-stale"
             continue
         }
+        if (folder = "trustmovement\data")
+            TM.policy := "Ready"
+        else if (RegExMatch(lease, "m)^policy=(Send|Ready)\r?$", policy))
+            TM.policy := policy1
+        else
+            continue
+        TM.policies[active] := TM.policy
         TM.ready := ready1 = "1"
         TM.reason := TM.ready ? "receiver-ready" : "receiver-blocked"
         return TM.ready
+    }
     }
     return false
 }

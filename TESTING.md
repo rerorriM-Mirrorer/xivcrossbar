@@ -1,3 +1,14 @@
+# Current Development Status — October 27, 2026 — Personal Unified Diagnostics 1
+
+- Personal development/directlink; source checkpoint 7959a99d9871b00e18bd3faaf4b3946c85595fc1. Public beta and master are unchanged. Runtime directlink1-diagnostics1 / Controls 9.20-diagnostics1.
+- User settled on held display for primary L1/R1, retaining existing action-owner blocks. Held primary panels can draw despite action ineligibility; editor/setup root display gate remains. Aliases bank l/r resolve l1/r1. No changes to second levels, bank bindings, positions or saved policies.
+- Supplied controller-input-trace(20261028-014751).log and controller-lua-trace-Cioara(1).log: newest UTC capture 20261028014508 shows seven Circle down/up pairs accepted in chat with no normal router/Escape calls; gameplay pairs before chat route Escape correctly. Narrow bare configured Cancel exception now requests/releases Escape in native chat, preserving modified actions and Confirm suppression.
+- One diagnostics capture gathers start/end snapshots, bounded Lua, AHK and rendering into a unique data/diagnostics log. Legacy trace commands delegate; automatic finalization at 32 seconds or manual flush grace; failed final writes retain components. Runtime leases/owner files stay put; historical logs/backups are preserved. No running wrapper allows Lua/render capture; old running wrapper requires update. Native AHK protocol/path validation remains a live acceptance check.
+- Integrated Trust Send/Ready movement source is recovered from the latest October 26 AHK companion package, preserving the user's confirmed working integration; its log is relocated to diagnostics. Previous remote branch did not contain that companion update. No movement policy decision is altered by this batch.
+- Verification: all 73 top-level Lua suites / 163 source parses passed with temporary Windower syntax normalization on Lua 5.4; all eight actual-AHK-function JS suites, seven-file AHK structural checks, dependency/layout checks and git whitespace checks passed. After adding protected report assembly, targeted capture/request/routing/display suites passed again. Initial full runs exposed obsolete test harness dependencies on the old trace entry points; those harnesses now verify delegation to the unified capture. Native Windows/FFXI tests pending; see docs/PERSONAL-DIAGNOSTICS1.md. Wrapper automatic shutdown remains unresolved.
+
+---
+
 # Current Development Status — October 24, 2026 — Windower Patch Installer 1
 
 - development/directlink; published receiver checkpoint f93f56f93f4a02345075b7feeb8ce8bf3f0b6de6, local c4b5e22 tree 6fd9e50df6c1eccf7bf5dad8cb2417431338ce50. Master unchanged. Runtime directlink1-installer1 / Controls 9.19-lifecycle1 unchanged from prior checkpoint.

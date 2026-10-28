@@ -18,12 +18,12 @@ assert(not ok and writes==1,'assembly failure reached the replacement boundary')
 D.render=render
 -- Execute the real root snapshot command with native replacement mocked only.
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
-local a=assert(source:find('local function save_diagnostics()',1,true))
+local a=assert(source:find('local function diagnostic_snapshot()',1,true))
 local b=assert(source:find('local function report_controller_status',a,true))
 local lines,snapshots={},{}
 local saved=D.save;local success=true
 D.save=function(path,snapshot)
-    assert(path=='addon/data/diagnostics-Test.log');snapshots[#snapshots+1]=snapshot
+    assert(path=='addon/data/diagnostics/status-Test.log');snapshots[#snapshots+1]=snapshot
     return success,success and nil or 'Disk full'
 end
 local env=setmetatable({_addon={version='test'},player={name='Test',hotbar_settings={active_environment='basic'}},
@@ -34,7 +34,7 @@ local env=setmetatable({_addon={version='test'},player={name='Test',hotbar_setti
     companion_banks={settings=function()return {}end,active=true,layer='',menu=false,output={ack=0,seq=0}},
     storage={identity_valid=true,directory='Fenrir/Test'},bank_storage={source='banks.xml',character='Test'},
     client_registry={loaded=true},action_binder={state=1},gamepad_mapper={},text_input_guard={},l1_bridge={},
-    windower={addon_path='addon/',create_dir=function(path)assert(path=='addon/data')end,
+    windower={addon_path='addon/',create_dir=function(path)assert(path=='addon/data/diagnostics/')end,
         add_to_chat=function(color,line)assert(color==0);lines[#lines+1]=line end}}, {__index=_G})
 local command=assert(load(source:sub(a,b-1)..'\nreturn save_diagnostics','actual diagnostic command','t',env))()
 assert(command() and #lines==1 and lines[1]:find('Diagnostics saved:',1,true))

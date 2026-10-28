@@ -1,9 +1,9 @@
 local f=assert(io.open('xivcrossbar.lua'));local text=f:read('*a');f:close()
 local start=assert(text:find('local function request_controller_trace(mode)',1,true))
-local stop=assert(text:find('\ncontroller_switcher =',start,true))
+local stop=assert(text:find('\nlocal function capture_request(',start,true))
 local running,writes,mode=true,0,nil
 local write_ok=true
-local env=setmetatable({controller_status=function()return {running=running}end,
+local env=setmetatable({diagnostic_capture={command=function(_,value)mode=value;return running and write_ok end},controller_status=function()return {running=running}end,
     windower={addon_path='addon/',add_to_chat=function()end,ffxi={get_player=function()return {name='Test'}end}},
     input_timing={start=function(_,path)assert(path=='addon/data/controller-lua-trace-Test.log')end,stop=function()end},
     _addon={version='test'},
@@ -17,7 +17,7 @@ running=false;assert(not request('on') and writes==0)
 running=true;assert(request('on') and mode=='on')
 assert(request('off') and mode=='off')
 write_ok=false;assert(not request('on'))
-print('Actual controller trace command: explicit modes, running-wrapper guard and failed-write reporting passed.')
+print('Actual controller trace command: explicit modes and unified capture delegation passed; protocol/I/O guards exercised by diagnostic_request.lua.')
 local first=assert(text:find('local function report_controller_status(details,embedded)',1,true))
 local last=assert(text:find('function start_controller_wrappers(',first,true))
 local lines={}
