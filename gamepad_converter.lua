@@ -1,3 +1,4 @@
+local chat_format = require('libs/chat_status')
 local gamepad_converter = {}
 
 function gamepad_converter:setup(button_layout)
@@ -222,7 +223,7 @@ function gamepad_converter:convert_to_slot(button)
     end
 
     if (placement == nil) then
-        print('XIVCROSSBAR: Invalid arguments: ' .. button)
+        chat_format.say(123,'XIVCROSSBAR: Invalid arguments: ' .. button)
         return nil
     end
 
