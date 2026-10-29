@@ -1,6 +1,6 @@
 -- A: ownership for this addon's Windower text/image objects only. Windower's
 -- libraries retain hidden objects until destroy; dropping a Lua list is not cleanup.
-local M = {version='public-cleanup1-settled'}
+local M = {version='public-cleanup1'}
 local trace=require('ui/render_trace')
 local measure=require('ui/text_measure')
 local measured_fields={'text','font','size','pad','bold','italic','right_justified','stroke_width'}
