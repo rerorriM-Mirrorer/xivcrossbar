@@ -1,3 +1,4 @@
+local chat_format = require('libs/chat_status')
 local res = require('resources')
 -- Windower's logger exports a non-raising error(). Guards need Lua's exception.
 local error = (_raw and _raw.error) or error
@@ -177,7 +178,7 @@ function player:load_hotbar()
             player:store_new_hotbars()
         end
         if not self.has_reported_load then
-            windower.add_to_chat(207, '[XIVCrossbar] Loaded crossbar sets for ' .. self.main_job .. '/' .. (self.sub_job or 'NOSUB') .. ' (job, defaults and shared).')
+            chat_format.say(207, '[XIVCrossbar] Loaded crossbar sets for ' .. self.main_job .. '/' .. (self.sub_job or 'NOSUB') .. ' (job, defaults and shared).')
             self.has_reported_load = true
         end
     end)
@@ -185,7 +186,7 @@ function player:load_hotbar()
         self.hotbar, self.shared_icons, self.custom_actions =
             previous.hotbar, previous.shared_icons, previous.custom_actions
         storage.hotbar_read_error = storage.hotbar_read_error or tostring(err)
-        windower.add_to_chat(123, '[XIVCrossbar] Crossbar load failed; the previous bars were retained. ' .. tostring(err))
+        chat_format.say(123, '[XIVCrossbar] Crossbar load failed; the previous bars were retained. ' .. tostring(err))
         return false
     end
     self.hotbar_load_ok = true
@@ -210,7 +211,7 @@ function player:queue_job_change_notice()
         self.job_notice_files = nil
         if not self.hotbar_load_ok then return end
         local created = #names > 0 and ' (created ' .. table.concat(names, ', ') .. ')' or ''
-        windower.add_to_chat(207, '[XIVCrossbar] Crossbar sets ready for ' ..
+        chat_format.say(207, '[XIVCrossbar] Crossbar sets ready for ' ..
             self.main_job .. '/' .. (self.sub_job or 'NOSUB') .. created .. '.')
     end, 0.3)
 end
@@ -253,8 +254,8 @@ function player:load_from_file(storage_file)
     if not contents or contents.name ~= 'hotbar' then
         local path = storage_file.path or storage.filename
         storage.hotbar_read_error = tostring(path) .. ': ' .. (parse_error or 'Expected a hotbar XML document.')
-        windower.add_to_chat(123, '[XIVCrossbar] Could not load ' .. storage.hotbar_read_error)
-        windower.add_to_chat(123, '[XIVCrossbar] Hotbar saving is paused to preserve your files. Correct the XML and reload.')
+        chat_format.say(123, '[XIVCrossbar] Could not load ' .. storage.hotbar_read_error)
+        chat_format.say(123, '[XIVCrossbar] Hotbar saving is paused to preserve your files. Correct the XML and reload.')
         return false
     end
 
@@ -393,7 +394,7 @@ function player:load_shared_icons(storage_file)
     self.shared_icons = {}
     local contents = xml.read(storage_file)
     if (contents == nil or contents.name ~= 'shared_icons') then
-        windower.add_to_chat(123, '[XIVCrossbar] SharedIcons.xml is malformed; reload after correcting it.')
+        chat_format.say(123, '[XIVCrossbar] SharedIcons.xml is malformed; reload after correcting it.')
         return false
     end
 
@@ -461,7 +462,7 @@ function player:load_custom_actions(storage_file)
     self.custom_actions = {}
     local contents = xml.read(storage_file)
     if (contents == nil or contents.name ~= 'custom_actions') then
-        windower.add_to_chat(123, '[XIVCrossbar] CustomActions.xml is malformed; reload after correcting it.')
+        chat_format.say(123, '[XIVCrossbar] CustomActions.xml is malformed; reload after correcting it.')
         return false
     end
 
@@ -674,7 +675,7 @@ function player:execute_action(slot)
     if action.type == 'switch' then
         local target_env = kebab_casify(action.action or '')
         if (not self:is_valid_environment(target_env)) then
-            windower.add_to_chat(123, '[XIVCrossbar] Cannot switch - set "' .. tostring(action.action) .. '" not found in current job.')
+            chat_format.say(123, '[XIVCrossbar] Cannot switch - set "' .. tostring(action.action) .. '" not found in current job.')
             return
         end
         if (self.temp_switch_previous_env == nil) then
@@ -889,18 +890,18 @@ end
 function player:create_new_environment(name)
     -- A: every creation path must preserve existing normalized set keys.
     if type(name) ~= 'string' or not name:match('%S') then
-        windower.add_to_chat(123, '[XIVCrossbar] A nonblank crossbar set name is required.')
+        chat_format.say(123, '[XIVCrossbar] A nonblank crossbar set name is required.')
         return false
     end
     local key = kebab_casify(name)
     -- Set keys become XML element names; rejecting unsafe keys avoids writing
     -- a file that cannot be loaded on the immediate reload.
     if not key:match('^[%a_][%w_.%-]*$') then
-        windower.add_to_chat(123, '[XIVCrossbar] Use a set name starting with a letter, with letters, numbers, spaces, hyphens or underscores.')
+        chat_format.say(123, '[XIVCrossbar] Use a set name starting with a letter, with letters, numbers, spaces, hyphens or underscores.')
         return false
     end
     if key == 'default' or key == 'job-default' or key == 'all-jobs-default' or key == 'shared' or self.hotbar[key] ~= nil then
-        windower.add_to_chat(123, '[XIVCrossbar] Crossbar set already exists or is reserved: ' .. name)
+        chat_format.say(123, '[XIVCrossbar] Crossbar set already exists or is reserved: ' .. name)
         return false
     end
     local new_environment = {name = name}
