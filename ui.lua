@@ -359,6 +359,7 @@ end
 function ui:setup(theme_options, enchanted_items)
     geometry:configure_fade(theme_options.fade_enabled, theme_options.fade_in,
         theme_options.fade_out, theme_options.load_fade_in, {claimed=false})
+    geometry:set_text_fade(theme_options.text_fade)
     geometry:set_opacity(0)
     register_active_buffs()
 
