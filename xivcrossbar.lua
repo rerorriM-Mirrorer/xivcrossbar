@@ -408,25 +408,31 @@ local message_bridge
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
-local function report_controller_status()
-    local selected = settings.ControllerProfile .. ' / device ' .. settings.ControllerDevice
-    chat_format.say(207, '[XIVCrossbar] Selected: ' .. selected .. ' / ' .. controller_modifier)
-    if controller_switcher and controller_switcher.pending then
-        chat_format.say(207, '[XIVCrossbar] Controller change: ' .. controller_switcher.pending.phase)
+local function report_controller_status(embedded)
+    chat_format.say(0,chat_format.heading(embedded and 'Controller' or 'XIVcrossbar | Controller'))
+    chat_format.say(0,chat_format.row('Selected',controller_profiles.short_name(settings.ControllerProfile)..
+        ' / Device '..tostring(settings.ControllerDevice)))
+    local status=controller_status()
+    local pending=controller_switcher and controller_switcher.pending
+    if pending then
+        chat_format.say(0,chat_format.row('Changing',chat_format.state(pending.phase)))
     end
-    local status = controller_status()
     if status and status.running then
-        if settings.ControllerProfile=='ps5-directinput' then
-            chat_format.say(207, '[XIVCrossbar] PS5 transport: DirectLink when logged in and ready; Apps during login/setup. Local stream: '..(message_bridge and message_bridge.token and 'messages' or 'keys')..'.')
-        end
-        chat_format.say(207, '[XIVCrossbar] Running: ' .. status.profile .. ' / device ' .. status.device ..
-            ' / ' .. status.modifier .. ' | source=' .. (status.origin or 'unknown') .. ' | ' .. status.state .. ' | route=' .. (status.route or 'legacy') .. ' | connected=' .. tostring(status.connected == '1'))
-        if not controller_profiles.matches(status, settings.ControllerProfile, settings.ControllerDevice, controller_modifier)
-            and not (controller_switcher and controller_switcher.pending) then
-            chat_format.say(123, '[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
+        chat_format.say(0,chat_format.row('Running',controller_profiles.short_name(status.profile)..
+            ' / Device '..tostring(status.device)))
+        chat_format.say(0,chat_format.row('State',chat_format.state(status.state)..
+            ' | Connected: '..chat_format.toggle(status.connected == '1')))
+        local route=(settings.ControllerProfile=='ps5-directinput' and message_bridge and message_bridge.token)
+            and 'DirectLink' or (status.route or 'Keyboard (Legacy)')
+        chat_format.say(0,chat_format.row('Input',route))
+        chat_format.say(0,chat_format.row('Modifier',status.modifier or controller_modifier))
+        if not controller_profiles.matches(status,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)
+            and not pending then
+            chat_format.say(123,'[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
         end
     else
-        chat_format.say(207, '[XIVCrossbar] No fresh running-wrapper status. It may be stopped, starting, or an older wrapper.')
+        chat_format.say(0,chat_format.row('State',chat_format.state('stopped')))
+        chat_format.say(0,chat_format.row('Input','Waiting for reader'))
     end
 end
 -- The one diagnostic owns its output file. AHK contributes only a temporary feed.
@@ -1350,16 +1356,22 @@ windower.register_event('addon command', function(command, ...)
         return
     end
     if command == 'status' then
-        chat_format.say(207, '[XIVCrossbar] ' .. _addon.version)
-        report_controller_status()
-        chat_format.say(207, '[XIVCrossbar] Profile: ' ..
-            (storage.identity_valid and (player.server .. '/' .. player.name) or 'waiting for a stable in-world character'))
-        chat_format.say(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
-        chat_format.say(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | TextFade: ' .. tostring(settings.Animation.TextFade == true) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
-        chat_format.say(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
-        chat_format.say(207, '[XIVCrossbar] Ready: ' .. tostring(xivcrossbar.ready == true) ..
-            ' | Setup: ' .. tostring(gamepad_mapper.is_showing == true) .. ' (state ' .. tostring(gamepad_mapper.state) ..
-            ') | Capture: ' .. tostring(gamepad_state.capturing == true))
+        chat_format.say(0,chat_format.heading('XIVcrossbar | Status'))
+        chat_format.say(0,chat_format.row('Version',_addon.version))
+        chat_format.say(0,chat_format.row('Addon',chat_format.state(xivcrossbar.ready and 'ready' or 'initializing')))
+        chat_format.say(0,chat_format.row('Character',
+            storage.identity_valid and (player.server..'/'..player.name) or 'Awaiting in-world login'))
+        chat_format.say(0,chat_format.row('Current Set',tostring(player.hotbar_settings.active_environment)))
+        chat_format.say(0,chat_format.heading('Crossbars'))
+        chat_format.say(0,chat_format.row('Layout',
+            (settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)))
+        chat_format.say(0,chat_format.row('Visibility',settings.VisibilityMode))
+        chat_format.say(0,chat_format.row('Animation',
+            'Fades: '..chat_format.toggle(settings.Animation.Enabled)..
+            ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
+            ' | Text Settling: '..chat_format.toggle(settings.TextSettling ~= false)))
+        chat_format.say(0,chat_format.row('D-pad',settings.GameplayDPad=='ijkl' and 'IJKL' or 'Arrows'))
+        report_controller_status(true)
         return
     end
 
