@@ -25,6 +25,6 @@ A Windower 4 preview of PS5 controller input without simulated gameplay F-keys.
 | `//xb resources` | Report owned drawing-object counts |
 | `//xb diagnose` | Capture 30 seconds of input and rendering observations |
 
-**Custom actions:** In the Save/Review screen choose Edit Name, Alias or Command to type directly; Enter confirms, Circle cancels. **Save Only** returns to the catalog; **Save & Bind** selects a slot.
+**Custom actions:** On Save/Review, use **arrow keys** to move, **Enter** to select, and **Escape** to go back. Choose Edit Name/Alias/Command to type; Enter confirms the text. **Save Only** returns to the catalog; **Save & Bind** selects a slot.
 
 For complete settings and rollback details see [README.md](README.md); for test status see [TESTING.md](TESTING.md).
