@@ -13,7 +13,7 @@ player.hotbar=bars;player.hotbar_settings={active_environment='basic',active_hot
 local builds,saves=0,0
 local env=setmetatable({player=player,theme_options={},action_manager={build=function(_,kind,action,target,alias,icon)
     builds=builds+1;return{type=kind,action=action,target=target,alias=alias,icon=icon}
-end},windower={add_to_chat=function()end},reload_hotbar=function()return true end,
+end},windower={add_to_chat=function()end},chat_format={say=function()end},reload_hotbar=function()return true end,
     set_active_environment=function(key)assert(bars[key]);player.hotbar_settings.active_environment=key end,
     is_valid_environment=function(key)return bars[key]~=nil end}, {__index=_G})
 function player:add_action(action,key,bar,slot)
