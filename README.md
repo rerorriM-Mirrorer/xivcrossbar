@@ -15,7 +15,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261025.ps5-directlink-diag1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-diag1-libfix1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -273,3 +273,15 @@ native text extents and frame gaps. Includes restart-safe bounded buffers,
 manual markers and scoped CI tests. Personal rendering algorithms remain
 outside the release candidate; native Windows/Windower/FFXI acceptance
 is still pending.
+
+
+2026-10-29: Beta 1 Diagnostic Test 1 local-module loading hotfix.
+The complete package already contained `libs/xml2.lua` and the other private
+Lua libraries, but Windower's shared `addons/libs/` search root could attempt
+`addons/libs/libs/xml2.lua` rather than the addon's own nested copy.
+XIVCrossbar now appends its own install-folder Lua module path before importing
+bundled `libs/*` modules. This preserves standard Windower library priority;
+nothing needs to be copied into `Windower/addons/libs/`, and no XML DLL is required.
+Install the full ZIP directly as `Windower/addons/xivcrossbar/` (not nested).
+Added a simulated missing-module regression test. Native FFXI/Windower smoke
+testing is still required.
