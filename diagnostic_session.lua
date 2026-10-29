@@ -85,40 +85,27 @@ function M.new(opts)
         if self.active and clock()>=self.deadline then self:stop('deadline') end
         if self.pending and clock()>=self.finish_at then finalize() end
     end
-    local function assemble(reason)
-        local entries={}
-        for _,event in ipairs(self.events) do entries[#entries+1]=event end
+    -- Keep the 30-second streams bounded in memory and merge them while
+    -- writing, rather than copying/sorting ~18k events then concatenating
+    -- another multi-megabyte string inside Windower's 32-bit Lua process.
+    -- Each source is already recorded chronologically; merge three cursors.
+    local function assemble_stream(reason,emit)
         local render,render_dropped,render_state=opts.render_lines()
-        for _,line in ipairs(render or {}) do
-            local t,frame,kind,details=line:match('^(%d+%.%d+)\t([^\t]+)\t([^\t]+)\t(.*)$')
-            if t then entries[#entries+1]={tonumber(t),'RENDER',kind..' frame='..frame..' '..details} end
-        end
+        render=render or {}
         local feed=not self.skip_ahk and read(self.feed) or nil
-        local ahk_count=0
-        local ahk_dropped=0
-        if type(feed)=='string' and #feed<=1048576 then
-            local header=feed:match('^# diagnostic%-feed ([^%s]+)')
-            if header==self.id then
-                ahk_dropped=tonumber(feed:match('\ndropped=(%d+)')) or 0
-                for line in feed:gmatch('[^\r\n]+') do
-                    local millis,message=line:match('^(%d+)%s+(.+)$')
-                    if millis and #message<=400 then
-                        entries[#entries+1]={tonumber(millis)/1000,'AHK',message}
-                        ahk_count=ahk_count+1
-                    end
-                end
+        if feed and (#feed>1048576 or feed:match('^# diagnostic%-feed ([^%s]+)')~=self.id) then
+            feed=nil
+        end
+        local ahk_count,ahk_dropped=0,0
+        if feed then
+            ahk_dropped=tonumber(feed:match('\ndropped=(%d+)')) or 0
+            for line in feed:gmatch('[^\r\n]+') do
+                local millis,message=line:match('^(%d+)%s+(.+)$')
+                if millis and #message<=400 then ahk_count=ahk_count+1 end
             end
         end
-        if ahk_count==0 then
-            entries[#entries+1]={clock(),self.skip_ahk and 'INFO' or 'WARNING',
-                self.skip_ahk and 'Instantaneous snapshot: AHK capture intentionally omitted'
-                or 'AHK feed absent or unreadable at finalization; temporary feed may have arrived late'}
-        end
-        table.sort(entries,function(a,b)
-            if a[1]==b[1] then return a[2]<b[2] end
-            return a[1]<b[1]
-        end)
-        local body={'# XIVCrossbar unified diagnostic v1',
+        for _,line in ipairs({
+            '# XIVCrossbar unified diagnostic v1',
             '# Character: '..self.name,
             '# Session: '..self.id,
             '# Started UTC: '..wall('!%Y-%m-%dT%H:%M:%SZ',math.floor(self.deadline-30)),
@@ -128,19 +115,69 @@ function M.new(opts)
             '# AHK events: '..ahk_count..' dropped: '..ahk_dropped,
             '# Lua dropped: '..self.dropped..' render overwritten: '..(render_dropped or 0)..
                 ' render frames: '..(render_state and render_state.frames or 0),
-            '# Unix epoch seconds | source | observation'}
-        for _,event in ipairs(entries) do
-            body[#body+1]=string.format('%.6f [%s] %s',event[1],event[2],event[3])
+            '# Unix epoch seconds | source | observation',
+        }) do emit(line) end
+
+        local li,ri=1,1
+        local lua_event=self.events[li]
+        local function next_render()
+            while ri<=#render do
+                local line=render[ri]
+                ri=ri+1
+                local t,frame,kind,details=line:match('^(%d+%.%d+)\t([^\t]+)\t([^\t]+)\t(.*)$')
+                if t then return {tonumber(t),'RENDER',kind..' frame='..frame..' '..details} end
+            end
         end
-        body[#body+1]='# End diagnostic'
-        return table.concat(body,'\n')..'\n'
+        local render_event=next_render()
+        local feed_iterator=feed and feed:gmatch('[^\r\n]+')
+        local function next_ahk()
+            if not feed_iterator then return nil end
+            while true do
+                local line=feed_iterator()
+                if not line then return nil end
+                local millis,message=line:match('^(%d+)%s+(.+)$')
+                if millis and #message<=400 then return {tonumber(millis)/1000,'AHK',message} end
+            end
+        end
+        local ahk_event=next_ahk()
+        while lua_event or render_event or ahk_event do
+            local chosen,source
+            for _,candidate in ipairs({
+                {'lua',lua_event},{'render',render_event},{'ahk',ahk_event}
+            }) do
+                local event=candidate[2]
+                if event and (not chosen or event[1]<chosen[1] or
+                    (event[1]==chosen[1] and event[2]<chosen[2])) then
+                    chosen,source=event,candidate[1]
+                end
+            end
+            emit(string.format('%.6f [%s] %s',chosen[1],chosen[2],chosen[3]))
+            if source=='lua' then li=li+1;lua_event=self.events[li]
+            elseif source=='render' then render_event=next_render()
+            else ahk_event=next_ahk() end
+        end
+        if ahk_count==0 then
+            emit(string.format('%.6f [%s] %s',clock(),self.skip_ahk and 'INFO' or 'WARNING',
+                self.skip_ahk and 'Instantaneous snapshot: AHK capture intentionally omitted'
+                or 'AHK feed absent or unreadable at finalization; temporary feed may have arrived late'))
+        end
+        emit('# End diagnostic')
     end
     finalize=function()
         if not self.pending then return end
-        local ok,body=pcall(assemble,self.pending_reason)
-        local saved,err=false,nil
-        if ok then saved,err=opts.write(self.path,body)
-        else err=body end
+        local success,saved,err=pcall(function()
+            if opts.write_stream then
+                return opts.write_stream(self.path,function(emit)
+                    assemble_stream(self.pending_reason,emit)
+                end)
+            end
+            -- Compatibility only for the isolated fake-filesystem test fixture.
+            -- Production always provides write_stream and never builds this copy.
+            local lines={}
+            assemble_stream(self.pending_reason,function(line) lines[#lines+1]=line end)
+            return opts.write(self.path,table.concat(lines,'\n')..'\n')
+        end)
+        if not success then err=saved;saved=false end
         if saved and opts.remove then opts.remove(self.feed) end
         self.pending=false
         self.last_path=self.path
