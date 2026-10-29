@@ -15,7 +15,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-diagstream1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-textfade1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -119,6 +119,7 @@ Dragging also works while addon menus are open.
 
 - `//xb autohide [on|off]`: show crossbars with trigger input; bare command toggles.
 - `//xb fade [on|off]`: enable or disable regular crossbar fading; bare command toggles.
+- `//xb textfade [on|off|status]`: optionally fade captions and text strokes/backgrounds with the slot artwork. Defaults OFF (original endpoint-only captions); bare command toggles, `status` reports without changing settings.
 - `//xb compact [on|off]`: switch layout immediately; bare command toggles.
 - `//xb scale <number>`: change crossbar scale, from 0.25 to 2. Menus keep their own layout.
 - `//xb hide`, `//xb show`, `//xb auto`: manually hide, show continuously, or use autohide.
@@ -126,6 +127,10 @@ Dragging also works while addon menus are open.
 
 Defaults for fading in and out are **FadeIn 0.1s, FadeOut 0.5s, LoadFadeIn 2s**, adjustable in the `data/settings.xml`; existing saved values are preserved. Compact layout, themes, fonts and animation durations can also be changed in
 `data/settings.xml`. Reload the addon after manual edits.
+
+Text fading is independently saved as `Animation.TextFade` in `data/settings.xml`.
+It only interpolates during an actual fade (including startup); it does not
+change label positioning or install personal text-settling behavior.
 
 Startup uses LoadFadeIn even when regular fades are off. A trigger interrupts the
 intro with the quick FadeIn when fades are on, or immediate full visibility when
@@ -303,3 +308,13 @@ The community Beta 1 retains the public RC3's chat/help formatting and its
 endpoint-visible caption fade. The personal branch's structured chat formatting
 and `//xb textfade` switch have **not** been ported; no feature additions or
 broad renderer changes are included in this stabilization batch.
+
+
+2026-10-29: Beta 1 text fade comparison option. `//xb textfade on|off|status`
+controls whether caption glyphs, background and stroke alpha interpolate with
+crossbar artwork instead of appearing only at the fully visible endpoint.
+Defaults OFF for compatibility and persists in `Animation.TextFade`. Turning
+it on/off updates current labels without recreating bars or changing input,
+layouts, or timing. Regression coverage includes startup/regular fade logic,
+mid-fade labels, fade-out retention, baseline default and image parity.
+No personal text-measurement or settling algorithm has been imported.
