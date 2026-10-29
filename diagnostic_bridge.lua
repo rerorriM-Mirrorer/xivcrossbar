@@ -26,6 +26,27 @@ function M.new(opts)
     local recorder=session.new({
         clock=clock,date=opts.date, directory=directory,staging=staging,
         write=replace,remove=os.remove,
+        -- Write to an adjacent temporary file as each chronological observation
+        -- is emitted. No giant Lua table.concat or second full log string.
+        write_stream=function(path,produce)
+            local temporary=path..'.tmp'
+            local f,open_error=io.open(temporary,'wb')
+            if not f then return false,open_error end
+            local ok,write_error=pcall(function()
+                produce(function(line)
+                    local written,err=f:write(line,'\n')
+                    if not written then error(err or 'diagnostic write failed') end
+                end)
+            end)
+            local closed,close_error=f:close()
+            if not ok or not closed then
+                os.remove(temporary)
+                return false,ok and close_error or write_error
+            end
+            local moved,move_error=os.rename(temporary,path)
+            if not moved then os.remove(temporary);return false,move_error end
+            return true
+        end,
         mkdir=function(path) opts.mkdir(path) end,
         request=function(command)
             return replace(staging..'/request.txt',command..'\n')
