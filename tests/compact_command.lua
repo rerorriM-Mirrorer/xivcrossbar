@@ -16,7 +16,7 @@ local windower={add_to_chat=function(_,message) messages[#messages+1]=message en
 local config={save=function(value) assert(value==settings);saves=saves+1 end}
 local crossbar_drag={finish=function() moves=moves+1 end}
 local env=setmetatable({settings=settings,theme_options=theme_options,ui=ui,
-    env_chooser=env_chooser,windower=windower,config=config,crossbar_drag=crossbar_drag}, {__index=_G})
+    env_chooser=env_chooser,windower=windower,config=config,crossbar_drag=crossbar_drag,chat_format={say=function(_,message) messages[#messages+1]=message end}}, {__index=_G})
 local handler=assert(load(block..'\nreturn set_compact_mode','compact handler','t',env))()
 handler(nil);assert(settings.iscompact and theme_options.is_compact and ui.compact)
 handler('ON');assert(settings.iscompact)
