@@ -17,7 +17,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-settling1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-releaseui1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -332,3 +332,23 @@ default and independently toggled by `//xb textsettle [on|off|status]`;
 The Save/Review inline keyboard editor was already included and is unchanged.
 Added [BETA-QUICKSTART.md](BETA-QUICKSTART.md) as the terse new-user guide.
 Automated tests are simulated, not live FFXI acceptance.
+
+
+2026-10-29: Beta 1 release presentation and review keyboard input. The physical
+keyboard arrows now navigate the custom-action Save/Review and confirmation
+screens; Enter selects the highlighted option, Escape goes back, and held keys
+are owned through release so they do not leak native game input or activate
+the next screen. Inline field typing and controller action binding are unchanged.
+No other menu or native gameplay keyboard mapping has been expanded.
+
+Public command help, controller status, addon status, notices, bindings, custom
+action messages, XML validation and console-only argument errors now use the
+existing BattleStations-inspired formatting conventions: purple identity and
+headings, blue syntax and labels, white descriptions/values, green ON/Ready,
+yellow transitions and red errors. The shared helpers are
+`libs/chat_help.lua` and `libs/chat_status.lua`. InputTrace test chatter
+and diagnostic file contents retain their own debug representation.
+No alterations to personal `development/directlink`, stable/master, PS5
+routing, text measurement, compact geometry, or settings are included.
+CI exercises real keyboard dispatch in a mocked Windower environment and the
+colored message output; actual FFXI/AutoHotkey acceptance remains unverified.
