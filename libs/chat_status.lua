@@ -1,7 +1,6 @@
 -- A: the user's shared chat palette for quiet status and action feedback.
 -- Return complete chat lines so owners retain their existing output callback.
 local M={}
--- Optional here for isolated simulated tests; Windower provides this library.
 pcall(require,'chat')
 local function color(value,id)
     local text=tostring(value==nil and 'unknown' or value)
@@ -38,15 +37,10 @@ end
 function M.legacy(tone,message)
     local text=tostring(message)
     local body,count=text:gsub('^%[XIV[Cc]rossbar%]%s*','',1)
-    -- The public code also uses "XIVCROSSBAR:" for old command errors.
     if count==0 then body,count=text:gsub('^XIVCROSSBAR:%s*','',1) end
     if count==0 then return color(text,tone) end
     local prefix=color('[XIVcrossbar]',200)..' '
-    -- Reuse the same colored label/white value convention as status rows.
-    local label,value=body:match('^([%w%s%-%/]+):%s*(.+)
-function M.on(value) return value==true or value=='1' end
-function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
-)
+    local label,value=body:match('^([%w%s%-%/]+):%s*(.+)$')
     if label then
         return prefix..color(label..':',tone==123 and 167 or 207)..' '..color(M.command(value),0)
     end
@@ -58,6 +52,5 @@ end
 function M.fail(message)
     M.say(123,'[XIVCrossbar] '..tostring(message))
 end
-
 function M.on(value) return value==true or value=='1' end
 function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
