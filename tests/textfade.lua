@@ -56,7 +56,9 @@ assert(not raw.visible,'Turning option off should immediately restore endpoint-o
 g:set_opacity(1)
 assert(raw.visible and raw.alpha_value==200)
 -- No unexpected alpha changes for ordinary images.
-local icon={calls={},alpha=method('alpha'),show=method('show'),hide=method('hide'),fit=method('fit')}
+local icon=setmetatable({calls={}}, {__index=function(self,key)
+    local fn=method(key);rawset(self,key,fn);return fn
+end})
 local image=g:surface(icon,'image')
 image:alpha(200)
 g:set_opacity(.5)
