@@ -6,6 +6,22 @@ _addon.version = '0.4.0-beta1.20261025.ps5-directlink-diag1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
+-- A: Windower's default module search roots include the shared addons/libs
+-- folder, but not necessarily this addon's own nested libs/ directory.
+-- Extend Lua's path *only for this addon's local fallback*. Otherwise a
+-- request such as require('libs/xml2') probes addons/libs/libs/xml2.lua
+-- instead of xivcrossbar/libs/xml2.lua, even in a complete installation.
+-- Keep shared Windower libraries first and preserve existing package.path.
+do
+    local root = assert(windower.addon_path, 'XIVCrossbar needs windower.addon_path')
+    root = root:gsub('\\', '/')
+    if root:sub(-1) ~= '/' then root = root .. '/' end
+    local local_modules = root .. '?.lua'
+    if not package.path:find(local_modules, 1, true) then
+        package.path = package.path .. ';' .. local_modules
+    end
+end
+
 -- Libs
 res = require 'resources'
 config = require('config')
