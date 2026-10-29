@@ -22,7 +22,7 @@ assert(package.path:find(root..'?.lua',1,true),
     'Local library root is not added to the module search path')
 local fn=require('libs/kebab_casify')
 assert(type(fn)=='function','Bundled Lua module should be importable')
-for lib in source:gmatch([[require%s*%(%s*['"](libs/[^'"]+)['"]]]) do
+for lib in source:gmatch([=[require%s*%(%s*['"](libs/[^'"]+)['"]]=]) do
     assert(io.open(lib..'.lua','rb'), 'Missing local module: '..lib)
 end
 package.path=original
