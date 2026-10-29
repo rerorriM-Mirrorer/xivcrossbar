@@ -75,6 +75,7 @@ local keyboard = require('keyboard_mapper')
 local gamepad = require('gamepad')
 local transport = require('controller_transport')
 local text_input_guard = require('text_input_guard')
+local review_keyboard = require('libs/controller/review_keyboard').new()
 local visibility = require('visibility')
 local player = require('player')
 local storage = require('storage')
@@ -1879,6 +1880,14 @@ local function input_context()
 end
 local message_down={} -- never confuse a DirectLink hold with a physical keyboard F-key
 local function controller_keyboard(dik, pressed, flags, blocked, source)
+    -- Physical keyboard review controls are owned through release. Enter
+    -- confirming a text field belongs to text_input_guard, not this handler.
+    if source~='message' and review_keyboard:edge(dik,pressed,action_binder,
+        not restart_pending and windower.has_focus() and not blocked
+        and not env_chooser:is_showing() and not env_chooser.capturing
+        and not (dik==keyboard.enter and text_input_guard.enter_down)) then
+        return true
+    end
     -- Only mapped controller input is traced; never record typed text or chat.
     if diagnostic and diagnostic.recorder.active and
         (source=='message' or dik==controller_capture_dik or
