@@ -15,7 +15,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-diag1-libfix1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-diagstream1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -285,3 +285,21 @@ nothing needs to be copied into `Windower/addons/libs/`, and no XML DLL is requi
 Install the full ZIP directly as `Windower/addons/xivcrossbar/` (not nested).
 Added a simulated missing-module regression test. Native FFXI/Windower smoke
 testing is still required.
+
+
+2026-10-29: Beta 1 stabilization, no new features. The button-hint show method
+now refuses to reveal Options/Share hints while compact, including requests
+made during a menu transition or fade. Unified diagnostics now merge Lua,
+render and AHK streams directly into an adjacent temporary file, emitting
+bounded lines in chronological order before the completed file is renamed.
+This avoids allocating the entire sorted/concatenated diagnostic log in memory
+at save time. Linux simulated load/regression checks cover a busy capture;
+native Windower 4 and PS5 in-game verification remain pending. If a diagnostic
+still fails to save, preserve the complete console error and any temporary
+file. Do not enable `//xb inputtest` for normal diagnosis; `//xb diagnose`
+observes real actions without converting them into dummy actions.
+
+The community Beta 1 retains the public RC3's chat/help formatting and its
+endpoint-visible caption fade. The personal branch's structured chat formatting
+and `//xb textfade` switch have **not** been ported; no feature additions or
+broad renderer changes are included in this stabilization batch.
