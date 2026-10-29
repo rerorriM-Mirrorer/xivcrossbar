@@ -141,15 +141,16 @@ function M.new(opts)
         end
         local ahk_event=next_ahk()
         while lua_event or render_event or ahk_event do
-            local chosen,source
-            for _,candidate in ipairs({
-                {'lua',lua_event},{'render',render_event},{'ahk',ahk_event}
-            }) do
-                local event=candidate[2]
-                if event and (not chosen or event[1]<chosen[1] or
-                    (event[1]==chosen[1] and event[2]<chosen[2])) then
-                    chosen,source=event,candidate[1]
-                end
+            -- No per-event candidate tables: the recorder itself must not
+            -- create extra garbage while resolving a memory-pressure report.
+            local chosen,source=lua_event,lua_event and 'lua' or nil
+            if render_event and (not chosen or render_event[1]<chosen[1] or
+                (render_event[1]==chosen[1] and render_event[2]<chosen[2])) then
+                chosen,source=render_event,'render'
+            end
+            if ahk_event and (not chosen or ahk_event[1]<chosen[1] or
+                (ahk_event[1]==chosen[1] and ahk_event[2]<chosen[2])) then
+                chosen,source=ahk_event,'ahk'
             end
             emit(string.format('%.6f [%s] %s',chosen[1],chosen[2],chosen[3]))
             if source=='lua' then li=li+1;lua_event=self.events[li]
