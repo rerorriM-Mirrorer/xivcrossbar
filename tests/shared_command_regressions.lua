@@ -24,6 +24,7 @@ local env = setmetatable({
     player = player,
     theme_options = theme_options,
     print = function(message) messages[#messages + 1] = message end,
+    chat_format = {say=function(_,message) messages[#messages + 1]=message end},
     kebab_casify = function(value) return value:lower():gsub(' ', '-'):gsub("'", '') end,
     is_valid_environment = function(key) return key == 'default' or key == 'boss-setup' end,
     set_active_environment = function(key) selected = key end,
