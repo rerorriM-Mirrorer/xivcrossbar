@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261029.ps5-directlink-textfade1'
+_addon.version = '0.4.0-beta1.20261029.ps5-directlink-settling1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -35,6 +35,8 @@ xml = require('libs/xml2')   -- TODO: REMOVE
 -- User settings
 local defaults = require('defaults')
 local settings = config.load(defaults)
+-- Keep new/changed captions transparent until Windower reports a stable width.
+require('ui/text_measure').enabled=settings.TextSettling~=false
 -- A: profile selection replaces the independent legacy backend flags. Existing
 -- unused XML fields remain harmless; only one shared reader can be active.
 local controller_profiles = require('controller_profiles')
@@ -1164,6 +1166,7 @@ function display_help_menu()
     windower.add_to_chat(207, 'hide/show/auto                  Visibility; bound actions remain active')
     windower.add_to_chat(207, 'fade [on/off]                   Toggle fades (also ui fade)')
     windower.add_to_chat(207, 'textfade [on/off/status]        Fade labels along with crossbar slots')
+    windower.add_to_chat(207, 'textsettle [on/off/status]      Prevent stale-width caption flicker')
     windower.add_to_chat(207, 'autohide [on/off]               Trigger-only visibility; bare toggles')
     windower.add_to_chat(207, 'remap                           Rerun the gamepad setup utility')
     windower.add_to_chat(207, 'regenerate                      Regenerate cached resource files')
@@ -1356,6 +1359,11 @@ windower.register_event('addon command', function(command, ...)
         return set_compact_mode(command == 'compact' and args[1] or args[2])
     end
 
+    if command == 'textsettle' then
+        return require('ui/text_measure').command(settings,args[1],
+            function() config.save(settings) end,
+            function(message) windower.add_to_chat(207,'[XIVCrossbar] '..message) end)
+    end
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
         local mode = command == 'textfade' and args[1] or args[2]
         mode = mode and mode:lower()
@@ -2088,6 +2096,8 @@ windower.register_event('gain focus', function() clear_controller_input(true) en
 -- ON PRERENDER
 local next_identity_retry = 0
 windower.register_event('prerender',function()
+    -- Frames, rather than repeated native getters, control caption settling.
+    require('ui/text_measure').begin_frame()
     -- Diagnostic timing is observed before rendering/transport work begins.
     diagnostic:tick(input_context())
     if not restart_pending and profile_clock() >= next_identity_retry then
