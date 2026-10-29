@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261029.ps5-directlink-diagstream1'
+_addon.version = '0.4.0-beta1.20261029.ps5-directlink-textfade1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1163,6 +1163,7 @@ function display_help_menu()
     windower.add_to_chat(207, 'compact [on/off]                Switch layout immediately; bare toggles')
     windower.add_to_chat(207, 'hide/show/auto                  Visibility; bound actions remain active')
     windower.add_to_chat(207, 'fade [on/off]                   Toggle fades (also ui fade)')
+    windower.add_to_chat(207, 'textfade [on/off/status]        Fade labels along with crossbar slots')
     windower.add_to_chat(207, 'autohide [on/off]               Trigger-only visibility; bare toggles')
     windower.add_to_chat(207, 'remap                           Rerun the gamepad setup utility')
     windower.add_to_chat(207, 'regenerate                      Regenerate cached resource files')
@@ -1343,7 +1344,7 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(207, '[XIVCrossbar] Profile: ' ..
             (storage.identity_valid and (player.server .. '/' .. player.name) or 'waiting for a stable in-world character'))
         windower.add_to_chat(207, '[XIVCrossbar] Set: ' .. tostring(player.hotbar_settings.active_environment) .. ' | Visibility: ' .. settings.VisibilityMode .. ' | Scale: ' .. tostring(settings.CrossbarScale))
-        windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
+        windower.add_to_chat(207, '[XIVCrossbar] Fades: ' .. tostring(settings.Animation.Enabled) .. ' | TextFade: ' .. tostring(settings.Animation.TextFade == true) .. ' | D-pad: ' .. settings.GameplayDPad .. ' | Text entry: ' .. tostring(text_input_guard.active))
         windower.add_to_chat(207, '[XIVCrossbar] Compact: ' .. (settings.iscompact and 'ON' or 'OFF'))
         windower.add_to_chat(207, '[XIVCrossbar] Ready: ' .. tostring(xivcrossbar.ready == true) ..
             ' | Setup: ' .. tostring(gamepad_mapper.is_showing == true) .. ' (state ' .. tostring(gamepad_mapper.state) ..
@@ -1353,6 +1354,25 @@ windower.register_event('addon command', function(command, ...)
 
     if command == 'compact' or (command == 'ui' and args[1] == 'compact') then
         return set_compact_mode(command == 'compact' and args[1] or args[2])
+    end
+
+    if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
+        local mode = command == 'textfade' and args[1] or args[2]
+        mode = mode and mode:lower()
+        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
+            windower.add_to_chat(123, '[XIVCrossbar] //xb textfade [on|off|status]')
+            return
+        end
+        if mode ~= 'status' then
+            local enabled = mode == 'on' or (not mode and not settings.Animation.TextFade)
+            settings.Animation.TextFade = enabled
+            theme_options.text_fade = enabled
+            ui.geometry:set_text_fade(enabled)
+            config.save(settings)
+        end
+        windower.add_to_chat(207, '[XIVCrossbar] Text fade: ' ..
+            (settings.Animation.TextFade and 'ON (with crossbar)' or 'OFF (endpoint visibility)'))
+        return
     end
 
     if command == 'ui' and args[1] == 'fade' then
