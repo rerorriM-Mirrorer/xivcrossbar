@@ -51,11 +51,14 @@ local function draw_surface(g, object, m)
         if padding ~= m.draw_padding then object:pad(padding);m.draw_padding=padding end
     end
     if m.center_x then
-        local width=object:extents()
+        -- Width can be stale for one or more native draw frames. Keep the
+        -- previous position/opacity gated until a verified width is ready.
+        local width=object:measure_width()
         if trace.enabled then trace.call(object,'center-measure',m.center_x,m.center_y,width,g.scale) end
-        if width and width>0 then
+        if width~=nil then
             m.x,m.y=m.center_x-width/g.scale/2,m.center_y
             draw_position(g,object,m,m.x,m.y)
+            object:commit_measurement()
         end
     elseif m.x then draw_position(g,object,m,m.x,m.y) end
     draw_opacity(g,m)
