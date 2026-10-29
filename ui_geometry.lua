@@ -89,12 +89,12 @@ local function rounded_alpha(alpha, opacity)
 end
 
 draw_opacity = function(g, m)
-    -- Crossbar text uses endpoint visibility: no partially faded glyphs.
-    -- Images/primitives retain the continuous fade, and other geometry owners
-    -- without fades (such as the chooser) retain their normal text behavior.
+    -- Preserve endpoint-only labels by default. The opt-in text fade uses
+    -- the same opacity curve for captions, text backgrounds and strokes as
+    -- for icons; no text layout/measurement behavior is changed.
     local opacity=g.opacity
     local animated_text = g.fade_enabled or g.startup_reveal
-    if m.kind=='text' and animated_text then
+    if m.kind=='text' and animated_text and not g.text_fade then
         opacity=(g.opacity==1 and g.fade and g.fade.target==1) and 1 or 0
     end
     local alpha=rounded_alpha(m.alpha,opacity)
@@ -108,12 +108,30 @@ draw_opacity = function(g, m)
         if stroke ~= m.draw_stroke_alpha then m.object:stroke_alpha(stroke);m.draw_stroke_alpha=stroke end
     end
     if m.kind=='text' then
-        local visible=m.visible and (not animated_text or opacity==1)
+        -- Retain labels throughout fade-out when explicitly opted in: the
+        -- geometry retains them as defer_visible until opacity reaches zero.
+        local visible
+        if g.text_fade then
+            visible=(m.visible or m.defer_visible) and (not animated_text or opacity>0)
+        else
+            visible=m.visible and (not animated_text or opacity==1)
+        end
         if visible and not m.draw_visible then m.object:show();m.draw_visible=true
         elseif not visible and m.draw_visible then m.object:hide();m.draw_visible=false end
     end
     if g.opacity == 0 and m.defer_visible then
         m.object:hide();m.draw_visible=false;m.defer_visible=nil
+    end
+end
+
+function geometry:set_text_fade(enabled)
+    self.text_fade = enabled == true
+    -- Re-evaluate existing labels immediately; no UI rebuild or fade reset.
+    for _, m in pairs(self.surfaces) do
+        if m.kind=='text' then draw_opacity(self,m) end
+    end
+    for _, m in ipairs(self.retired) do
+        if m.kind=='text' then draw_opacity(self,m) end
     end
 end
 
