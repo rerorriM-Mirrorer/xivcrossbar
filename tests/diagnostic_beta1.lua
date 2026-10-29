@@ -98,3 +98,62 @@ assert(ahk:find('DiagTick()',1,true) and ahk:find('DiagSample(states,active,phas
 assert(controller:find('GetSystemTimeAsFileTime',1,true))
 assert(not root:find('require(\"libs/banks',1,true))
 print('Beta 1 diagnostics integration and isolation checks passed.')
+
+
+-- Regression: a busy 30-second session must stream lines instead of building
+-- a giant final string in LuaJIT/Windower. Check output chronology and limits.
+local stream_count,stream_bytes,stream_prev=0,0,-math.huge
+local saw_lua,saw_render,saw_ahk=false,false,false
+local streaming=require('diagnostic_session').new({
+    clock=function()return clock end,date=function()return '20261029-220000' end,
+    directory=directory,staging=stage,
+    limit=1400,mkdir=function()end,request=function()return true end,
+    read=function(self_feed) return fake_feed end,
+    write=function()error('Production must not construct an in-memory log string') end,
+    write_stream=function(_,produce)
+        produce(function(line)
+            stream_bytes=stream_bytes+#line+1
+            if line:find(' [',1,true) then
+                local stamp,kind=line:match('^(%d+%.%d+) %[(%w+)%]')
+                if stamp then
+                    local t=tonumber(stamp)
+                    assert(t>=stream_prev,'Merged timeline not chronological')
+                    stream_prev=t
+                    saw_lua=saw_lua or kind=='DIRECTLINK'
+                    saw_render=saw_render or kind=='RENDER'
+                    saw_ahk=saw_ahk or kind=='AHK'
+                    stream_count=stream_count+1
+                end
+            end
+        end)
+        return true
+    end,
+    render_lines=function()
+        local result={}
+        for i=1,1700 do
+            result[i]=string.format('%.6f\t%d\tnative.alpha\t1|text|bar|caption|rev=1|A\t%d',
+                201+i/10000,i,i%256)
+        end
+        return result,10,{frames=1700}
+    end,
+    render_stop=function()end
+})
+clock=200
+assert(streaming:start('Franklet',{ready=true}))
+for i=1,1500 do
+    clock=200+i/10000
+    streaming:record('DIRECTLINK','button='..i)
+end
+fake_feed='# diagnostic-feed '..streaming.id..'\nstate=stopped\ndropped=0\n201100 poll mask=11\n'
+clock=202
+streaming:stop('manual',{ready=true})
+clock=203
+streaming:tick()
+assert(stream_count>3000 and stream_bytes>100000,'Stress output unexpectedly truncated')
+assert(saw_lua and saw_render and saw_ahk,'Merged capture lost a diagnostic source')
+assert(streaming.last_error==nil,'Streaming session failed to save')
+assert(streaming.dropped==100,'Lua event cap/drop count changed')
+local ui_source=read('ui.lua')
+assert(ui_source:find('if self.is_compact then self:hide_button_hints();return end',1,true),
+    'Compact UI hints must be guarded at their show function')
+print('Large timeline streams incrementally, in order, with drops counted; compact hints remain hidden.')
