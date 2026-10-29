@@ -38,7 +38,8 @@ function M.legacy(tone,message)
     local text=tostring(message)
     local body,count=text:gsub('^%[XIV[Cc]rossbar%]%s*','',1)
     if count==0 then body,count=text:gsub('^XIVCROSSBAR:%s*','',1) end
-    if count==0 then return color(text,tone) end
+    -- Already composed heading/row strings keep their individual colors.
+    if count==0 then return tone==0 and text or color(text,tone) end
     local prefix=color('[XIVcrossbar]',200)..' '
     local label,value=body:match('^([%w%s%-%/]+):%s*(.+)$')
     if label then
