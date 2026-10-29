@@ -55,3 +55,4 @@ function M.fail(message)
 end
 function M.on(value) return value==true or value=='1' end
 function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
+return M
