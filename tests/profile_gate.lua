@@ -13,6 +13,7 @@ local initialized,reloads=0,0
 local state={ready=false}
 local storage={identity_valid=false}
 local env=setmetatable({profile_gate=gate,xivcrossbar=state,storage=storage,player={},resources={servers=servers},
+ chat_format={say=function()end},
     crossbar_drag={finish=function()end},ui={is_setup=true,hide=function()end},
     windower={ffxi={get_info=function()return info end,get_player=function()return player end,
         get_mob_by_id=function()return entity end},add_to_chat=function()end,
