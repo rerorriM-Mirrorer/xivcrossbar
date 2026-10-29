@@ -17,7 +17,7 @@ end
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
 local first=assert(source:find('function save_custom_action(',1,true))
 local last=assert(source:find('-- Delete Custom Action callback',first,true))
-local env=setmetatable({player=player,windower=windower}, {__index=_G})
+local env=setmetatable({player=player,windower=windower,chat_format={say=function()end}}, {__index=_G})
 assert(load(source:sub(first,last-1),'actual catalog save/update','t',env))()
 local options=require('theme').apply(require('defaults'));options.button_layout='playstation'
 local function select_id(id)
