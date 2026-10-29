@@ -36,7 +36,7 @@ local original_frame=measure.frame
 local raw_objects={}
 local function native()
     local o={values={alpha=255,bg_alpha=0,stroke_alpha=255,size=12,
-        text='',font='sans-serif',stroke_width=2},visible=false,reads=0}
+        text='',font='sans-serif',stroke_width=2},visible=false,destroyed=false,reads=0}
     raw_objects[#raw_objects+1]=o
     return setmetatable(o,{__index=function(_,key)
         return function(self,...)
