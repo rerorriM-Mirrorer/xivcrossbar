@@ -817,6 +817,9 @@ function ui:maybe_show_button_hints()
 end
 
 function ui:show_button_hints()
+    -- Compact is a strict hide policy: menu/fade callbacks must not revive
+    -- the Options/Share hint for a single frame.
+    if self.is_compact then self:hide_button_hints();return end
     self.button_hints_visible=true
     self.action_binder_icon:show()
     self.action_binder_text:show()
