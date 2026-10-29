@@ -1,5 +1,7 @@
 # XIVCrossbar — Beta 1 PS5 DirectLink testing candidate
 
+**New to this beta?** [Two-minute setup and new commands](BETA-QUICKSTART.md).
+
 Current verification and pending in-game checks: [TESTING.md](TESTING.md).
 Focused PS5 acceptance checklist: [Beta 1 scope](docs/BETA1-PS5-DIRECTLINK-SCOPE.md).
 
@@ -15,7 +17,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-textfade1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-settling1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -120,6 +122,7 @@ Dragging also works while addon menus are open.
 - `//xb autohide [on|off]`: show crossbars with trigger input; bare command toggles.
 - `//xb fade [on|off]`: enable or disable regular crossbar fading; bare command toggles.
 - `//xb textfade [on|off|status]`: optionally fade captions and text strokes/backgrounds with the slot artwork. Defaults OFF (original endpoint-only captions); bare command toggles, `status` reports without changing settings.
+- `//xb textsettle [on|off|status]`: hide newly changed centered text until its native width settles, then reveal at its correct position. Defaults ON; bare toggles.
 - `//xb compact [on|off]`: switch layout immediately; bare command toggles.
 - `//xb scale <number>`: change crossbar scale, from 0.25 to 2. Menus keep their own layout.
 - `//xb hide`, `//xb show`, `//xb auto`: manually hide, show continuously, or use autohide.
@@ -318,3 +321,14 @@ it on/off updates current labels without recreating bars or changing input,
 layouts, or timing. Regression coverage includes startup/regular fade logic,
 mid-fade labels, fade-out retention, baseline default and image parity.
 No personal text-measurement or settling algorithm has been imported.
+
+
+2026-10-29: Public Beta 1 text flicker stabilization. Ported the previously
+personal centered-caption measurement system (a bounded stable-width cache,
+frame-separated width confirmation, transparent pending labels and a capped
+fallback) to the existing public UI resource/geometry code. It is enabled by
+default and independently toggled by `//xb textsettle [on|off|status]`;
+`//xb textfade` stays opt-in and retains requested alpha during settling.
+The Save/Review inline keyboard editor was already included and is unchanged.
+Added [BETA-QUICKSTART.md](BETA-QUICKSTART.md) as the terse new-user guide.
+Automated tests are simulated, not live FFXI acceptance.
