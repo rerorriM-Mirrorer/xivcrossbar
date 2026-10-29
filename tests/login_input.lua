@@ -20,12 +20,13 @@ local last=assert(source:find("\nend\nwindower.register_event('keyboard', contro
 local handler,commands
 commands={}
 local ready=false
-local env=setmetatable({keyboard={esc=1,enter=28},text_input_guard={enter_edge=function()return false end},
+local env=setmetatable({keyboard={esc=1,enter=28},review_keyboard={edge=function()return false end},text_input_guard={enter_edge=function()return false end},
     gamepad_mapper={is_showing=false},action_binder={is_hidden=true,is_capturing_text=function()return false end},
     env_chooser={is_showing=function()return false end},settings={GameplayDPad='ijkl'},
     gamepad_state={capturing=true},controller_capture_dik=221,transport=t,gameplay_down={},message_down={},
     buttonmapping={},input_context=function()return ready and 'gameplay' or 'login'end,
     windower={register_event=function(_,fn)handler=fn end,
+        has_focus=function()return true end,
         send_command=function(c)commands[#commands+1]=c end},
     handle_controller_key=function()error('login signal reached gameplay handler')end}, {__index=_G})
 handler=assert(load(source:sub(first,last+3)..'\nreturn controller_keyboard','root keyboard','t',env))()
