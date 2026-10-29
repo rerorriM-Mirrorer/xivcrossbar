@@ -3622,6 +3622,13 @@ function action_binder:update_text_entry_display()
     self:show_exit_hint()
 end
 
+-- Physical keyboard navigation is only accepted on review/confirmation
+-- screens, never during inline typing, set selection or ordinary gameplay.
+function action_binder:is_keyboard_review()
+    return not self.is_hidden and not self.chooser_active and not self.capturing_text
+        and (self.state==states.EDIT_CUSTOM_ACTION_REVIEW or self.state==states.CONFIRM_CUSTOM_ACTION)
+end
+
 function action_binder:set_capturing_text(enabled)
     self.capturing_text = enabled
     require('text_input_guard'):update(enabled, windower.send_command)
