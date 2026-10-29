@@ -41,9 +41,56 @@ function M.legacy(tone,message)
     -- Already composed heading/row strings keep their individual colors.
     if count==0 then return tone==0 and text or color(text,tone) end
     local prefix=color('[XIVcrossbar]',200)..' '
-    local label,value=body:match('^([%w%s%-%/]+):%s*(.+)$')
+    local action,slot,set=body:match('^Bound "(.-)" to (.-) %- (.-) Crossbar%.
+end
+function M.say(tone,message)
+    windower.add_to_chat(0,M.legacy(tone,message))
+end
+function M.fail(message)
+    M.say(123,'[XIVCrossbar] '..tostring(message))
+end
+function M.on(value) return value==true or value=='1' end
+function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
+return M
+)
+    if action then
+        return prefix..color('Bound ',207)..color('"'..action..'"',0)..
+            color(' to ',207)..color(slot,0)..color(' | Set: ',207)..color(set,0)
+    end
+    local cleared,from=body:match('^Cleared (.-) %- (.-) Crossbar%.
+end
+function M.say(tone,message)
+    windower.add_to_chat(0,M.legacy(tone,message))
+end
+function M.fail(message)
+    M.say(123,'[XIVCrossbar] '..tostring(message))
+end
+function M.on(value) return value==true or value=='1' end
+function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
+return M
+)
+    if cleared then
+        return prefix..color('Cleared ',207)..color(cleared,0)..
+            color(' | Set: ',207)..color(from,0)
+    end
+    local label,value=body:match('^([%w%s%-%/]+):%s*(.+)
+end
+function M.say(tone,message)
+    windower.add_to_chat(0,M.legacy(tone,message))
+end
+function M.fail(message)
+    M.say(123,'[XIVCrossbar] '..tostring(message))
+end
+function M.on(value) return value==true or value=='1' end
+function M.toggle(value) return color(M.on(value) and 'ON' or 'OFF',M.on(value) and 158 or 0) end
+return M
+)
     if label then
-        return prefix..color(label..':',tone==123 and 167 or 207)..' '..color(M.command(value),0)
+        local v
+        if value=='ON' then v=color('ON',158)
+        elseif value=='OFF' then v=color('OFF',0)
+        else v=color(M.command(value),0) end
+        return prefix..color(label..':',tone==123 and 167 or 207)..' '..v
     end
     return prefix..color(M.command(body),tone==123 and 167 or tone==140 and 140 or tone==0 and 0 or 207)
 end
