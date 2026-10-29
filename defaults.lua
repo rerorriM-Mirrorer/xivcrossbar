@@ -147,6 +147,7 @@ defaults.ControllerModifier = 'apps'
 defaults.GameplayDPad = 'arrows'
 defaults.VisibilityMode = 'always' -- always, oninput, hidden
 defaults.CrossbarScale = 1
-defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2}
+-- Leave legacy endpoint-visible labels unchanged unless explicitly enabled.
+defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2, TextFade=false}
 
 return defaults
