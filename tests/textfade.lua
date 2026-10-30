@@ -4,11 +4,11 @@ package.loaded.socket={gettime=function()return now end}
 local geometry=require('ui_geometry')
 local defaults=require('defaults')
 local theme=require('theme')
-assert(defaults.Animation.TextFade==false,'New installs must retain endpoint text default')
-assert(theme.apply(defaults).text_fade==false,'Theme must preserve default')
-defaults.Animation.TextFade=true
-assert(theme.apply(defaults).text_fade==true,'Theme must load saved opt-in')
+assert(defaults.Animation.TextFade==true,'New installs must fade labels with slots')
+assert(theme.apply(defaults).text_fade==true,'Theme must preserve new default')
 defaults.Animation.TextFade=false
+assert(theme.apply(defaults).text_fade==false,'Saved opt-out must restore endpoint visibility')
+defaults.Animation.TextFade=true
 local raw={visible=false,calls={}}
 local function method(key)
     return function(self,...)
