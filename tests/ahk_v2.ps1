@@ -103,6 +103,45 @@ public class DialogDump {
     if ($status -notmatch 'origin=launch-file' -or $status -notmatch 'device=2' -or $status -notmatch 'modifier=ctrl' -or $status -notmatch 'profile=ps5-extended') { throw 'Launch-file selection was replaced by defaults' }
     [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
     if (!$handoffWrapper.WaitForExit(5000)) { throw 'Launch-file wrapper failed to stop' }
+    # Windower is a 32-bit parent. Its ProgramFiles may point to the x86
+    # installation root even though the user's v2 is installed under native PF.
+    # Exercise a real WOW64 CMD -> Windows PowerShell process, no INI override.
+    $nativeRoot = Join-Path $fixture 'native program files'
+    $x86Root = Join-Path $fixture 'x86 program files'
+    $installedV2 = Join-Path $nativeRoot 'AutoHotkey\v2'
+    [void][IO.Directory]::CreateDirectory($installedV2)
+    Copy-Item $Interpreter (Join-Path $installedV2 (Split-Path $Interpreter -Leaf))
+    [IO.File]::Delete((Join-Path $fixture 'data\controller-runtime.ini'))
+    $wowCmd = Join-Path $env:SystemRoot 'SysWOW64\cmd.exe'
+    if (!(Test-Path $wowCmd)) { throw 'WOW64 CMD is required for the Windower startup regression' }
+    $shim = Join-Path $fixture 'windower-32bit-launch.cmd'
+    $shimBody = @'
+@echo off
+set "ProgramFiles={0}"
+set "ProgramFiles(x86)={0}"
+set "ProgramW6432={1}"
+powershell.exe -NoProfile -NonInteractive -Command "[IntPtr]::Size * 8" > "{2}"
+call "{3}" apps ps5-extended 1
+exit /b %errorlevel%
+'@ -f $x86Root, $nativeRoot, (Join-Path $fixture 'launcher-bits.txt'), (Join-Path $fixture 'launch-controller.cmd')
+    [IO.File]::WriteAllText($shim, $shimBody)
+    $discovery = Start-Process $wowCmd -ArgumentList ('/d /s /c ""{0}""' -f $shim) -PassThru -RedirectStandardError (Join-Path $resultPath 'wow64-discovery-errors.txt')
+    $children += $discovery
+    if (!$discovery.WaitForExit(10000) -or $discovery.ExitCode -ne 0) { throw '32-bit Windower-style automatic v2 discovery failed' }
+    if (([IO.File]::ReadAllText((Join-Path $fixture 'launcher-bits.txt'))).Trim() -ne '32') { throw 'Discovery fixture did not use 32-bit PowerShell' }
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        Start-Sleep -Milliseconds 50
+        $status = [IO.File]::ReadAllText($statusPath)
+    } while ($status -match 'pid=0' -and [DateTime]::UtcNow -lt $deadline)
+    if ($status -notmatch '(?m)^pid=([1-9][0-9]*)\r?$') { throw 'Automatic discovery did not start the wrapper' }
+    $discoveredWrapper = Get-Process -Id ([int]$Matches[1])
+    $children += $discoveredWrapper
+    if (!$status.Contains($installedV2)) { throw 'Discovery did not use native Program Files interpreter' }
+    Copy-Item $statusPath (Join-Path $resultPath 'wow64-status.ini')
+    [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
+    if (!$discoveredWrapper.WaitForExit(5000)) { throw 'Automatically discovered wrapper failed to stop' }
+    'PASS actual 32-bit CMD/PowerShell discovers v2 in native Program Files without an override.' | Tee-Object -FilePath (Join-Path $resultPath 'wow64-summary.txt')
     # A wrong executable override must fail closed, without association fallback.
     $wrongRuntime = (Get-Command powershell.exe).Source
     [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-runtime.ini'), "[Runtime]`r`nexecutable=$wrongRuntime`r`n")
