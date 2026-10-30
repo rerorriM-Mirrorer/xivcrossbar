@@ -25,9 +25,11 @@ assert(visibility.should_show(d.VisibilityMode,false,false,true),
 assert(not visibility.should_show(d.VisibilityMode,true,true,false),
     'Cutscenes suppress bar')
 -- Simulate saved values taking precedence after config has merged settings.
-local saved={Animation={Enabled=true,TextFade=false},AutoAttackIndicator={Enabled=true}}
-assert(theme.apply(saved).text_fade==false and theme.apply(saved).aa_enabled==true,
+local previous_fade,previous_tracking=d.Animation.TextFade,d.AutoAttackIndicator.Enabled
+d.Animation.TextFade,d.AutoAttackIndicator.Enabled=false,true
+assert(theme.apply(d).text_fade==false and theme.apply(d).aa_enabled==true,
     'User-chosen opposite values must remain effective')
+d.Animation.TextFade,d.AutoAttackIndicator.Enabled=previous_fade,previous_tracking
 assert(visibility.should_show('always',false,false,false),
     'User-selected always-visible mode must remain supported')
 assert(controller:gameplay_key({arrow='up'}, {},'arrows')=='up',
