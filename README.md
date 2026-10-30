@@ -1499,3 +1499,14 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   physical-key checks: query scan codes for touchpad and comma/period stick-click actions while retaining their sent VK/SC identities.
   Press/release ownership checks remain in place. See docs/AHK-V2-TOUCHFIX1.md;
   restart the wrapper after overlaying personal_controls.ahk.
+
+### October 30, 2026 — AHK v2 Context Poll 1
+
+- Personal controls and Trust Ready movement share one context observation per
+  poll. Retains immediate publication retry, session/focus guards and timing;
+  no permission is cached across polls. Send mode does not use the duplicate
+  context lookup, so no general speedup is claimed.
+- Unified controller diagnostics add observation/reuse/scan/file-read counters.
+  Restart the wrapper after overlaying all three AHK files; see
+  docs/AHK-V2-CONTEXT-POLL1.md. User reports touchpad working and last-client
+  shutdown now reliable; camera spin had stopped before Touch Fix 1.

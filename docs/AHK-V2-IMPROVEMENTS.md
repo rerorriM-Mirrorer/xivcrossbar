@@ -2,8 +2,9 @@
 
 Source inspected: ed86e5f (v1 baseline) and the v2 migration. Evidence paths and
 line numbers below refer to the initial v2 source checkpoint 6b7105d; functions
-are stable anchors if later documentation shifts line numbers. No optional
-proposal below is implemented. This is an audit of source behavior, not a claim
+are stable anchors if later documentation shifts line numbers. At migration
+delivery none of the optional proposals was implemented. P1 is now implemented
+in the separate Context Poll 1 batch; other proposals remain unimplemented. This is an audit of source behavior, not a claim
 of measured latency or CPU improvements.
 
 ## Is DirectLink more complicated than necessary?
@@ -56,8 +57,10 @@ within a single tick; simpler diagnostics.
 **Tradeoffs/risks:** A mid-poll focus/context change still needs the existing
 final owner check. An overly broad cache could authorize a stale action.
 
-**Effort:** Medium. **Priority:** 1. **Disposition:** Proposed only; independent
-of AHK v2. This is the recommended first implementation batch after validation.
+**Effort:** Medium. **Priority:** 1. **Disposition:** Implemented in the separate
+Context Poll 1 batch, independent of AHK v2. See docs/AHK-V2-CONTEXT-POLL1.md.
+The duplicate occurs in Ready movement evaluation, not every poll or Send mode.
+Per-poll counters expose reuse; no measured CPU/latency benefit is claimed.
 
 ### P2 — Explicit negotiated route state
 
@@ -156,7 +159,9 @@ live client. Preserve fail-live ownership behavior.
 
 **Effort:** Medium investigation. **Priority:** 1 for a focused bug investigation,
 parallel in scheduling with performance work but a separate code batch.
-**Disposition:** Proposed only; independent of v2; existing problem preserved.
+**Disposition:** Proposed only; independent of v2. October 30 update: user
+reports last-client shutdown now seems reliable. No new cause/fix is established;
+retain historical evidence and investigate only if the symptom recurs.
 
 ### P6 — Observable snapshot-write failures
 
@@ -245,8 +250,9 @@ focus policy and FFXI context remain app-specific.
 
 ## Smallest next batch
 
-After live v2 acceptance: implement only the per-poll context observation (P1),
-with equivalent event traces and a context-read counter in the existing capture.
-Keep all timing, transport and fallback behavior unchanged. Investigate shutdown
-(P5) as a separate reproducible bug batch. Do not bundle the route refactor,
-transport replacement, legacy removal or launcher integration into either.
+P1 is implemented separately as Context Poll 1 and awaits live acceptance.
+After that validation, P6 (bounded write-failure details in unified capture) is
+the smallest observability batch worth considering. Last-client shutdown is now
+reported reliable; retain P5 for recurrence, not an assumed active bug. Do not
+bundle route refactoring, transport replacement, legacy removal or launcher
+integration into either batch.
