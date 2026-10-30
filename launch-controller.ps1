@@ -53,7 +53,7 @@ try {
         $identity = [Diagnostics.FileVersionInfo]::GetVersionInfo($interpreter)
         $runtimeVersion = '{0}.{1}.{2}' -f $identity.FileMajorPart, $identity.FileMinorPart, $identity.FileBuildPart
         $runtimeSize = (Get-Item -LiteralPath $interpreter).Length
-        $cache = "[Runtime]`nprotocol=ahk-v2-cache1`nexecutable=$interpreter`nversion=$runtimeVersion`nsize=$runtimeSize`nEND`n"
+        $cache = "[Runtime]`nprotocol=ahk-v2-cache1`nexecutable=$interpreter`nversion=$runtimeVersion`nsize=$runtimeSize`nbootstrap_bits=$([IntPtr]::Size * 8)`nEND`n"
         [IO.File]::WriteAllText((Join-Path $dataPath 'controller-runtime-cache.ini'), $cache, (New-Object Text.UTF8Encoding($false)))
     } catch { }
     $script = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'

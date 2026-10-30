@@ -142,15 +142,18 @@ public class DialogDump {
 set "ProgramFiles={0}"
 set "ProgramFiles(x86)={0}"
 set "ProgramW6432={1}"
-powershell.exe -NoProfile -NonInteractive -Command "[IntPtr]::Size * 8" > "{2}"
-call "{3}" apps ps5-extended 1
+call "{2}" apps ps5-extended 1
 exit /b %errorlevel%
-'@ -f $x86Root, $nativeRoot, (Join-Path $fixture 'launcher-bits.txt'), (Join-Path $fixture 'launch-controller.cmd')
+'@ -f $x86Root, $nativeRoot, (Join-Path $fixture 'launch-controller.cmd')
     [IO.File]::WriteAllText($shim, $shimBody)
     $discovery = Start-Process $wowCmd -ArgumentList ('/d /s /c ""{0}""' -f $shim) -PassThru -RedirectStandardError (Join-Path $resultPath 'wow64-discovery-errors.txt')
     $children += $discovery
-    if (!$discovery.WaitForExit(10000) -or $discovery.ExitCode -ne 0) { throw '32-bit Windower-style automatic v2 discovery failed' }
-    if (([IO.File]::ReadAllText((Join-Path $fixture 'launcher-bits.txt'))).Trim() -ne '32') { throw 'Discovery fixture did not use 32-bit PowerShell' }
+    if (!$discovery.WaitForExit(20000) -or $discovery.ExitCode -ne 0) {
+        Get-Content (Join-Path $resultPath 'wow64-discovery-errors.txt')
+        Get-Content (Join-Path $fixture 'data\controller-launch-error.log') -ErrorAction SilentlyContinue
+        throw '32-bit Windower-style automatic v2 discovery failed'
+    }
+    if ([IO.File]::ReadAllText((Join-Path $fixture 'data\controller-runtime-cache.ini')) -notmatch 'bootstrap_bits=32') { throw 'Discovery fixture did not use 32-bit PowerShell' }
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     do {
         Start-Sleep -Milliseconds 50
