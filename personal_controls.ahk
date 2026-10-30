@@ -448,13 +448,19 @@ PersonalL1Event(kind, slot := 0) {
     return PublishControllerFile(temporary, destination, contents)
 }
 
+PersonalPhysicalKey(key) {
+    ; Send accepts combined VK/SC names; GetKeyState does not. Keep the
+    ; touchpad's send identity intact, querying its physical scan code only.
+    return GetKeyState(key = "vkC0sc029" ? "sc029" : key, "P")
+}
+
 PersonalKey(key, down) {
     global PC
     if (down) {
         if (PC.keys.Has(key) or !PC.owner or PC.owner != WinActive("ahk_class FFXiClass"))
             return
         ; A genuinely held keyboard key remains owned by the keyboard.
-        if GetKeyState(key, "P")
+        if PersonalPhysicalKey(key)
             return
         PC.keys[key] := PC.owner
         InputTraceRecord("personal " . key . " down owner=" . PC.owner)
@@ -463,7 +469,7 @@ PersonalKey(key, down) {
         owner := PC.keys[key]
         InputTraceRecord("personal " . key . " up owner=" . owner)
         if (owner = WinExist("A")) {
-            if (!GetKeyState(key, "P"))
+            if (!PersonalPhysicalKey(key))
                 SendEvent("{Blind}{" . key . " up}")
         } else if WinExist("ahk_id " . owner)
             try ControlSend("{" . key . " up}", , "ahk_id " . owner)

@@ -31,6 +31,9 @@ Assert(A_KeyDelay = 10 and A_KeyDuration = -1, "v1 event delays")
 record := WrapperClientRecord("[Client]`nprotocol=owner-file-v1`nid=test-1`nstate=loaded`nkill=true`nclosed=0`n")
 Assert(record.id = "test-1" and record.kill = "true", "native regex capture objects")
 Assert(!WrapperClientRecord("[Client]`nprotocol=wrong`n"), "malformed client record")
+; Actual v2 query: the reported combined-name exception must not recur.
+Assert(PersonalPhysicalKey("vkC0sc029") = GetKeyState("sc029", "P"), "touch physical scan query")
+Assert(PersonalPhysicalKey("Escape") = GetKeyState("Escape", "P"), "ordinary key query unchanged")
 g := {phase:"idle"}
 Assert(PersonalTouchStep(g, true, false, false, 100) = "", "touch arm")
 Assert(PersonalTouchStep(g, true, true, false, 599) = "", "touch threshold before")

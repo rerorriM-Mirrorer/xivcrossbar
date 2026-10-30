@@ -7,7 +7,7 @@ function extract(name){const a=source.indexOf('\n'+name+'(')+1;assert(a>0);
 const gestures=require('./ahk_source').read('personal_gestures.ahk','utf8');
 const r1start=gestures.indexOf('\nPersonalR1Step(')+1;
 let code=gestures.slice(r1start,gestures.indexOf('\n}\n',r1start)+2)+'\n'+
-  ['PersonalPoll','PersonalBanksPoll','PersonalNativeDPad','PersonalR1Menus','PersonalR1MenuLease','PersonalR1Tap','PersonalFilter','PersonalRealKeyLease','PersonalKey','PersonalRelease'].map(extract).join('\n');
+  ['PersonalPoll','PersonalBanksPoll','PersonalNativeDPad','PersonalR1Menus','PersonalR1MenuLease','PersonalR1Tap','PersonalFilter','PersonalRealKeyLease','PersonalPhysicalKey','PersonalKey','PersonalRelease'].filter(name=>source.includes('\n'+name+'(')).map(extract).join('\n');
 code=code.replace(/^\s*global .*$/gm,'').replace(/^\s*;[^\n]*$/gm,'')
   .replace(/SendEvent, % ([^\n]+)/g,'SendEvent($1)')
   .replace(/ControlSend,, % ([^\n]+), ahk_id %owner%/g,'ControlSend($1,owner)');
@@ -18,7 +18,7 @@ code=code.replace(/for (\w+), (\w+) in ([^\n{]+|\{[^\n]+\})\s*(\{)?\n/g,
   (_,k,v,e,brace)=>`for (const [${k},${v}] of ahkEnum(${e.trim()})) ${brace||''}\n`)
   .replace(/for (\w+) in ([^\n]+)\n/g,(_,k,e)=>`for (const [${k}] of ahkEnum(${e.trim()}))\n`)
   .replace(/Loop, (\d+)[ \t]*(\{)?\n/g,(_,n,brace)=>`for(let A_Index=1;A_Index<=${n};A_Index++) ${brace||''}\n`)
-  .replace(/if (GetKeyState|WinExist|PersonalOtherWindow)\(([^)\n]+)\)/g,'if ($1($2))')
+  .replace(/if (GetKeyState|PersonalPhysicalKey|WinExist|PersonalOtherWindow)\(([^)\n]+)\)/g,'if ($1($2))')
   .replace(/^(Personal\w+\([^\n]+\)) \{/gm,'function $1 { let eligible, enabled, retired, owner, keys;');
 function* ahkEnum(o){if(Array.isArray(o)){for(let i=0;i<o.length;i++)yield[i+1,o[i]];return;}
   let index=0;while(true){const keys=Object.keys(o);if(index>=keys.length)return;
@@ -27,7 +27,7 @@ function object(v={}){return Object.defineProperties(v,{Delete:{value:k=>delete 
   Count:{value:()=>Object.keys(v).length},HasKey:{value:k=>Object.hasOwn(v,k)}});}
 const emitted=[],traces=[],messages=[],physical=new Set();let active=1;
 const ctx={PC:{},CM:{},appsOwned:false,ahkEnum,GetKeyState:k=>physical.has(k),
-  WinActive:()=>active,WinExist:()=>active,
+  PersonalPhysicalKey:k=>physical.has(k),WinActive:()=>active,WinExist:()=>active,
   SendEvent:s=>emitted.push(['send',s]),ControlSend:(s,o)=>emitted.push(['control',s,o]),
   InputTraceRecord:s=>traces.push(s),ControllerMessageAdd:(kind,button)=>messages.push([kind,button]),
   ControllerMessageFlush:()=>true,IsObject:o=>o&&typeof o==='object',PersonalL1Event:()=>{},PersonalNativeReset:()=>{},
@@ -179,3 +179,16 @@ fresh();Object.assign(ctx.PC,{connected:true,prefix:'',banks:false,ready:false})
 poll();assert(!ctx.PC.ready,'Trust context armed without negotiated banks');
 ctx.mode='gameplay';
 console.log('Actual AHK Trust full poll: neutral arming, physical navigation forwarding and native shortcut suppression passed.');
+
+// Native v2 rejects combined VK/SC queries. Preserve sent identity and query SC.
+if (!process.env.XIV_AHK_BASELINE) {
+ fresh();const original=ctx.GetKeyState,queries=[];
+ ctx.GetKeyState=k=>{queries.push(k);assert(!/^vk[0-9a-f]+sc/i.test(k));return physical.has(k);};
+ ctx.PersonalKey('vkC0sc029',true);ctx.PersonalKey('vkC0sc029',false);
+ assert.deepEqual(queries,['sc029','sc029']);
+ assert.deepEqual(emitted,[['send','{Blind}{vkC0sc029 down}'],['send','{Blind}{vkC0sc029 up}']]);
+ fresh();physical.add('sc029');ctx.PersonalKey('vkC0sc029',true);
+ assert.equal(emitted.length,0,'physical key ownership was lost');
+ assert(!ctx.PC.keys.HasKey('vkC0sc029'));
+ ctx.GetKeyState=original;
+}
