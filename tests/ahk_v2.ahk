@@ -33,6 +33,8 @@ Assert(record.id = "test-1" and record.kill = "true", "native regex capture obje
 Assert(!WrapperClientRecord("[Client]`nprotocol=wrong`n"), "malformed client record")
 ; Actual v2 query: the reported combined-name exception must not recur.
 Assert(PersonalPhysicalKey("vkC0sc029") = GetKeyState("sc029", "P"), "touch physical scan query")
+Assert(PersonalPhysicalKey("vkBCsc033") = GetKeyState("sc033", "P"), "comma physical scan query")
+Assert(PersonalPhysicalKey("vkBEsc034") = GetKeyState("sc034", "P"), "period physical scan query")
 Assert(PersonalPhysicalKey("Escape") = GetKeyState("Escape", "P"), "ordinary key query unchanged")
 g := {phase:"idle"}
 Assert(PersonalTouchStep(g, true, false, false, 100) = "", "touch arm")

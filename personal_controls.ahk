@@ -450,8 +450,9 @@ PersonalL1Event(kind, slot := 0) {
 
 PersonalPhysicalKey(key) {
     ; Send accepts combined VK/SC names; GetKeyState does not. Keep the
-    ; touchpad's send identity intact, querying its physical scan code only.
-    return GetKeyState(key = "vkC0sc029" ? "sc029" : key, "P")
+    ; touchpad/stick-click send identities intact, querying physical SC only.
+    physicalKey := key = "vkC0sc029" ? "sc029" : key = "vkBCsc033" ? "sc033" : key = "vkBEsc034" ? "sc034" : key
+    return GetKeyState(physicalKey, "P")
 }
 
 PersonalKey(key, down) {

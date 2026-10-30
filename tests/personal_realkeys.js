@@ -19,7 +19,7 @@ code=code.replace(/for (\w+), (\w+) in ([^\n{]+|\{[^\n]+\})\s*(\{)?\n/g,
   .replace(/for (\w+) in ([^\n]+)\n/g,(_,k,e)=>`for (const [${k}] of ahkEnum(${e.trim()}))\n`)
   .replace(/Loop, (\d+)[ \t]*(\{)?\n/g,(_,n,brace)=>`for(let A_Index=1;A_Index<=${n};A_Index++) ${brace||''}\n`)
   .replace(/if (GetKeyState|PersonalPhysicalKey|WinExist|PersonalOtherWindow)\(([^)\n]+)\)/g,'if ($1($2))')
-  .replace(/^(Personal\w+\([^\n]+\)) \{/gm,'function $1 { let eligible, enabled, retired, owner, keys;');
+  .replace(/^(Personal\w+\([^\n]+\)) \{/gm,'function $1 { let eligible, enabled, retired, owner, keys, physicalKey;');
 function* ahkEnum(o){if(Array.isArray(o)){for(let i=0;i<o.length;i++)yield[i+1,o[i]];return;}
   let index=0;while(true){const keys=Object.keys(o);if(index>=keys.length)return;
     const k=keys[index++];yield[/^\d+$/.test(k)?Number(k):k,o[k]];}}
@@ -180,15 +180,18 @@ poll();assert(!ctx.PC.ready,'Trust context armed without negotiated banks');
 ctx.mode='gameplay';
 console.log('Actual AHK Trust full poll: neutral arming, physical navigation forwarding and native shortcut suppression passed.');
 
-// Native v2 rejects combined VK/SC queries. Preserve sent identity and query SC.
+// Native v2 rejects combined VK/SC queries. Preserve sent identities and query SC.
 if (!process.env.XIV_AHK_BASELINE) {
- fresh();const original=ctx.GetKeyState,queries=[];
- ctx.GetKeyState=k=>{queries.push(k);assert(!/^vk[0-9a-f]+sc/i.test(k));return physical.has(k);};
- ctx.PersonalKey('vkC0sc029',true);ctx.PersonalKey('vkC0sc029',false);
- assert.deepEqual(queries,['sc029','sc029']);
- assert.deepEqual(emitted,[['send','{Blind}{vkC0sc029 down}'],['send','{Blind}{vkC0sc029 up}']]);
- fresh();physical.add('sc029');ctx.PersonalKey('vkC0sc029',true);
- assert.equal(emitted.length,0,'physical key ownership was lost');
- assert(!ctx.PC.keys.HasKey('vkC0sc029'));
+ const original=ctx.GetKeyState;
+ for(const [key,sc] of [['vkC0sc029','sc029'],['vkBCsc033','sc033'],['vkBEsc034','sc034']]) {
+  fresh();const queries=[];
+  ctx.GetKeyState=k=>{queries.push(k);assert(!/^vk[0-9a-f]+sc/i.test(k));return physical.has(k);};
+  ctx.PersonalKey(key,true);ctx.PersonalKey(key,false);
+  assert.deepEqual(queries,[sc,sc]);
+  assert.deepEqual(emitted,[['send','{Blind}{'+key+' down}'],['send','{Blind}{'+key+' up}']]);
+  fresh();physical.add(sc);ctx.PersonalKey(key,true);
+  assert.equal(emitted.length,0,'physical key ownership was lost');
+  assert(!ctx.PC.keys.HasKey(key));
+ }
  ctx.GetKeyState=original;
 }
