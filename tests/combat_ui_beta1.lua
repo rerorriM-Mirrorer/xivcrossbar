@@ -96,3 +96,26 @@ reset_env.skillchain_prop='Fusion'
 assert(load(restore,'actual active skillchain frame','t',reset_env))()
 assert(frame.path_count==1,'Valid skillchain hint must retain animation frame')
 print('Combat overlay: zero opacity hides both SC bars, disabled swing estimator stops events, stale callbacks isolated, icon frame restored.')
+
+
+-- The public Options chooser was already calling a personal-only binder method.
+-- Run that method against the four saved face-button artwork layouts.
+local binder_file=assert(io.open('action_binder.lua','rb'))
+local binder_src=binder_file:read('*a');binder_file:close()
+local a=assert(binder_src:find('function action_binder:is_cancel_button(button)',1,true))
+local b=assert(binder_src:find('function action_binder:create_text(',a,true))
+local binder={}
+assert(load(binder_src:sub(a,b-1),'actual Options cancel mapping','t',
+    setmetatable({action_binder=binder},{__index=_G})))()
+for _,pair in ipairs({
+    {'playstation','circle','x'},
+    {'xbox','b','x'},
+    {'nintendo','b','a'},
+    {'gamecube','b','b'},
+}) do
+    binder.button_layout,binder.cancel_button=pair[1],pair[2]
+    assert(binder:is_cancel_button(pair[3]),'Options cancel not mapped for '..pair[1])
+end
+binder.button_layout,binder.cancel_button='playstation','circle'
+assert(not binder:is_cancel_button('a'),'Confirm must not cancel chooser')
+print('Options chooser physical cancel mapping now resolves all supported layouts.')
