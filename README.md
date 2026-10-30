@@ -17,7 +17,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-combatui1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-freshdefaults1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -119,9 +119,9 @@ Dragging also works while addon menus are open.
 
 `AutoHideExtraBars` defaults to true: extra double-tap crossbars stay hidden until activated.
 
-- `//xb autohide [on|off]`: show crossbars with trigger input; bare command toggles.
+- `//xb autohide [on|off]`: show crossbars with trigger input; defaults ON. There is currently no post-trigger hold delay; release starts the normal fade-out immediately. Bare command toggles.
 - `//xb fade [on|off]`: enable or disable regular crossbar fading; bare command toggles.
-- `//xb textfade [on|off|status]`: optionally fade captions and text strokes/backgrounds with the slot artwork. Defaults OFF (original endpoint-only captions); bare command toggles, `status` reports without changing settings.
+- `//xb textfade [on|off|status]`: fade captions and their strokes/backgrounds with slot artwork. Defaults ON; `off` restores endpoint-only captions, `status` reports without changing settings.
 - `//xb textsettle [on|off|status]`: hide newly changed centered text until its native width settles, then reveal at its correct position. Defaults ON; bare toggles.
 - `//xb compact [on|off]`: switch layout immediately; bare command toggles.
 - `//xb scale <number>`: change crossbar scale, from 0.25 to 2. Menus keep their own layout.
@@ -374,3 +374,21 @@ All updates are isolated to the public Beta 1 branch. The extra personal
 blood-pact selection filtering, Main chooser label for Basic, personal
 companion banks and extended reader-profile choices remain separate.
 Simulated Lua source/regression tests are not native FFXI live verification.
+
+
+2026-10-29: Fresh-install default choices for the public Beta 1, after the
+combat overlay and chat presentation fixes. Bare gameplay D-pad now defaults
+to `ijkl` (assign I/J/K/L to FFXI Menu/Target Cursor or select `//xb dpad arrows`),
+`Animation.TextFade=true` so labels fade with slots,
+`AutoAttackIndicator.Enabled=false` so swing estimation and associated tracking
+start disabled (the already-zero bar opacity remains unchanged), and
+`VisibilityMode='oninput'` so the crossbar appears on trigger input.
+These are *defaults*: settings explicitly saved by a user for these fields
+remain in effect. Users upgrading from a version that did not yet save these
+fields will inherit the new defaults for the missing values. `//xb show`
+restores always-visible bars, `//xb textfade off` restores endpoint labels,
+`//xb autoattack on` re-enables estimation, and `//xb dpad arrows` uses arrows.
+AutoHide currently has no post-release delay (visibility switches on release,
+then the existing 0.5s fade-out). A future delay of 3/9/15/30 seconds is only
+under discussion, NOT implemented or claimed in this build. Existing
+fade-in/fade-out/startup durations and text-settling behavior are unchanged.
