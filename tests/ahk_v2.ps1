@@ -19,7 +19,28 @@ try {
     [IO.File]::WriteAllText((Join-Path $fixture 'runtime-functions.ahk'), $functions)
     $test = Start-Process $Interpreter -ArgumentList ('/ErrorStdOut "{0}"' -f (Join-Path $fixture 'native-tests.ahk')) -PassThru -RedirectStandardOutput (Join-Path $resultPath 'functions.txt') -RedirectStandardError (Join-Path $resultPath 'functions-errors.txt')
     $children += $test
-    if (!$test.WaitForExit(15000)) { throw 'Native function tests timed out (possible runtime dialog)' }
+    if (!$test.WaitForExit(15000)) {
+        Add-Type @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public class DialogDump {
+ public delegate bool Callback(IntPtr h, IntPtr p);
+ [DllImport("user32.dll")] public static extern bool EnumWindows(Callback c, IntPtr p);
+ [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr h, Callback c, IntPtr p);
+ [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder b, int n);
+ [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+ public static string Read(int pid) {
+  string result="";
+  Callback read=(h,p)=> { var b=new StringBuilder(4096); GetWindowText(h,b,4096); result+=b.ToString()+"\n"; return true; };
+  EnumWindows((h,p)=> {uint owner; GetWindowThreadProcessId(h,out owner); if(owner==pid) {read(h,p); EnumChildWindows(h,read,IntPtr.Zero);} return true;}, IntPtr.Zero);
+  return result;
+ }
+}
+'@
+        [DialogDump]::Read($test.Id) | Tee-Object -FilePath (Join-Path $resultPath 'dialogs.txt')
+        throw 'Native function tests timed out (possible runtime dialog)'
+    }
     $output = Get-Content (Join-Path $resultPath 'functions.txt') -Raw
     Get-Content (Join-Path $resultPath 'functions-errors.txt')
     Write-Host $output
