@@ -83,10 +83,12 @@ assert(code:find("if ui.aa_enabled and (act.category == CATEGORY_MELEE",1,true))
 assert(code:find("if not ui.aa_enabled then return end",1,true))
 local d=require('defaults')
 local theme=require('theme')
-assert(d.AutoAttackIndicator.Enabled==true,'Existing users must retain enabled estimates')
+assert(d.AutoAttackIndicator.Enabled==false,'New installs must not track swings')
+assert(theme.apply(d).aa_enabled==false)
+d.AutoAttackIndicator.Enabled=true
 assert(theme.apply(d).aa_enabled==true)
 d.AutoAttackIndicator.Enabled=false
-assert(theme.apply(d).aa_enabled==false)
+assert(theme.apply(d).aa_enabled==false,'Saved opt-out stays off')
 -- Check the frame restoration at the exact live conditional in check_recasts.
 local restore=section('                    -- Restore base frame even with a warmup','                    -- Show skillchain indicator if WS has a compatible skillchain property')
 local frame={alpha_count=0,path_count=0}
