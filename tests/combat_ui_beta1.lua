@@ -39,6 +39,10 @@ assert(load(section('function ui:set_autoattack_enabled(enabled)','-- Hide all t
     'actual estimator toggle','t',env))()
 assert(load(section('function ui:display_skillchain_indicator','function ui:display_gcd_indicator'),
     'actual skillchain bar','t',env))()
+ui.is_setup=false
+ui:set_autoattack_enabled(false)
+assert(surface.aa_indicator_red==nil,'Fresh disabled install must not touch uncreated prims')
+ui.is_setup=true
 ui:display_skillchain_indicator({},2,0)
 assert(surface.skillchain_indicator==false and surface.skillchain_indicator_bg==false,
     'Zero opacity must hide both skillchain surfaces')
