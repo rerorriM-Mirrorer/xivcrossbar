@@ -12,9 +12,9 @@ function feedback.location(bar, slot)
         (buttons[tonumber(slot)] or ('Slot ' .. tostring(slot)))
 end
 function feedback.bound(label, set, bar, slot)
-    return '[XIVCrossbar] Bound "' .. tostring(label) .. '" to ' .. feedback.location(bar, slot) .. ' - ' .. tostring(set) .. ' Crossbar.'
+    return require('libs/chat_status').notice('Bound "' .. tostring(label) .. '" to ' .. feedback.location(bar, slot) .. ' - ' .. tostring(set) .. ' Crossbar.')
 end
 function feedback.cleared(set, bar, slot)
-    return '[XIVCrossbar] Cleared ' .. feedback.location(bar, slot) .. ' - ' .. tostring(set) .. ' Crossbar.'
+    return require('libs/chat_status').notice('Cleared ' .. feedback.location(bar, slot) .. ' - ' .. tostring(set) .. ' Crossbar.')
 end
 return feedback

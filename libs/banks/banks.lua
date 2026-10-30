@@ -454,7 +454,7 @@ function M.new(options)
                 end
             end
         end
-        if not changed then options.say('Invalid bank command.');self:help();return false end
+        if not changed then options.say(status_format.notice('Invalid bank command.',167));self:help();return false end
         self:release_slots();self.output:cancel();self.r1used=true
         options.save()
         local message

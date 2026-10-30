@@ -16,15 +16,15 @@ function M.new(o)
             '\n=== Rendering ===\n'..o.render()}
         return table.concat(parts)
         end)
-        if not assembled then o.report('Diagnostics assembly failed: '..tostring(body));return false,body end
+        if not assembled then o.report('Diagnostics assembly failed: '..tostring(body),167);return false,body end
         local called,ok,err=pcall(o.write,self.path,body)
         if not called then err=ok;ok=false end
         if ok then o.remove(self.lua);o.remove(self.ahk) end
-        o.report(ok and ('Diagnostics saved: '..self.path) or ('Diagnostics save failed: '..tostring(err)))
+        o.report(ok and ('Diagnostics saved: '..self.path) or ('Diagnostics save failed: '..tostring(err)),ok and 207 or 167)
         return ok,err
     end
     function self:start()
-        if self.active then o.report('Diagnostics already recording: '..self.id);return true end
+        if self.active then o.report('Diagnostics already recording: '..self.id,140);return true end
         self.count=self.count+1
         self.id=o.identity()..'-'..self.count
         self.path=o.directory..self.id..'.log'
@@ -32,9 +32,9 @@ function M.new(o)
         o.mkdir(o.directory)
         self.initial=o.snapshot()
         local ok,err=o.begin(self.id,self.lua)
-        if not ok then o.report('Diagnostics could not start: '..tostring(err));return false end
+        if not ok then o.report('Diagnostics could not start: '..tostring(err),167);return false end
         self.active=true;self.finish_at=nil;self.deadline=o.clock()+32
-        o.report('Diagnostics recording for 30 seconds. Output: '..self.path)
+        o.report('Diagnostics recording for 30 seconds. Output: '..self.path,140)
         return true
     end
     function self:tick()

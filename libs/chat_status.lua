@@ -31,12 +31,30 @@ function M.row(label,value)
     return color('  '..label..': ',207)..color(M.command(value),0)
 end
 function M.notice(value,tone)
-    return color('[XIVcrossbar]',200)..' '..color(M.command(value),tone or 207)
+    -- Color fragments independently so a value's color reset cannot turn the
+    -- remainder of a routine message white. No changes to command execution.
+    local text=tostring(value);local parts={color('[XIVcrossbar]',200)..' '}
+    local at=1;local base=tone or 207
+    while at<=#text do
+        local first,last,id
+        for _,rule in ipairs({{'%f[%w]ON%f[%W]',158},{'%f[%w]OFF%f[%W]',0},{'"[^"\r\n]+"',0}}) do
+            local a,b=text:find(rule[1],at)
+            if a and (not first or a<first) then first,last,id=a,b,rule[2] end
+        end
+        if not first then parts[#parts+1]=color(M.command(text:sub(at)),base);break end
+        if first>at then parts[#parts+1]=color(M.command(text:sub(at,first-1)),base) end
+        parts[#parts+1]=color(M.command(text:sub(first,last)),id);at=last+1
+    end
+    return table.concat(parts)
 end
 function M.legacy(tone,message)
     local text=tostring(message)
     local body,count=text:gsub('^%[XIV[Cc]rossbar%]%s*','',1)
+    if count==0 then
+        body,count=text:gsub('^%[XIV[Cc]rossbar test%]%s*','Input Test: ',1)
+    end
     if count==0 then return color(text,tone) end
+    body=body:gsub('//xivcrossbar','//xb'):gsub('//xcb','//xb')
     return M.notice(body,tone==123 and 167 or tone==140 and 140 or 207)
 end
 function M.on(value) return value==true or value=='1' end

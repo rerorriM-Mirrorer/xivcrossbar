@@ -1,3 +1,12 @@
+# Current Development Status — October 29, 2026 — Personal Message Cleanup 2
+
+- Personal development/directlink, source published b253d9352a8a9808fb087f88f94167f71e4d7e30 (local identical tree at 1b71979). Runtime directlink1-messagecleanup2; Controls 9.20-diagnostics1 unchanged. Public beta/master remain separate and unchanged.
+- Authorized remaining personal message-format cleanup. Shared notice fragments preserve purple identity/command prefixes, blue routine text, white quoted values, green ON/white OFF. Correct red success messages (rename/delete/global icon); warnings/transitions yellow. Bind/clear confirmations use the same formatter and neutral outer chat color.
+- Legacy companion edit confirms once without dumping its status; invalid current-bank commands get a tagged red error. Explicit Input Test dummy feedback stays in chat; optional raw InputTrace setup/router/unmapped detail now uses the existing bounded Lua diagnostic buffer. No controller key routing, capture permissions, bank bindings/positions, render behavior or settings are changed.
+- Verification: all 74 top-level Lua suites and 164 source parses pass via the documented temporary Lua5.4 Windower-syntax normalization. Existing status suite now checks value/command-prefix colors and actual bind/clear formatting; controller, bank, capture, page and rendering regression suites also pass. Dependency/layout and git whitespace checks pass. AHK source is unchanged; native Windower color rendering remains to test. Existing modified curing-waltz-iv artwork is excluded and left untouched.
+
+---
+
 # Current Development Status — October 28, 2026 — Starter Page Correction 1
 
 - Personal development/directlink, source published 72d9459a413bf734c46dd9acd17d518a7b1cc360 (local identical tree at bdcb3cb). Runtime directlink1-startup1; Controls 9.20-diagnostics1 unchanged. Master/public beta untouched.

@@ -35,6 +35,13 @@ assert(fmt.notice('Saved')=='[200][XIVcrossbar] [207]Saved')
 assert(fmt.notice('Restarting.',140)=='[200][XIVcrossbar] [140]Restarting.')
 assert(fmt.state('ready')=='[158]Ready' and fmt.toggle(true)=='[158]ON')
 assert(fmt.legacy(123,'[XIVCrossbar] Failed')=='[200][XIVcrossbar] [167]Failed')
+assert(fmt.notice('Messages ON; Fallback OFF.')=='[200][XIVcrossbar] [207]Messages [158]ON[207]; Fallback [0]OFF[207].')
+assert(fmt.notice('Saved "My ON Page".')=='[200][XIVcrossbar] [207]Saved [0]"My ON Page"[207].')
+assert(fmt.legacy(207,'[XIVCrossbar] Use //xivcrossbar status'):find('[200]//xb',1,true))
+assert(fmt.legacy(140,'[XIVCrossbar test] Waiting'):find('[140]Input Test: Waiting',1,true))
+local binding=require('ui/binding_feedback')
+assert(binding.bound('Cure','Default',1,6):find('[200][XIVcrossbar]',1,true))
+assert(binding.cleared('Default',1,6):find('[207]Cleared',1,true))
 assert(fmt.row('Position','//xb pos 1 2'):find('[200]//xb',1,true))
 string.color=original
 local alias={'l2','cross','Alias test','input /echo alias'}

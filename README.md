@@ -1,3 +1,11 @@
+# Personal update — Message Cleanup 2
+
+Personal notifications share purple `[XIVcrossbar]` tags, light-blue routine
+text, white quoted values, green ON, white OFF, yellow transitions/warnings,
+and red errors. Successful bind/clear/rename/delete/icon messages use routine
+colors. Input trace detail goes into the unified diagnostic log; explicit
+Input Test feedback stays in chat. No input, rendering or binding changes.
+
 # Personal update — Starter Page Correction 1
 
 Initialization selects All Jobs Default ahead of alphabetically named utility
@@ -1427,3 +1435,11 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
   missing-page fallback and ordinary chooser ordering.
 - Correct the starter settings by removing six redundant SMN/WHM Trust pages;
   preserve all other bindings and existing universal Trust links.
+
+### Personal Message Cleanup 2 — October 29, 2026
+
+- Normalize remaining binding confirmations and legacy notices through the
+  shared palette; keep command-prefix spelling and value colors consistent.
+- Correct success/error/warning tones and replace routine notification arrows.
+- Keep raw input details in bounded diagnostics and shorten legacy bank edit
+  confirmations to one line. Public beta and controller behavior are unchanged.

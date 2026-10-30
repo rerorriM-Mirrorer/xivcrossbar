@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261028.directlink1-startup1'
+_addon.version = '0.4.0-a.20261029.directlink1-messagecleanup2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -353,7 +353,7 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     reload_hotbar()
     set_active_environment(environment)
     local feedback=require('ui/binding_feedback')
-    windower.add_to_chat(207, feedback.bound(alias or action, feedback.set_name(player.hotbar,environment), hotbar, slot))
+    windower.add_to_chat(0, feedback.bound(alias or action, feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
 
 -- command to set a crossbar action in action_binder
@@ -369,7 +369,7 @@ function delete_hotkey(hotbar, slot)
     reload_hotbar()
     set_active_environment(environment)
     local feedback=require('ui/binding_feedback')
-    windower.add_to_chat(207, feedback.cleared(feedback.set_name(player.hotbar,environment), hotbar, slot))
+    windower.add_to_chat(0, feedback.cleared(feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
 
 function get_crossbar_sets()
@@ -420,7 +420,7 @@ function save_global_icon(name, icon)
     reload_hotbar()
     set_active_environment(player.hotbar_settings.active_environment)
 
-    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Global icon set: "' .. name .. '" -> ' .. icon))
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Global icon set: "' .. name .. '": ' .. icon))
 end
 
 -- A: one entry per locked save; never replace a catalog from a stale client.
@@ -514,7 +514,7 @@ function start_controller_wrappers(profile, device, modifier)
         local requested = tonumber(request:read('*a')); request:close()
         if not (status and status.fresh and status.state == 'stopped')
             and (not requested or os.time() - requested < 2) then
-            windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Stop is pending. Wait two seconds, then start again.'))
+            windower.add_to_chat(0,require('libs/chat_status').legacy(140,'[XIVCrossbar] Stop is pending. Wait two seconds, then start again.'))
             return false
         end
         os.remove(stop_path)
@@ -573,7 +573,7 @@ diagnostic_capture=require('libs/controller/capture').new({
     request_stop=function(id) return capture_request('off',id) end,
     render=render_trace.dump,
     mark=function() input_timing:record('MARK');render_trace.event('MARK') end,
-    report=function(message) windower.add_to_chat(0,require('libs/chat_status').notice(message)) end})
+    report=function(message,tone) windower.add_to_chat(0,require('libs/chat_status').notice(message,tone)) end})
 windower.register_event('prerender',function() diagnostic_capture:tick() end)
 controller_switcher = require('libs/controller/switch').new({
     clock=require('socket').gettime, status=controller_status,
@@ -716,7 +716,7 @@ local function check_profile_ready()
         restart_pending = true
         crossbar_drag:finish()
         if ui.is_setup then ui:hide() end
-        windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Character/server changed; reloading for '..server_record.en..'/'..name..'.'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(140,'[XIVCrossbar] Character/server changed; reloading for '..server_record.en..'/'..name..'.'))
         windower.send_command('lua r xivcrossbar')
         return
     end
@@ -727,7 +727,7 @@ end
 -- trigger hotbar action
 function trigger_action(slot)
     if settings.InputTest then
-        windower.add_to_chat(207, '[XIVCrossbar test] Crossbar ' .. tostring(gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
+        windower.add_to_chat(0,require('libs/chat_status').notice('Input Test: Crossbar ' .. tostring(gamepad_state.active_bar) .. ' / Slot ' .. slot .. ': dummy action'))
         ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
         return
     end
@@ -1092,7 +1092,7 @@ function rename_environment_command(args)
         return
     end
     if (old_key == new_key) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] New name resolves to the same key as the old name. Nothing to do.'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(140,'[XIVCrossbar] New name resolves to the same key as the old name. Name unchanged.'))
         return
     end
     if (player.hotbar[old_key] == nil) then
@@ -1122,9 +1122,9 @@ function rename_environment_command(args)
     player:save_hotbar()
     reload_hotbar()
 
-    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set renamed: "' .. old_name .. '" -> "' .. new_name .. '".'))
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Crossbar set renamed: "' .. old_name .. '" to "' .. new_name .. '".'))
     if (orphan_count > 0) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) still reference the old name and will no longer work until updated.'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(140,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) still reference the old name and will no longer work until updated.'))
     end
 end
 
@@ -1170,9 +1170,9 @@ function delete_environment_command(args)
     player:save_hotbar()
     reload_hotbar()
 
-    windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set deleted: "' .. target_name .. '" (and all its slot bindings).'))
+    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Crossbar set deleted: "' .. target_name .. '" (and all its slot bindings).'))
     if (orphan_count > 0) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) referenced the deleted set and will no longer work.'))
+        windower.add_to_chat(0,require('libs/chat_status').legacy(140,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) referenced the deleted set and will no longer work.'))
     end
 end
 
@@ -1247,7 +1247,7 @@ function display_help_menu()
     help.command('remap','Open controller setup.')
     help.command('regenerate','Rebuild generated resources.')
     help.heading('Identifiers')
-    windower.add_to_chat(0,'Hotbars: l/r/rl/lr/ll/rr (1–6). Slots: ll/ld/lr/lu/rl/rd/rr/ru (1–8).')
+    windower.add_to_chat(0,require('libs/chat_status')).notice('Hotbars: l/r/rl/lr/ll/rr (1-6). Slots: ll/ld/lr/lu/rl/rd/rr/ru (1-8).')
 end
 
 -----------------------------
@@ -2146,7 +2146,7 @@ message_button = function(dik,pressed,flags,blocked)
     -- hotbar initialization finishes. Gameplay still requires readiness.
     if restart_pending then return true end
     if blocked and pressed and input_context() ~= 'text' and not action_binder.chooser_active then
-        if settings.InputTrace then windower.add_to_chat(123, '[XIVCrossbar test] BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
+        if settings.InputTrace then input_timing:record('BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
         return true
     end
     local context = input_context()
@@ -2159,7 +2159,7 @@ message_button = function(dik,pressed,flags,blocked)
         local role = item.name
         if transport:face_name(item,buttonmapping) == buttonmapping.confirm_button then role = role .. ' / Confirm' end
         if transport:face_name(item,buttonmapping) == buttonmapping.cancel_button then role = role .. ' / Back' end
-        windower.add_to_chat(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
+        input_timing:record(role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
     end
     if gameplay_down[dik] and not pressed then
         input_timing:record('native request '..gameplay_down[dik]..' up dik='..dik)
@@ -2188,7 +2188,7 @@ message_button = function(dik,pressed,flags,blocked)
         elseif context=='dialogue' then key=transport:dialogue_key(item,buttonmapping)
         else key=transport:gameplay_key(item,buttonmapping,settings.GameplayDPad) end
         if settings.InputTest then
-            if pressed then windower.add_to_chat(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
+            if pressed then windower.add_to_chat(0,require('libs/chat_status').notice('Input Test: ' .. item.name .. ': ' .. tostring(key) .. ' (dummy action)')) end
         elseif key and pressed then
             gameplay_down[dik] = key
             input_timing:record('native request '..key..' down dik='..dik)
@@ -2364,7 +2364,7 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- Setup tracing must precede capture/readiness filters, otherwise a lost
     -- marker or incomplete initialization produces no diagnostic at all.
     if settings.InputTrace and gamepad_mapper.is_showing then
-        windower.add_to_chat(207, '[XIVCrossbar test] RAW DIK=' .. tostring(dik) ..
+        input_timing:record('RAW DIK=' .. tostring(dik) ..
             (pressed and ' down' or ' up') .. ' capture=' .. tostring(gamepad_state.capturing == true) ..
             ' ready=' .. tostring(xivcrossbar.ready == true) .. ' setup=' .. tostring(gamepad_mapper.state) ..
             ' blocked=' .. tostring(blocked == true))
@@ -2385,7 +2385,7 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- A: plain F1-F12 pass through; Apps-gated signals were consumed above.
     if (dik >= 59 and dik <= 68) or dik == 87 or dik == 88 then return false end
     if gamepad_state.capturing and not signal and settings.InputTrace then
-        windower.add_to_chat(123, '[XIVCrossbar test] UNMAPPED ' .. (pressed and 'DOWN' or 'UP') .. ' DIK=' .. tostring(dik) .. ' — compare data/input-transport.log')
+        input_timing:record('UNMAPPED ' .. (pressed and 'DOWN' or 'UP') .. ' DIK=' .. tostring(dik))
         if settings.InputTest then return true end
     end
     local consumed=handle_controller_key(dik, pressed, flags, blocked)

@@ -112,7 +112,7 @@ function M.new(options)
             end
         end
         if not changed then self.options.say('Invalid L1 command.');self:help();return false end
-        self.options.save();self:status();return true
+        self.options.save();self.options.say('L1: '..op..' updated.');return true
     end
     self:settings()
     return self
