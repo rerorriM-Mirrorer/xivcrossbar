@@ -1483,3 +1483,12 @@ Run command. Confirm direct startup asynchronously and retry verified bootstrap
 once if no running status appears; explicit stop/newer start cancel old recovery.
 Include the exact launch plan in existing unified diagnostics. Input/protocols
 and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
+
+### October 30, 2026 — AHK v2 Fast Start 3
+
+- Fast Start 2 live diagnostics confirmed the direct attempt fell back to CMD/
+  PowerShell. Verified setup now creates a Windows shortcut with the explicit v2
+  target and wrapper arguments. Run opens only that single relative file.
+- One setup start is required on upgrade; subsequent starts reuse the shortcut.
+  Selected profile/device/modifier still come from the existing launch handoff.
+  No controller input changes. See docs/AHK-V2-FASTSTART3.md for install/testing.
