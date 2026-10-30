@@ -466,6 +466,19 @@ function action_binder:clear_controller_input()
     if self.selector then self.selector:page_highlight(nil) end
 end
 
+-- A: The Options/set chooser shares the saved physical button mapping.
+-- The root router already calls this helper; missing it crashed cancel input.
+function action_binder:is_cancel_button(button)
+    local layouts={
+        gamecube={a='a',b='b',x='x',y='y'},
+        playstation={a='cross',b='square',x='circle',y='triangle'},
+        xbox={a='a',b='x',x='b',y='y'},
+        nintendo={a='b',b='y',x='a',y='x'},
+    }
+    local buttons=layouts[self.button_layout]
+    return buttons~=nil and buttons[button]~=nil and buttons[button]==self.cancel_button
+end
+
 function action_binder:create_text(caption, x, y)
     local text_field = ui_resources.text({flags = {draggable = false}})
     text_field:bg_alpha(0)
