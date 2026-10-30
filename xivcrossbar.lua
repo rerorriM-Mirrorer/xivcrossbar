@@ -534,13 +534,27 @@ function start_controller_wrappers(profile, device, modifier)
         windower.add_to_chat(0,require('libs/chat_status').notice('Could not start wrapper: '..tostring(launch_error),167))
         return false
     end
-    last_controller_launch={requested=os.time(),mode=plan.mode,source=plan.source,command=plan.command}
+    last_controller_launch={requested=os.time(),mode=plan.mode,source=plan.source,command=plan.command,fallback_command=plan.fallback_command}
     windower.send_command(plan.command)
+    if plan.mode=='direct' then
+        local attempt=last_controller_launch
+        coroutine.schedule(function()
+            -- A later start/stop owns startup now; never revive a cancelled
+            -- request or retry while another client already has a live wrapper.
+            if attempt~=last_controller_launch or attempt.cancelled or attempt.confirmed or attempt.fallback then return end
+            local current=controller_status()
+            if current and current.running then attempt.confirmed=true;return end
+            attempt.fallback=true
+            windower.send_command(plan.fallback_command)
+            windower.add_to_chat(0,require('libs/chat_status').notice('Direct wrapper start was not confirmed; retrying startup once.',140))
+        end,1)
+    end
     local format=require('libs/chat_status')
     windower.add_to_chat(0,format.notice('Wrapper start requested: '..format.value(format.profile(profile)..' / Device '..device)))
     return true
 end
 local function stop_controller_wrapper()
+    if last_controller_launch then last_controller_launch.cancelled=true end
     windower.create_dir(windower.addon_path .. 'data')
     local f = io.open(windower.addon_path .. 'data/input-stop.request', 'w')
     if not f then windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Could not write wrapper stop request.')); return false end

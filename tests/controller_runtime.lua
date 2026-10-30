@@ -77,3 +77,6 @@ assert(p.source=='cache' and p.executable==native_exe)
 assert(p.command=='run "C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe" /ErrorStdOut "C:/Users/Player/Saved Games/Windower/addons/xivcrossbar/ffxi_directinput.ahk" apps ps5-extended 1',p.command)
 assert(not p.command:find('\\',1,true),'raw Windows separator leaked into Windower command')
 print('Native backslash cache and spaced addon path normalize only at the Windower command boundary.')
+
+r=fresh();p=assert(plan(r,status(),'x',1,'ctrl'))
+assert(p.fallback_command=='run addons/xivcrossbar/launch-controller.cmd ctrl ps5-extended 1')

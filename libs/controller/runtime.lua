@@ -82,6 +82,7 @@ function M.new(options)
             end
             if record then save(cache_path,record) end
         end
+        local bootstrap='run addons/xivcrossbar/launch-controller.cmd '..modifier..' '..name..' '..number
         if record then
             -- Windower's command parser is a separate boundary from Windows
             -- process creation. Do not feed native backslash paths through it;
@@ -89,13 +90,13 @@ function M.new(options)
             local script=(directory..'ffxi_directinput.ahk'):gsub('\\','/')
             local executable=record.executable:gsub('\\','/')
             local arguments='/ErrorStdOut "'..script..'" '..modifier..' '..name..' '..number
-            return {mode='direct',source=source,executable=record.executable,arguments=arguments,
+            return {mode='direct',source=source,executable=record.executable,arguments=arguments,fallback_command=bootstrap,
                 command='run "'..executable..'" '..arguments}
         end
         -- Discovery is exceptional: fresh installation, changed override or a
         -- missing/replaced interpreter. It publishes a verified cache before
         -- launching; subsequent starts bypass CMD and PowerShell entirely.
-        return {mode='bootstrap',source='discovery',command='run addons/xivcrossbar/launch-controller.cmd '..modifier..' '..name..' '..number}
+        return {mode='bootstrap',source='discovery',command=bootstrap}
     end
     return self
 end
