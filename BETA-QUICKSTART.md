@@ -21,10 +21,13 @@ A Windower 4 preview of PS5 controller input without simulated gameplay F-keys.
 | `//xb fade [on\|off]` | Enable/disable slot fades |
 | `//xb textfade [on\|off\|status]` | Fade labels with slots (default OFF) |
 | `//xb textsettle [on\|off\|status]` | Settle caption widths to avoid flicker (default ON) |
+| `//xb autoattack [on\|off\|status]` | Disable swing-timing estimation independently of opacity (default ON) |
 | `//xb scale <0.25–2>` | Scale crossbar independently of menus |
 | `//xb resources` | Report owned drawing-object counts |
 | `//xb diagnose` | Capture 30 seconds of input and rendering observations |
 
 **Custom actions:** On Save/Review, use **arrow keys** to move, **Enter** to select, and **Escape** to go back. Choose Edit Name/Alias/Command to type; Enter confirms the text. **Save Only** returns to the catalog; **Save & Bind** selects a slot.
+
+To hide the built-in skillchain timer and its backing, set `SkillchainIndicator.Opacity` to `0` in `data/settings.xml`. `AutoAttackIndicator.Opacity = 0` hides its bar but does not stop tracking; use `//xb autoattack off` for that.
 
 For complete settings and rollback details see [README.md](README.md); for test status see [TESTING.md](TESTING.md).
