@@ -87,6 +87,13 @@ public class DialogDump {
     $children += $restart
     [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
     if (!$restart.WaitForExit(5000)) { throw 'Restarted wrapper failed to stop' }
+    # A wrong executable override must fail closed, without association fallback.
+    $wrongRuntime = (Get-Command powershell.exe).Source
+    [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-runtime.ini'), "[Runtime]`r`nexecutable=$wrongRuntime`r`n")
+    $rejected = Start-Process $env:ComSpec -ArgumentList ('/d /s /c ""{0}" apps ps5-extended 1"' -f (Join-Path $fixture 'launch-controller.cmd')) -PassThru -RedirectStandardError (Join-Path $resultPath 'expected-rejection.txt')
+    $children += $rejected
+    if (!$rejected.WaitForExit(10000) -or $rejected.ExitCode -eq 0) { throw 'Non-v2 override was not rejected' }
+    if (!(Test-Path (Join-Path $fixture 'data\controller-launch-error.log'))) { throw 'Bootstrap error log missing' }
     Copy-Item $statusPath (Join-Path $resultPath 'final-status.ini')
     'PASS native v2 parse, policies, startup, installation mutex, explicit stop, bootstrap and restart. No FFXI/controller attached.' | Tee-Object -FilePath (Join-Path $resultPath 'summary.txt')
 } finally {
