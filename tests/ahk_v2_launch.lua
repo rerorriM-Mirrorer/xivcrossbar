@@ -24,6 +24,7 @@ assert(load(code,'launch','t',env))()
 assert(env.start_controller_wrappers())
 assert(sent[1]=='run "C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe" /ErrorStdOut "C:/Windower/addons/xivcrossbar/ffxi_directinput.ahk" apps ps5-extended 2')
 assert(planned[1]=='addon/' and planned[2]=='ps5-extended' and planned[3]==2 and planned[4]=='apps')
+assert(env.last_controller_launch.command==sent[1] and env.last_controller_launch.requested>0)
 assert(written[1]=='addon/data/controller-launch.ini' and written[2]=='ps5-extended' and written[3]==2 and written[4]=='apps')
 status={running=true}
 assert(env.start_controller_wrappers() and #sent==1,'existing shared wrapper spawned again')

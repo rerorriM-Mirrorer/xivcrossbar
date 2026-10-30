@@ -83,10 +83,14 @@ function M.new(options)
             if record then save(cache_path,record) end
         end
         if record then
-            local script=directory..'ffxi_directinput.ahk'
+            -- Windower's command parser is a separate boundary from Windows
+            -- process creation. Do not feed native backslash paths through it;
+            -- keep native identity for file checks and normalize emitted paths.
+            local script=(directory..'ffxi_directinput.ahk'):gsub('\\','/')
+            local executable=record.executable:gsub('\\','/')
             local arguments='/ErrorStdOut "'..script..'" '..modifier..' '..name..' '..number
             return {mode='direct',source=source,executable=record.executable,arguments=arguments,
-                command='run "'..record.executable..'" '..arguments}
+                command='run "'..executable..'" '..arguments}
         end
         -- Discovery is exceptional: fresh installation, changed override or a
         -- missing/replaced interpreter. It publishes a verified cache before

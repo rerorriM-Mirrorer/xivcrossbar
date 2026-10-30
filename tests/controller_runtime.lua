@@ -63,3 +63,17 @@ assert(not r:plan('C:/unsafe;command/','ps5-extended',1,'apps',status()))
 r=fresh();r=runtime.new({open=open,replace=function()return false,'read-only' end})
 assert(plan(r,status()).mode=='direct')
 print('Actual runtime planner: status migration, persisted direct start, quoting, override changes, missing/replaced executable, partial/version-invalid cache, profile validation and recovery discovery passed.')
+
+-- Native A_AhkPath/status caches use backslashes. Windower's command parser is
+-- an additional boundary before Windows CreateProcess: send forward slashes,
+-- retaining native path identity for existence/size/override checks.
+r=fresh()
+local native_exe='C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe'
+local native_root='C:\\Users\\Player\\Saved Games\\Windower\\addons\\xivcrossbar\\'
+files[native_exe]=string.rep('a',1284608)
+files[native_root..'data/controller-runtime-cache.ini']='[Runtime]\nprotocol=ahk-v2-cache1\nexecutable='..native_exe..'\nversion=2.0.31\nsize=1284608\nEND\n'
+p=assert(r:plan(native_root,'ps5-extended',1,'apps',nil))
+assert(p.source=='cache' and p.executable==native_exe)
+assert(p.command=='run "C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe" /ErrorStdOut "C:/Users/Player/Saved Games/Windower/addons/xivcrossbar/ffxi_directinput.ahk" apps ps5-extended 1',p.command)
+assert(not p.command:find('\\',1,true),'raw Windows separator leaked into Windower command')
+print('Native backslash cache and spaced addon path normalize only at the Windower command boundary.')

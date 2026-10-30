@@ -24,6 +24,8 @@ assert status and status.ahk_major == '2'
 plan = resolver.plan(resolver, fixture.as_posix() + '/', 'ps5-extended', 2, 'ctrl', status)
 assert plan.mode == 'direct' and plan.source == 'cache'
 assert 'launch-controller.cmd' not in plan.command and 'powershell' not in plan.command.lower()
+assert '\\' not in plan.command, 'Native Windows separators leaked into the Windower command'
+assert '\\' not in plan.arguments, 'Native script separators leaked into command arguments'
 result = {key: plan[key] for key in ('mode', 'source', 'executable', 'arguments', 'command')}
 Path(args.output).write_text(json.dumps(result), encoding='utf-8')
 print('PASS production Lua selects cached direct AHK executable on Windows.')
