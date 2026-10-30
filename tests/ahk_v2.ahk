@@ -17,6 +17,10 @@ PersonalInit(profile, "")
 MovementInit()
 InputTraceInit()
 WrapperClientsInit()
+NativeContextObservationTests()
+ControllerMessageInit()
+PersonalInit(profile, "")
+MovementInit()
 order := ""
 for k in OrderedInputMap(Map(2, true, 1, true, "z", true, "A", true))
     order .= k . ","
@@ -109,4 +113,76 @@ Assert(value, label) {
 NativeTestError(error, mode) {
     FileAppend(error.Message . " at " . error.File . ":" . error.Line . "`n" . error.Stack . "`n", "**", "UTF-8-RAW")
     ExitApp(1)
+}
+
+; Execute production context I/O, lease side effects and Ready movement reuse.
+; Hidden test windows provide client titles without impersonating FFXiClass.
+NativeContextObservationTests() {
+    global PC, CM, TM
+    previousHidden := A_DetectHiddenWindows
+    DetectHiddenWindows(true)
+    first := Gui(, "Cioara context test"), second := Gui(, "Myrr context test")
+    folder := A_ScriptDir . "\data\personal-controls"
+    DirCreate(folder)
+    path := folder . "\context-test.ini"
+    try {
+        NativeWriteContext(path, "Cioara", "gameplay", "session-one")
+        observation := {}
+        Assert(PersonalContext(first.Hwnd, observation) = "gameplay", "fresh context")
+        reads := PC.contextFileReads, scans := PC.contextScans, count := PC.contextObservations
+        Assert(CM.token = "session-one", "fresh session side effect")
+        NativeWriteContext(path, "Cioara", "chat", "session-two")
+        Assert(PersonalContext(first.Hwnd, observation) = "gameplay", "same-poll mode snapshot")
+        Assert(CM.token = "session-one", "same-poll session snapshot")
+        Assert(PC.contextFileReads = reads and PC.contextScans = scans and PC.contextObservations = count, "same-poll no repeated I/O")
+        Assert(PC.contextReuses = 1, "reuse counter")
+        observation := {}
+        Assert(PersonalContext(first.Hwnd, observation) = "chat" and CM.token = "session-two", "next poll adopts mode/session")
+        reads := PC.contextFileReads
+        PC.enabled := true
+        TM.nextLease := DllCall("GetTickCount64", "UInt64") + 10000
+        TM.policy := "Ready", TM.ready := false
+        states := InputState(), states.moveX := 1, states.moveY := 0
+        MovementPoll(states, first.Hwnd, observation)
+        Assert(TM.reason = "personal-chat" and !TM.fired, "Ready movement consumes shared blocked mode")
+        Assert(PC.contextFileReads = reads and PC.contextReuses = 2, "movement adds no context read")
+        NativeWriteContext(path, "Myrr", "trust", "other-session")
+        Assert(PersonalContext(second.Hwnd, observation) = "trust" and CM.token = "other-session", "different HWND cannot reuse mode/session")
+        FileDelete(path)
+        scans := PC.contextScans
+        observation := {}
+        Assert(PersonalContext(first.Hwnd, observation) = "unknown", "missing context")
+        Assert(PC.contextScans = scans + 2, "immediate two-pass retry retained")
+        NativeWriteContext(path, "Cioara", "gameplay", "session-three")
+        reads := PC.contextFileReads
+        Assert(PersonalContext(first.Hwnd, observation) = "unknown" and PC.contextFileReads = reads, "uncertainty shared within poll")
+        Assert(PersonalContext(first.Hwnd, {}) = "gameplay", "next-poll recovery")
+        NativeWriteContext(path, "Cioara", "gameplay", "session-four", 0)
+        Assert(PersonalContext(first.Hwnd, {}) = "unknown", "stale context rejection")
+        FileDelete(path)
+        FileAppend("name=Cioara`nmode=gameplay`nEND`n", path, "CP0")
+        Assert(PersonalContext(first.Hwnd, {}) = "unknown", "malformed context rejection")
+        reads := PC.contextFileReads
+        Assert(PersonalContext(0, {}) = "unfocused" and PC.contextFileReads = reads, "unfocused no I/O")
+        ; Standalone callers retain a fresh read on every call.
+        NativeWriteContext(path, "Cioara", "gameplay", "standalone-one")
+        Assert(PersonalContext(first.Hwnd) = "gameplay", "standalone context")
+        NativeWriteContext(path, "Cioara", "chat", "standalone-two")
+        Assert(PersonalContext(first.Hwnd) = "chat", "standalone is never cached")
+        FileAppend("PASS native per-poll context: mode/session isolation, Ready reuse, retry, stale/malformed/focus boundaries`n", "*", "UTF-8-RAW")
+    } finally {
+        first.Destroy(), second.Destroy()
+        DetectHiddenWindows(previousHidden)
+        if FileExist(path)
+            FileDelete(path)
+    }
+}
+
+NativeWriteContext(path, name, mode, token, stamp := -1) {
+    if (stamp = -1)
+        stamp := DateDiff(A_NowUTC, "19700101000000", "Seconds")
+    if FileExist(path)
+        FileDelete(path)
+    FileAppend("name=" . name . "`ntimestamp=" . stamp . "`nmode=" . mode
+        . "`nbutton_mode=messages`nbutton_token=" . token . "`nbutton_ack=0`nEND`n", path, "CP0")
 }

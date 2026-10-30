@@ -52,3 +52,11 @@ assert '#Requires AutoHotkey v2.0.19+' in probe
 assert 'WinActive("ahk_class FFXiClass") != probeOwner' in probe
 print(f'{len(sources)} AHK files: balanced literals/delimiters, includes, hidden gating, cleanup and function links checked.')
 
+
+# The shared observation is fresh in each timer call and threaded to both users.
+assert 'local contextObservation := PC.enabled ? {} : false' in wrapper
+assert 'PersonalPoll(states, active, contextObservation)' in wrapper
+assert 'MovementPoll(states, active, contextObservation)' in wrapper
+assert wrapper.index('current != active') < wrapper.index('MovementPoll(states, active, contextObservation)')
+assert 'WinActive("ahk_class FFXiClass") != active' in sources[root/'movement_signal.ahk']
+assert 'PersonalContext(active, observation)' in sources[root/'movement_signal.ahk']

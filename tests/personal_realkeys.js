@@ -80,7 +80,7 @@ assert.deepEqual(emitted.at(-1),['send','{Blind}{i up}']);assert.equal(step({1:t
 fresh();ctx.PersonalRealKeyLease('l1token=old\n');assert(!ctx.PC.realDpad,'older Lua enabled experiment');
 fresh();ctx.CM.requested=false;ctx.PersonalRealKeyLease('dpad_output=ahk\n');assert(!ctx.PC.realDpad);
 fresh();ctx.PC.blocked[1]='Up';assert.equal(step({1:true})[1],false);assert.equal(emitted.length,0,'stole R1 ownership');
-const pollSource=extract('PersonalPoll'),context=extract('PersonalContext');
+const pollSource=extract('PersonalPoll'),context=extract(source.includes('\nPersonalReadContext(')?'PersonalReadContext':'PersonalContext');
 assert(pollSource.indexOf('PersonalNativeDPad(states, raw, mode, now)')<pollSource.indexOf('states := PersonalFilter(states, raw)'));
 assert(context.indexOf('PersonalRealKeyLease(lease)')<context.indexOf('PersonalL1Lease(lease,'));
 assert(!/Sleep,|SetKeyDelay,/.test(extract('PersonalNativeDPad')));

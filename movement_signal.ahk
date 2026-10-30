@@ -19,7 +19,7 @@ MovementTick(active) {
     }
 }
 
-MovementPoll(states, active) {
+MovementPoll(states, active, observation := false) {
     global TM, PC
     if (TM.fired or !active or !states.HasOwnProp("moveX") or !states.HasOwnProp("moveY"))
         return
@@ -31,7 +31,7 @@ MovementPoll(states, active) {
     ; Send consumes the first movement even in a blocked context. Trust makes
     ; the immediate accept/ignore decision; there is no delayed retry.
     if (TM.policy = "Ready" and PC.enabled) {
-        context := PersonalContext(active)
+        context := PersonalContext(active, observation)
         if (context != "gameplay" and context != "crossbar") {
             TM.reason := "personal-" . context
             return

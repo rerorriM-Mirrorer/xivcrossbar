@@ -9,12 +9,13 @@ PersonalInit(selected, prefix) {
         , layer:{phase:"idle"}, layerVisible:"", context:"unknown"
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
+        , contextObservations:0, contextReuses:0, contextScans:0, contextFileReads:0
         , targetR2:false, targetR3:false, realDpad:false, r1Menus:false, banks:false
         , native:{token:"", ack:0, requests:[], active:Map(), keys:Map()}}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
-PersonalPoll(states, active) {
+PersonalPoll(states, active, observation := false) {
     global PC, appsOwned, previous
     if (!PC.enabled)
         return states
@@ -50,7 +51,7 @@ PersonalPoll(states, active) {
         PC.owner := active, PC.previous := raw
     }
     PersonalReleaseDue(now)
-    mode := PersonalContext(active)
+    mode := PersonalContext(active, observation)
     PC.context := mode
     if (PersonalLeasePause(mode, now, PC.contextSeen, PC.ready)) {
         if (!PC.contextPaused) {
@@ -317,7 +318,24 @@ PersonalFilter(states, raw) {
     return states
 }
 
-PersonalContext(hwnd) {
+PersonalContext(hwnd, observation := false) {
+    global PC
+    ; The caller owns this record for one poll only. Publish a result once;
+    ; consumers never mutate it or reuse permission in a later poll. Key by HWND
+    ; as well so an accidental cross-client request cannot share permission.
+    if (IsObject(observation) and observation.HasOwnProp("context")
+        and observation.context.hwnd = hwnd) {
+        PC.contextReuses += 1
+        return observation.context.mode
+    }
+    PC.contextObservations += 1
+    mode := PersonalReadContext(hwnd)
+    if (IsObject(observation))
+        observation.context := {hwnd:hwnd, mode:mode}
+    return mode
+}
+
+PersonalReadContext(hwnd) {
     global PC
     if (!hwnd)
         return "unfocused"
@@ -328,9 +346,11 @@ PersonalContext(hwnd) {
     ; Retry the directory read once without sleeping: Lua's remove/rename
     ; publication may complete between scans. Never reuse cached permission.
     Loop 2 {
+        PC.contextScans += 1
         Loop Files A_ScriptDir . "\data\personal-controls\*.ini"
         {
             timingReadStart := DllCall("GetTickCount64", "UInt64")
+            PC.contextFileReads += 1
             try lease := FileRead(A_LoopFileFullPath, "CP0")
             catch
                 continue
