@@ -100,7 +100,9 @@ public class DialogDump {
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     do {
         Start-Sleep -Milliseconds 10
-        $status = [IO.File]::ReadAllText($statusPath)
+        # Status is atomically replaced; a transient sharing failure is an
+        # unavailable observation, not a failed controller process.
+        try { $status = [IO.File]::ReadAllText($statusPath) } catch { }
     } while ($status -notmatch "pid=$($direct.Id)`r?`n" -and [DateTime]::UtcNow -lt $deadline -and !$direct.HasExited)
     $elapsed.Stop()
     if ($status -notmatch "pid=$($direct.Id)`r?`n" -or $direct.HasExited) { throw 'Direct executable start failed' }
