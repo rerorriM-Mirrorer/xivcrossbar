@@ -61,7 +61,7 @@ defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Blue = 5
 
 defaults.AutoAttackIndicator = {}
 -- Independent of bar opacity: stop swing tracking when disabled.
-defaults.AutoAttackIndicator.Enabled = true
+defaults.AutoAttackIndicator.Enabled = false
 defaults.AutoAttackIndicator.Opacity = 0
 defaults.AutoAttackIndicator.PausedOpacity = 110
 defaults.AutoAttackIndicator.BackgroundOpacity = 150
@@ -146,12 +146,12 @@ defaults.InputTrace = false
 -- unloaded and the shared wrapper stopped; Apps preserves Ctrl shortcuts.
 defaults.ControllerModifier = 'apps'
 -- A: bare gameplay D-pad only; menus and trigger-held slots stay logical.
-defaults.GameplayDPad = 'arrows'
-defaults.VisibilityMode = 'always' -- always, oninput, hidden
+defaults.GameplayDPad = 'ijkl'
+defaults.VisibilityMode = 'oninput' -- always, oninput, hidden; no hold delay yet
 defaults.CrossbarScale = 1
--- Leave legacy endpoint-visible labels unchanged unless explicitly enabled.
+-- Fade labels together with artwork by default; text settling protects widths.
 -- Previously live-tested in personal: settle centered native captions before reveal.
 defaults.TextSettling = true
-defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2, TextFade=false}
+defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2, TextFade=true}
 
 return defaults
