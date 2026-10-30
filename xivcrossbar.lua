@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261029.ps5-directlink-releaseui1'
+_addon.version = '0.4.0-beta1.20261029.ps5-directlink-combatui1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1180,6 +1180,7 @@ function display_help_menu()
     chat_help.command("fade [on|off]","Enable/disable fades.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
+    chat_help.command("autoattack [on|off|status]","Enable/stop swing estimation separately from opacity.")
     chat_help.heading('Other')
     chat_help.command("reload","Reload saved crossbar bindings.")
     chat_help.command("restart","Fade out then reload the addon.")
@@ -1370,6 +1371,7 @@ windower.register_event('addon command', function(command, ...)
             'Fades: '..chat_format.toggle(settings.Animation.Enabled)..
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
             ' | Text Settling: '..chat_format.toggle(settings.TextSettling ~= false)))
+        chat_format.say(0,chat_format.row('Autoattack Estimate',chat_format.toggle(settings.AutoAttackIndicator.Enabled~=false)))
         chat_format.say(0,chat_format.row('D-pad',settings.GameplayDPad=='ijkl' and 'IJKL' or 'Arrows'))
         report_controller_status(true)
         return
@@ -1379,6 +1381,27 @@ windower.register_event('addon command', function(command, ...)
         return set_compact_mode(command == 'compact' and args[1] or args[2])
     end
 
+    if command == 'autoattack' then
+        local mode=args[1] and args[1]:lower()
+        if mode and mode~='on' and mode~='off' and mode~='status' then
+            chat_format.say(123,'[XIVCrossbar] //xb autoattack [on|off|status]')
+            return
+        end
+        if mode~='status' then
+            local enabled=mode=='on' or (not mode and settings.AutoAttackIndicator.Enabled==false)
+            settings.AutoAttackIndicator.Enabled=enabled
+            theme_options.aa_enabled=enabled
+            ui:set_autoattack_enabled(enabled)
+            if enabled and ui.is_setup then
+                local current=windower.ffxi.get_player()
+                if current then aa_set_engaged(current.status==1 or current.status==3) end
+            end
+            config.save(settings)
+        end
+        chat_format.say(207,'[XIVCrossbar] Autoattack estimate: '..
+            ((settings.AutoAttackIndicator.Enabled~=false) and 'ON' or 'OFF'))
+        return
+    end
     if command == 'textsettle' then
         return require('ui/text_measure').command(settings,args[1],
             function() config.save(settings) end,
@@ -2236,6 +2259,7 @@ local AA_PAUSING_BUFFS = {
 }
 
 windower.register_event('gain buff', function(buff_id)
+    if not ui.aa_enabled then return end
     local src = AA_PAUSING_BUFFS[buff_id]
     if (src ~= nil) then
         aa_add_pause_source(src)
@@ -2243,6 +2267,7 @@ windower.register_event('gain buff', function(buff_id)
 end)
 
 windower.register_event('lose buff', function(buff_id)
+    if not ui.aa_enabled then return end
     local src = AA_PAUSING_BUFFS[buff_id]
     if (src ~= nil) then
         aa_remove_pause_source(src)
@@ -2287,15 +2312,15 @@ windower.register_event('action', function(act)
         player:update_current_spells()
     end
 
-    if (act.category == CATEGORY_MELEE and act.actor_id == player.id) then
+    if ui.aa_enabled and (act.category == CATEGORY_MELEE and act.actor_id == player.id) then
         aa_record_swing()
     end
 
-    if (act.category == CATEGORY_WEAPONSKILL and act.actor_id == player.id) then
+    if ui.aa_enabled and (act.category == CATEGORY_WEAPONSKILL and act.actor_id == player.id) then
         aa_add_pause_source('ws')
         aa_clear_pause_after('ws', 2.0)
     end
-    if (act.category == CATEGORY_JOB_ABILITY and act.actor_id == player.id) then
+    if ui.aa_enabled and (act.category == CATEGORY_JOB_ABILITY and act.actor_id == player.id) then
         aa_add_pause_source('ja')
         aa_clear_pause_after('ja', 2.0)
     end
