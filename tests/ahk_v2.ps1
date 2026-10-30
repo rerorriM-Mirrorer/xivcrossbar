@@ -87,30 +87,36 @@ public class DialogDump {
     $children += $restart
     [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
     if (!$restart.WaitForExit(5000)) { throw 'Restarted wrapper failed to stop' }
-    # Actual production Lua chooses the cached executable; this process launch
-    # contains no CMD or PowerShell intermediary. Files/arguments contain spaces.
+    # Execute the actual generated .lnk through Windows Shell. Run receives
+    # only this file; no executable/script arguments cross its parser boundary.
+    [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-launch.ini'), "[Controller]`r`nmodifier=ctrl`r`nprofile=ps5-extended`r`ndevice=2`r`n")
     $planPath = Join-Path $fixture 'direct-launch-plan.json'
     & python (Join-Path $PSScriptRoot 'controller_runtime_windows.py') $fixture $planPath
-    if ($LASTEXITCODE -ne 0) { throw 'Production Lua direct-launch plan failed' }
+    if ($LASTEXITCODE -ne 0) { throw 'Production Lua shortcut plan failed' }
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
     if ($plan.mode -ne 'direct' -or $plan.source -ne 'cache') { throw 'Normal startup fell back to bootstrap' }
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($plan.shortcut)
+    if ($shortcut.TargetPath -ne $Interpreter) { throw 'Shortcut target is not the verified interpreter' }
+    if ($shortcut.Arguments -ne ('/ErrorStdOut "{0}"' -f (Join-Path $fixture 'ffxi_directinput.ahk'))) { throw 'Shortcut script arguments differ' }
+    [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut)
+    [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
     $elapsed = [Diagnostics.Stopwatch]::StartNew()
-    $direct = Start-Process -FilePath $plan.executable -ArgumentList $plan.arguments -PassThru -RedirectStandardError (Join-Path $resultPath 'direct-errors.txt')
-    $children += $direct
+    Start-Process -FilePath $plan.shortcut
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     do {
         Start-Sleep -Milliseconds 10
-        # Status is atomically replaced; a transient sharing failure is an
-        # unavailable observation, not a failed controller process.
         try { $status = [IO.File]::ReadAllText($statusPath) } catch { }
-    } while ($status -notmatch "pid=$($direct.Id)`r?`n" -and [DateTime]::UtcNow -lt $deadline -and !$direct.HasExited)
+    } while ($status -notmatch '(?m)^pid=([1-9][0-9]*)\r?$' -and [DateTime]::UtcNow -lt $deadline)
     $elapsed.Stop()
-    if ($status -notmatch "pid=$($direct.Id)`r?`n" -or $direct.HasExited) { throw 'Direct executable start failed' }
-    if ($status -notmatch 'device=2' -or $status -notmatch 'modifier=ctrl') { throw 'Direct start lost profile selection' }
+    if ($status -notmatch '(?m)^pid=([1-9][0-9]*)\r?$') { throw 'Windows Shell shortcut launch failed' }
+    $direct = Get-Process -Id ([int]$Matches[1]); $children += $direct
+    if ($status -notmatch 'device=2' -or $status -notmatch 'modifier=ctrl' -or $status -notmatch 'origin=launch-file') { throw 'Shortcut start lost launch-file selection' }
+    if ($status -notmatch 'ahk_major=2') { throw 'Shortcut used wrong interpreter' }
     Copy-Item $planPath (Join-Path $resultPath 'direct-launch-plan.json')
-    "PASS direct AHK start from production Lua plan; status observed after $($elapsed.ElapsedMilliseconds)ms (CI observation, not a latency guarantee)." | Tee-Object -FilePath (Join-Path $resultPath 'direct-summary.txt')
+    "PASS Windows Shell shortcut start from production Lua plan; status observed after $($elapsed.ElapsedMilliseconds)ms (CI observation, not a latency guarantee)." | Tee-Object -FilePath (Join-Path $resultPath 'direct-summary.txt')
     [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
-    if (!$direct.WaitForExit(5000)) { throw 'Direct wrapper failed to stop' }
+    if (!$direct.WaitForExit(5000)) { throw 'Shortcut wrapper failed to stop' }
     # Preserve the original launch-file fallback when Run drops all arguments.
     [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-launch.ini'), "[Controller]`r`nmodifier=ctrl`r`nprofile=ps5-extended`r`ndevice=2`r`n")
     $handoff = Start-Process $env:ComSpec -ArgumentList ('/d /s /c ""{0}""' -f (Join-Path $fixture 'launch-controller.cmd')) -PassThru -RedirectStandardError (Join-Path $resultPath 'handoff-errors.txt')

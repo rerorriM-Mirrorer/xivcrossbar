@@ -1,82 +1,59 @@
--- Production resolver under stock Lua, with bounded file I/O simulated.
+-- Production resolver: shortcut identity checks use simulated bounded files.
 local runtime=require('libs/controller/runtime')
 local root='C:/Windower/addons/xivcrossbar/'
 local exe='C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe'
 local other='D:/Portable AHK/AutoHotkey64.exe'
-local files,writes={},0
-local function open(path,mode)
-    if mode=='wb' then
-        writes=writes+1
-        return {write=function(_,s)files[path]=s;return true end,close=function()return true end}
-    end
+local files
+local function open(path)
     if not files[path] then return nil,'not found',2 end
     return {read=function(_,n)return files[path]:sub(1,n) end,
         seek=function()return #files[path] end,close=function()return true end}
 end
-local function status(version,path)
-    return {ahk_major='2',ahk_version=version or '2.0.19',ahk_path=path or exe,state='stopped',pid='0'}
+local function cache(version,protocol,directory)
+    return '[Runtime]\nprotocol='..(protocol or 'ahk-v2-link1')..'\nexecutable='..exe..
+        '\nversion='..(version or '2.0.31')..'\nsize=20\ndirectory='..(directory or root)..'\nlink_size=8\nEND\n'
 end
-local function fresh()
-    files={[exe]=string.rep('a',20),[other]=string.rep('b',30)};writes=0
+local function fresh(version,protocol)
+    files={[exe]=string.rep('a',20),[other]=string.rep('b',30),
+        [root..'data/controller-start.lnk']='shortcut',
+        [root..'data/controller-runtime-cache.ini']=cache(version,protocol)}
     return runtime.new({open=open})
 end
-local function plan(r,s,profile,device,modifier)
-    return r:plan(root,profile or 'ps5-extended',device or 1,modifier or 'apps',s)
+local function plan(r,profile,device,modifier)
+    return r:plan(root,profile or 'ps5-extended',device or 1,modifier or 'apps',
+        {ahk_major='2',ahk_version='2.0.31',ahk_path=exe})
 end
-local r=fresh();local p=assert(plan(r,status()))
-assert(p.mode=='direct' and p.source=='status' and p.executable==exe)
-assert(p.command=='run "'..exe..'" /ErrorStdOut "'..root..'ffxi_directinput.ahk" apps ps5-extended 1')
-assert(not p.command:lower():find('powershell',1,true) and not p.command:find('launch-controller.cmd',1,true))
-assert(writes==1 and files[root..'data/controller-runtime-cache.ini']:sub(-4)=='END\n')
-r=runtime.new({open=open});p=assert(plan(r,nil,'xinput-extended',4,'ctrl'))
-assert(p.source=='cache' and p.arguments:find('ctrl xinput%-extended 4$') and writes==1)
-p=assert(plan(r,status('1.1.37')));assert(p.source=='cache','stale status overrode a good cache')
--- A changed size must not be blessed by old status from that same path.
-files[exe]=files[exe]..'x';p=assert(plan(r,status()));assert(p.mode=='bootstrap')
-r=fresh();p=assert(plan(r));assert(p.mode=='bootstrap' and writes==0)
-assert(p.command=='run addons/xivcrossbar/launch-controller.cmd apps ps5-extended 1')
-for _,version in ipairs({'1.1.37','2.0.18','2.0.19-bad','bad','2.0.19..'}) do
-    r=fresh();p=assert(plan(r,status(version)));assert(p.mode=='bootstrap',version)
-end
-for _,version in ipairs({'2.0.19','2.0.20','2.1.0','2.0.19.0'}) do
-    r=fresh();assert(plan(r,status(version)).mode=='direct',version)
-end
-r=fresh();files[exe]=nil;assert(plan(r,status()).mode=='bootstrap')
-r=fresh();files[root..'data/controller-runtime-cache.ini']='[Runtime]\nprotocol=ahk-v2-cache1\nexecutable='..exe..'\nversion=2.0.19\nsize=20\n'
-assert(plan(r,status()).mode=='bootstrap','partial cache authorized fast path')
-r=fresh();files[root..'data/controller-runtime.ini']='[Runtime]\nexecutable='..other..'\n'
-p=assert(plan(r,status()));assert(p.mode=='bootstrap','changed explicit path reused previous interpreter')
-r=fresh();files[root..'data/controller-runtime.ini']='\239\187\191[Runtime]\nexecutable="'..exe..'"\n'
-p=assert(plan(r,status()));assert(p.mode=='direct')
+local r=fresh();local p=assert(plan(r))
+assert(p.mode=='direct' and p.source=='cache' and p.executable==exe)
+assert(p.shortcut==root..'data/controller-start.lnk')
+assert(p.command=='run addons/xivcrossbar/data/controller-start.lnk')
+assert(not p.arguments,'selection must remain in launch.ini, never frozen in shortcut')
+p=assert(plan(r,'xinput-extended',4,'ctrl'));assert(p.mode=='direct')
+assert(p.fallback_command=='run addons/xivcrossbar/launch-controller.cmd ctrl xinput-extended 4')
+-- Old caches/status cannot manufacture a Windows shortcut. One upgrade bootstrap.
+r=fresh(nil,'ahk-v2-cache1');assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-runtime-cache.ini']=nil;assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-start.lnk']=nil;assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-start.lnk']='changed';assert(plan(r).mode=='bootstrap')
+r=fresh();files[exe]=files[exe]..'x';assert(plan(r).mode=='bootstrap')
+r=fresh();files[exe]=nil;assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-runtime-cache.ini']=cache(nil,nil,'D:/Moved/');assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-runtime-cache.ini']=cache():gsub('END\n$','');assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-runtime-cache.ini']=string.rep('x',4097);assert(plan(r).mode=='bootstrap')
+for _,v in ipairs({'1.1.37','2.0.18','2.0.19-bad','bad','2.0.19..'}) do r=fresh(v);assert(plan(r).mode=='bootstrap',v) end
+for _,v in ipairs({'2.0.19','2.0.20','2.1.0','2.0.19.0'}) do r=fresh(v);assert(plan(r).mode=='direct',v) end
+r=fresh();files[root..'data/controller-runtime.ini']='[Runtime]\nexecutable='..other..'\n';assert(plan(r).mode=='bootstrap')
+r=fresh();files[root..'data/controller-runtime.ini']='\239\187\191[Runtime]\nexecutable="'..exe..'"\n';assert(plan(r).mode=='direct')
 for _,path in ipairs({'AutoHotkey64.exe','C:/bad;reload.exe','C:/bad"quote.exe','C:/bad\npath.exe','C:/wrong.dll'}) do
-    r=fresh();files[root..'data/controller-runtime.ini']='[Runtime]\nexecutable='..path..'\n'
-    local value=plan(r,status());assert(not value,path)
+    r=fresh();files[root..'data/controller-runtime.ini']='[Runtime]\nexecutable='..path..'\n';assert(not plan(r),path)
 end
-r=fresh();files[root..'data/controller-runtime.ini']='[Other]\nexecutable='..exe..'\n'
-assert(not plan(r,status()))
-r=fresh();files[root..'data/controller-runtime-cache.ini']=string.rep('x',4097)
-assert(plan(r,nil).mode=='bootstrap')
-r=fresh();assert(not plan(r,status(),'bogus'));assert(not plan(r,status(),'xinput',5));assert(not plan(r,status(),nil,nil,'shift'))
-assert(not r:plan('C:/unsafe;command/','ps5-extended',1,'apps',status()))
--- Cache is an optimization; failed persistence must not block the verified
--- prior-runtime path on an installation being upgraded.
-r=fresh();r=runtime.new({open=open,replace=function()return false,'read-only' end})
-assert(plan(r,status()).mode=='direct')
-print('Actual runtime planner: status migration, persisted direct start, quoting, override changes, missing/replaced executable, partial/version-invalid cache, profile validation and recovery discovery passed.')
-
--- Native A_AhkPath/status caches use backslashes. Windower's command parser is
--- an additional boundary before Windows CreateProcess: send forward slashes,
--- retaining native path identity for existence/size/override checks.
-r=fresh()
-local native_exe='C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe'
-local native_root='C:\\Users\\Player\\Saved Games\\Windower\\addons\\xivcrossbar\\'
-files[native_exe]=string.rep('a',1284608)
-files[native_root..'data/controller-runtime-cache.ini']='[Runtime]\nprotocol=ahk-v2-cache1\nexecutable='..native_exe..'\nversion=2.0.31\nsize=1284608\nEND\n'
-p=assert(r:plan(native_root,'ps5-extended',1,'apps',nil))
-assert(p.source=='cache' and p.executable==native_exe)
-assert(p.command=='run "C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe" /ErrorStdOut "C:/Users/Player/Saved Games/Windower/addons/xivcrossbar/ffxi_directinput.ahk" apps ps5-extended 1',p.command)
-assert(not p.command:find('\\',1,true),'raw Windows separator leaked into Windower command')
-print('Native backslash cache and spaced addon path normalize only at the Windower command boundary.')
-
-r=fresh();p=assert(plan(r,status(),'x',1,'ctrl'))
-assert(p.fallback_command=='run addons/xivcrossbar/launch-controller.cmd ctrl ps5-extended 1')
+r=fresh();files[root..'data/controller-runtime.ini']='[Other]\nexecutable='..exe..'\n';assert(not plan(r))
+r=fresh();assert(not plan(r,'bogus'));assert(not plan(r,'xinput',5));assert(not plan(r,nil,nil,'shift'))
+assert(not r:plan('C:/unsafe;command/','ps5-extended',1,'apps'))
+-- Native Windows paths and spaces never enter Run's argument parser.
+r=fresh();local native_root='C:\\Users\\Player\\Saved Games\\Windower\\addons\\xivcrossbar\\'
+files[native_root..'data/controller-start.lnk']='shortcut'
+files[native_root..'data/controller-runtime-cache.ini']=cache(nil,nil,native_root)
+p=assert(r:plan(native_root,'ps5-extended',1,'apps'))
+assert(p.mode=='direct' and p.command=='run addons/xivcrossbar/data/controller-start.lnk')
+print('Shortcut resolver: verified cache, upgrade discovery, changed/missing/moved files, explicit overrides, version/profile validation and argument-free Run command passed.')

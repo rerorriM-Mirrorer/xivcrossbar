@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261030.directlink1-ahkv2-faststart2'
+_addon.version = '0.4.0-a.20261030.directlink1-ahkv2-faststart3'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -534,7 +534,7 @@ function start_controller_wrappers(profile, device, modifier)
         windower.add_to_chat(0,require('libs/chat_status').notice('Could not start wrapper: '..tostring(launch_error),167))
         return false
     end
-    last_controller_launch={requested=os.time(),mode=plan.mode,source=plan.source,command=plan.command,fallback_command=plan.fallback_command}
+    last_controller_launch={requested=os.time(),mode=plan.mode,source=plan.source,command=plan.command,shortcut=plan.shortcut,fallback_command=plan.fallback_command}
     windower.send_command(plan.command)
     if plan.mode=='direct' then
         local attempt=last_controller_launch

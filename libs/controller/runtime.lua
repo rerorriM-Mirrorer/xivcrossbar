@@ -1,7 +1,6 @@
--- A: keep discovery off the ordinary controller-start path. The discovery
--- bootstrap verifies the executable; an actual v2 wrapper's status can seed the
--- same cache when upgrading an existing installation. #Requires remains the
--- final interpreter guard, even if a cached executable is replaced in place.
+-- A: bootstrap verifies v2 and creates a Windows shortcut once. Ordinary starts
+-- ask Run to open that single file, bypassing executable/argument parsing.
+-- #Requires remains the final guard if the cached executable changes in place.
 local M={}
 local function version_ok(value)
     if type(value)~='string' then return false end
@@ -49,13 +48,6 @@ function M.new(options)
             and (not override or same_path(record.executable,override))
             and tonumber(record.size)~=nil and tonumber(record.size)==size(record.executable)
     end
-    local function save(path,record)
-        local contents='[Runtime]\nprotocol=ahk-v2-cache1\nexecutable='..record.executable..
-            '\nversion='..record.version..'\nsize='..record.size..'\nEND\n'
-        if options.replace then return options.replace(path,contents) end
-        local f=open(path,'wb');if not f then return false end
-        local ok=f:write(contents);local closed=f:close();return ok and closed
-    end
     local self={}
     function self:plan(directory,profile,device,modifier,status)
         if not safe_path(directory,false) then return nil,'Invalid addon path for wrapper startup.' end
@@ -72,26 +64,17 @@ function M.new(options)
         local cache_path=directory..'data/controller-runtime-cache.ini'
         local contents=read(cache_path)
         local record=contents and contents:sub(-4)=='END\n' and parse(contents) or nil
-        local source='cache'
-        if not (record and record.protocol=='ahk-v2-cache1' and record_ok(record,override)) then
-            record=nil
-            if not contents and status and tostring(status.ahk_major)=='2' and safe_path(status.ahk_path,true)
-                and version_ok(status.ahk_version) and (not override or same_path(override,status.ahk_path)) then
-                local bytes=size(status.ahk_path)
-                if bytes then record={executable=status.ahk_path,version=status.ahk_version,size=bytes};source='status' end
-            end
-            if record then save(cache_path,record) end
-        end
         local bootstrap='run addons/xivcrossbar/launch-controller.cmd '..modifier..' '..name..' '..number
-        if record then
-            -- Windower's command parser is a separate boundary from Windows
-            -- process creation. Do not feed native backslash paths through it;
-            -- keep native identity for file checks and normalize emitted paths.
-            local script=(directory..'ffxi_directinput.ahk'):gsub('\\','/')
-            local executable=record.executable:gsub('\\','/')
-            local arguments='/ErrorStdOut "'..script..'" '..modifier..' '..name..' '..number
-            return {mode='direct',source=source,executable=record.executable,arguments=arguments,fallback_command=bootstrap,
-                command='run "'..executable..'" '..arguments}
+        local link=directory..'data/controller-start.lnk'
+        if record and record.protocol=='ahk-v2-link1' and record_ok(record,override)
+            and record.directory and same_path(record.directory,directory)
+            and tonumber(record.link_size) and tonumber(record.link_size)>0
+            and tonumber(record.link_size)==size(link) then
+            -- Run receives a single space-free relative filename. Windows Shell
+            -- resolves its explicit v2 target and script arguments, avoiding the
+            -- plugin's executable/argument parsing. Selection stays in launch.ini.
+            return {mode='direct',source='cache',executable=record.executable,shortcut=link,
+                fallback_command=bootstrap,command='run addons/xivcrossbar/data/controller-start.lnk'}
         end
         -- Discovery is exceptional: fresh installation, changed override or a
         -- missing/replaced interpreter. It publishes a verified cache before

@@ -47,15 +47,32 @@ try {
         $discovery = 'bootstrap_bits={0}; checked={1}' -f ([IntPtr]::Size * 8), ($candidates -join ' | ')
         throw ('AutoHotkey v2.0.19+ was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback. ' + $discovery)
     }
-    # Cache only verified v2 identity. Normal Lua starts use this path directly;
-    # discovery/write failure does not prevent this explicit verified launch.
+    # Persist a single-file Shell launch target after interpreter verification.
+    # The shortcut always reads the existing Lua launch.ini selection handoff;
+    # it must never freeze the profile/device from the first discovery run.
     try {
+        $scriptPath = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'
+        $linkPath = Join-Path $dataPath 'controller-start.lnk'
+        $shell = New-Object -ComObject WScript.Shell
+        $link = $shell.CreateShortcut($linkPath)
+        $link.TargetPath = $interpreter
+        $link.Arguments = '/ErrorStdOut "{0}"' -f $scriptPath
+        $link.WorkingDirectory = $PSScriptRoot
+        $link.Save()
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
         $identity = [Diagnostics.FileVersionInfo]::GetVersionInfo($interpreter)
         $runtimeVersion = '{0}.{1}.{2}' -f $identity.FileMajorPart, $identity.FileMinorPart, $identity.FileBuildPart
         $runtimeSize = (Get-Item -LiteralPath $interpreter).Length
-        $cache = "[Runtime]`nprotocol=ahk-v2-cache1`nexecutable=$interpreter`nversion=$runtimeVersion`nsize=$runtimeSize`nbootstrap_bits=$([IntPtr]::Size * 8)`nEND`n"
+        $linkSize = (Get-Item -LiteralPath $linkPath).Length
+        $directory = $PSScriptRoot.TrimEnd('\','/') + '\'
+        $cache = "[Runtime]`nprotocol=ahk-v2-link1`nexecutable=$interpreter`nversion=$runtimeVersion`nsize=$runtimeSize`ndirectory=$directory`nlink_size=$linkSize`nbootstrap_bits=$([IntPtr]::Size * 8)`nEND`n"
         [IO.File]::WriteAllText((Join-Path $dataPath 'controller-runtime-cache.ini'), $cache, (New-Object Text.UTF8Encoding($false)))
-    } catch { }
+    } catch {
+        # Discovery can still start the wrapper if shortcut creation is blocked.
+        [IO.File]::AppendAllText((Join-Path $dataPath 'controller-launch-error.log'),
+            ('{0:u} Fast-start shortcut unavailable: {1}' -f [DateTime]::UtcNow, $_.Exception.Message) + [Environment]::NewLine)
+    }
     $script = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'
     # Run-plugin versions can drop arguments. In that case let the wrapper
     # consume Lua's existing controller-launch.ini handoff instead of replacing
