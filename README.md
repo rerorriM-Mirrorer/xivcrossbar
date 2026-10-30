@@ -1492,3 +1492,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 - One setup start is required on upgrade; subsequent starts reuse the shortcut.
   Selected profile/device/modifier still come from the existing launch handoff.
   No controller input changes. See docs/AHK-V2-FASTSTART3.md for install/testing.
+
+### October 30, 2026 — AHK v2 Touch Fix 1
+
+- User confirms Fast Start 3 startup is faster after setup. Corrected touchpad
+  physical-key checks: query scan codes for touchpad and comma/period stick-click actions while retaining their sent VK/SC identities.
+  Press/release ownership checks remain in place. See docs/AHK-V2-TOUCHFIX1.md;
+  restart the wrapper after overlaying personal_controls.ahk.
