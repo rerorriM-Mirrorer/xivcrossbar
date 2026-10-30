@@ -2,6 +2,7 @@
 #Include %A_ScriptDir%\runtime-functions.ahk
 ; This harness is copied to an isolated temporary folder by ahk_v2.ps1.
 ; All policies below execute actual production functions with real v2 objects.
+OnError(NativeTestError)
 SetKeyDelay(10, -1)
 FileEncoding("CP0")
 DirCreate(A_ScriptDir . "\data")
@@ -92,4 +93,9 @@ ExitApp(0)
 Assert(value, label) {
     if (!value)
         throw Error("FAIL " . label)
+}
+
+NativeTestError(error, mode) {
+    FileAppend(error.Message . " at " . error.File . ":" . error.Line . "`n" . error.Stack . "`n", "**", "UTF-8-RAW")
+    ExitApp(1)
 }

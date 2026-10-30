@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $resultPath = Join-Path $root 'native-test-results'
 [void][IO.Directory]::CreateDirectory($resultPath)
-$fixture = Join-Path ([IO.Path]::GetTempPath()) ('xivcrossbar-ahk-v2-' + [guid]::NewGuid())
+$fixture = Join-Path ([IO.Path]::GetTempPath()) ('xivcrossbar ahk v2 ' + [guid]::NewGuid())
 [void][IO.Directory]::CreateDirectory($fixture)
 $children = @()
 try {
@@ -17,9 +17,13 @@ try {
     $source = [IO.File]::ReadAllText((Join-Path $fixture 'ffxi_directinput.ahk'))
     $functions = $source.Substring($source.IndexOf("`nAcquireWrapperMutex() {") + 1)
     [IO.File]::WriteAllText((Join-Path $fixture 'runtime-functions.ahk'), $functions)
-    $output = & $Interpreter /ErrorStdOut (Join-Path $fixture 'native-tests.ahk') 2>&1
-    $output | Tee-Object -FilePath (Join-Path $resultPath 'functions.txt')
-    if ($LASTEXITCODE -ne 0 -or "$output" -notmatch 'PASS native v2') { throw 'Native function tests failed' }
+    $test = Start-Process $Interpreter -ArgumentList ('/ErrorStdOut "{0}"' -f (Join-Path $fixture 'native-tests.ahk')) -PassThru -RedirectStandardOutput (Join-Path $resultPath 'functions.txt') -RedirectStandardError (Join-Path $resultPath 'functions-errors.txt')
+    $children += $test
+    if (!$test.WaitForExit(15000)) { throw 'Native function tests timed out (possible runtime dialog)' }
+    $output = Get-Content (Join-Path $resultPath 'functions.txt') -Raw
+    Get-Content (Join-Path $resultPath 'functions-errors.txt')
+    Write-Host $output
+    if ($test.ExitCode -ne 0 -or "$output" -notmatch 'PASS native v2') { throw 'Native function tests failed' }
     # Parse optional GUI probe without opening its UI, by returning before its
     # auto-execute section. AHK parses all functions/hotkeys before executing.
     $probe = [IO.File]::ReadAllText((Join-Path $root 'tools/keyprobe/keyboard_probe.ahk'))
