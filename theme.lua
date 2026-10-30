@@ -59,6 +59,7 @@ theme.apply = function (settings)
     options.ja_lockout_partial_blue = settings.JobAbilityLockoutIndicator.PartialLockoutColor.Blue
 
     -- Auto-attack swing timer
+    options.aa_enabled = settings.AutoAttackIndicator.Enabled ~= false
     options.aa_opacity = settings.AutoAttackIndicator.Opacity
     options.aa_paused_opacity = settings.AutoAttackIndicator.PausedOpacity
     options.aa_background_opacity = settings.AutoAttackIndicator.BackgroundOpacity
