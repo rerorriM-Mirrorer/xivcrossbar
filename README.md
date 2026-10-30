@@ -1466,3 +1466,11 @@ Include native Program Files when the controller bootstrap starts from 32-bit
 Windower/Run, and record process bitness/checked paths on discovery failure.
 Explicit runtime overrides retain their precedence. Controller input/protocols
 and installed settings are unchanged. See docs/AHK-V2-STARTUP-FIX1.md.
+
+
+### October 30, 2026 — AHK v2 Fast Start 1
+
+Normal controller starts launch the verified cached AHK v2 executable directly
+from Lua. Existing v2 status can seed the cache during upgrade; discovery is
+reserved for fresh/missing/changed runtime selection. Keep the existing startup
+handoff, v2 validation and shared-wrapper lifecycle. See docs/AHK-V2-FASTSTART1.md.
