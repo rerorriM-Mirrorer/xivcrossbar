@@ -42,7 +42,14 @@ try {
     }
     if (-not $interpreter) { throw 'AutoHotkey v2.0.19+ was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback.' }
     $script = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'
-    $arguments = '/ErrorStdOut "{0}" {1} {2} {3}' -f $script, $Modifier, $Profile, $Device
+    # Run-plugin versions can drop arguments. In that case let the wrapper
+    # consume Lua's existing controller-launch.ini handoff instead of replacing
+    # the selected extended profile with bootstrap parameter defaults.
+    $arguments = if ($PSBoundParameters.ContainsKey('Profile')) {
+        '/ErrorStdOut "{0}" {1} {2} {3}' -f $script, $Modifier, $Profile, $Device
+    } else {
+        '/ErrorStdOut "{0}"' -f $script
+    }
     Start-Process -FilePath $interpreter -ArgumentList $arguments -WorkingDirectory $PSScriptRoot
 } catch {
     $message = '{0:u} {1}' -f [DateTime]::UtcNow, $_.Exception.Message

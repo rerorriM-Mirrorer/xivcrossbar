@@ -87,6 +87,22 @@ public class DialogDump {
     $children += $restart
     [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
     if (!$restart.WaitForExit(5000)) { throw 'Restarted wrapper failed to stop' }
+    # Preserve the original launch-file fallback when Run drops all arguments.
+    [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-launch.ini'), "[Controller]`r`nmodifier=ctrl`r`nprofile=ps5-extended`r`ndevice=2`r`n")
+    $handoff = Start-Process $env:ComSpec -ArgumentList ('/d /s /c ""{0}""' -f (Join-Path $fixture 'launch-controller.cmd')) -PassThru -RedirectStandardError (Join-Path $resultPath 'handoff-errors.txt')
+    $children += $handoff
+    if (!$handoff.WaitForExit(10000) -or $handoff.ExitCode -ne 0) { throw 'Argument-free CMD bootstrap failed' }
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        Start-Sleep -Milliseconds 50
+        $status = [IO.File]::ReadAllText($statusPath)
+    } while ($status -match 'pid=0' -and [DateTime]::UtcNow -lt $deadline)
+    if ($status -notmatch '(?m)^pid=([1-9][0-9]*)\r?$') { throw 'Launch-file fallback did not start' }
+    $handoffWrapper = Get-Process -Id ([int]$Matches[1])
+    $children += $handoffWrapper
+    if ($status -notmatch 'origin=launch-file' -or $status -notmatch 'device=2' -or $status -notmatch 'modifier=ctrl' -or $status -notmatch 'profile=ps5-extended') { throw 'Launch-file selection was replaced by defaults' }
+    [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
+    if (!$handoffWrapper.WaitForExit(5000)) { throw 'Launch-file wrapper failed to stop' }
     # A wrong executable override must fail closed, without association fallback.
     $wrongRuntime = (Get-Command powershell.exe).Source
     [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-runtime.ini'), "[Runtime]`r`nexecutable=$wrongRuntime`r`n")
