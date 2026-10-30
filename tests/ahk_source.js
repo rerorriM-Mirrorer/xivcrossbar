@@ -2,9 +2,12 @@
 // by the existing narrow AHK-to-JS harnesses. Never used by runtime scripts.
 const fs = require('fs');
 function read(path) {
-  let s = fs.readFileSync(path, 'utf8');
+  let s = process.env.XIV_AHK_BASELINE && path.endsWith('.ahk')
+    ? require('child_process').execFileSync('git', ['show', process.env.XIV_AHK_BASELINE + ':' + path], {encoding:'utf8'})
+    : fs.readFileSync(path, 'utf8');
   if (!path.endsWith('.ahk')) return s;
-  s = s.replace(/try ControlSend\(([^\n]+), , "ahk_id " \. owner\)/g, 'ControlSend,, % $1, ahk_id %owner%')
+  s = s.replace(/OrderedInputMap\(([^)]+)\)/g, '$1')
+    .replace(/try ControlSend\(([^\n]+), , "ahk_id " \. owner\)/g, 'ControlSend,, % $1, ahk_id %owner%')
     .replace('raw := states.Clone()', 'raw := []\n    for i, value in states\n        raw[i] := value')
     .replace(/raw\.%name%/g, 'raw[name]')
     .replace(/Loop Files pattern, "F"/g, 'Loop, Files, %pattern%, F')

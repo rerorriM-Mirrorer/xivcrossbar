@@ -32,7 +32,7 @@ PersonalPoll(states, active) {
     ; XInput named buttons are sampled atomically with faces/triggers. Reading
     ; JoyN here could mix in another attached controller or the wrong numbering.
     if (!PC.xinput)
-        for name, button in Map("l1", 5, "r1", 6, "l3", 11, "r3", 12, "ps", 13, "touch", 14, "mute", 15)
+        for name, button in Map("l1", 5, "l3", 11, "mute", 15, "ps", 13, "r1", 6, "r3", 12, "touch", 14)
             raw.%name% := GetKeyState(PC.prefix . "Joy" . button) ? true : false
     now := DllCall("GetTickCount64", "UInt64")
     if (!PC.connected) {
@@ -299,7 +299,7 @@ PersonalFilter(states, raw) {
     if (!PC.blocked.Count)
         return states
     retired := []
-    for i, key in PC.blocked {
+    for i, key in OrderedInputMap(PC.blocked) {
         states[i] := false
         if (!raw[i]) {
             if (i <= 4)
@@ -521,7 +521,7 @@ PersonalChord(key, modifier, now) {
 PersonalReleaseDue(now) {
     global PC
     due := []
-    for key, time in PC.releases
+    for key, time in OrderedInputMap(PC.releases)
         if (now >= time)
             due.Push(key)
     for _, key in due
@@ -543,7 +543,7 @@ PersonalRelease(reset := true) {
         PC.contextSeen := 0, PC.contextPaused := false
     }
     keys := []
-    for key in PC.keys
+    for key in OrderedInputMap(PC.keys)
         keys.Push(key)
     for _, key in keys
         if (key != "LControl" and key != "LAlt" and key != "LShift")
@@ -636,7 +636,7 @@ PersonalNativeSync() {
         }
     }
     retired := []
-    for key in PC.native.keys
+    for key in OrderedInputMap(PC.native.keys)
         if (!desired.Has(key))
             retired.Push(key)
     for _, key in retired
@@ -645,10 +645,10 @@ PersonalNativeSync() {
     for _, key in retired
         if (key = "LControl" or key = "LAlt" or key = "LShift")
             PersonalKey(key, false)
-    for key in desired
+    for key in OrderedInputMap(desired)
         if (key = "LControl" or key = "LAlt" or key = "LShift")
             PersonalKey(key, true)
-    for key in desired
+    for key in OrderedInputMap(desired)
         if (key != "LControl" and key != "LAlt" and key != "LShift")
             PersonalKey(key, true)
     PC.native.keys := desired
@@ -736,7 +736,9 @@ PersonalBanksPoll(states, raw, mode, now) {
 PersonalOtherWindow(hwnd) {
     if (!hwnd or !WinExist("ahk_id " . hwnd))
         return false
-    windowClass := WinGetClass("ahk_id " . hwnd)
+    try windowClass := WinGetClass("ahk_id " . hwnd)
+    catch
+        return false
     return windowClass != "FFXiClass" and windowClass != "Progman" and windowClass != "WorkerW"
         and windowClass != "Shell_TrayWnd" and windowClass != "AutoHotkey" and windowClass != "tooltips_class32"
 }
@@ -765,10 +767,12 @@ PersonalPS(pressed, foreground, active, consumed) {
 PersonalActivate(target) {
     if (!target or !WinExist("ahk_id " . target))
         return
-    minimized := WinGetMinMax("ahk_id " . target)
-    if (minimized = -1)
-        WinRestore("ahk_id " . target)
-    WinActivate("ahk_id " . target)
+    try {
+        minimized := WinGetMinMax("ahk_id " . target)
+        if (minimized = -1)
+            WinRestore("ahk_id " . target)
+        WinActivate("ahk_id " . target)
+    }
 }
 
 PersonalClientTarget(active, direction := 1) {

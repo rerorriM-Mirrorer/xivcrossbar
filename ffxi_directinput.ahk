@@ -418,7 +418,11 @@ InputTraceStart(now) {
     if (request = "on") {
         InputTraceClose()
         IT.captureId := captureId
-        DirCreate(A_ScriptDir . "\data\diagnostics")
+        try DirCreate(A_ScriptDir . "\data\diagnostics")
+        catch {
+            IT.error := true
+            return
+        }
         IT.path := A_ScriptDir . "\data\diagnostics\" . (captureId != "" ? captureId . "-ahk.log" : "controller-input-trace.log")
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
         InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.20-diagnostics1 id=" . captureId)
@@ -557,4 +561,26 @@ PublishControllerFile(temporary, destination, contents) {
     } catch {
         return false
     }
+}
+
+; v1 object enumeration orders integer keys before ordinal string keys. Native
+; Map insertion order differs; preserve release/key acquisition order explicitly.
+OrderedInputMap(source) {
+    keys := []
+    for key in source {
+        position := keys.Length + 1
+        for index, existing in keys {
+            numeric := Type(key) = "Integer", otherNumeric := Type(existing) = "Integer"
+            if ((numeric and !otherNumeric) or (numeric = otherNumeric
+                and (numeric ? key < existing : StrCompare(key, existing, true) < 0))) {
+                position := index
+                break
+            }
+        }
+        keys.InsertAt(position, key)
+    }
+    ordered := Map()
+    for _, key in keys
+        ordered[key] := source[key]
+    return ordered
 }

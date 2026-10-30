@@ -17,6 +17,10 @@ PersonalInit(profile, "")
 MovementInit()
 InputTraceInit()
 WrapperClientsInit()
+order := ""
+for k in OrderedInputMap(Map(2, true, 1, true, "z", true, "A", true))
+    order .= k . ","
+Assert(order = "1,2,A,z,", "v1 acquisition/release enumeration order")
 Assert(previous[14] = false, "missing sparse button is released")
 Assert(previous.l1 = false, "named defaults")
 previous.moveX := 0.25
