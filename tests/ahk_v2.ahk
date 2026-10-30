@@ -158,7 +158,7 @@ NativeContextObservationTests() {
         Assert(PersonalContext(first.Hwnd, observation) = "unknown" and PC.contextFileReads = reads, "uncertainty shared within poll")
         Assert(PersonalContext(first.Hwnd, {}) = "gameplay", "next-poll recovery")
         NativeWriteContext(path, "Cioara", "gameplay", "session-four", 0)
-        Assert(PersonalContext(first.Hwnd, {}) = "unknown", "stale context rejection")
+        Assert(PersonalContext(first.Hwnd, {}) = "stale", "stale context rejection")
         FileDelete(path)
         FileAppend("name=Cioara`nmode=gameplay`nEND`n", path, "CP0")
         Assert(PersonalContext(first.Hwnd, {}) = "unknown", "malformed context rejection")

@@ -365,7 +365,7 @@ WriteTransportStatus(force := false) {
     if (PC.enabled)
         contents .= "personal_context=" . PC.context . "`npersonal_version=9.20-diagnostics1`nhold_recovery_protocol=1`nps_action=" . (PC.xinput ? "none" : "focus-toggle") . "`nguide_touchpad=" . (PC.xinput ? (xinputGuide ? "available" : "unavailable") : "not-applicable") . "`nshoulder_double_tap=off`nctrl_pair=0`nalt_pair=0`nl1_layer=" . PC.layerVisible . "`nl1_mode=" . PC.l1.mode . "`nl1_ready=" . PC.l1.available . "`nl1_sent=" . PC.l1.seq . "`nl1_ack=" . PC.l1.ack . "`n"
             . "target_r2=" . PC.targetR2 . "`ntarget_r3=" . PC.targetR3 . "`ncontext_pauses=" . PC.contextPauses . "`n"
-            . "context_observations=" . PC.contextObservations . "`ncontext_reuses=" . PC.contextReuses . "`ncontext_scans=" . PC.contextScans . "`ncontext_file_reads=" . PC.contextFileReads . "`n"
+            . "context_poll_protocol=1`ncontext_observations=" . PC.contextObservations . "`ncontext_reuses=" . PC.contextReuses . "`ncontext_scans=" . PC.contextScans . "`ncontext_file_reads=" . PC.contextFileReads . "`n"
             . "realkeys_protocol=1`ndpad_output=" . (PC.realDpad ? "ahk" : "lua") . "`n"
             . "r1_menu_protocol=1`nr1_menus=" . PC.r1Menus . "`n"
             . "bank_protocol=1`nbanks_enabled=" . PC.banks . "`nbank_native_ack=" . PC.native.ack . "`n"
