@@ -19,7 +19,7 @@ to a live-known-good state. Preserve the complete currently working installation
 | controller_clients.ahk | Native Maps, v2 Files loops, exception-aware FileRead, explicit deadAt initialization, regex captures and DateDiff. Same owner-lock and last-client policy. |
 | movement_signal.ahk | v2 SendEvent/ControlSend/window/file functions; HasOwnProp for axes, Map policies, match objects, same Send/Ready latch and threshold. |
 | tools/keyprobe/keyboard_probe.ahk | Entire optional GUI uses v2 Gui controls/events, function timers/exit, native Map and paired-key cleanup. Default F15 choice retained. Not a runtime dependency. |
-| launch-controller.cmd / launch-controller.ps1 | Independent bootstrap resolves a real v2 executable, checks product/version, quotes script path, passes validated arguments. No .ahk association dependency. |
+| launch-controller.cmd / launch-controller.ps1 | Independent bootstrap resolves a real v2 executable, checks product/version, quotes script path, passes validated arguments. No .ahk association dependency; missing Run arguments retain the existing Lua launch-file handoff. |
 | xivcrossbar.lua | One launch target changed from ffxi_directinput.ahk to launch-controller.cmd. Routing/protocol/gesture code unchanged. |
 | tests/ahk_source.js and eight JS suites | Test-only v2 source normalization for the existing narrow JS execution harnesses. Native v2 object/I/O semantics are checked separately on Windows, not inferred from these simulations. |
 | tests/check_ahk.py | Update lexical/integration assertions to v2 syntax. This is not an AHK parser. |
@@ -120,11 +120,11 @@ no launcher session, UI, IPC server or lifetime is required by XIVCrossbar.
 ## Verified results for Test 1
 
 Actual Windows x86/x64 AHK 2.0.19 verification passed at runtime checkpoint
-712a9f14d1e9474cd1f16c3a1858b42b9c0d2755 in
-https://github.com/rerorriM-Mirrorer/xivcrossbar/actions/runs/41005821191 .
+2bd4ed32ac4c35e080fce7fd8d694920c220b305 in
+https://github.com/rerorriM-Mirrorer/xivcrossbar/actions/runs/41006074961 .
 This covers native syntax/objects/policies, isolated startup/mutex/explicit stop,
 production CMD/Windows PowerShell bootstrap restart and rejection of a non-v2
-override. It does not exercise Windower or attached hardware. Local checks:
+override, plus missing-argument launch-file fallback. It does not exercise Windower or attached hardware. Local checks:
 75 Lua suites, 165 normalized Lua parses, eight v1/v2 translated equivalent
 suites, AHK structural checks and dependency/layout validation. Early native
 failures were isolated-harness setup/GUI invocation issues; corrected and rerun.

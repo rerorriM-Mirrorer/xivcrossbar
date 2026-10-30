@@ -11,7 +11,7 @@ executes actual production functions with native v2 Maps/Arrays/match objects,
 checks the optional probe's parse, starts the real wrapper without FFXI, verifies
 its reported runtime/PID, launches a duplicate, stops it, and checks bootstrap
 restart and cleanup. It never writes installed userdata. Results are written
-under native-test-results. CI pins 2.0.19 and checks both x86 and x64, the production CMD/Windows PowerShell 5.1 bootstrap, and rejection of a non-v2 override. Repeat locally on your installed build.
+under native-test-results. CI pins 2.0.19 and checks both x86 and x64, the production CMD/Windows PowerShell 5.1 bootstrap, rejection of a non-v2 override, and the original launch-file fallback when Run drops arguments. Repeat locally on your installed build.
 
 A function-only include is generated from AcquireWrapperMutex onward, retaining
 all five production includes. It excludes auto-start and the emergency hotkey;

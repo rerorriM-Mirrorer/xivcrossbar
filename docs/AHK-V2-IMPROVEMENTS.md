@@ -111,7 +111,9 @@ of v2. Do not remove recovery based solely on successful replacement.
 **Discovery:** Pending stream events are bounded at 96 and time-limited at
 350ms, while receiver bytes cap at 8192. Each flush rebuilds pending rows. The
 client registry caches retired records but still enumerates every historical
-INI at 250ms cadence. No limit violation or measured slowdown demonstrated.
+INI at 250ms cadence. No limit violation or measured slowdown demonstrated. The required v2
+OrderedInputMap helper also creates sorted snapshots to preserve v1 key order;
+its per-poll allocation cost has not been profiled.
 
 **Evidence:** controller_messages.ahk:ControllerMessageFlush 103–122 and Poll
 200–218; libs/controller/messages.lua:accept 54–57; controller_clients.ahk:
@@ -120,7 +122,9 @@ WrapperClientsShouldExit 21–97 (retired cache at 38–68).
 **Proposal:** Add byte-budget invariants/tests for worst-case sequence fields;
 measure registry size/cost. Consider archive/compaction of safely retired
 sessions outside the input loop, preserving diagnostic history and live owners.
-Avoid a queue rewrite unless profiling justifies it.
+Avoid a queue rewrite unless profiling justifies it. Profile the ordered-map
+helper too; an explicit ordered ownership container might preserve the same
+order with fewer temporary allocations, if the cost is material.
 
 **Expected benefit:** Predictable resource growth and less historical work.
 
