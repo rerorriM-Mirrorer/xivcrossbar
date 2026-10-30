@@ -1458,3 +1458,11 @@ AHK v2, preserving protocols, profiles, ownership barriers and timing. Launch
 through explicit version-checked v2 bootstrap; add Windows native policy and
 lifecycle CI, v1 rollback packaging and separate improvement audit. No saved
 data, bindings, images or optional architecture proposals are changed.
+
+
+### October 30, 2026 — AHK v2 Startup Fix 1
+
+Include native Program Files when the controller bootstrap starts from 32-bit
+Windower/Run, and record process bitness/checked paths on discovery failure.
+Explicit runtime overrides retain their precedence. Controller input/protocols
+and installed settings are unchanged. See docs/AHK-V2-STARTUP-FIX1.md.

@@ -1,3 +1,15 @@
+# Current Development Status — October 30, 2026 — AHK v2 Startup Fix 1
+
+- Repository rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration. Starting delivery checkpoint 572327ca970479c914ce7b226da96817d16b4a77; tested runtime correction 88c3041baec687cad3a6844f4364fa389dcdda88. Public/master/development-directlink remain unchanged. AHK 2.0.19+ / Lua directlink1-messagecleanup2 / Controls 9.20-diagnostics1 retained.
+- User reports stopped/connected-off and no triggers/faces, with transient red startup text. Uploaded controller-launch-error.log records three interpreter-not-found failures. Manual command-window launch subsequently starts the wrapper; //xb controller start does not. This is a startup observation, not confirmation of physical input or full live acceptance.
+- Confirmed source gap: discovery only checks ProgramFiles and ProgramFiles(x86), which can both identify the x86 root under the 32-bit Windower launch environment. Add ProgramW6432 before those existing roots; explicit INI overrides remain authoritative and v2 version validation remains strict. Failure log now includes bootstrap bitness and checked executable paths. No elevation, protocol/input/profile or personal-data changes.
+- New regression executes real SysWOW64 CMD -> 32-bit Windows PowerShell without a runtime override, with v2 present only in a native Program Files fixture. Old launcher failed this test: https://github.com/rerorriM-Mirrorer/xivcrossbar/actions/runs/41114765906 . Corrected launcher passes with both x86 and x64 AHK, including explicit stop and existing native lifecycle/policy tests: https://github.com/rerorriM-Mirrorer/xivcrossbar/actions/runs/41114905686 . No FFXI/controller attached. Earlier tests using explicit paths did not cover this discovery case.
+- Local AHK structural/dependency, layout, eight v1/v2 translated equivalence suites and whitespace checks pass. No Lua/AHK input source changed; prior 75-suite/165-parse Lua record remains the baseline and is not claimed as rerun here. Full testing history is retained below.
+- Delivery: startup-only overlay launch-controller.ps1 plus README/WORKFLOW/TESTING and docs/AHK-V2-STARTUP-FIX1.md inside xivcrossbar. Stop any manually running wrapper, back up that one PS1, overlay patch, then //xb controller start. Loaded Lua can remain loaded. No settings/config/character bindings supplied. Native CI demonstrates the mechanism; actual user Windower launch and controller input still await confirmation.
+- Next: confirm in-game start and fresh runtime status, then continue the existing live controller/multibox matrix. Last-client automatic shutdown remains a separate unresolved issue.
+
+---
+
 # Current Development Status — October 29, 2026 — AHK v2 Test 1
 
 - Repository `rerorriM-Mirrorer/xivcrossbar`, dedicated `development/ahk-v2-migration`. Starting personal source `ed86e5f36c435273b62332278ed08fcb82c2f27f`; final runtime/test checkpoint `2bd4ed32ac4c35e080fce7fd8d694920c220b305`. Final delivery documentation commit is reported in the handoff. Master, public RC/beta and development/directlink are not modified by this branch.
