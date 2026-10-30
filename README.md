@@ -1474,3 +1474,12 @@ Normal controller starts launch the verified cached AHK v2 executable directly
 from Lua. Existing v2 status can seed the cache during upgrade; discovery is
 reserved for fresh/missing/changed runtime selection. Keep the existing startup
 handoff, v2 validation and shared-wrapper lifecycle. See docs/AHK-V2-FASTSTART1.md.
+
+
+### October 30, 2026 — AHK v2 Fast Start 2
+
+Normalize native cached executable/script paths only when emitting the Windower
+Run command. Confirm direct startup asynchronously and retry verified bootstrap
+once if no running status appears; explicit stop/newer start cancel old recovery.
+Include the exact launch plan in existing unified diagnostics. Input/protocols
+and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
