@@ -773,8 +773,14 @@ Superwarp bindings require the separate Superwarp addon.
 
 ## Install or upgrade
 
-Requires **Windower 4** and **AutoHotkey v1.1.33 or newer in the v1 series**,
-associated with `.ahk` files.
+This personal migration branch requires **Windower 4**, its **Run plugin**, and
+**AutoHotkey v2.0.19 or newer stable v2**. Startup uses `launch-controller.cmd`
+and a version-checked executable; it does not depend on `.ahk` associations.
+See [v2 installation and rollback](docs/AHK-V2-MIGRATION.md),
+[native/live checks](docs/AHK-V2-NATIVE-TEST.md), and the
+[separate improvement audit](docs/AHK-V2-IMPROVEMENTS.md). The v2 migration is a
+testing branch until live controller/multibox acceptance; current results are
+at the beginning of TESTING.md.
 
 1. Stop your current AutoHotkey controller script and unload XIVCrossbar on all clients.
 2. Back up the existing `addons/xivcrossbar` folder, then move it out of the addons folder.
@@ -1443,3 +1449,12 @@ routing/recovery rules remain unchanged; live responsiveness needs confirmation.
 - Correct success/error/warning tones and replace routine notification arrows.
 - Keep raw input details in bounded diagnostics and shorten legacy bank edit
   confirmations to one line. Public beta and controller behavior are unchanged.
+
+
+### October 29, 2026 — Personal native AHK v2 migration
+
+Convert active shared controller runtime and optional keyboard probe to native
+AHK v2, preserving protocols, profiles, ownership barriers and timing. Launch
+through explicit version-checked v2 bootstrap; add Windows native policy and
+lifecycle CI, v1 rollback packaging and separate improvement audit. No saved
+data, bindings, images or optional architecture proposals are changed.

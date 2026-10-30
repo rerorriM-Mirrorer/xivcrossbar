@@ -1,3 +1,10 @@
+# AutoHotkey v2 migration note
+
+This branch's keyboard probe requires v2.0.19+ and uses native v2 GUI events.
+Launch it with an explicit v2 executable if your .ahk association still selects
+v1. It remains an optional manual diagnostic, never an addon startup dependency.
+Earlier historical instructions below refer to the original delivery.
+
 # Optional key probe
 
 Nothing here starts automatically. The previous probe was not recovered from
