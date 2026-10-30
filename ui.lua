@@ -1228,6 +1228,7 @@ function aa_add_pause_source(src)
 end
 
 function aa_remove_pause_source(src)
+    if ui.aa_enabled == false then return end
     if (aa_pause_sources[src] == nil) then return end
     aa_pause_sources[src] = nil
     if (not aa_is_paused()) then
@@ -1273,10 +1274,12 @@ function aa_set_engaged(is_engaged)
 end
 
 -- Schedule function for clearing a pause source after a fixed delay (2s for WS/JA).
+-- Disabling/re-enabling invalidates callbacks from the prior tracking session.
 function aa_clear_pause_after(src, delay_seconds)
     if ui.aa_enabled == false then return end
+    local generation=ui.aa_generation
     coroutine.schedule(function()
-        aa_remove_pause_source(src)
+        if ui.aa_enabled and ui.aa_generation==generation then aa_remove_pause_source(src) end
     end, delay_seconds)
 end
 
@@ -1425,6 +1428,7 @@ function ui:set_autoattack_enabled(enabled)
     enabled = enabled ~= false
     if self.aa_enabled == enabled then return end
     self.aa_enabled = enabled
+    self.aa_generation=(self.aa_generation or 0)+1
     aa_last_swing_time,aa_intervals,aa_estimate=0,{},nil
     aa_engaged,aa_pause_sources,aa_pause_start=false,{},0
     aa_accumulated_pause=0
