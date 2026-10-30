@@ -29,10 +29,11 @@ public class DialogDump {
  [DllImport("user32.dll")] public static extern bool EnumWindows(Callback c, IntPtr p);
  [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr h, Callback c, IntPtr p);
  [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder b, int n);
+ [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr SendMessageW(IntPtr h, uint m, IntPtr w, StringBuilder b);
  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
  public static string Read(int pid) {
   string result="";
-  Callback read=(h,p)=> { var b=new StringBuilder(4096); GetWindowText(h,b,4096); result+=b.ToString()+"\n"; return true; };
+  Callback read=(h,p)=> { var b=new StringBuilder(4096); SendMessageW(h,0x000D,(IntPtr)4096,b); result+=b.ToString()+"\n"; return true; };
   EnumWindows((h,p)=> {uint owner; GetWindowThreadProcessId(h,out owner); if(owner==pid) {read(h,p); EnumChildWindows(h,read,IntPtr.Zero);} return true;}, IntPtr.Zero);
   return result;
  }
