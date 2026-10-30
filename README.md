@@ -17,7 +17,7 @@ are supplied. Preserve the appropriate installation's data separately. Both
 variants use the xivcrossbar name and keyboard transport: test one at a time per
 PC, stopping the wrapper and unloading all clients before changing variants.
 
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-releaseui1**, with RC3 Icons/Credits/Escape,
+Current runtime is **0.4.0-beta1.20261029.ps5-directlink-combatui1**, with RC3 Icons/Credits/Escape,
 compact/stroke/resource maintenance, target pagination, stable character identity,
 Default-set switch destinations and custom-action save return. It does not include the personal
 controller profile, personal catalogs, movement signaling or any L1/R1 banks.
@@ -352,3 +352,25 @@ No alterations to personal `development/directlink`, stable/master, PS5
 routing, text measurement, compact geometry, or settings are included.
 CI exercises real keyboard dispatch in a mocked Windower environment and the
 colored message output; actual FFXI/AutoHotkey acceptance remains unverified.
+
+
+2026-10-29: Focused public Beta 1 combat/Options UI parity with personal.
+Setting `SkillchainIndicator.Opacity = 0` now hides both the skillchain
+progress indicator and its background. New `//xb autoattack [on|off|status]`
+separately disables/enables automatic swing estimation, including incoming
+swing/buff/pause tracking; it preserves the prior default of Enabled=true.
+The existing `AutoAttackIndicator.Opacity = 0` still hides the entire bar while
+allowing estimation when enabled. Re-enabling resets estimation instead of
+showing a stale average. Delayed pause callbacks from an older session cannot
+mutate a newly enabled session.
+
+Animated skillchain slot frames now restore the base image whenever their
+skillchain property is absent, including during warmup. The existing valid
+skillchain animation stays unchanged. The Options/set chooser also gained the
+previously missing physical cancel-button mapping for PS/GameCube/Xbox/Nintendo
+artwork; the root input router had called this method without providing it.
+
+All updates are isolated to the public Beta 1 branch. The extra personal
+blood-pact selection filtering, Main chooser label for Basic, personal
+companion banks and extended reader-profile choices remain separate.
+Simulated Lua source/regression tests are not native FFXI live verification.
