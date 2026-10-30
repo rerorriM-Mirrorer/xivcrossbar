@@ -25,7 +25,10 @@ try {
         if (-not [IO.Path]::IsPathRooted($explicitPath)) { throw 'The configured AutoHotkey executable must be an absolute path.' }
         $candidates = @($explicitPath)
     } else {
-        foreach ($installRoot in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        # A 32-bit Windower/Run parent makes ProgramFiles resolve to the
+        # x86 root. ProgramW6432 retains the native 64-bit install location.
+        # Keep the same verified v2 executables and strict override behavior.
+        foreach ($installRoot in @($env:ProgramW6432, $env:ProgramFiles, ${env:ProgramFiles(x86)})) {
             if ($installRoot) {
                 $candidates += Join-Path $installRoot 'AutoHotkey\v2\AutoHotkey64.exe'
                 $candidates += Join-Path $installRoot 'AutoHotkey\v2\AutoHotkey32.exe'
@@ -40,7 +43,10 @@ try {
             $interpreter = $candidate; break
         }
     }
-    if (-not $interpreter) { throw 'AutoHotkey v2.0.19+ was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback.' }
+    if (-not $interpreter) {
+        $discovery = 'bootstrap_bits={0}; checked={1}' -f ([IntPtr]::Size * 8), ($candidates -join ' | ')
+        throw ('AutoHotkey v2.0.19+ was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback. ' + $discovery)
+    }
     $script = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'
     # Run-plugin versions can drop arguments. In that case let the wrapper
     # consume Lua's existing controller-launch.ini handoff instead of replacing
