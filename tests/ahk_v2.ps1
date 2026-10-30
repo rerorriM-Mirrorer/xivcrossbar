@@ -87,6 +87,28 @@ public class DialogDump {
     $children += $restart
     [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
     if (!$restart.WaitForExit(5000)) { throw 'Restarted wrapper failed to stop' }
+    # Actual production Lua chooses the cached executable; this process launch
+    # contains no CMD or PowerShell intermediary. Files/arguments contain spaces.
+    $planPath = Join-Path $fixture 'direct-launch-plan.json'
+    & python (Join-Path $PSScriptRoot 'controller_runtime_windows.py') $fixture $planPath
+    if ($LASTEXITCODE -ne 0) { throw 'Production Lua direct-launch plan failed' }
+    $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+    if ($plan.mode -ne 'direct' -or $plan.source -ne 'cache') { throw 'Normal startup fell back to bootstrap' }
+    $elapsed = [Diagnostics.Stopwatch]::StartNew()
+    $direct = Start-Process -FilePath $plan.executable -ArgumentList $plan.arguments -PassThru -RedirectStandardError (Join-Path $resultPath 'direct-errors.txt')
+    $children += $direct
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        Start-Sleep -Milliseconds 10
+        $status = [IO.File]::ReadAllText($statusPath)
+    } while ($status -notmatch "pid=$($direct.Id)`r?`n" -and [DateTime]::UtcNow -lt $deadline -and !$direct.HasExited)
+    $elapsed.Stop()
+    if ($status -notmatch "pid=$($direct.Id)`r?`n" -or $direct.HasExited) { throw 'Direct executable start failed' }
+    if ($status -notmatch 'device=2' -or $status -notmatch 'modifier=ctrl') { throw 'Direct start lost profile selection' }
+    Copy-Item $planPath (Join-Path $resultPath 'direct-launch-plan.json')
+    "PASS direct AHK start from production Lua plan; status observed after $($elapsed.ElapsedMilliseconds)ms (CI observation, not a latency guarantee)." | Tee-Object -FilePath (Join-Path $resultPath 'direct-summary.txt')
+    [IO.File]::WriteAllText((Join-Path $fixture 'data\input-stop.request'), 'test')
+    if (!$direct.WaitForExit(5000)) { throw 'Direct wrapper failed to stop' }
     # Preserve the original launch-file fallback when Run drops all arguments.
     [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-launch.ini'), "[Controller]`r`nmodifier=ctrl`r`nprofile=ps5-extended`r`ndevice=2`r`n")
     $handoff = Start-Process $env:ComSpec -ArgumentList ('/d /s /c ""{0}""' -f (Join-Path $fixture 'launch-controller.cmd')) -PassThru -RedirectStandardError (Join-Path $resultPath 'handoff-errors.txt')

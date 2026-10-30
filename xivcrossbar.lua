@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261029.directlink1-messagecleanup2'
+_addon.version = '0.4.0-a.20261030.directlink1-ahkv2-faststart1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -55,6 +55,7 @@ local client_registry
 -- A: profile selection replaces the independent legacy backend flags. Existing
 -- unused XML fields remain harmless; only one shared reader can be active.
 local controller_profiles = require('libs/controller/profiles')
+local controller_runtime = require('libs/controller/runtime').new({replace=bank_backend.replace})
 local personal_profile = require('libs/controller/personal_profile')
 local function normalize_controller_settings()
     require('ui/text_measure').enabled=settings.TextSettling~=false
@@ -526,8 +527,12 @@ function start_controller_wrappers(profile, device, modifier)
         windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err)))
         return false
     end
-    windower.send_command('run addons/xivcrossbar/launch-controller.cmd ' .. modifier ..
-        ' ' .. profile .. ' ' .. device)
+    local plan, launch_error = controller_runtime:plan(windower.addon_path,profile,device,modifier,status)
+    if not plan then
+        windower.add_to_chat(0,require('libs/chat_status').notice('Could not start wrapper: '..tostring(launch_error),167))
+        return false
+    end
+    windower.send_command(plan.command)
     local format=require('libs/chat_status')
     windower.add_to_chat(0,format.notice('Wrapper start requested: '..format.value(format.profile(profile)..' / Device '..device)))
     return true

@@ -47,6 +47,15 @@ try {
         $discovery = 'bootstrap_bits={0}; checked={1}' -f ([IntPtr]::Size * 8), ($candidates -join ' | ')
         throw ('AutoHotkey v2.0.19+ was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback. ' + $discovery)
     }
+    # Cache only verified v2 identity. Normal Lua starts use this path directly;
+    # discovery/write failure does not prevent this explicit verified launch.
+    try {
+        $identity = [Diagnostics.FileVersionInfo]::GetVersionInfo($interpreter)
+        $runtimeVersion = '{0}.{1}.{2}' -f $identity.FileMajorPart, $identity.FileMinorPart, $identity.FileBuildPart
+        $runtimeSize = (Get-Item -LiteralPath $interpreter).Length
+        $cache = "[Runtime]`nprotocol=ahk-v2-cache1`nexecutable=$interpreter`nversion=$runtimeVersion`nsize=$runtimeSize`nEND`n"
+        [IO.File]::WriteAllText((Join-Path $dataPath 'controller-runtime-cache.ini'), $cache, (New-Object Text.UTF8Encoding($false)))
+    } catch { }
     $script = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'
     # Run-plugin versions can drop arguments. In that case let the wrapper
     # consume Lua's existing controller-launch.ini handoff instead of replacing
