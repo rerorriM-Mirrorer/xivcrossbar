@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0+
+#Requires AutoHotkey v2.0.19+
 ; A: shared controller transport; physical readers are selected at startup.
 ; Ordinary profiles use Apps/F1-F12; extended PS5/Xbox profiles can use messages.
 #SingleInstance ignore

@@ -36,11 +36,11 @@ try {
     foreach ($candidate in $candidates) {
         if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
         $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($candidate)
-        if ($version.FileMajorPart -eq 2 -and $version.ProductName -match 'AutoHotkey') {
+        if ($version.FileMajorPart -eq 2 -and ($version.FileMinorPart -gt 0 -or $version.FileBuildPart -ge 19) -and $version.ProductName -match 'AutoHotkey') {
             $interpreter = $candidate; break
         }
     }
-    if (-not $interpreter) { throw 'AutoHotkey v2 was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback.' }
+    if (-not $interpreter) { throw 'AutoHotkey v2.0.19+ was not found. Install v2 or set data/controller-runtime.ini [Runtime] executable=C:\path\AutoHotkey64.exe. v1 is never used as a fallback.' }
     $script = Join-Path $PSScriptRoot 'ffxi_directinput.ahk'
     $arguments = '/ErrorStdOut "{0}" {1} {2} {3}' -f $script, $Modifier, $Profile, $Device
     Start-Process -FilePath $interpreter -ArgumentList $arguments -WorkingDirectory $PSScriptRoot

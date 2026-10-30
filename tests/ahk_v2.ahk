@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0+
+#Requires AutoHotkey v2.0.19+
 #Include %A_ScriptDir%\runtime-functions.ahk
 ; This harness is copied to an isolated temporary folder by ahk_v2.ps1.
 ; All policies below execute actual production functions with real v2 objects.

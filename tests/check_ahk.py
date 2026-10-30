@@ -48,7 +48,7 @@ calls=set(re.findall(r'\b((?:Personal|ControllerMessage)\w+)\(',wrapper+controls
 assert calls<=set(functions),calls-set(functions)
 probe=sources[root/'tools/keyprobe/keyboard_probe.ahk']
 assert 'OnExit(ProbeExit)' in probe and 'ProbeReleaseKeys()' in probe
-assert '#Requires AutoHotkey v2.0+' in probe
+assert '#Requires AutoHotkey v2.0.19+' in probe
 assert 'WinActive("ahk_class FFXiClass") != probeOwner' in probe
 print(f'{len(sources)} AHK files: balanced literals/delimiters, includes, hidden gating, cleanup and function links checked.')
 

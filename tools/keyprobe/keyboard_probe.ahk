@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0+
+#Requires AutoHotkey v2.0.19+
 #SingleInstance Ignore
 ; Manual diagnostic only; never launched by XIVCrossbar.
 SetKeyDelay(10, -1)
