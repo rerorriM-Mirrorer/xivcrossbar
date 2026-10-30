@@ -408,6 +408,7 @@ function ui:setup(theme_options, enchanted_items)
     self.theme.ja_lockout_partial_blue = theme_options.ja_lockout_partial_blue
 
     -- Auto-attack swing timer settings.
+    self:set_autoattack_enabled(theme_options.aa_enabled)
     self.theme.aa_opacity = theme_options.aa_opacity
     self.theme.aa_paused_opacity = theme_options.aa_paused_opacity
     self.theme.aa_background_opacity = theme_options.aa_background_opacity
@@ -1219,6 +1220,7 @@ function aa_is_paused()
 end
 
 function aa_add_pause_source(src)
+    if ui.aa_enabled == false then return end
     if (not aa_is_paused()) then
         aa_pause_start = os.clock()
     end
@@ -1240,6 +1242,7 @@ function aa_clear_pauses()
 end
 
 function aa_record_swing()
+    if ui.aa_enabled == false then return end
     local now = os.clock()
     if (aa_last_swing_time > 0) then
         local interval = (now - aa_last_swing_time) - aa_accumulated_pause
@@ -1259,6 +1262,7 @@ function aa_record_swing()
 end
 
 function aa_set_engaged(is_engaged)
+    if ui.aa_enabled == false then return end
     if (is_engaged and not aa_engaged) then
         -- just engaged: reset timing state but KEEP the intervals history
         aa_last_swing_time = os.clock()
@@ -1270,12 +1274,19 @@ end
 
 -- Schedule function for clearing a pause source after a fixed delay (2s for WS/JA).
 function aa_clear_pause_after(src, delay_seconds)
+    if ui.aa_enabled == false then return end
     coroutine.schedule(function()
         aa_remove_pause_source(src)
     end, delay_seconds)
 end
 
 function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
+    -- Opacity zero disables the complete indicator, including its backing.
+    if self.theme.skillchain_window_opacity == 0 then
+        prim.set_visibility('skillchain_indicator', false)
+        prim.set_visibility('skillchain_indicator_bg', false)
+        return
+    end
     local target = windower.ffxi.get_mob_by_target('t', 'bt')
     if (target and target.hpp > 0) then
         if (skillchain_delay > 0) then
@@ -1408,6 +1419,18 @@ function ui:display_gcd_indicator()
     end
 end
 
+-- Separate tracking from opacity, including stopping all recording when off.
+-- Restart with a clean estimate on re-enable so stale timing never flashes.
+function ui:set_autoattack_enabled(enabled)
+    enabled = enabled ~= false
+    if self.aa_enabled == enabled then return end
+    self.aa_enabled = enabled
+    aa_last_swing_time,aa_intervals,aa_estimate=0,{},nil
+    aa_engaged,aa_pause_sources,aa_pause_start=false,{},0
+    aa_accumulated_pause=0
+    if not enabled then self:hide_aa_indicator() end
+end
+
 -- Hide all three auto-attack bar primitives.
 function ui:hide_aa_indicator()
     prim.set_visibility('aa_indicator_red', false)
@@ -1416,6 +1439,7 @@ function ui:hide_aa_indicator()
 end
 
 function ui:display_aa_indicator()
+    if self.aa_enabled == false then self:hide_aa_indicator();return end
     if (not aa_engaged or aa_last_swing_time == 0) then
         self:hide_aa_indicator()
         return
@@ -1954,6 +1978,12 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
                     end
 
+                    -- Restore base frame even with a warmup or missing metadata;
+                    -- never leave the prior skillchain animation attached to this slot.
+                    if skillchain_prop == nil then
+                        self.hotbars[h].slot_frame[i]:path(self.frame_image_path)
+                        self.hotbars[h].slot_frame[i]:alpha(255)
+                    end
                     -- Show skillchain indicator if WS has a compatible skillchain property
                     if (skillchain_prop ~= nil) then
                         local frame_step = 1
