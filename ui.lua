@@ -1432,7 +1432,8 @@ function ui:set_autoattack_enabled(enabled)
     aa_last_swing_time,aa_intervals,aa_estimate=0,{},nil
     aa_engaged,aa_pause_sources,aa_pause_start=false,{},0
     aa_accumulated_pause=0
-    if not enabled then self:hide_aa_indicator() end
+    -- During initial setup the three primitives have not been created yet.
+    if not enabled and self.is_setup then self:hide_aa_indicator() end
 end
 
 -- Hide all three auto-attack bar primitives.
