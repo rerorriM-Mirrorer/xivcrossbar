@@ -60,6 +60,8 @@ defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Green = 205
 defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Blue = 5
 
 defaults.AutoAttackIndicator = {}
+-- Independent of bar opacity: stop swing tracking when disabled.
+defaults.AutoAttackIndicator.Enabled = true
 defaults.AutoAttackIndicator.Opacity = 0
 defaults.AutoAttackIndicator.PausedOpacity = 110
 defaults.AutoAttackIndicator.BackgroundOpacity = 150
