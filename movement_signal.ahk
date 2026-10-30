@@ -1,10 +1,10 @@
-; A: integrated Trust movement Send/Ready test 1, AutoHotkey v1.
+; A: integrated Trust movement Send/Ready test 1, AutoHotkey v2.
 ; One signal per observed FFXI focus session. Neutral, modifier releases,
 ; disconnection and trips to other applications do not reset that latch.
 MovementInit() {
     global TM
     TM := {client:0, fired:false, sent:0, signalOwner:0, due:0
-        , nextLease:0, ready:false, policy:"Send", policies:{}, reason:"waiting-client", threshold:0.24}
+        , nextLease:0, ready:false, policy:"Send", policies:Map(), reason:"waiting-client", threshold:0.24}
 }
 
 MovementTick(active) {
@@ -21,7 +21,7 @@ MovementTick(active) {
 
 MovementPoll(states, active) {
     global TM, PC
-    if (TM.fired or !active or !states.HasKey("moveX") or !states.HasKey("moveY"))
+    if (TM.fired or !active or !states.HasOwnProp("moveX") or !states.HasOwnProp("moveY"))
         return
     if (states.moveX * states.moveX + states.moveY * states.moveY < TM.threshold * TM.threshold)
         return
@@ -46,11 +46,14 @@ MovementPoll(states, active) {
     TM.fired := true, TM.sent += 1, TM.reason := "sent"
     TM.signalOwner := active
     TM.due := DllCall("GetTickCount64", "UInt64") + 30
-    SendEvent, {Blind}{vk1Dsc07B down}
-    WinGetTitle, title, ahk_id %active%
+    SendEvent("{Blind}{vk1Dsc07B down}")
+    title := ""
+    try title := WinGetTitle("ahk_id " . active)
     line := A_NowUTC . " hwnd=" . active . " title=" . title . " policy=" . TM.policy . " sent=" . TM.sent . " x=" . states.moveX . " y=" . states.moveY . "`n"
-    FileCreateDir, %A_ScriptDir%\data\diagnostics
-    FileAppend, %line%, %A_ScriptDir%\data\diagnostics\trust-movement.log
+    try {
+        DirCreate(A_ScriptDir . "\data\diagnostics")
+        FileAppend(line, A_ScriptDir . "\data\diagnostics\trust-movement.log", "CP0")
+    }
 }
 
 MovementReceiverReady(active) {
@@ -60,42 +63,45 @@ MovementReceiverReady(active) {
         return TM.ready
     TM.nextLease := nowTick + 100, TM.ready := false
     ; A transient file gap must not turn an already selected Ready into Send.
-    TM.policy := TM.policies.HasKey(active) ? TM.policies[active] : "Send"
+    TM.policy := TM.policies.Has(active) ? TM.policies[active] : "Send"
     TM.reason := "receiver-not-ready"
-    WinGetTitle, title, ahk_id %active%
+    title := ""
+    try title := WinGetTitle("ahk_id " . active)
     now := A_NowUTC
-    EnvSub, now, 19700101000000, Seconds
+    now := DateDiff(now, "19700101000000", "Seconds")
     ; The receiver publishes only while its own client has focus. Match the
     ; character in the title, as the existing personal-controls bridge does.
     ; Prefer the integrated Trust receiver. RC3 remains a Ready-only fallback
     ; for users who have not migrated; never run both receivers together.
-    Loop, 2
+    Loop 2
     {
     folder := A_Index = 1 ? "trust\data\movement" : "trustmovement\data"
-    Loop, Files, %A_ScriptDir%\..\%folder%\*.lease
+    Loop Files A_ScriptDir . "\..\" . folder . "\*.lease"
     {
         timingReadStart := DllCall("GetTickCount64", "UInt64")
-        FileRead, lease, %A_LoopFileFullPath%
+        try lease := FileRead(A_LoopFileFullPath, "CP0")
+        catch
+            continue
         InputTimingOperation("movement-file-read", timingReadStart)
-        if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name)
-            or !RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))
+        if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", &name)
+            or !RegExMatch(title, "i)(^|[^a-z])" . name[1] . "([^a-z]|$)"))
             continue
-        if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", stamp)
-            or !RegExMatch(lease, "m)^ready=([01])\r?$", ready))
+        if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
+            or !RegExMatch(lease, "m)^ready=([01])\r?$", &ready))
             continue
-        age := now - stamp1
+        age := now - stamp[1]
         if (age < -1 or age > 2) {
             TM.reason := "receiver-stale"
             continue
         }
         if (folder = "trustmovement\data")
             TM.policy := "Ready"
-        else if (RegExMatch(lease, "m)^policy=(Send|Ready)\r?$", policy))
-            TM.policy := policy1
+        else if (RegExMatch(lease, "m)^policy=(Send|Ready)\r?$", &policy))
+            TM.policy := policy[1]
         else
             continue
         TM.policies[active] := TM.policy
-        TM.ready := ready1 = "1"
+        TM.ready := ready[1] = "1"
         TM.reason := TM.ready ? "receiver-ready" : "receiver-blocked"
         return TM.ready
     }
@@ -110,8 +116,8 @@ MovementRelease() {
     target := TM.signalOwner
     TM.signalOwner := 0
     if (target = WinActive("ahk_class FFXiClass")) {
-        SendEvent, {Blind}{vk1Dsc07B up}
+        SendEvent("{Blind}{vk1Dsc07B up}")
     } else if WinExist("ahk_id " . target) {
-        ControlSend,, {Blind}{vk1Dsc07B up}, ahk_id %target%
+        try ControlSend("{Blind}{vk1Dsc07B up}", , "ahk_id " . target)
     }
 }

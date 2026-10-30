@@ -526,7 +526,7 @@ function start_controller_wrappers(profile, device, modifier)
         windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err)))
         return false
     end
-    windower.send_command('run addons/xivcrossbar/ffxi_directinput.ahk ' .. modifier ..
+    windower.send_command('run addons/xivcrossbar/launch-controller.cmd ' .. modifier ..
         ' ' .. profile .. ' ' .. device)
     local format=require('libs/chat_status')
     windower.add_to_chat(0,format.notice('Wrapper start requested: '..format.value(format.profile(profile)..' / Device '..device)))

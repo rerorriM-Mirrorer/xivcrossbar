@@ -1,7 +1,7 @@
 // Actual AHK message poll/queue/cancel functions under a narrow translation.
 // Native FileMove/SendEvent and Windows timing remain live acceptance checks.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const source=fs.readFileSync('controller_messages.ahk','utf8');
+const source=require('./ahk_source').read('controller_messages.ahk','utf8');
 function extract(name){const a=source.indexOf('\n'+name+'(')+1;assert(a>=0);const b=source.indexOf('\n}\n',a);assert(b>a);return source.slice(a,b+2);}
 let code=['ControllerMessageInit','ControllerMessageLease','ControllerMessageHeld','ControllerMessageAnyHeld','ControllerMessageAdd','ControllerMessageCancel','ControllerMessageStall','ControllerMessagePoll'].map(extract).join('\n');
 code=code.replace(/RegExMatch\(lease, ("[^"\n]+"), (\w+)\)/g,'RegExMatch(lease, $1, "$2")');
@@ -60,7 +60,7 @@ init();lease();poll();ctx.ControllerMessageFlush=()=>false;assert.equal(poll({11
 let retries=0;ctx.ControllerMessageFlush=()=>{retries++;return false;};
 now+=351;ctx.CM.seen=now;poll({11:true});assert.equal(ctx.CM.phase,'backpressure');
 now+=100;ctx.CM.seen=now;poll({11:true});assert.equal(retries,3,'backpressure stopped retrying its cancel write');
-const wrapper=fs.readFileSync('ffxi_directinput.ahk','utf8');
+const wrapper=require('./ahk_source').read('ffxi_directinput.ahk','utf8');
 assert(wrapper.indexOf('if (ControllerMessagePoll(states))')<wrapper.indexOf('if (anyDown and !appsOwned)'));
 assert(wrapper.includes('ControllerMessageCancel()'));
 assert(!/SendEvent|ControlSend/.test(source),'message path injects keyboard signals');

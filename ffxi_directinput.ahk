@@ -1,34 +1,37 @@
-#Requires AutoHotkey v1.1.33+
+#Requires AutoHotkey v2.0+
 ; A: shared controller transport; physical readers are selected at startup.
 ; Ordinary profiles use Apps/F1-F12; extended PS5/Xbox profiles can use messages.
 #SingleInstance ignore
-#Persistent
+Persistent(true)
 ; A: physical modifier checks must distinguish our injected key-down.
-#InstallKeybdHook
+InstallKeybdHook()
 ; A: the timer provides idle time. Do not add batch sleeps inside an input
 ; callback; slow callbacks can miss a tap or stretch an already-held key.
 ; Keep SendEvent's key delay unchanged, including the F8 acquisition pulse.
-SetBatchLines, -1
-SetWorkingDir, %A_ScriptDir%
+; v2 has no batch sleeps (equivalent to v1 SetBatchLines -1).
+SetKeyDelay(10, -1) ; Preserve v1 SendEvent defaults explicitly.
+SetWinDelay(100)
+FileEncoding("CP0") ; Preserve v1 ANSI mailbox/log bytes without a UTF-8 BOM.
+SetWorkingDir(A_ScriptDir)
 ; A: an installation-scoped kernel handle closes the simultaneous-launch race.
 ; A rejected duplicate exits before registering OnExit or touching status/input.
 instanceMutex := AcquireWrapperMutex()
 if (!instanceMutex)
     ExitApp
-FileCreateDir, %A_ScriptDir%\data
-OnExit, TransportExit
+DirCreate(A_ScriptDir . "\data")
+; Exit handler is registered after module initialization below.
 ; A: one shared process; select transport only at startup, never mid-hold.
-modifierArgument = %1%
-profileArgument = %2%
-deviceArgument = %3%
+modifierArgument := A_Args.Length >= 1 ? A_Args[1] : ""
+profileArgument := A_Args.Length >= 2 ? A_Args[2] : ""
+deviceArgument := A_Args.Length >= 3 ? A_Args[3] : ""
 ; A: use a validated startup handoff if the launcher drops script arguments.
 origin := "arguments"
 if (profileArgument = "") {
     launchFile := A_ScriptDir . "\data\controller-launch.ini"
     if FileExist(launchFile) {
-        IniRead, modifierArgument, %launchFile%, Controller, modifier, apps
-        IniRead, profileArgument, %launchFile%, Controller, profile, ps5-directinput
-        IniRead, deviceArgument, %launchFile%, Controller, device, 1
+        modifierArgument := IniRead(launchFile, "Controller", "modifier", "apps")
+        profileArgument := IniRead(launchFile, "Controller", "profile", "ps5-directinput")
+        deviceArgument := IniRead(launchFile, "Controller", "device", "1")
         origin := "launch-file"
     } else {
         origin := "default"
@@ -51,18 +54,19 @@ lastStatusTick := -1000
 if (isXInput)
     xinputFault := !InitXInput()
 captureKey := (modifierArgument = "ctrl") ? "LControl" : "AppsKey"
+CM := 0, PC := 0, WC := 0, TM := 0, IT := 0
 keys := ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
 labels := ["D-pad Up/F1", "D-pad Right/F2", "D-pad Down/F3", "D-pad Left/F4", "Cross/F5", "Square/F6", "Circle/F7", "Triangle/F8", "Share/F9", "Options/F10", "L2/F11", "R2/F12"]
 ; Upstream PS5/F710 share assignments; FightPadPro rearranges face buttons.
 joys := profile = "fightpadpro-directinput"
     ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
     : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
-previous := []
+previous := InputState()
 povDirection := 0
 owner := 0
 ready := false
 appsOwned := false
-Loop, 12
+Loop 12
     previous[A_Index] := false
 ControllerMessageInit()
 PersonalInit(profile, joystickPrefix)
@@ -70,18 +74,20 @@ WrapperClientsInit()
 ; A: movement has its own per-focus latch; button neutral never rearms it.
 MovementInit()
 InputTraceInit()
+OnExit(TransportExit)
 WriteTransportStatus(true)
-SetTimer, TransportPoll, 10
+SetTimer(TransportPoll, 10)
 return
 
-TransportPoll:
+TransportPoll() {
+    global
 pollStart := DllCall("GetTickCount64", "UInt64")
 InputTraceStart(pollStart)
 InputTimingBegin(pollStart)
 if (WrapperClientsShouldExit())
     ExitApp
 if FileExist(A_ScriptDir . "\data\input-stop.request") {
-    FileDelete, %A_ScriptDir%\data\input-stop.request
+    try FileDelete(A_ScriptDir . "\data\input-stop.request")
     ExitApp
 }
 InputTimingStage("housekeeping")
@@ -131,7 +137,7 @@ if (!connected) {
 MovementPoll(states, active)
 InputTimingStage("movement-poll")
 neutral := true
-Loop, 12 {
+Loop 12 {
     if (states[A_Index])
         neutral := false
 }
@@ -154,15 +160,15 @@ if (ControllerMessagePoll(states)) {
 if (anyDown and !appsOwned) {
     appsOwned := true
     InputTraceRecord("emit " . captureKey . " down")
-    SendEvent, % "{Blind}{" . captureKey . " down}"
+    SendEvent("{Blind}{" . captureKey . " down}")
 }
-Loop, 12 {
+Loop 12 {
     i := A_Index
     if (states[i] != previous[i]) {
         key := keys[i]
         edge := states[i] ? "down" : "up"
         InputTraceRecord("emit " . key . " " . edge)
-        SendEvent, % "{Blind}{" . key . " " . edge . "}"
+        SendEvent("{Blind}{" . key . " " . edge . "}")
         previous[i] := states[i]
     }
 }
@@ -170,18 +176,21 @@ if (!anyDown and appsOwned) {
     physicallyHeld := GetKeyState(captureKey, "P")
     if (!physicallyHeld) {
         InputTraceRecord("emit " . captureKey . " up")
-        SendEvent, % "{Blind}{" . captureKey . " up}"
+        SendEvent("{Blind}{" . captureKey . " up}")
     }
     appsOwned := false
 }
 InputTraceFinish(pollStart)
 return
 
+}
+
 ; Explicit local stop; it exits only this script, even outside FFXI.
 ^!F12::ExitApp
 
-TransportExit:
-; A: a v1 OnExit label must explicitly finish termination.
+TransportExit(exitReason, exitCode) {
+    global
+; v2 callbacks return zero to permit termination; cleanup runs once.
 ReleaseTransport()
 InputTraceClose()
 phase := "stopped"
@@ -190,15 +199,16 @@ if (xinputLibrary)
     DllCall("FreeLibrary", "Ptr", xinputLibrary)
 if (instanceMutex)
     DllCall("CloseHandle", "Ptr", instanceMutex)
-ExitApp
+return 0
+}
 
 AcquireWrapperMutex() {
     ; Normalize case; hash keeps the name below Windows' MAX_PATH limit.
     path := A_ScriptDir
-    StringLower, path, path
+    path := StrLower(path)
     hash := 2166136261
-    Loop, Parse, path
-        hash := ((hash ^ Asc(A_LoopField)) * 16777619) & 0xFFFFFFFF
+    Loop Parse path
+        hash := ((hash ^ Ord(A_LoopField)) * 16777619) & 0xFFFFFFFF
     handle := DllCall("CreateMutexW", "Ptr", 0, "Int", 0, "WStr", "Local\XIVCrossbar_" . hash, "Ptr")
     error := A_LastError
     if (!handle or error = 183) {
@@ -216,14 +226,14 @@ ReleaseTransport(preservePersonal := false) {
     ControllerMessageCancel()
     if (!preservePersonal)
         PersonalRelease()
-    Loop, 12 {
+    Loop 12 {
         i := A_Index
         if (previous[i]) {
             key := keys[i]
             if (owner == WinActive("ahk_class FFXiClass")) {
-                SendEvent, % "{Blind}{" . key . " up}"
+                SendEvent("{Blind}{" . key . " up}")
             } else if (owner) {
-                ControlSend,, % "{" . key . " up}", ahk_id %owner%
+                try ControlSend("{" . key . " up}", , "ahk_id " . owner)
             }
             previous[i] := false
         }
@@ -231,9 +241,9 @@ ReleaseTransport(preservePersonal := false) {
     if (appsOwned) {
         if (owner == WinActive("ahk_class FFXiClass")) {
             if (!GetKeyState(captureKey, "P"))
-                SendEvent, % "{Blind}{" . captureKey . " up}"
+                SendEvent("{Blind}{" . captureKey . " up}")
         } else if (owner) {
-            ControlSend,, % "{" . captureKey . " up}", ahk_id %owner%
+            try ControlSend("{" . captureKey . " up}", , "ahk_id " . owner)
         }
         appsOwned := false
     }
@@ -251,8 +261,10 @@ ReadTransportStates() {
         ; Keep one adjacent cardinal through a diagonal roll, not a neutral gap
         ; or two simultaneous crossbar slots.
         povDirection := PersonalPovDirection(pov, povDirection)
-        states := [povDirection = 1, povDirection = 2, povDirection = 3, povDirection = 4]
-        Loop, 8 {
+        states := InputState()
+        Loop 4
+            states[A_Index] := povDirection = A_Index
+        Loop 8 {
             i := A_Index + 4
             states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
         }
@@ -267,8 +279,8 @@ ReadTransportStates() {
     }
     if (!xinputGetState)
         return false
-    VarSetCapacity(state, 16, 0)
-    if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", &state, "UInt") != 0)
+    state := Buffer(16, 0)
+    if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", state.Ptr, "UInt") != 0)
         return false
     buttons := NumGet(state, 4, "UShort")
     global IT
@@ -285,7 +297,7 @@ XInputStates(buttons, leftTrigger, rightTrigger, moveX, moveY, extended, guide) 
     ; Logical order: Up, Right, Down, Left, bottom, left, right, top, Back, chooser.
     flags := [0x0001, 0x0008, 0x0002, 0x0004, 0x1000, 0x4000, 0x2000, 0x8000, 0x0020]
     flags.Push(profile = "xinput-r1-chooser" ? 0x0200 : 0x0010)
-    states := []
+    states := InputState()
     for i, flag in flags
         states[i] := (buttons & flag) ? true : false
     ; Match upstream's threshold; neither trigger is derived from the other.
@@ -296,11 +308,11 @@ XInputStates(buttons, leftTrigger, rightTrigger, moveX, moveY, extended, guide) 
     if (extended) {
         ; Use the same one-cardinal diagonal policy as PS5 Extended. Opposite
         ; directions/invalid hats are neutral; ordinary XInput is untouched.
-        angles := {1:0, 9:4500, 8:9000, 10:13500, 2:18000, 6:22500, 4:27000, 5:31500}
+        angles := Map(1, 0, 9, 4500, 8, 9000, 10, 13500, 2, 18000, 6, 22500, 4, 27000, 5, 31500)
         hat := buttons & 0x000F
-        pov := angles.HasKey(hat) ? angles[hat] : -1
+        pov := angles.Has(hat) ? angles[hat] : -1
         povDirection := PersonalPovDirection(pov, povDirection)
-        Loop, 4
+        Loop 4
             states[A_Index] := povDirection = A_Index
         states.l1 := (buttons & 0x0100) != 0
         states.r1 := (buttons & 0x0200) != 0
@@ -340,7 +352,7 @@ WriteTransportStatus(force := false) {
         return
     lastStatusTick := A_TickCount
     timestamp := A_NowUTC
-    EnvSub, timestamp, 19700101000000, Seconds
+    timestamp := DateDiff(timestamp, "19700101000000", "Seconds")
     pid := phase = "stopped" ? 0 : DllCall("GetCurrentProcessId", "UInt")
     modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
     contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
@@ -357,16 +369,14 @@ WriteTransportStatus(force := false) {
     contents .= "button_protocol=1`nbutton_route=" . CM.phase . "`nbutton_sent=" . CM.seq . "`nbutton_ack=" . CM.ack . "`nbutton_error=" . CM.error . "`n"
     global TM
     contents .= "movement_version=0.2.0-trust1`nmovement_policy=" . TM.policy . "`nmovement_sent=" . TM.sent . "`nmovement_reason=" . TM.reason . "`n"
-    contents .= "diagnostic_protocol=1`n"
+    contents .= "diagnostic_protocol=1`nahk_major=2`nahk_version=" . A_AhkVersion . "`nahk_path=" . A_AhkPath . "`n"
     global IT
     contents .= "input_trace=" . IT.enabled . "`npoll_max_ms=" . IT.pollMax . "`npoll_gap_max_ms=" . IT.gapMax
         . "`nread_max_ms=" . IT.readMax . "`npersonal_max_ms=" . IT.personalMax . "`ncontext_misses=" . IT.misses . "`ntrace_error=" . IT.error . "`n"
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
-    FileDelete, %temporary%
-    FileAppend, %contents%, %temporary%
-    FileMove, %temporary%, %destination%, 1
+    PublishControllerFile(temporary, destination, contents)
 }
 
 ; A: observation only. Opt-in 30-second capture; no key delays, debounce,
@@ -374,7 +384,7 @@ WriteTransportStatus(force := false) {
 InputTraceInit() {
     global IT
     IT := {enabled:false, deadline:0, nextRequest:0, buffer:"", signature:"", previous:0
-        , gapMax:0, pollMax:0, readMax:0, personalMax:0, misses:0, error:false, pov:"", triggers:""}
+        , gapMax:0, pollMax:0, readMax:0, personalMax:0, misses:0, error:false, pov:"", triggers:"", path:"", captureId:"", stages:"", stageTick:0}
 }
 
 InputTraceStart(now) {
@@ -396,21 +406,23 @@ InputTraceStart(now) {
     path := A_ScriptDir . "\data\controller-trace.request"
     if (!FileExist(path))
         return
-    FileRead, request, %path%
-    FileDelete, %path%
+    try request := FileRead(path, "CP0")
+    catch
+        return
+    try FileDelete(path)
     request := Trim(request, " `t`r`n")
     captureId := ""
-    if (RegExMatch(request, "^(on|off)\n([A-Za-z0-9-]{1,120})$", capture)) {
-        request := capture1, captureId := capture2
+    if (RegExMatch(request, "^(on|off)\n([A-Za-z0-9-]{1,120})$", &capture)) {
+        request := capture[1], captureId := capture[2]
     }
     if (request = "on") {
         InputTraceClose()
         IT.captureId := captureId
-        FileCreateDir, %A_ScriptDir%\data\diagnostics
+        DirCreate(A_ScriptDir . "\data\diagnostics")
         IT.path := A_ScriptDir . "\data\diagnostics\" . (captureId != "" ? captureId . "-ahk.log" : "controller-input-trace.log")
         IT.enabled := true, IT.deadline := now + 30000, IT.signature := "", IT.error := false
         InputTraceRecord("capture start utc=" . A_NowUTC . " profile=" . profile . " device=" . device . " controls=9.20-diagnostics1 id=" . captureId)
-        InputTraceRecord("runtime ahk=" . A_AhkVersion . " batch_lines=" . A_BatchLines
+        InputTraceRecord("runtime ahk=" . A_AhkVersion . " batch_lines=" . "none-v2"
             . " key_delay=" . A_KeyDelay . " key_duration=" . A_KeyDuration . " requested_timer_ms=10")
     } else if (request = "off" and (captureId = "" or captureId = IT.captureId)) {
         InputTraceRecord("capture manually stopped")
@@ -425,7 +437,7 @@ InputTraceMask(states) {
     if (!IsObject(states))
         return "disconnected"
     mask := ""
-    Loop, 12
+    Loop 12
         mask .= states[A_Index] ? "1" : "0"
     return mask
 }
@@ -471,8 +483,8 @@ InputTraceFlush() {
     path := IT.path
     text := IT.buffer
     IT.buffer := ""
-    FileAppend, %text%, %path%
-    if (ErrorLevel)
+    try FileAppend(text, path, "CP0")
+    catch
         IT.error := true, IT.enabled := false
 }
 
@@ -521,4 +533,28 @@ InputTimingOperation(name, started) {
     elapsed := DllCall("GetTickCount64", "UInt64") - started
     if (elapsed > 10)
         InputTraceRecord("operation=" . name . " elapsed_ms=" . elapsed)
+}
+
+; Native v2 sparse button/control state. Missing positions are released, never
+; inferred from Array.Length; named hardware flags are explicit own properties.
+InputState() {
+    state := Map()
+    state.Default := false
+    state.l1 := false, state.r1 := false, state.l3 := false, state.r3 := false
+    state.ps := false, state.touch := false, state.mute := false
+    return state
+}
+
+; v1 file commands signalled errors without throwing. Keep failure local to
+; the existing retry/uncertainty policy; do not terminate the polling timer.
+PublishControllerFile(temporary, destination, contents) {
+    try {
+        if FileExist(temporary)
+            FileDelete(temporary)
+        FileAppend(contents, temporary, "CP0")
+        FileMove(temporary, destination, 1)
+        return true
+    } catch {
+        return false
+    }
 }

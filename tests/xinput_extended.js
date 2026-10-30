@@ -2,8 +2,8 @@
 // Native DLL loading/Guide interception still require Windows acceptance.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const {ctx,fresh,poll,emitted,messages}=require('./personal_realkeys');
-const wrapper=fs.readFileSync('ffxi_directinput.ahk','utf8');
-const gestures=fs.readFileSync('personal_gestures.ahk','utf8');
+const wrapper=require('./ahk_source').read('ffxi_directinput.ahk','utf8');
+const gestures=require('./ahk_source').read('personal_gestures.ahk','utf8');
 function extract(source,name){const a=source.indexOf('\n'+name+'(')+1;assert(a>0);
  return source.slice(a,source.indexOf('\n}\n',a)+2);}
 let code=extract(wrapper,'XInputStates')+'\n'+extract(gestures,'PersonalPovDirection');

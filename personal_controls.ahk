@@ -4,13 +4,13 @@ PersonalInit(selected, prefix) {
     global PC
     PC := {enabled:(selected = "ps5-extended" or selected = "xinput-extended")
         , xinput:selected = "xinput-extended", prefix:prefix, owner:0, ready:false
-        , keys:{}, releases:{}, blocked:{}, suppressed:{}, previous:[], connected:false
+        , keys:Map(), releases:Map(), blocked:Map(), suppressed:Map(), previous:InputState(), connected:false
         , touch:{phase:"idle"}, clicks:{phase:"idle"}, r1:{phase:"idle"}
-        , layer:{phase:"idle"}, layerVisible:""
+        , layer:{phase:"idle"}, layerVisible:"", context:"unknown"
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
         , targetR2:false, targetR3:false, realDpad:false, r1Menus:false, banks:false
-        , native:{token:"", ack:0, requests:[], active:{}, keys:{}}}
+        , native:{token:"", ack:0, requests:[], active:Map(), keys:Map()}}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
@@ -25,21 +25,19 @@ PersonalPoll(states, active) {
         PC.lastOther := foreground
     if (!IsObject(states)) {
         PersonalRelease()
-        PC.connected := false, PC.previous := []
+        PC.connected := false, PC.previous := InputState()
         return states
     }
-    raw := []
-    for i, value in states
-        raw[i] := value
+    raw := states.Clone()
     ; XInput named buttons are sampled atomically with faces/triggers. Reading
     ; JoyN here could mix in another attached controller or the wrong numbering.
     if (!PC.xinput)
-        for name, button in {l1:5, r1:6, l3:11, r3:12, ps:13, touch:14, mute:15}
-            raw[name] := GetKeyState(PC.prefix . "Joy" . button) ? true : false
+        for name, button in Map("l1", 5, "r1", 6, "l3", 11, "r3", 12, "ps", 13, "touch", 14, "mute", 15)
+            raw.%name% := GetKeyState(PC.prefix . "Joy" . button) ? true : false
     now := DllCall("GetTickCount64", "UInt64")
     if (!PC.connected) {
         PC.connected := true, PC.previous := raw
-        PC.ready := false, PC.blocked := {}, PC.suppressed := {}
+        PC.ready := false, PC.blocked := Map(), PC.suppressed := Map()
         return states
     }
     PersonalPS(raw.ps, foreground, active, raw.l1 or raw.r1 or raw[11] or raw[12])
@@ -64,7 +62,7 @@ PersonalPoll(states, active) {
         PC.r1.phase := "cancelled"
         ; Keep existing transport holds only while still physically held. New
         ; downs wait for a verified current lease; releases are never delayed.
-        Loop, 12 {
+        Loop 12 {
             held := previous[A_Index] or ControllerMessageHeld(A_Index)
             states[A_Index] := states[A_Index] and held
         }
@@ -83,7 +81,7 @@ PersonalPoll(states, active) {
     contextAllowed := active and (mode = "gameplay" or mode = "crossbar" or ((mode = "cutscene" or mode = "trust" or mode = "chat") and PC.banks)) and !raw[9] and !raw[10]
     allowed := contextAllowed and mode = "gameplay" and !raw[11] and !raw[12] and !appsOwned
     neutral := !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
-    Loop, 12
+    Loop 12
         if (raw[A_Index])
             neutral := false
     if (!contextAllowed) {
@@ -129,7 +127,7 @@ PersonalPoll(states, active) {
     if (layer = "bank" or layer = "tail")
         states[11] := false
     if (layer = "tail") {
-        Loop, 12
+        Loop 12
             if (raw[A_Index])
                 PC.blocked[A_Index] := ""
     }
@@ -145,7 +143,7 @@ PersonalPoll(states, active) {
     ; Each assigned Ctrl shortcut fires once. Empty L1 slots are reserved and
     ; consume their button rather than leaking native confirm/cancel.
     if ((layer = "keyboard" or layer = "bank") and !raw.r1) {
-        shortcuts := {1:"i", 2:"m", 3:"e", 4:"j", 5:"Space", 6:"q", 7:"", 8:"s"}
+        shortcuts := Map(1, "i", 2, "m", 3, "e", 4, "j", 5, "Space", 6, "q", 7, "", 8, "s")
         for i, key in shortcuts {
             if (!layerChanged and raw[i] and !PC.previous[i]) {
                 PC.blocked[i] := key
@@ -159,20 +157,20 @@ PersonalPoll(states, active) {
         ; A held button from before L1 is consumed, never re-fired or leaked.
         PersonalL1Block(raw)
     } else if (raw.r1 and !raw.l1) {
-        Loop, 4 {
+        Loop 4 {
             i := A_Index
             if (raw[i] and !PC.previous[i])
                 PC.blocked[i] := arrows[i]
         }
         PersonalR1Menus(raw, mode, now)
-        for i, key in {5:"Enter", 7:"Escape"} {
+        for i, key in Map(5, "Enter", 7, "Escape") {
             if (raw[i] and !PC.previous[i]) {
                 PC.blocked[i] := key
                 taps.Push({key:key, modifier:""})
             }
         }
     } else if (raw.l1 and raw.r1) {
-        Loop, 8
+        Loop 8
             if (raw[A_Index])
                 PC.blocked[A_Index] := ""
         if (!PC.previous.l1 or !PC.previous.r1)
@@ -180,21 +178,21 @@ PersonalPoll(states, active) {
     }
     states := PersonalFilter(states, raw)
     transportBusy := false
-    Loop, 12
+    Loop 12
         if (states[A_Index])
             transportBusy := true
     if (transportBusy)
         PersonalRelease(false)
     else {
-        Loop, 4 {
+        Loop 4 {
             i := A_Index
-            PersonalKey(arrows[i], raw.r1 and !raw.l1 and PC.blocked.HasKey(i)
-                and raw[i] and !PC.suppressed.HasKey(i))
+            PersonalKey(arrows[i], raw.r1 and !raw.l1 and PC.blocked.Has(i)
+                and raw[i] and !PC.suppressed.Has(i))
         }
-        if (taps.Length()) {
-            Loop, 4 {
+        if (taps.Length) {
+            Loop 4 {
                 i := A_Index
-                if (PC.blocked[i] = arrows[i]) {
+                if (PC.blocked.Get(i, "") = arrows[i]) {
                     PC.suppressed[i] := true
                     PersonalKey(arrows[i], false)
                 }
@@ -205,7 +203,7 @@ PersonalPoll(states, active) {
     }
 
     anyButton := false
-    Loop, 12
+    Loop 12
         if (raw[A_Index])
             anyButton := true
     busy := transportBusy or anyButton or raw.ps or raw.mute
@@ -233,25 +231,25 @@ PersonalNativeDPad(states, raw, mode, now) {
     eligible := PC.realDpad and PC.ready and mode = "gameplay" and !appsOwned
         and CM.phase = "messages" and now - CM.seen <= 100
         and !raw.l1 and !raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
-    Loop, 8
+    Loop 8
         if (raw[A_Index + 4])
             eligible := false
     for _, key in ["Control", "Alt", "Shift", "LWin", "RWin", "AppsKey"]
         if GetKeyState(key, "P")
             eligible := false
     for _, key in ["LControl", "RControl", "LAlt", "RAlt", "LShift", "RShift"]
-        if (PC.keys.HasKey(key))
+        if (PC.keys.Has(key))
             eligible := false
-    for i, key in {1:"i", 2:"l", 3:"k", 4:"j"} {
-        if (eligible and raw[i] and !PC.previous[i] and !PC.blocked.HasKey(i)) {
+    for i, key in Map(1, "i", 2, "l", 3, "k", 4, "j") {
+        if (eligible and raw[i] and !PC.previous[i] and !PC.blocked.Has(i)) {
             PC.blocked[i] := key
             InputTraceRecord("real IJKL own " . key)
         }
-        if (PC.blocked[i] = key) {
+        if (PC.blocked.Get(i, "") = key) {
             states[i] := false
             if (!eligible and raw[i])
                 PC.suppressed[i] := true
-            PersonalKey(key, eligible and raw[i] and !PC.suppressed.HasKey(i))
+            PersonalKey(key, eligible and raw[i] and !PC.suppressed.Has(i))
         }
     }
 }
@@ -262,15 +260,15 @@ PersonalR1Menus(raw, mode, now) {
     global PC, CM, appsOwned
     eligible := PC.r1Menus and PC.ready and mode = "gameplay" and !appsOwned
         and CM.requested and CM.phase = "messages" and now - CM.seen <= 100
-        and CM.pending.Length() < 96 and !PC.keys.Count()
-        and (!CM.pending.Length() or now - CM.pending[1].tick <= 350)
+        and CM.pending.Length < 96 and !PC.keys.Count
+        and (!CM.pending.Length or now - CM.pending[1].tick <= 350)
         and !raw.l1 and raw.r1 and !raw.l3 and !raw.r3 and !raw.touch and !raw.ps and !raw.mute
         and !(raw[6] and raw[8])
     for _, i in [1, 2, 3, 4, 5, 7, 9, 10, 11, 12]
         if (raw[i])
             eligible := false
     for _, i in [6, 8] {
-        if (raw[i] and !PC.blocked.HasKey(i)) {
+        if (raw[i] and !PC.blocked.Has(i)) {
             PC.blocked[i] := ""
             if (eligible and !PC.previous[i]) {
                 ControllerMessageAdd("rmenu", i)
@@ -284,7 +282,7 @@ PersonalR1Menus(raw, mode, now) {
 PersonalR1Tap(raw, consumed, now) {
     global PC
     ; Preserve physical keyboard ownership and avoid modified R shortcuts.
-    if (PC.keys.Count())
+    if (PC.keys.Count)
         consumed := true
     for _, key in ["Control", "Alt", "Shift", "LWin", "RWin", "AppsKey", "r"]
         if GetKeyState(key, "P")
@@ -298,7 +296,7 @@ PersonalR1Tap(raw, consumed, now) {
 
 PersonalFilter(states, raw) {
     global PC
-    if (!PC.blocked.Count())
+    if (!PC.blocked.Count)
         return states
     retired := []
     for i, key in PC.blocked {
@@ -313,7 +311,8 @@ PersonalFilter(states, raw) {
     ; Finish masking every held button before retiring released entries.
     for _, i in retired {
         PC.blocked.Delete(i)
-        PC.suppressed.Delete(i)
+        if PC.suppressed.Has(i)
+            PC.suppressed.Delete(i)
     }
     return states
 }
@@ -322,33 +321,36 @@ PersonalContext(hwnd) {
     global PC
     if (!hwnd)
         return "unfocused"
-    WinGetTitle, title, ahk_id %hwnd%
+    title := ""
+    try title := WinGetTitle("ahk_id " . hwnd)
     now := A_NowUTC
-    EnvSub, now, 19700101000000, Seconds
+    now := DateDiff(now, "19700101000000", "Seconds")
     ; Retry the directory read once without sleeping: Lua's remove/rename
     ; publication may complete between scans. Never reuse cached permission.
-    Loop, 2 {
-        Loop, Files, %A_ScriptDir%\data\personal-controls\*.ini
+    Loop 2 {
+        Loop Files A_ScriptDir . "\data\personal-controls\*.ini"
         {
             timingReadStart := DllCall("GetTickCount64", "UInt64")
-            FileRead, lease, %A_LoopFileFullPath%
+            try lease := FileRead(A_LoopFileFullPath, "CP0")
+            catch
+                continue
             InputTimingOperation("context-file-read", timingReadStart)
-            if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name))
+            if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", &name))
                 continue
-            if (!RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))
+            if (!RegExMatch(title, "i)(^|[^a-z])" . name[1] . "([^a-z]|$)"))
                 continue
-            if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", stamp)
-                or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", mode)
+            if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
+                or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", &mode)
                 or !RegExMatch(lease, "m)^END\r?$"))
                 return InputTraceContextMiss("malformed")
-            age := now - stamp1
+            age := now - stamp[1]
             if (age >= -1 and age <= 2) {
                 ControllerMessageLease(lease, A_LoopFileFullPath)
                 PersonalBankLease(lease)
                 PersonalRealKeyLease(lease)
                 PersonalR1MenuLease(lease)
                 PersonalL1Lease(lease, A_LoopFileFullPath)
-                return mode1
+                return mode[1]
             }
             return InputTraceContextMiss("stale")
         }
@@ -390,21 +392,21 @@ PersonalL1Lease(lease, contextPath) {
     ; Native menu toggles still use keyboard shortcuts on the L1 layer. Only
     ; bank events need an executable play token; text is blocked by
     ; the ordinary context gate above.
-    if RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
-        PC.l1.mode := mode1
-    if (!RegExMatch(lease, "m)^l1token=([A-Za-z0-9-]+)\r?$", token)
-        or !RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", mode)
-        or !RegExMatch(lease, "m)^l1ack=(\d+)\r?$", ack)) {
+    if RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", &mode)
+        PC.l1.mode := mode[1]
+    if (!RegExMatch(lease, "m)^l1token=([A-Za-z0-9-]+)\r?$", &token)
+        or !RegExMatch(lease, "m)^l1mode=(keyboard|bank)\r?$", &mode)
+        or !RegExMatch(lease, "m)^l1ack=(\d+)\r?$", &ack)) {
         PC.l1.available := false
         PC.targetR2 := false, PC.targetR3 := false
         return
     }
-    if (PC.l1.token != token1) {
-        PC.l1 := {token:token1, mode:mode1, seq:0, ack:0, pending:[], available:true
+    if (PC.l1.token != token[1]) {
+        PC.l1 := {token:token[1], mode:mode[1], seq:0, ack:0, pending:[], available:true
             , path:RegExReplace(contextPath, "\.ini$", ".l1"), showing:false}
         PC.ready := false
     }
-    PC.l1.available := true, PC.l1.mode := mode1, PC.l1.ack := ack1 + 0
+    PC.l1.available := true, PC.l1.mode := mode[1], PC.l1.ack := ack[1] + 0
     PC.targetR2 := RegExMatch(lease, "m)^target_r2=1\r?$") ? true : false
     PC.targetR3 := RegExMatch(lease, "m)^target_r3=1\r?$") ? true : false
     retained := []
@@ -417,14 +419,14 @@ PersonalL1Lease(lease, contextPath) {
 PersonalL1Block(raw) {
     global PC
     if (raw.l1)
-        Loop, 8
-            if (raw[A_Index] and !PC.blocked.HasKey(A_Index))
+        Loop 8
+            if (raw[A_Index] and !PC.blocked.Has(A_Index))
                 PC.blocked[A_Index] := ""
 }
 
 PersonalL1Event(kind, slot := 0) {
     global PC
-    if (!PC.l1.available or PC.l1.pending.Length() >= 64)
+    if (!PC.l1.available or PC.l1.pending.Length >= 64)
         return false
     if ((kind = "release" or kind = "cancel") and !PC.l1.showing)
         return false
@@ -436,42 +438,38 @@ PersonalL1Event(kind, slot := 0) {
     else if (kind = "release" or kind = "cancel")
         PC.l1.showing := false
     stamp := A_NowUTC
-    EnvSub, stamp, 19700101000000, Seconds
+    stamp := DateDiff(stamp, "19700101000000", "Seconds")
     contents := "token=" . PC.l1.token . "`nstamp=" . stamp . "`n"
     for _, edge in PC.l1.pending
         contents .= edge.seq . "," . edge.kind . "," . edge.slot . "`n"
     contents .= "END`n"
     temporary := PC.l1.path . ".tmp"
     destination := PC.l1.path
-    FileDelete, %temporary%
-    FileAppend, %contents%, %temporary%
-    if (ErrorLevel)
-        return false
-    FileMove, %temporary%, %destination%, 1
-    return !ErrorLevel
+    return PublishControllerFile(temporary, destination, contents)
 }
 
 PersonalKey(key, down) {
     global PC
     if (down) {
-        if (PC.keys.HasKey(key) or !PC.owner or PC.owner != WinActive("ahk_class FFXiClass"))
+        if (PC.keys.Has(key) or !PC.owner or PC.owner != WinActive("ahk_class FFXiClass"))
             return
         ; A genuinely held keyboard key remains owned by the keyboard.
         if GetKeyState(key, "P")
             return
         PC.keys[key] := PC.owner
         InputTraceRecord("personal " . key . " down owner=" . PC.owner)
-        SendEvent, % "{Blind}{" . key . " down}"
-    } else if (PC.keys.HasKey(key)) {
+        SendEvent("{Blind}{" . key . " down}")
+    } else if (PC.keys.Has(key)) {
         owner := PC.keys[key]
         InputTraceRecord("personal " . key . " up owner=" . owner)
         if (owner = WinExist("A")) {
             if (!GetKeyState(key, "P"))
-                SendEvent, % "{Blind}{" . key . " up}"
+                SendEvent("{Blind}{" . key . " up}")
         } else if WinExist("ahk_id " . owner)
-            ControlSend,, % "{" . key . " up}", ahk_id %owner%
+            try ControlSend("{" . key . " up}", , "ahk_id " . owner)
         PC.keys.Delete(key)
-        PC.releases.Delete(key)
+        if PC.releases.Has(key)
+            PC.releases.Delete(key)
     }
 }
 
@@ -480,10 +478,10 @@ PersonalKey(key, down) {
 ; fully released before the ordinary Apps+F12 signal or stick-click handling.
 PersonalTargetTrial(raw, mode) {
     global PC, appsOwned
-    if (mode != "gameplay" or !PC.l1.available or appsOwned or ControllerMessageAnyHeld() or PC.keys.Count()
+    if (mode != "gameplay" or !PC.l1.available or appsOwned or ControllerMessageAnyHeld() or PC.keys.Count
         or raw.l1 or raw.r1 or raw.l3 or raw.touch or raw.ps or raw.mute)
         return
-    Loop, 11
+    Loop 11
         if (raw[A_Index])
             return
     source := ""
@@ -504,7 +502,7 @@ PersonalTargetTrial(raw, mode) {
 PersonalTap(key, now) {
     global PC
     PersonalKey(key, true)
-    if (PC.keys.HasKey(key))
+    if (PC.keys.Has(key))
         PC.releases[key] := now + 40
 }
 
@@ -516,7 +514,7 @@ PersonalChord(key, modifier, now) {
     if (modifier != "")
         PersonalKey(modifier, true)
     PersonalTap(key, now)
-    if (modifier != "" and PC.keys.HasKey(modifier))
+    if (modifier != "" and PC.keys.Has(modifier))
         PC.releases[modifier] := now + 40
 }
 
@@ -574,35 +572,35 @@ PersonalBankLease(lease) {
     }
     if (!enabled)
         return
-    if (!RegExMatch(lease, "m)^bank_native_token=([A-Za-z0-9-]+)\r?$", token)
-        or !RegExMatch(lease, "m)^bank_native_base=(\d+)\r?$", base)
-        or !RegExMatch(lease, "m)^bank_native=([^\r\n]*)\r?$", payload)) {
+    if (!RegExMatch(lease, "m)^bank_native_token=([A-Za-z0-9-]+)\r?$", &token)
+        or !RegExMatch(lease, "m)^bank_native_base=(\d+)\r?$", &base)
+        or !RegExMatch(lease, "m)^bank_native=([^\r\n]*)\r?$", &payload)) {
         PersonalNativeReset()
         return
     }
-    if (PC.native.token != token1) {
+    if (PC.native.token != token[1]) {
         PersonalNativeReset()
-        PC.native.token := token1, PC.native.ack := base1 + 0
+        PC.native.token := token[1], PC.native.ack := base[1] + 0
     }
-    if (StrLen(payload1) > 4096) {
+    if (StrLen(payload[1]) > 4096) {
         PersonalNativeReset()
         return
     }
     requests := [], expected := PC.native.ack + 1
-    for _, row in StrSplit(payload1, "|") {
+    for _, row in StrSplit(payload[1], "|") {
         if (row = "")
             continue
-        if (!RegExMatch(row, "^(\d+),(d|u),([a-z0-9+]+)$", edge)
-            or !IsObject(PersonalNativeSpec(edge3))) {
+        if (!RegExMatch(row, "^(\d+),(d|u),([a-z0-9+]+)$", &edge)
+            or !IsObject(PersonalNativeSpec(edge[3]))) {
             PersonalNativeReset()
             return
         }
-        if (edge1 + 0 > PC.native.ack) {
-            if (edge1 + 0 != expected) {
+        if (edge[1] + 0 > PC.native.ack) {
+            if (edge[1] + 0 != expected) {
                 PersonalNativeReset()
                 return
             }
-            requests.Push({seq:edge1 + 0, kind:edge2, key:edge3})
+            requests.Push({seq:edge[1] + 0, kind:edge[2], key:edge[3]})
             expected += 1
         }
     }
@@ -610,26 +608,26 @@ PersonalBankLease(lease) {
 }
 
 PersonalNativeSpec(value) {
-    if (!RegExMatch(value, "^(?:(ctrl|alt|shift)\+)?([a-z0-9]+)$", part))
+    if (!RegExMatch(value, "^(?:(ctrl|alt|shift)\+)?([a-z0-9]+)$", &part))
         return false
-    keys := {up:"Up", right:"Right", down:"Down", left:"Left", enter:"Enter", escape:"Escape"
-        , space:"Space", tab:"Tab", numpadadd:"NumpadAdd"}
-    key := keys[part2]
-    if (key = "" and RegExMatch(part2, "^[a-z0-9]$"))
-        key := part2
-    if (key = "" and RegExMatch(part2, "^f([1-9]|1[0-2])$", fn))
-        key := "F" . fn1
+    keys := Map("up", "Up", "right", "Right", "down", "Down", "left", "Left", "enter", "Enter", "escape", "Escape"
+        , "space", "Space", "tab", "Tab", "numpadadd", "NumpadAdd")
+    key := keys.Get(part[2], "")
+    if (key = "" and RegExMatch(part[2], "^[a-z0-9]$"))
+        key := part[2]
+    if (key = "" and RegExMatch(part[2], "^f([1-9]|1[0-2])$", &fn))
+        key := "F" . fn[1]
     if (key = "")
         return false
-    modifiers := {ctrl:"LControl", alt:"LAlt", shift:"LShift"}
-    return {key:key, modifier:modifiers[part1]}
+    modifiers := Map("ctrl", "LControl", "alt", "LAlt", "shift", "LShift")
+    return {key:key, modifier:modifiers.Get(part[1], "")}
 }
 
 ; Reconcile the union of native owners. Releasing one of two slots using the
 ; same key/chord must not lift the other's key or modifier.
 PersonalNativeSync() {
     global PC
-    desired := {}
+    desired := Map()
     for _, owner in PC.native.active {
         if (!owner.suppressed) {
             desired[owner.key] := true
@@ -639,7 +637,7 @@ PersonalNativeSync() {
     }
     retired := []
     for key in PC.native.keys
-        if (!desired.HasKey(key))
+        if (!desired.Has(key))
             retired.Push(key)
     for _, key in retired
         if (key != "LControl" and key != "LAlt" and key != "LShift")
@@ -660,9 +658,9 @@ PersonalNativeReset() {
     global PC
     if (!IsObject(PC.native))
         return
-    PC.native.active := {}
+    PC.native.active := Map()
     PersonalNativeSync()
-    PC.native := {token:"", ack:0, requests:[], active:{}, keys:{}}
+    PC.native := {token:"", ack:0, requests:[], active:Map(), keys:Map()}
 }
 
 PersonalNativePoll(now) {
@@ -670,7 +668,7 @@ PersonalNativePoll(now) {
     if (CM.phase != "messages" or now - CM.seen > 100)
         return PersonalNativeReset()
     ; Wait for prior input/cancel acknowledgment before adopting a key request.
-    if (CM.pending.Length() or !PC.native.requests.Length())
+    if (CM.pending.Length or !PC.native.requests.Length)
         return
     edge := PC.native.requests[1]
     if (edge.kind = "d") {
@@ -680,16 +678,17 @@ PersonalNativePoll(now) {
             if GetKeyState(key, "P")
                 spec.suppressed := true
         for key in PC.keys
-            if (!PC.native.keys.HasKey(key))
+            if (!PC.native.keys.Has(key))
                 spec.suppressed := true
         PC.native.active[edge.key] := spec
     } else {
-        owner := PC.native.active[edge.key]
+        owner := PC.native.active.Get(edge.key, false)
         ; Hold a short tap long enough for the native client to observe it.
         ; No Sleep or blocking delay; release/cancellation remains immediate.
         if (IsObject(owner) and !owner.suppressed and now - owner.tick < 40)
             return
-        PC.native.active.Delete(edge.key)
+        if PC.native.active.Has(edge.key)
+            PC.native.active.Delete(edge.key)
     }
     PersonalNativeSync()
     PC.native.ack := edge.seq
@@ -716,7 +715,7 @@ PersonalBanksPoll(states, raw, mode, now) {
         return states
     }
     busy := raw.l1 or raw.r1 or raw.ps or raw.mute
-    Loop, 12
+    Loop 12
         if (raw[A_Index])
             busy := true
     touchEvent := PersonalTouchStep(PC.touch, raw.touch, PC.previous.touch
@@ -737,9 +736,9 @@ PersonalBanksPoll(states, raw, mode, now) {
 PersonalOtherWindow(hwnd) {
     if (!hwnd or !WinExist("ahk_id " . hwnd))
         return false
-    WinGetClass, class, ahk_id %hwnd%
-    return class != "FFXiClass" and class != "Progman" and class != "WorkerW"
-        and class != "Shell_TrayWnd" and class != "AutoHotkey" and class != "tooltips_class32"
+    windowClass := WinGetClass("ahk_id " . hwnd)
+    return windowClass != "FFXiClass" and windowClass != "Progman" and windowClass != "WorkerW"
+        and windowClass != "Shell_TrayWnd" and windowClass != "AutoHotkey" and windowClass != "tooltips_class32"
 }
 
 PersonalPS(pressed, foreground, active, consumed) {
@@ -749,9 +748,8 @@ PersonalPS(pressed, foreground, active, consumed) {
         return
     target := active ? PC.lastOther : PersonalClientTarget(0)
     if (active and !PersonalOtherWindow(target)) {
-        WinGet, windows, List
-        Loop, %windows% {
-            id := windows%A_Index%
+        windows := WinGetList()
+        for _, id in windows {
             if (PersonalOtherWindow(id)) {
                 target := id
                 break
@@ -767,25 +765,25 @@ PersonalPS(pressed, foreground, active, consumed) {
 PersonalActivate(target) {
     if (!target or !WinExist("ahk_id " . target))
         return
-    WinGet, minimized, MinMax, ahk_id %target%
+    minimized := WinGetMinMax("ahk_id " . target)
     if (minimized = -1)
-        WinRestore, ahk_id %target%
-    WinActivate, ahk_id %target%
+        WinRestore("ahk_id " . target)
+    WinActivate("ahk_id " . target)
 }
 
 PersonalClientTarget(active, direction := 1) {
     global PC
-    WinGet, windows, List, ahk_class FFXiClass
-    available := {}, ordered := []
-    Loop, %windows%
-        available[windows%A_Index%] := true
+    windows := WinGetList("ahk_class FFXiClass")
+    available := Map(), ordered := []
+    for _, id in windows
+        available[id] := true
     for _, id in PC.clients
-        if available.HasKey(id)
+        if available.Has(id)
             ordered.Push(id)
     ; Append new clients without reordering existing ones on every activation.
-    Loop, %windows% {
-        index := windows - A_Index + 1
-        id := windows%index%
+    Loop windows.Length {
+        index := windows.Length - A_Index + 1
+        id := windows[index]
         found := false
         for _, existing in ordered
             if (existing = id)
@@ -794,15 +792,15 @@ PersonalClientTarget(active, direction := 1) {
             ordered.Push(id)
     }
     PC.clients := ordered
-    if (!ordered.Length())
+    if (!ordered.Length)
         return
     target := ordered[1]
-    if (!active and available.HasKey(PC.lastClient))
+    if (!active and available.Has(PC.lastClient))
         target := PC.lastClient
     else if (active) {
         for index, id in ordered
             if (id = active)
-                target := ordered[Mod(index - 1 + direction + ordered.Length(), ordered.Length()) + 1]
+                target := ordered[Mod(index - 1 + direction + ordered.Length, ordered.Length) + 1]
     }
     return target
 }

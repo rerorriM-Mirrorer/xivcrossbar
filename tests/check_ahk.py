@@ -28,7 +28,7 @@ wrapper=sources[root/'ffxi_directinput.ahk']
 includes=re.findall(r'^#Include %A_ScriptDir%\\(.+)$',wrapper,re.M)
 assert set(includes)=={'personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk','controller_messages.ahk'}
 for name in includes:assert (root/name).is_file()
-assert wrapper.index('instanceMutex := AcquireWrapperMutex()')<wrapper.index('OnExit, TransportExit')
+assert wrapper.index('instanceMutex := AcquireWrapperMutex()')<wrapper.index('OnExit(TransportExit)')
 controls=sources[root/'personal_controls.ahk']
 assert 'enabled:(selected = "ps5-extended" or selected = "xinput-extended")' in controls
 assert not any(x in controls for x in ['JoyR','raw.zoom','nextZoom','zoomArmed'])
@@ -37,9 +37,9 @@ assert 'PersonalR1Menus(raw, mode, now)' in controls
 # editable native vocabulary may deliberately include NumpadAdd.
 assert 'NumpadAdd' not in controls.split('PersonalR1Menus(raw, mode, now) {',1)[1].split('\n}',1)[0]
 assert 'raw.r1 and !raw.l1' in controls
-assert 'Mod(index - 1 + direction + ordered.Length(), ordered.Length())' in controls
+assert 'Mod(index - 1 + direction + ordered.Length, ordered.Length)' in controls
 assert 'PC.owner != WinActive("ahk_class FFXiClass")' in controls
-assert 'ControlSend,,' in controls
+assert 'ControlSend(' in controls
 functions=[]
 for name in ['personal_controls.ahk','personal_gestures.ahk','controller_messages.ahk']:
     functions += re.findall(r'^((?:Personal|ControllerMessage)\w+)\([^\n]*\) \{',sources[root/name],re.M)
@@ -47,7 +47,8 @@ assert len(functions)==len(set(functions)), 'duplicate function'
 calls=set(re.findall(r'\b((?:Personal|ControllerMessage)\w+)\(',wrapper+controls+sources[root/'personal_gestures.ahk']+sources[root/'controller_messages.ahk']))
 assert calls<=set(functions),calls-set(functions)
 probe=sources[root/'tools/keyprobe/keyboard_probe.ahk']
-assert 'OnExit, ProbeExit' in probe and 'ProbeReleaseKeys()' in probe
+assert 'OnExit(ProbeExit)' in probe and 'ProbeReleaseKeys()' in probe
+assert '#Requires AutoHotkey v2.0+' in probe
 assert 'WinActive("ahk_class FFXiClass") != probeOwner' in probe
 print(f'{len(sources)} AHK files: balanced literals/delimiters, includes, hidden gating, cleanup and function links checked.')
 

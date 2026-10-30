@@ -1,6 +1,6 @@
 // Actual pure trace helpers translated narrowly; no Windows delivery claim.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const source=fs.readFileSync('ffxi_directinput.ahk','utf8');
+const source=require('./ahk_source').read('ffxi_directinput.ahk','utf8');
 function extract(name){
   const match=new RegExp('\\n'+name+'\\([^\\n]*\\) \\{').exec(source);
   const start=match ? match.index+1 : -1;

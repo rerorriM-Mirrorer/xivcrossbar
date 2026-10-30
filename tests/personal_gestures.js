@@ -3,7 +3,7 @@
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert/strict');
-let source = fs.readFileSync('personal_gestures.ahk', 'utf8');
+let source = require('./ahk_source').read('personal_gestures.ahk', 'utf8');
 source = source.replace(/;[^\n]*/g, '').replace(/"(?:[^"]|"")*"|[^"\n]+/g, token => {
   if (token.startsWith('"')) return token;
   return token.replace(/:=/g, '@ASSIGN@').replace(/(?<![<>!:=])=(?!=)/g, '===')
@@ -46,7 +46,7 @@ check('brief unknown lease pauses without authorizing actions; stale/lost sessio
     assert.equal(context.PersonalLeasePause(mode,1015,1000,true),false);
 });
 check('bare R1 uses a release gesture; combinations remain',()=>{
-  const controls=fs.readFileSync('personal_controls.ahk','utf8');
+  const controls=require('./ahk_source').read('personal_controls.ahk','utf8');
   assert(!controls.includes('PC.shoulders') && !controls.includes('PersonalShoulderStep'));
   assert(controls.includes('PersonalR1Tap(raw, busy or raw.l1 or raw.l3 or raw.r3 or raw.touch, now)'));
   assert(controls.includes('raw.r1 and !raw.l1'));
@@ -99,7 +99,7 @@ check('L3 then R3 holds period',()=>{
 check('bare L3 heals on release; R3 release never toggles autorun',()=>{
   const c=clicks();assert.equal(c(true,false),'');assert.equal(c(false,false),'h');
   assert.equal(c(false,true),'');assert.equal(c(false,false),'');
-  assert(!fs.readFileSync('personal_controls.ahk','utf8').includes('clickEvent = "r"'));
+  assert(!require('./ahk_source').read('personal_controls.ahk','utf8').includes('clickEvent = "r"'));
 });
 check('same sample clicks do not guess order',()=>{
   const c=clicks();assert.equal(c(true,true),'');assert.equal(c(false,true),'');assert.equal(c(false,false),'');
@@ -162,7 +162,7 @@ check('POV cardinals and diagonal rolls retain one adjacent direction',()=>{
   }
 });
 // Read actual shortcut declarations rather than maintain an implementation copy.
-const controls=fs.readFileSync('personal_controls.ahk','utf8');
+const controls=require('./ahk_source').read('personal_controls.ahk','utf8');
 const shortcuts=vm.runInNewContext('({'+controls.match(/shortcuts := \{([^}]+)\}/)[1]+'})');
 check('L1 keys match the requested physical-button mapping',()=>{
   assert.deepEqual(JSON.parse(JSON.stringify(shortcuts)),{1:'i',2:'m',3:'e',4:'j',5:'Space',6:'q',7:'',8:'s'});

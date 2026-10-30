@@ -1,10 +1,10 @@
 // Actual AHK filter/prefire decisions under a narrow translation. An enumerator
 // that advances over the current sorted keys reproduces AHK's deletion hazard.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const source=fs.readFileSync('personal_controls.ahk','utf8');
+const source=require('./ahk_source').read('personal_controls.ahk','utf8');
 function extract(name){const start=source.indexOf('\n'+name+'(')+1;assert(start>0);
   const end=source.indexOf('\n}\n',start)+2;assert(end>start);return source.slice(start,end);}
-const gestures=fs.readFileSync('personal_gestures.ahk','utf8');
+const gestures=require('./ahk_source').read('personal_gestures.ahk','utf8');
 const r1Start=gestures.indexOf('\nPersonalR1Step(')+1;
 assert(r1Start>0);
 let code=gestures.slice(r1Start,gestures.indexOf('\n}\n',r1Start)+2)+'\n'+

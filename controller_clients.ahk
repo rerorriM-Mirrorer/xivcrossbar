@@ -13,7 +13,7 @@ WrapperClientsStatus() {
 
 WrapperClientsInit() {
     global WC
-    WC := {seen:false, tokens:{}, retired:{}, lastPoll:0, emptySince:0, lastClose:0, kill:false}
+    WC := {seen:false, tokens:Map(), retired:Map(), lastPoll:0, emptySince:0, lastClose:0, kill:false}
     WC.reason := "waiting-for-scan", WC.loaded := 0, WC.records := 0, WC.locked := 0, WC.errors := 0
     WC.invalid := 0, WC.blockers := "", WC.scans := 0, WC.latestClose := 0, WC.latestKill := false
 }
@@ -29,19 +29,21 @@ WrapperClientsShouldExit() {
     latestClose := 0
     latestKill := false
     pattern := A_ScriptDir . "\data\controller-clients\*.ini"
-    Loop, Files, %pattern%, F
+    Loop Files pattern, "F"
     {
         path := A_LoopFileFullPath
         WC.records += 1
         ; Each owner token is a unique Lua session. Once its owner is closed,
         ; that session cannot return; new loads publish a new filename/token.
-        if (WC.retired.HasKey(path)) {
+        if (WC.retired.Has(path)) {
             record := WC.retired[path]
             alive := false
         } else {
             readStarted := DllCall("GetTickCount64", "UInt64")
-            FileRead, contents, %path%
-            readFailed := ErrorLevel
+            readFailed := false, contents := ""
+            try contents := FileRead(path, "CP0")
+            catch
+                readFailed := true
             InputTimingOperation("client-record-read", readStarted)
             record := readFailed ? false : WrapperClientRecord(contents)
             ownerStarted := DllCall("GetTickCount64", "UInt64")
@@ -69,13 +71,13 @@ WrapperClientsShouldExit() {
         if (alive) {
             loaded++
             WC.seen := true
-            WC.tokens[id] := {kill:kill = "true"}
+            WC.tokens[id] := {kill:kill = "true", deadAt:0}
         } else if (state = "closing") {
             if (closed + 0 >= latestClose) {
                 latestClose := closed + 0
                 latestKill := kill = "true"
             }
-        } else if (WC.tokens.HasKey(id)) {
+        } else if (WC.tokens.Has(id)) {
             ; Owner handles also close when a game/Lua process terminates.
             known := WC.tokens[id]
             if (!known.deadAt)
@@ -126,21 +128,21 @@ WrapperOwnerAlive(path) {
 
 WrapperClientsClock() {
     stamp := A_NowUTC
-    EnvSub, stamp, 19700101000000, Seconds
+    stamp := DateDiff(stamp, "19700101000000", "Seconds")
     return stamp + A_MSec / 1000
 }
 
 ; A: one complete snapshot replaces five synchronous Windows INI reads.
 ; Lua writes this exact private format atomically. Unrelated files are ignored.
 WrapperClientRecord(contents) {
-    if (!RegExMatch(contents, "smi)^\[Client\]\r?\n(.*?)(?=^\[|\z)", section))
+    if (!RegExMatch(contents, "smi)^\[Client\]\r?\n(.*?)(?=^\[|\z)", &section))
         return false
-    if (!RegExMatch(section1, "im)^protocol=([^\r\n]+)\r?$", protocol) or protocol1 != "owner-file-v1")
+    if (!RegExMatch(section[1], "im)^protocol=([^\r\n]+)\r?$", &protocol) or protocol[1] != "owner-file-v1")
         return false
-    if (!RegExMatch(section1, "im)^id=([A-Za-z0-9-]+)\r?$", id)
-        or !RegExMatch(section1, "im)^state=(loaded|closing)\r?$", state)
-        or !RegExMatch(section1, "im)^kill=(true|false)\r?$", kill)
-        or !RegExMatch(section1, "im)^closed=([0-9]+(?:\.[0-9]+)?)\r?$", closed))
+    if (!RegExMatch(section[1], "im)^id=([A-Za-z0-9-]+)\r?$", &id)
+        or !RegExMatch(section[1], "im)^state=(loaded|closing)\r?$", &state)
+        or !RegExMatch(section[1], "im)^kill=(true|false)\r?$", &kill)
+        or !RegExMatch(section[1], "im)^closed=([0-9]+(?:\.[0-9]+)?)\r?$", &closed))
         return false
-    return {id:id1, state:state1, kill:kill1, closed:closed1 + 0}
+    return {id:id[1], state:state[1], kill:kill[1], closed:closed[1] + 0}
 }

@@ -1,3 +1,13 @@
+# Current Development Status — October 29, 2026 — AHK v2 migration in verification
+
+- Dedicated `development/ahk-v2-migration`, starting from published personal `development/directlink` checkpoint `ed86e5f36c435273b62332278ed08fcb82c2f27f`. Master/public branches unchanged. This checkpoint is not a new live-confirmed baseline.
+- Active runtime migrated to native AHK v2; sparse input Maps, ordered Array queues, explicit match objects, Buffer/XInput pointer, function timers/exit and exception-aware file operations preserve existing protocol/timing. Lua launches an explicit version-checked v2 bootstrap. Optional manual keyboard probe also migrated. Personal gestures remain byte-identical.
+- Local verification: 74 Lua suites / 164 parses pass with temporary Windower syntax normalization under Lua 5.4; eight source-translated AHK JS suites pass; structural AHK and dependency checks pass. These checks are not native AHK execution.
+- Windows CI harness added for actual v2 parsing/function tests and isolated startup/mutex/stop/bootstrap/restart. Results pending at this checkpoint. Physical controller, Windower Run-plugin handoff, live FFXI and multibox acceptance pending. Last-client automatic shutdown remains the pre-existing unresolved issue; this migration does not claim a fix.
+- Latest recorded live acceptance remains Survival Guide controls; newer diagnostics/message cleanup and the v2 runtime require native acceptance. Keep a complete v1 installation backup, stop the shared wrapper and unload all clients before replacing runtime files. No installed data, bindings, icons, or INI files are included or modified.
+
+---
+
 # Current Development Status — October 29, 2026 — Personal Message Cleanup 2
 
 - Personal development/directlink, source published b253d9352a8a9808fb087f88f94167f71e4d7e30 (local identical tree at 1b71979). Runtime directlink1-messagecleanup2; Controls 9.20-diagnostics1 unchanged. Public beta/master remain separate and unchanged.

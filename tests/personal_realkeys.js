@@ -1,10 +1,10 @@
 // Actual AHK ownership/filter/lease functions under the same narrow translation
 // used by the personal-input tests. This is not native Windows/AHK execution.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const source=fs.readFileSync('personal_controls.ahk','utf8');
+const source=require('./ahk_source').read('personal_controls.ahk','utf8');
 function extract(name){const a=source.indexOf('\n'+name+'(')+1;assert(a>0);
   return source.slice(a,source.indexOf('\n}\n',a)+2);}
-const gestures=fs.readFileSync('personal_gestures.ahk','utf8');
+const gestures=require('./ahk_source').read('personal_gestures.ahk','utf8');
 const r1start=gestures.indexOf('\nPersonalR1Step(')+1;
 let code=gestures.slice(r1start,gestures.indexOf('\n}\n',r1start)+2)+'\n'+
   ['PersonalPoll','PersonalBanksPoll','PersonalNativeDPad','PersonalR1Menus','PersonalR1MenuLease','PersonalR1Tap','PersonalFilter','PersonalRealKeyLease','PersonalKey','PersonalRelease'].map(extract).join('\n');

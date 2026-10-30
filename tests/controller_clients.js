@@ -1,6 +1,6 @@
 // Actual AHK decision function, with native process/file observations simulated.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-let s=fs.readFileSync('controller_clients.ahk','utf8');
+let s=require('./ahk_source').read('controller_clients.ahk','utf8');
 s=s.slice(s.indexOf('WrapperClientsDecision(state,'),s.indexOf('\nWrapperOwnerAlive(',s.indexOf('WrapperClientsDecision(state,')));
 s=s.replace(/;[^\n]*/g,'').replace(/:=/g,'=').replace(/\bor\b/g,'||').replace(/\band\b/g,'&&');
 s=s.replace(/^WrapperClientsDecision\(/,'function decision(');
@@ -19,7 +19,7 @@ assert.equal(ctx.decision(state,0,12,true,10100),false,'new departure did not ge
 assert.equal(ctx.decision(state,0,12,true,12100),true);
 console.log('AHK lifecycle policy: manual startup, remaining clients, grace, reload and last-client preference passed.');
 // Parse the actual private record reader using its actual expressions.
-let parser=fs.readFileSync('controller_clients.ahk','utf8');
+let parser=require('./ahk_source').read('controller_clients.ahk','utf8');
 parser=parser.slice(parser.indexOf('\nWrapperClientRecord(contents) {')+1).trim();
 parser=parser.replace(/RegExMatch\((contents|section1), ("[^"\n]+"), (\w+)\)/g,'RegExMatch($1, $2, "$3")');
 parser=parser.replace(/"(?:[^"]|"")*"|[^"\n]+/g,t=>t.startsWith('"')?JSON.stringify(t.slice(1,-1)):t
@@ -42,7 +42,7 @@ assert.equal(observed.record(record.replace('kill=false','kill=unknown')),false)
 assert.equal(observed.record(record.replace('closed=0','closed=broken')),false);
 assert.equal(observed.record('[Other]\n'+record.split('\n').slice(1).join('\n')),false);
 assert.equal(observed.record('[Client]\nprotocol=owner-file-v1\n[Other]\nid=x\nstate=loaded\nkill=true\nclosed=0\n'),false);
-const all=fs.readFileSync('controller_clients.ahk','utf8');assert(!all.includes('IniRead,'));
+const all=require('./ahk_source').read('controller_clients.ahk','utf8');assert(!all.includes('IniRead,'));
 assert.equal((all.match(/FileRead, contents/g)||[]).length,1);
 assert(all.indexOf('WC.retired.HasKey(path)')<all.indexOf('FileRead, contents'));
 assert(all.includes('if (!alive)\n                WC.retired[path] := record'));

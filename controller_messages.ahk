@@ -2,22 +2,22 @@
 ; overtake a trigger in a different channel. Personal shortcuts stay separate.
 ControllerMessageInit() {
     global CM
-    CM := {requested:false, token:"", seq:0, ack:0, pending:[], previous:[]
-        , phase:"keys", seen:0, nextWrite:0, path:"", error:false, expanded:false, controlSeq:[], canResume:false, lastHealthy:0}
+    CM := {requested:false, token:"", seq:0, ack:0, pending:[], previous:InputState()
+        , phase:"keys", seen:0, nextWrite:0, path:"", error:false, expanded:false, controlSeq:InputState(), canResume:false, lastHealthy:0}
 }
 
 ControllerMessageLease(lease, contextPath) {
     global CM
     now := DllCall("GetTickCount64", "UInt64")
-    if (!RegExMatch(lease, "m)^button_mode=(messages|keys)\r?$", mode))
+    if (!RegExMatch(lease, "m)^button_mode=(messages|keys)\r?$", &mode))
         return
-    requested := mode1 = "messages"
+    requested := mode[1] = "messages"
     token := ""
     if (requested) {
-        if (!RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", value)
-            or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", ack))
+        if (!RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", &value)
+            or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", &ack))
             return
-        token := value1
+        token := value[1]
     }
     CM.seen := now
     if (requested != CM.requested or token != CM.token) {
@@ -29,9 +29,9 @@ ControllerMessageLease(lease, contextPath) {
         controls := CM.controlSeq
         ; Finish the previous route before adopting the current client's token.
         ReleaseTransport(true)
-        CM.requested := requested, CM.token := token, CM.seq := requested ? ack1 + 0 : 0, CM.ack := 0
-        CM.pending := [], CM.previous := [], CM.phase := "neutral", CM.nextWrite := 0
-        CM.controlSeq := resume ? controls : [], CM.canResume := resume
+        CM.requested := requested, CM.token := token, CM.seq := requested ? ack[1] + 0 : 0, CM.ack := 0
+        CM.pending := [], CM.previous := InputState(), CM.phase := "neutral", CM.nextWrite := 0
+        CM.controlSeq := resume ? controls : InputState(), CM.canResume := resume
         if (resume)
             CM.phase := "recover"
         CM.path := RegExReplace(contextPath, "\.ini$", ".buttons")
@@ -41,14 +41,14 @@ ControllerMessageLease(lease, contextPath) {
             ControllerMessageAdd("cancel", 0)
             ControllerMessageFlush(true)
         }
-        InputTraceRecord("button route=" . mode1 . " waiting-neutral")
-        if (RegExMatch(lease, "m)^button_reason=([a-z-]+)\r?$", reason))
-            InputTraceRecord("button receiver reset reason=" . reason1)
+        InputTraceRecord("button route=" . mode[1] . " waiting-neutral")
+        if (RegExMatch(lease, "m)^button_reason=([a-z-]+)\r?$", &reason))
+            InputTraceRecord("button receiver reset reason=" . reason[1])
         if (resume)
             InputTraceRecord("button recovery same-client, waiting for action-button release")
     }
     if (requested) {
-        CM.ack := ack1 + 0
+        CM.ack := ack[1] + 0
         retained := []
         for _, event in CM.pending
             if (event.seq > CM.ack)
@@ -73,12 +73,12 @@ ControllerMessageCancel() {
     global CM
     if (!IsObject(CM) or !CM.requested)
         return
-    if (CM.phase = "messages" and (CM.pending.Length() or ControllerMessageAnyHeld())) {
+    if (CM.phase = "messages" and (CM.pending.Length or ControllerMessageAnyHeld())) {
         ControllerMessageAdd("cancel", 0)
         ControllerMessageFlush(true)
     }
-    CM.previous := [], CM.phase := "neutral"
-    CM.controlSeq := [], CM.canResume := false
+    CM.previous := InputState(), CM.phase := "neutral"
+    CM.controlSeq := InputState(), CM.canResume := false
 }
 
 ControllerMessageStall() {
@@ -94,7 +94,7 @@ ControllerMessageStall() {
 
 ControllerMessageAnyHeld() {
     global CM
-    Loop, 14
+    Loop 14
         if (CM.previous[A_Index])
             return true
     return false
@@ -109,7 +109,7 @@ ControllerMessageFlush(force := false) {
         return true
     CM.nextWrite := now + 100
     stamp := A_NowUTC
-    EnvSub, stamp, 19700101000000, Seconds
+    stamp := DateDiff(stamp, "19700101000000", "Seconds")
     contents := "token=" . CM.token . "`nstamp=" . stamp . "`nbeat=" . now . "`n"
     for _, event in CM.pending
         contents .= event.seq . "," . event.kind . "," . event.button . "`n"
@@ -117,11 +117,7 @@ ControllerMessageFlush(force := false) {
     temporary := CM.path . ".tmp"
     destination := CM.path
     timingWriteStart := DllCall("GetTickCount64", "UInt64")
-    FileDelete, %temporary%
-    FileAppend, %contents%, %temporary%
-    if (!ErrorLevel)
-        FileMove, %temporary%, %destination%, 1
-    CM.error := ErrorLevel ? true : false
+    CM.error := !PublishControllerFile(temporary, destination, contents)
     InputTimingOperation("button-file-write", timingWriteStart)
     return !CM.error
 }
@@ -131,7 +127,7 @@ ControllerMessageFlush(force := false) {
 ControllerMessagePoll(states) {
     global CM
     neutral := true
-    Loop, 14
+    Loop 14
         if (states[A_Index])
             neutral := false
     now := DllCall("GetTickCount64", "UInt64")
@@ -161,7 +157,7 @@ ControllerMessagePoll(states) {
         return false
     if (CM.phase = "recover") {
         if (now - CM.lastHealthy > 2000) {
-            CM.phase := "neutral", CM.controlSeq := [], CM.canResume := false
+            CM.phase := "neutral", CM.controlSeq := InputState(), CM.canResume := false
             InputTraceRecord("button recovery expired, waiting-neutral")
             ControllerMessageFlush(true)
             return true
@@ -169,7 +165,7 @@ ControllerMessagePoll(states) {
         ; Never replay face/D-pad/menu presses. Only the original still-held
         ; controls can recover, after all action buttons have been released.
         quiet := true
-        Loop, 10
+        Loop 10
             if (states[A_Index])
                 quiet := false
         for _, i in [11, 12, 13, 14] {
@@ -177,9 +173,9 @@ ControllerMessagePoll(states) {
                 quiet := false
         }
         if (quiet) {
-            restored := []
+            restored := InputState()
             ControllerMessageAdd("banks", 0)
-            Loop, 4 {
+            Loop 4 {
                 selected := 0, first := 2147483647
                 for _, i in [11, 12, 13, 14] {
                     if (CM.controlSeq[i] and CM.controlSeq[i] < first) {
@@ -202,15 +198,15 @@ ControllerMessagePoll(states) {
         ControllerMessageFlush(true)
         return true
     }
-    if (CM.phase != "backpressure" and (CM.pending.Length() > 96
-        or (CM.pending.Length() and now - CM.pending[1].tick > 350))) {
+    if (CM.phase != "backpressure" and (CM.pending.Length > 96
+        or (CM.pending.Length and now - CM.pending[1].tick > 350))) {
         InputTraceRecord("button stall reason=ack-backlog")
         ControllerMessageStall()
         CM.phase := "backpressure"
         return true
     }
     if (CM.phase = "backpressure") {
-        if (neutral and !CM.pending.Length()) {
+        if (neutral and !CM.pending.Length) {
             CM.phase := "messages"
             if (CM.expanded)
                 ControllerMessageAdd("banks", 0)
@@ -221,7 +217,7 @@ ControllerMessagePoll(states) {
     changed := false
     ; Releases finish the previous gesture. New trigger downs precede new slots
     ; sampled together; a truly simultaneous pair has deterministic L2 priority.
-    Loop, 14 {
+    Loop 14 {
         i := A_Index
         if (CM.previous[i] and !states[i]) {
             ControllerMessageAdd("up", i)
