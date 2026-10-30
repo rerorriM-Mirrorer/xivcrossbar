@@ -7,6 +7,9 @@ permissions:
   contents: read
 jobs:
   native:
+    strategy:
+      matrix:
+        executable: [AutoHotkey64.exe, AutoHotkey32.exe]
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
@@ -19,10 +22,10 @@ jobs:
           Expand-Archive "$env:RUNNER_TEMP\ahk.zip" "$env:RUNNER_TEMP\ahk"
       - name: Native functions, startup, mutex, stop and bootstrap
         shell: pwsh
-        run: ./tests/ahk_v2.ps1 -Interpreter "$env:RUNNER_TEMP\ahk\AutoHotkey64.exe"
+        run: ./tests/ahk_v2.ps1 -Interpreter "$env:RUNNER_TEMP\ahk\${{ matrix.executable }}"
       - name: Preserve native diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ahk-v2-native-results
+          name: ahk-v2-native-results-${{ matrix.executable }}
           path: native-test-results

@@ -7,6 +7,8 @@ SetKeyDelay(10, -1)
 FileEncoding("CP0")
 DirCreate(A_ScriptDir . "\data")
 profile := "ps5-directinput", device := 1, modifierArgument := "apps", origin := "test"
+captureKey := "AppsKey", ready := false, lastStatusTick := -1000, phase := "test", connected := false
+isXInput := false, joystickPrefix := "", joys := [], xinputGetState := 0, xinputLibrary := 0, xinputFault := false
 xinputGuide := false, povDirection := 0, owner := 0, appsOwned := false
 keys := ["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"]
 previous := InputState()

@@ -50,8 +50,9 @@ public class DialogDump {
     # auto-execute section. AHK parses all functions/hotkeys before executing.
     $probe = [IO.File]::ReadAllText((Join-Path $root 'tools/keyprobe/keyboard_probe.ahk'))
     [IO.File]::WriteAllText((Join-Path $fixture 'probe-parse.ahk'), "#Requires AutoHotkey v2.0+`nExitApp(0)`n" + $probe)
-    & $Interpreter /ErrorStdOut (Join-Path $fixture 'probe-parse.ahk')
-    if ($LASTEXITCODE -ne 0) { throw 'Probe v2 parse failed' }
+    $probeTest = Start-Process $Interpreter -ArgumentList ('/ErrorStdOut "{0}"' -f (Join-Path $fixture 'probe-parse.ahk')) -PassThru -RedirectStandardError (Join-Path $resultPath 'probe-errors.txt')
+    $children += $probeTest
+    if (!$probeTest.WaitForExit(5000) -or $probeTest.ExitCode -ne 0) { throw 'Probe v2 parse failed' }
     $statusPath = Join-Path $fixture 'data\controller-status.ini'
     Remove-Item (Join-Path $fixture 'data\test.buttons') -ErrorAction SilentlyContinue
     # All active-wrapper execution is isolated; no real game or user data.
@@ -73,7 +74,9 @@ public class DialogDump {
     if ($status -notmatch 'state=stopped' -or $status -notmatch 'pid=0') { throw 'Stop cleanup status missing' }
     # Verify bootstrap path with spaces, explicit v2 override and restart.
     [IO.File]::WriteAllText((Join-Path $fixture 'data\controller-runtime.ini'), "[Runtime]`r`nexecutable=$Interpreter`r`n")
-    & (Join-Path $fixture 'launch-controller.ps1') apps ps5-extended 1
+    $bootstrap = Start-Process $env:ComSpec -ArgumentList ('/d /s /c ""{0}" apps ps5-extended 1"' -f (Join-Path $fixture 'launch-controller.cmd')) -PassThru -RedirectStandardError (Join-Path $resultPath 'bootstrap-errors.txt')
+    $children += $bootstrap
+    if (!$bootstrap.WaitForExit(10000) -or $bootstrap.ExitCode -ne 0) { throw 'CMD / Windows PowerShell bootstrap failed' }
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     do {
         Start-Sleep -Milliseconds 50
