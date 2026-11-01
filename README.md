@@ -1510,3 +1510,13 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   Restart the wrapper after overlaying all three AHK files; see
   docs/AHK-V2-CONTEXT-POLL1.md. User reports touchpad working and last-client
   shutdown now reliable; camera spin had stopped before Touch Fix 1.
+
+### October 31, 2026 — AHK v2 Cumulative Runtime 1
+
+- Cumulative runtime overlay replaces all active AHK includes and launch files
+  together. Repairs incomplete installs where a v2 wrapper encounters an old
+  v1 include (reported Loop, 14 in controller_messages.ahk). Includes existing
+  Fast Start 3, Touch Fix 1 and Context Poll 1; no new runtime behavior changes.
+- Install into the Windower addon path named by the error, preserving data and
+  assets. See docs/AHK-V2-CUMULATIVE-RUNTIME1.md. Earlier small patches require
+  the full v2 runtime and are not standalone migration installs.
