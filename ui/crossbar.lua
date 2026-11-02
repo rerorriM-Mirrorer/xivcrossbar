@@ -1164,7 +1164,7 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                 action = maybe_get_default_action(player_hotbar, environment, h, slot)
             end
 
-            action=pet_policy.summon_toggle(action,pet_state) or action
+            action=pet_policy.resolve(action,pet_state,crossbar_spells) or action
             if action ~= nil then
                 local crossbar_action = nil
                 local is_disabled = false
@@ -2131,8 +2131,20 @@ function ui:resolve_pet_toggle(h,slot,action,state,hotbar,environment,vitals)
         self:load_action(hotbar,environment,h,slot,view,vitals,true)
     end
     local policy=require('libs/pet_actions')
-    local resolved=policy.summon_toggle(action,state) or policy.pet_toggle(action,state)
+    local resolved=policy.resolve(action,state,crossbar_spells)
     if resolved then
+        if resolved.trust_dismiss and (not action.icon or action.icon=='') then
+            local assets=require('ui/assets')
+            local custom='images/'..get_icon_pathbase()..'/'..resolved.icon..'.png'
+            local fallback='images/icons/default/'..resolved.icon..'.png'
+            if not assets.exists(custom) then
+                if assets.exists(fallback) then resolved.icon=fallback
+                else
+                    local metadata=crossbar_spells[kebab_casify(action.action)]
+                    if metadata then resolved.icon=metadata.default_icon end
+                end
+            end
+        end
         if not previous or previous.source~=action or previous.environment~=environment
                 or previous.name~=resolved.action or previous.alias~=resolved.alias
                 or previous.icon~=resolved.icon then
@@ -2155,6 +2167,7 @@ function ui:apply_pet_availability(h,slot,action,state)
     local id=h..':'..slot
     local previous=self.disabled_slots.no_pet[id]
     local reason=require('libs/pet_actions').unavailable(action,state,crossbar_abilities)
+        or require('libs/trust_actions').unavailable(action,state.trust or {},crossbar_spells)
     self.disabled_slots.no_pet[id]=reason and true or nil
     if reason then
         self:toggle_slot(h,slot,false)

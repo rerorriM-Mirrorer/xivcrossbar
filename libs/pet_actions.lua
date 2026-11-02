@@ -14,7 +14,7 @@ function M.snapshot(ffxi)
     local name=alive and key(pet.name) or ''
     local player=ffxi.get_player and ffxi.get_player()
     return {pet=alive,avatar=alive and avatars[name]==true,summon=alive and (avatars[name]==true or spirits[name]==true),
-        pet_name=name,pet_engaged=alive and pet.status==1,engaged=player and (player.status==1 or player.status==3),player=player}
+        trust=require('libs/trust_actions').snapshot(ffxi),pet_name=name,pet_engaged=alive and pet.status==1,engaged=player and (player.status==1 or player.status==3),player=player}
 end
 -- Resolve transient display/dispatch values without changing the saved slot.
 -- Either standard SMN command can be used as the same stateful pet toggle.
@@ -42,8 +42,12 @@ function M.summon_toggle(action,state)
     resolved.icon,resolved.linked_type,resolved.linked_action='',nil,nil
     return resolved
 end
+function M.resolve(action,state,spells)
+    return M.summon_toggle(action,state) or M.pet_toggle(action,state)
+        or require('libs/trust_actions').resolve(action,state.trust or {},spells)
+end
 function M.is_release(action)
-    return action and (action.type=='pet' or action.type=='ja') and key(action.action)=='release'
+    return action and (action.trust_dismiss or ((action.type=='pet' or action.type=='ja') and key(action.action)=='release'))
 end
 function M.requirement(action,abilities)
     if not action or (action.type~='pet' and action.type~='ja') then return end

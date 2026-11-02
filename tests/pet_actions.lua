@@ -1,4 +1,5 @@
 -- Actual availability and dispatch policies, including quick-switch behavior.
+package.loaded['resources/crossbar_spells']={}
 local P=require('libs/pet_actions')
 local abilities={['healing-ruby']={type='pet',category='blood-pacts/ward'},
  ['poison-nails']={type='pet',category='blood-pacts/rage'},

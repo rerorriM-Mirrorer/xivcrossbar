@@ -172,6 +172,7 @@ function player:load_hotbar()
         if (newly_created) then
             player:store_new_hotbars()
         end
+        require('libs/job_crossbars').ensure(self.hotbar,windower.ffxi.get_player(),res.spells,windower.ffxi.get_spells and windower.ffxi.get_spells(),self.hotbar_settings.max)
         if not self.has_reported_load then
             windower.add_to_chat(0,require('libs/chat_status').notice('Loaded '..self.main_job..'/'..(self.sub_job or 'NOSUB')..' crossbars.'))
             self.has_reported_load = true
@@ -713,7 +714,7 @@ function player:execute_action(slot)
 
     local pet_policy=require('libs/pet_actions')
     if action.type=='ma' then
-        action=pet_policy.summon_toggle(action,pet_policy.snapshot(windower.ffxi)) or action
+        action=pet_policy.resolve(action,pet_policy.snapshot(windower.ffxi),require('resources/crossbar_spells')) or action
     end
     if self:dispatch_action(action)==false then return end
 
@@ -726,13 +727,12 @@ end
 
 function player:dispatch_action(action)
     local pet_policy=require('libs/pet_actions')
-    if action.type=='ma' then
-        action=pet_policy.summon_toggle(action,pet_policy.snapshot(windower.ffxi)) or action
-    end
-    if action.type=='pet' or action.type=='ja' then
+    if action.type=='pet' or action.type=='ja' or action.type=='ma' then
         local state=pet_policy.snapshot(windower.ffxi)
-        action=pet_policy.pet_toggle(action,state) or action
+        local spells=require('resources/crossbar_spells')
+        action=pet_policy.resolve(action,state,spells) or action
         local reason=pet_policy.unavailable(action,state,require('resources/crossbar_abilities'))
+            or require('libs/trust_actions').unavailable(action,state.trust,spells)
         if reason then
             local now=os.clock()
             if not self.pet_notice_at or self.pet_notice_reason~=reason or now-self.pet_notice_at>=2 then

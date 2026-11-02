@@ -1,6 +1,18 @@
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
+# Personal update — Trust and Sets 1
+
+Typed Trust slots summon when absent and dismiss that named Trust when present.
+Unlearned Trusts dim/block. `//xb r cross "Label" "input /echo Hello"` creates a
+global reusable gear action and binds it on the current set. `l/r/ll/rr/lr/rl`
+select trigger banks; `lr/rl` share a bank in three/five-bank modes. Existing
+explicit `//xb set` stays available.
+
+Main/subjob capabilities add ordinary editable category sets to the set chooser,
+with category artwork on bindable switch actions. Existing slots stay in place.
+See [commands, categories and live checks](docs/TRUST-SETS1.md).
+
 # Personal update — Pact Binding 1
 
 Blood Pact binding lists now follow SMN level and learned, level-eligible avatar
@@ -1601,3 +1613,12 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   of the currently active pet-command list. Execution restrictions remain.
 - Prevent elemental-only attacks from opening invalid skillchain state; retain
   valid resonance, normal skillchain/burst hints and Chainbound display.
+
+### November 2, 2026 — Trust and Sets 1
+
+- Trust spell slots switch to named refa dismissal with portraits and current-page
+  retention; absent/unlearned spells restore or block without rewriting XML.
+- Added current-set trigger shorthand creating global custom actions with gear
+  icons; identical entries reuse their identity, conflicting names are rejected.
+- Added editable main/subjob category sets and artwork for their switch actions.
+  Existing character slots and All Jobs Default inventory remain in place.

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-pactbinding1'
+_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-trustsets1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -714,7 +714,7 @@ function initialize(server_id, expected_name, expected_id)
     consumables:setup()
     env_chooser:setup(theme_options)
     env_chooser:set_anchor(ui:get_set_chooser_anchor())
-    gamepad_converter:setup(theme_options.button_layout,theme_options.combined_trigger_bank)
+    gamepad_converter:setup(theme_options.button_layout,theme_options.combined_trigger_bank or theme_options.hotbar_number==3)
 
     local current_player = windower.ffxi.get_player()
     ui.autoattack:set_engaged(current_player.status == 1 or current_player.status == 3, current_player.buffs)
@@ -1224,6 +1224,7 @@ function display_help_menu()
     help.command('reload','Re-read crossbar files without unloading the addon.')
     help.command('restart','Fade out, clean up, then reload the addon.')
     help.command('unload','Fade out and unload; shared wrapper follows last-client policy.')
+    help.command('l|r|ll|rr|lr|rl <button> "Label" "Command"','Bind a global custom action on the current set.')
     help.command('new <name>','Create a crossbar set.')
     help.command('rename <old> <new>','Rename a crossbar set (rn).')
     help.command('deleteset <name>','Delete a set and its bindings.')
@@ -1566,6 +1567,12 @@ windower.register_event('addon command', function(command, ...)
         return
     end
     local args = {...}
+    if require('libs/quick_bind').aliases[command] then
+        local safe,ok,err=pcall(require('libs/quick_bind').bind,command,args,player,gamepad_converter,theme_options.hotbar_number,set_hotkey)
+        if not safe then ok,err=false,tostring(ok) end
+        if not ok then windower.add_to_chat(0,require('libs/chat_status').notice(err or 'Binding failed.',167)) end
+        return
+    end
     if command=='pos' then return set_crossbar_position(args) end
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
         return set_text_fade(command == 'textfade' and args[1] or args[2])
