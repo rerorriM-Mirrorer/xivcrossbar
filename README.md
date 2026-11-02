@@ -1,3 +1,12 @@
+# Personal update — Pet Actions 1
+
+Pet-dependent typed actions dim and refuse to fire without the required living
+pet/avatar, with a short throttled notice on press. Summoning remains usable.
+Release stays on the current page instead of returning to Main. With a summon
+out, standard Attack/Disengage pair with Assault/Retreat; labels stay unchanged.
+Selector-style targets and arbitrary custom macro text keep their existing
+behavior. See [scope, installation and live checks](docs/PET-ACTIONS1.md).
+
 # Personal update — Five Banks 1
 
 Set the existing `Hotbar.Number` setting to `5` for L2, R2, a shared both-trigger
@@ -851,6 +860,8 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+- November 1, 2026 — Pet Actions 1: shared pet availability dimming/dispatch guard, Release page retention and summon-aware Attack/Disengage pairs.
 
 - November 1, 2026 — Five Banks 1: Number=5 merges trigger orders while keeping both double-tap banks; stable saved IDs, binder selection/hints and command aliases agree.
 

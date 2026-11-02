@@ -1194,7 +1194,7 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                     end
 
                     -- if it's not disabled by vitals nor cooldown, enable slot
-                    if is_disabled == false and self.disabled_slots.actions[disable_key] == true and self.disabled_slots.on_cooldown[disable_key] == nil and self.disabled_slots.on_warmup[disable_key] == nil then
+                    if is_disabled == false and self.disabled_slots.actions[disable_key] == true and self.disabled_slots.on_cooldown[disable_key] == nil and self.disabled_slots.on_warmup[disable_key] == nil and not (self.disabled_slots.no_pet and self.disabled_slots.no_pet[disable_key]) then
                         self.disabled_slots.actions[disable_key] = nil
                         self:toggle_slot(h, i, true)
                     end
@@ -1484,6 +1484,8 @@ end
 
 -- check action recasts
 function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle)
+    local pet_state=require('libs/pet_actions').snapshot(windower.ffxi)
+    self.disabled_slots.no_pet=self.disabled_slots.no_pet or {}
     animation_frame_count = animation_frame_count + self.frame_skip + 1
     if (animation_frame_count > 40) then
         animation_frame_count = 1
@@ -1910,7 +1912,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
 
                         -- if it's not disabled by vitals nor cooldown, enable slot
-                        if self.disabled_slots.actions[disable_key] == true and self.disabled_slots.no_vitals[disable_key] == nil then
+                        if self.disabled_slots.actions[disable_key] == true and self.disabled_slots.no_vitals[disable_key] == nil and not self.disabled_slots.no_pet[disable_key] then
                             self.disabled_slots.actions[disable_key] = nil
                             self:toggle_slot(h, i, true)
                         end
@@ -1980,6 +1982,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         self:mark_default_set_action(h, i, action.source_environment)
                     end
                 end
+                self:apply_pet_availability(h,i,action,pet_state)
             end
 
             if (not self.is_compact) then
@@ -2104,6 +2107,23 @@ function calc_recast_time(time, in_seconds)
     end
 
     return recast
+end
+
+-- Pet availability composes with existing recast/MP/TP dimming. Recovering
+-- a pet must not brighten an action still blocked by another condition.
+function ui:apply_pet_availability(h,slot,action,state)
+    self.disabled_slots.no_pet=self.disabled_slots.no_pet or {}
+    local id=h..':'..slot
+    local previous=self.disabled_slots.no_pet[id]
+    local reason=require('libs/pet_actions').unavailable(action,state,crossbar_abilities)
+    self.disabled_slots.no_pet[id]=reason and true or nil
+    if reason then
+        self:toggle_slot(h,slot,false)
+    elseif previous then
+        local blocked=self.disabled_slots.no_vitals[id] or self.disabled_slots.on_cooldown[id] or self.disabled_slots.on_warmup[id]
+        self.disabled_slots.actions[id]=blocked and true or nil
+        self:toggle_slot(h,slot,not blocked)
+    end
 end
 
 -- disable slot

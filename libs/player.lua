@@ -711,15 +711,35 @@ function player:execute_action(slot)
         return
     end
 
-    self:dispatch_action(action)
+    if self:dispatch_action(action)==false then return end
 
-    if (self.temp_switch_previous_env ~= nil) then
+    -- Release must stay on the current page, including quick-switch pages.
+    if (self.temp_switch_previous_env ~= nil and not require('libs/pet_actions').is_release(action)) then
         self.pending_env_switch = self.temp_switch_previous_env
         self.temp_switch_previous_env = nil
     end
 end
 
 function player:dispatch_action(action)
+    local pet_policy=require('libs/pet_actions')
+    if action.type=='pet' or action.type=='ja' then
+        local state=pet_policy.snapshot(windower.ffxi)
+        local reason=pet_policy.unavailable(action,state,require('resources/crossbar_abilities'))
+        if reason then
+            local now=os.clock()
+            if not self.pet_notice_at or self.pet_notice_reason~=reason or now-self.pet_notice_at>=2 then
+                self.pet_notice_at,self.pet_notice_reason=now,reason
+                windower.add_to_chat(0,require('libs/chat_status').notice(reason,140))
+            end
+            return false
+        end
+    elseif action.type=='a' then
+        local commands=pet_policy.combat_commands(action,pet_policy.snapshot(windower.ffxi))
+        if commands then
+            for _,command in ipairs(commands) do windower.send_command(command) end
+            return
+        end
+    end
     if action.type == 'ct' then
         local command = '/' .. action.action
 
@@ -825,9 +845,7 @@ function player:dispatch_action(action)
 		if env ~= nil then
 			set_active_environment(env)
 		end
-	elseif action.type == 'pet' and action.action:capitalize() == "Release" then -- go back to basic if release is used.
-		-- TODO: Implement a fallback in case a player has no basic hotbar
-        set_active_environment("basic")
+
 	end
 
     -- switch to set defined in job_abilities (without spaces)
