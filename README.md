@@ -1,6 +1,13 @@
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
+# Personal update — Pet Toggle 1
+
+Either standard Assault or Retreat binding now follows the living summon’s own
+combat state: Assault while idle, Retreat while engaged. The normal icon and
+caption follow the command; custom labels/icons remain. Missing summons stay
+dimmed and blocked. See [installation and live checks](docs/PET-TOGGLE1.md).
+
 # Personal update — Pet Actions 1
 
 Pet-dependent typed actions dim and refuse to fire without the required living
@@ -1558,3 +1565,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 - Install into the Windower addon path named by the error, preserving data and
   assets. See docs/AHK-V2-CUMULATIVE-RUNTIME1.md. Earlier small patches require
   the full v2 runtime and are not standalone migration installs.
+
+### November 2, 2026 — Pet Toggle 1
+
+- Typed Assault/Retreat slots resolve from pet engagement at display and press
+  time, preserving saved bindings. Lua-only overlay preserves newer Trust AHK.
+- Summon/Trust dismissal toggles and shared Trust layouts remain subsequent
+  batches. Inventory remains on All Jobs Default; no data migration.

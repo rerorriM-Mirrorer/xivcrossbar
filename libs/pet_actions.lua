@@ -14,7 +14,22 @@ function M.snapshot(ffxi)
     local name=alive and key(pet.name) or ''
     local player=ffxi.get_player and ffxi.get_player()
     return {pet=alive,avatar=alive and avatars[name]==true,summon=alive and (avatars[name]==true or spirits[name]==true),
-        engaged=player and (player.status==1 or player.status==3),player=player}
+        pet_engaged=alive and pet.status==1,engaged=player and (player.status==1 or player.status==3),player=player}
+end
+-- Resolve transient display/dispatch values without changing the saved slot.
+-- Either standard SMN command can be used as the same stateful pet toggle.
+function M.pet_toggle(action,state)
+    if not action or action.type~='pet' then return end
+    local name=key(action.action)
+    if name~='assault' and name~='retreat' then return end
+    local resolved={};for field,value in pairs(action) do resolved[field]=value end
+    resolved.icon=action.icon or ''
+    resolved.action=state.pet_engaged and 'Retreat' or 'Assault'
+    local label=key(action.alias)
+    if not action.alias or label=='assault' or label=='retreat' then resolved.alias=resolved.action end
+    if state.pet_engaged then resolved.target='me'
+    elseif name=='retreat' or action.target=='me' or not action.target then resolved.target='t' end
+    return resolved
 end
 function M.is_release(action)
     return action and (action.type=='pet' or action.type=='ja') and key(action.action)=='release'

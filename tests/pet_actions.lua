@@ -75,5 +75,20 @@ current_pet=nil
 action({type='ma',action='Carbuncle',target='me'});assert(#sent==1,'summoning was blocked')
 player.temp_switch_previous_env='basic';action({type='ex',action='input /echo ordinary'})
 assert(sent[1]=='input /echo ordinary' and player.pending_env_switch=='basic','ordinary quick-switch return changed')
+-- Pet-command toggles use pet status, independently of player status.
+for _,binding_name in ipairs({'Assault','Retreat'}) do
+ local binding={type='pet',action=binding_name,alias=binding_name,target=binding_name=='Retreat' and 'me' or 'bt'}
+ current_player.status=1;current_pet={name='Carbuncle',hpp=100,status=0}
+ action(binding)
+ local target=binding_name=='Retreat' and 't' or 'bt'
+ assert(#sent==1 and sent[1]=='input /pet "Assault" <'..target..'>','idle pet did not Assault')
+ assert(binding.action==binding_name and binding.alias==binding_name,'toggle rewrote saved binding')
+ current_player.status=0;current_pet.status=1;action(binding)
+ assert(#sent==1 and sent[1]=='input /pet "Retreat" <me>','engaged pet did not Retreat')
+ current_pet=nil;action(binding);assert(#sent==0,'missing summon emitted pet toggle')
+end
+assert(P.pet_toggle({type='ex',action='assault; input /attack <t>'},state())==nil)
+assert(P.pet_toggle({type='pet',action='Fight'},state())==nil)
+assert(P.pet_toggle({type='pet',action='Heel'},state())==nil)
 package.loaded['resources/crossbar_abilities']=old
 print('Pet guard and actual player dispatch: absent/dead/avatar/spirit/BST, summons/custom exceptions, throttled notice, Release page retention, attack/retreat pairs, selectors and ordinary quick-return passed.')

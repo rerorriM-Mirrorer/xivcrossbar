@@ -724,6 +724,7 @@ function player:dispatch_action(action)
     local pet_policy=require('libs/pet_actions')
     if action.type=='pet' or action.type=='ja' then
         local state=pet_policy.snapshot(windower.ffxi)
+        action=pet_policy.pet_toggle(action,state) or action
         local reason=pet_policy.unavailable(action,state,require('resources/crossbar_abilities'))
         if reason then
             local now=os.clock()

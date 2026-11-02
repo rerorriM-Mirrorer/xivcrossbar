@@ -863,6 +863,7 @@ end
 function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepad_state)
     -- A rebuilt bar must reapply the visibility policy on the next render.
     self.public_visible = nil
+    self.pet_toggle_views = {}
     if environment == 'battle' and self.theme.hide_battle_notice == false then
         self.battle_notice:show()
     else
@@ -1544,6 +1545,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     action = maybe_get_default_action(player_hotbar, environment, h, slot)
                 end
 
+                action=self:resolve_pet_toggle(h,i,action,pet_state,player_hotbar,environment,player_vitals)
+
                 if (action ~= nil and action.type == 'a' and action.action == 'a' and action.alias == 'Attack') then
                     if (in_battle) then
                         self.hotbars[h].slot_icon[i]:path(windower.addon_path..'/images/' .. get_icon_pathbase() .. '/disengage.png')
@@ -2107,6 +2110,29 @@ function calc_recast_time(time, in_seconds)
     end
 
     return recast
+end
+
+-- Rebuild only the affected slot when the pet's actual engagement changes.
+-- The regular loader supplies existing ability artwork and caption settings.
+function ui:resolve_pet_toggle(h,slot,action,state,hotbar,environment,vitals)
+    self.pet_toggle_views=self.pet_toggle_views or {}
+    local id=h..':'..slot
+    local previous=self.pet_toggle_views[id]
+    local resolved=require('libs/pet_actions').pet_toggle(action,state)
+    if resolved then
+        if not previous or previous.source~=action or previous.environment~=environment
+                or previous.name~=resolved.action or previous.alias~=resolved.alias
+                or previous.icon~=resolved.icon then
+            self:load_action(hotbar,environment,h,slot,resolved,vitals,true)
+            self.pet_toggle_views[id]={source=action,environment=environment,name=resolved.action,alias=resolved.alias,icon=resolved.icon}
+        end
+        return resolved
+    end
+    if previous then
+        self.pet_toggle_views[id]=nil
+        self:load_action(hotbar,environment,h,slot,action,vitals,true)
+    end
+    return action
 end
 
 -- Pet availability composes with existing recast/MP/TP dimming. Recovering
