@@ -424,6 +424,7 @@ function ui:setup(theme_options, enchanted_items)
     self.theme.slot_opacity = theme_options.slot_opacity
     self.theme.disabled_slot_opacity = theme_options.disabled_slot_opacity
     self.theme.hotbar_number = theme_options.hotbar_number
+    self.theme.combined_trigger_bank = theme_options.combined_trigger_bank == true
     self.AutoHideExtraBars = theme_options.AutoHideExtraBars
     self.UseAltLayout = theme_options.UseAltLayout
 
@@ -878,7 +879,8 @@ function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepa
         local isThisBarActive = gamepad_state.active_bar == h
         local isThisBarVisibleByDefault = h < 3 
         local shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3
-        local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
+        local shouldDrawThisBar = (isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars)
+            and not (self.theme.combined_trigger_bank and h == 4)
         for slot=1,8,1 do
             local action = nil
 
@@ -1494,7 +1496,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     self:display_gcd_indicator()
     if self.autoattack.enabled then self:display_aa_indicator() end
 
-    if (gamepad_state.active_bar ~= 0) then
+    if (gamepad_state.active_bar ~= 0 and not (self.theme.combined_trigger_bank and gamepad_state.active_bar == 4)) then
         self:show_bar_background(gamepad_state.active_bar)
     else
         self.bar_background:hide()
@@ -1513,7 +1515,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
             isThisBarVisibleByDefault = h < 3
             shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3
         end
-        local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
+        local shouldDrawThisBar = (isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars)
+            and not (self.theme.combined_trigger_bank and h == 4)
         if (shouldDrawThisBar) then
             for i=1,8,1 do
                 local slot = i

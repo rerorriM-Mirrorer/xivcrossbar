@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261101.directlink1-ahkv2-shoulderbanks2'
+_addon.version = '0.4.0-a.20261101.directlink1-ahkv2-fivebanks1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -714,7 +714,7 @@ function initialize(server_id, expected_name, expected_id)
     consumables:setup()
     env_chooser:setup(theme_options)
     env_chooser:set_anchor(ui:get_set_chooser_anchor())
-    gamepad_converter:setup(theme_options.button_layout)
+    gamepad_converter:setup(theme_options.button_layout,theme_options.combined_trigger_bank)
 
     local current_player = windower.ffxi.get_player()
     ui.autoattack:set_engaged(current_player.status == 1 or current_player.status == 3, current_player.buffs)
@@ -2010,7 +2010,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
             gamepad_state.active_bar = 2
         end
     elseif (gamepad_state.capturing and gamepad_state.right_trigger and gamepad_state.left_trigger) then
-        if (theme_options.hotbar_number > 3) then
+        if (theme_options.hotbar_number > 3 and not theme_options.combined_trigger_bank) then
             if (left_trigger_just_pressed) then
                 -- R -> L = bar 3
                 change_active_hotbar(3)

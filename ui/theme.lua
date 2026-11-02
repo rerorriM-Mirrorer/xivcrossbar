@@ -74,7 +74,10 @@ theme.apply = function (settings)
     options.iconpack = settings.iconpack
     options.is_compact = settings.iscompact
     options.button_background_alpha = settings.buttonbackgroundalpha or 150
-    options.hotbar_number = settings.Hotbar.Number
+    -- Five selectable banks retain six stable storage IDs: 1,2,3,5,6.
+    -- Bank 4 remains saved for returning to ordered four/six-bank layouts.
+    options.combined_trigger_bank = settings.Hotbar.Number == 5
+    options.hotbar_number = options.combined_trigger_bank and 6 or settings.Hotbar.Number
     options.hide_empty_slots = settings.Hotbar.HideEmptySlots
     options.hide_action_names = settings.Hotbar.HideActionName
     options.hide_action_cost = settings.Hotbar.HideActionCost

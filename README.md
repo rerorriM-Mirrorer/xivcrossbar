@@ -1,3 +1,12 @@
+# Personal update — Five Banks 1
+
+Set the existing `Hotbar.Number` setting to `5` for L2, R2, a shared both-trigger
+bank and separate double-L2/double-R2 banks. Both orders select saved bank 3;
+double taps retain saved banks 5/6. Bank 4 stays saved for returning to four/six
+banks. No automatic copying, merging or renumbering of bindings. The binder and
+trigger-name binding commands follow the same selection.
+See [setting, mapping, installation and tests](docs/FIVE-BANKS1.md).
+
 # Personal update — Shoulder Banks 2
 
 All companion banks draw at the same saved L1 position and swap in place.
@@ -842,6 +851,8 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+- November 1, 2026 — Five Banks 1: Number=5 merges trigger orders while keeping both double-tap banks; stable saved IDs, binder selection/hints and command aliases agree.
 
 - November 1, 2026 — Shoulder Banks 2: one shared bank position, bare edit toggle and consistent l/r/lr aliases across commands; full reference added.
 

@@ -43,7 +43,7 @@ local function equal(a,b,message) assert(a==b,(message or '')..': '..tostring(a)
 local resolutions={{960,540},{1280,720},{1600,900},{1920,1080},{2560,1440},{3840,2160}}
 for _,res in ipairs(resolutions) do
  for _,scale in ipairs({.6,1,1.5}) do
-  for _,count in ipairs({2,4,6}) do
+  for _,count in ipairs({2,4,5,6}) do
    for _,alt in ipairs({false,true}) do
     screen={ui_x_res=res[1],ui_y_res=res[2]}
     defaults.iscompact=false;defaults.UseAltLayout=alt;defaults.Hotbar.Number=count

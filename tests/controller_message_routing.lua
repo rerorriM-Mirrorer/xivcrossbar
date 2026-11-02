@@ -58,6 +58,22 @@ for _,pair in ipairs({{11,5},{12,6}})do
     new_session();send('down,'..pair[1],'up,'..pair[1],'down,'..pair[1],'down,7','up,7','up,'..pair[1])
     assert(#actions==1 and actions[1].bar==pair[2] and actions[1].slot==7);empty()
 end
+-- The same real receiver/router exercises 3/4/5/6 configured modes.
+for _,count in ipairs({3,4,5,6}) do
+ env.theme_options.hotbar_number=count==5 and 6 or count
+ env.theme_options.combined_trigger_bank=count==5
+ for _,order in ipairs({{11,12},{12,11}}) do
+  new_session();send('down,'..order[1],'down,'..order[2],'down,7','up,7','up,'..order[2],'up,'..order[1])
+  local expected=(count==3 or count==5 or order[1]==12) and 3 or 4
+  assert(#actions==1 and actions[1].bar==expected,'combined order changed for mode '..count);empty()
+ end
+ for _,pair in ipairs({{11,1,5},{12,2,6}}) do
+  new_session();send('down,'..pair[1],'up,'..pair[1],'down,'..pair[1],'down,7','up,7','up,'..pair[1])
+  local expected=count>=5 and pair[3] or pair[2]
+  assert(#actions==1 and actions[1].bar==expected,'double tap changed for mode '..count);empty()
+ end
+end
+env.theme_options.hotbar_number=6;env.theme_options.combined_trigger_bank=false
 new_session();send('down,7');assert(commands[1]=='setkey escape down' and #actions==0)
 send('up,7');assert(commands[2]=='setkey escape up' and #commands==2);empty()
 new_session();send('down,7','down,11','up,7','up,11')

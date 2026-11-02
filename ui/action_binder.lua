@@ -502,7 +502,7 @@ end
 
 function action_binder:update_active_crossbar(left_trigger_just_pressed, right_trigger_just_pressed)
     if (self.trigger_left_pressed and self.trigger_right_pressed) then
-        if (self.theme_options.hotbar_number > 3) then
+        if (self.theme_options.hotbar_number > 3 and not self.theme_options.combined_trigger_bank) then
             if (left_trigger_just_pressed) then
                 -- R -> L = bar 3
                 self.active_crossbar = 3
@@ -520,7 +520,7 @@ function action_binder:update_active_crossbar(left_trigger_just_pressed, right_t
             self.active_crossbar = 1
         end
     elseif (self.trigger_right_pressed) then
-        if (self.theme_options.hotbar_number > 4 and self.trigger_right_doublepressed) then
+        if (self.theme_options.hotbar_number >= 6 and self.trigger_right_doublepressed) then
             self.active_crossbar = 6
         else
             self.active_crossbar = 2
@@ -1930,7 +1930,7 @@ function action_binder:show_pressed_buttons()
             icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 3) then
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
-            icons:append('ui/binding_icons/arrow_right.png')
+            icons:append('ui/binding_icons/' .. (self.theme_options.combined_trigger_bank and 'plus' or 'arrow_right') .. '.png')
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_left.png')
             icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 4) then
@@ -2008,7 +2008,7 @@ function action_binder:confirm_buttons()
             icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 3) then
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
-            icons:append('ui/binding_icons/arrow_right.png')
+            icons:append('ui/binding_icons/' .. (self.theme_options.combined_trigger_bank and 'plus' or 'arrow_right') .. '.png')
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_left.png')
             icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 4) then

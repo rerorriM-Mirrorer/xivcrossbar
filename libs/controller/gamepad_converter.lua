@@ -1,7 +1,8 @@
 local gamepad_converter = {}
 
-function gamepad_converter:setup(button_layout)
+function gamepad_converter:setup(button_layout,combined_trigger_bank)
     self.button_layout = button_layout
+    self.combined_trigger_bank = combined_trigger_bank == true
 end
 
 local TRIGGERS_TO_CROSSBAR = {
@@ -34,7 +35,9 @@ function gamepad_converter:convert_to_crossbar(triggers)
         return triggers_as_number
     end
 
-    return TRIGGERS_TO_CROSSBAR[triggers:upper()]
+    local bar = TRIGGERS_TO_CROSSBAR[triggers:upper()]
+    if self.combined_trigger_bank and bar == 4 then return 3 end
+    return bar
 end
 
 local NINTENDO_BUTTON_TO_PLACEMENT = {

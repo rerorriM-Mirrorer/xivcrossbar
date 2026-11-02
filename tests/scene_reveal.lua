@@ -23,7 +23,9 @@ for h=1,6 do
     end end
 end
 local tracker={get_skillchain_window=function()return 0,0 end}
-for _,extras in ipairs({false,true}) do
+for _,combined in ipairs({false,true}) do
+ ui.theme.combined_trigger_bank=combined
+ for _,extras in ipairs({false,true}) do
     ui.AutoHideExtraBars=extras
     for active=0,6 do
         ui:hide();ui.geometry:set_opacity(0)
@@ -32,12 +34,16 @@ for _,extras in ipairs({false,true}) do
             if active<3 then expected[1]=true;expected[2]=true else expected[active]=true end
         elseif active==3 or active==4 then expected[active]=true
         else expected={[1]=true,[2]=true,[5]=true,[6]=true} end
+        if combined then expected[4]=nil end
         assert(ui:show(hotbar,'test'))
         assert(not next(shown),'show() bypassed slot selection')
         for h=1,6 do for _,key in ipairs(keys)do for i=1,8 do
             assert(not ui.geometry.surfaces[ui.hotbars[h][key][i]].visible,'reveal exposed a slot before selection')
         end end end
         ui:check_recasts(hotbar,{mp=100,tp=0},'test',{}, {active_bar=active},tracker,{},false,false)
+        if combined and active==4 then
+            assert(not ui.geometry.surfaces[ui.bar_background].visible,'retained fourth-bank background was revealed')
+        end
         for h=1,6 do
             assert(not not shown[h]==not not expected[h],'selected bar missing')
             if not expected[h] then for _,key in ipairs(keys)do for i=1,8 do
@@ -46,6 +52,8 @@ for _,extras in ipairs({false,true}) do
         end
     end
 end
+end
+ui.theme.combined_trigger_bank=false
 -- Actual status callback updates policy without directly showing/hiding UI.
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
 local a=assert(source:find("windower.register_event('status change'",1,true))
@@ -59,4 +67,4 @@ for _,status in ipairs({4,0,1,4,0}) do
     env.ui_dirty=false;env.ui.public_visible=true;callback(status)
     assert(env.ui_dirty and env.ui.public_visible==nil and env.xivcrossbar.hide_hotbars==(status==4))
 end
-print('Actual scene reveal: no intermediate slot/text/image reveal, fourteen bar selections with extra-bar policies, and status-only invalidation without direct show/hide passed.')
+print('Actual scene reveal: no intermediate slot/text/image reveal, twenty-eight bar selections with extra-bar policies, and status-only invalidation without direct show/hide passed.')
