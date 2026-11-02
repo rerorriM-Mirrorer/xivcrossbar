@@ -1,13 +1,11 @@
-# Personal update — Shoulder Banks 1
+# Personal update — Shoulder Banks 2
 
-L1/R1 positions now move together, preserving their spacing. Use
-`//xb bank l1 edit on` to drag and `//xb bank l1 edit off` to save/lock.
-`//xb bank link off|on` allows independent placement or relinking.
-Holding L1+R1 selects a separate eight-slot bank at the L1 position; R1 hides
-while the combined bank is active. Bind it with `//xb bank l1r1 ...`; slots
-start empty. This replaces the old pair Tab shortcut (disable the new bank to
-restore Tab). Existing bindings and controller device selection are preserved.
-See [installation, commands and live checks](docs/SHOULDER-BANKS1.md).
+All companion banks draw at the same saved L1 position and swap in place.
+`//xb bank l edit` toggles L1 editing; `r` selects R1 and `lr` selects L1+R1.
+Explicit `edit on|off` remains available. Editing a different bank switches the
+preview. Aliases work across all bank commands, including both sides of swap.
+The old separate positions and `bank link` command are superseded.
+See the [complete command list, installation and tests](docs/SHOULDER-BANKS2.md).
 
 # Personal update — Message Cleanup 2
 
@@ -844,6 +842,8 @@ Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.
 ## Changelog
+
+- November 1, 2026 — Shoulder Banks 2: one shared bank position, bare edit toggle and consistent l/r/lr aliases across commands; full reference added.
 
 - November 1, 2026 — Shoulder Banks 1: linked L1/R1 movement and editable L1+R1 bank; existing mappings preserved. Local Lua verification passed; live acceptance pending.
 

@@ -1,3 +1,5 @@
+> Superseded by [Shoulder Banks 2](SHOULDER-BANKS2.md): all banks now share one position; the spacing-preserving link command is retired. Earlier testing history follows.
+
 # Shoulder Banks 1 — November 1, 2026
 
 Personal development/ahk-v2-migration, starting checkpoint

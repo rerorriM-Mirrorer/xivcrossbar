@@ -271,44 +271,49 @@ function M.new(options)
         if button<11 or button>14 then return end
         self.resuming=true;self:edge(button,true);self.resuming=false;self.r1used=true
     end
-    -- Geometry observations come from both views, including hidden ones. This
-    -- lets a linked drag stop at either screen edge without changing spacing.
+    -- Every bank uses the saved L1 anchor. Keep the old right coordinates in
+    -- sync on movement so older installs still have a sensible recovery point.
     function self:clamp_panel(side,width,height,w,h)
         self.panel_bounds=self.panel_bounds or {}
         self.panel_bounds[side]={width=w,height=h}
         self.viewport={width=width,height=height}
-        local p=self:settings()[side..'Panel']
-        p.X=math.max(0,math.min(p.X,math.max(0,width-w)))
-        p.Y=math.max(0,math.min(p.Y,math.max(0,height-h)))
+        local p=self:settings().LeftPanel
+        self:move_panel(side,p.X,p.Y)
     end
     function self:move_panel(side,x,y)
-        local d=self:settings();local p=d[side..'Panel']
-        local dx,dy=x-p.X,y-p.Y
-        local sides=d.LinkedPositions and {'Left','Right'} or {side}
         if self.viewport and self.panel_bounds then
-            local minx,maxx,miny,maxy=-math.huge,math.huge,-math.huge,math.huge
-            for _,name in ipairs(sides) do
-                local q,b=d[name..'Panel'],self.panel_bounds[name]
-                if b then
-                    minx=math.max(minx,-q.X);maxx=math.min(maxx,math.max(0,self.viewport.width-b.width)-q.X)
-                    miny=math.max(miny,-q.Y);maxy=math.min(maxy,math.max(0,self.viewport.height-b.height)-q.Y)
-                end
-            end
-            dx=math.max(minx,math.min(dx,maxx));dy=math.max(miny,math.min(dy,maxy))
+            local w,h=0,0
+            for _,b in pairs(self.panel_bounds) do w=math.max(w,b.width);h=math.max(h,b.height) end
+            x=math.max(0,math.min(x,math.max(0,self.viewport.width-w)))
+            y=math.max(0,math.min(y,math.max(0,self.viewport.height-h)))
         end
-        for _,name in ipairs(sides) do
-            local q=d[name..'Panel'];q.X,q.Y=q.X+dx,q.Y+dy
-        end
+        local d=self:settings()
+        d.LeftPanel.X,d.LeftPanel.Y=x,y
+        d.RightPanel.X,d.RightPanel.Y=x,y
+    end
+    function self:display_side()
+        for _,side in ipairs({'Left','Right'}) do if self:previewing(side) then return side end end
+        if layers[self.layer] then return self.layer:sub(1,1)=='l' and 'Left' or 'Right' end
+        if self.down[13] and not self.down[14] then return 'Left' end
+        if self.down[14] and not self.down[13] then return 'Right' end
+        local b=self:settings().L1
+        if b.Enabled and b.Visible and b.Display=='always' and (not self.menu or b.ShowOnMenu) then return 'Left' end
+        return 'Right'
     end
     function self:panel(side)
         local parent=self
         local names=side=='Left' and {l1=true,l1l2=true,l1r1=true} or {r1=true,r1r2=true}
         local function selected()
             local preview=parent.previews[side]
-            return names[parent.layer] and parent.layer or preview and options.clock()<preview.until_time and preview.layer or (side=='Left' and 'l1' or 'r1')
+            return preview and options.clock()<preview.until_time and preview.layer or names[parent.layer] and parent.layer or (side=='Left' and 'l1' or 'r1')
         end
-        local proxy=setmetatable({}, {__index=function(_,key)return parent:settings()[side..'Panel'][key] end,
-            __newindex=function(_,key,value) parent:settings()[side..'Panel'][key]=value end})
+        local proxy=setmetatable({}, {__index=function(_,key)
+            return parent:settings()[(key=='X' or key=='Y') and 'LeftPanel' or side..'Panel'][key]
+        end, __newindex=function(_,key,value)
+            if key=='X' or key=='Y' then
+                parent:settings().LeftPanel[key]=value;parent:settings().RightPanel[key]=value
+            else parent:settings()[side..'Panel'][key]=value end
+        end})
         return {
             feedback=function(_,slot) return parent.feedback:alpha(selected(),slot) end,
             move=function(_,x,y) parent:move_panel(side,x,y) end,
@@ -322,8 +327,8 @@ function M.new(options)
                 local preview=parent.previews[side];local b=parent:settings()[layers[selected()]]
                 local showing=preview and options.clock()<preview.until_time and selected()==preview.layer
                 local editing=showing and preview.editing
-                -- The combined bank replaces both primary displays, even Always.
-                if side=='Right' and parent.layer=='l1r1' and not editing then return 0 end
+                -- One visible owner at the common anchor; previews never overlap.
+                if parent:display_side()~=side then return 0 end
                 local held=names[parent.layer] and parent.layer==selected()
                 -- A controller menu may own actions without hiding a held
                 -- primary bank. Drawing never grants permission to execute.
@@ -361,14 +366,13 @@ function M.new(options)
     end
     function self:help()
         for _,row in ipairs({
-            {'bank link on|off','Move L1/R1 together, preserving their spacing; off allows independent placement.'},
             {'bank <layer> status [details]','Show panel state; details lists normal/menu bindings.'},
             {'bank l2|r2 <command>','Aliases for bank l1l2 and bank r1r2; bindings are shared.'},
-            {'bank l|r <command>','Aliases for bank l1 and bank r1.'},
+            {'bank l|r|lr <command>','Aliases for l1, r1 and l1r1; valid in every bank command, including swap.'},
             {'bank <layer> enable|disable','Enable input/drawing, or disable this layer without deleting its bindings.'},
             {'bank <layer> display held|always','Draw while held (default), or keep this bank visible at rest.'},
             {'bank <layer> show|hide','Draw or hide this bank; its controls stay active.'},
-            {'bank <layer> edit on|off','Pin/unlock this bank for mouse-only dragging; off hides preview and locks.'},
+            {'bank <layer> edit [on|off]','Toggle mouse editing; explicit on/off pins/unlocks or hides/locks.'},
             {'bank swap <layer> <layer>','Exchange current bindings and visibility policies; positions stay put.'},
             {'bank <layer> menus on|off','Allow this bank to draw over native game menus.'},
             {'bank <layer> menuactions on|off','Use menu bindings automatically, or always use Closed bindings.'},
@@ -376,12 +380,13 @@ function M.new(options)
             {'bank preset cioara apply','Apply Party/NPC defaults; clear/disable second levels; keep positions.'},
             {'bank <layer> [menu] <button> <label> <command...>','Assign a console command; layer: l1, l1l2, r1, r1r2, l1r1.'},
             {'bank <layer> [menu] key <button> <label> <key> [hold]','Native key, e.g. ctrl+i or alt+left; pulse by default.'},
+            {'bank <layer> [menu] append <button> <command...>','Append a command to an existing command binding.'},
             {'bank <layer> [menu] clear <button>','Reserve a slot without executing anything.'},
             {'bank <layer> [menu] default <button>','Remove one override; use its shipped action and label.'},
             {'bank <layer> [menu] defaults','Restore all eight actions in that context; keep panel layout.'},
             {'bank <layer> preview|lock|unlock|resetpos','Preview for six seconds or change the shared side panel.'},
             {'bank <layer> scale crossbar|<0.4-2>','Follow main crossbar scale, or set a panel scale.'},
-            {'bank <layer> pos <x> <y>','Move the panel and, when linked, its partner by the same distance.'},
+            {'bank <layer> pos <x> <y>','Set the common position used by every bank.'},
         }) do options.help(row[1],row[2]) end
     end
     function self:summary(layer)
@@ -395,9 +400,9 @@ function M.new(options)
         local b=self:settings()[layers[layer]]
         options.say(status_format.heading('XIVCrossbar | '..layer:upper()..' bank'))
         self:summary(layer)
-        local p=self:settings()[(layer:sub(1,1)=='l' and 'Left' or 'Right')..'Panel']
+        local p=self:panel(layer:sub(1,1)=='l' and 'Left' or 'Right'):settings()
         options.say(status_format.row('Position','//xb bank '..layer..' pos '..tostring(p.X)..' '..tostring(p.Y)))
-        options.say(status_format.row('Panel','Scale: '..tostring(p.Scale)..' | Follow Crossbar: '..status_format.toggle(p.FollowCrossbar)..' | Linked: '..status_format.toggle(self:settings().LinkedPositions)..' | Locked: '..status_format.toggle(p.Locked)))
+        options.say(status_format.row('Panel','Scale: '..tostring(p.Scale)..' | Follow Crossbar: '..status_format.toggle(p.FollowCrossbar)..' | Position: Shared'..' | Locked: '..status_format.toggle(p.Locked)))
         if not details then options.say(status_format.notice('Bindings: //xb bank '..layer..' status details'));return end
         options.say(status_format.row('Input','Active Layer: '..(self.layer~='' and self.layer:upper() or 'Ordinary')..
             ' | Native Menu: '..status_format.toggle(self.menu)))
@@ -413,16 +418,11 @@ function M.new(options)
     function self:command(args)
         local normalized={};for i,value in ipairs(args) do normalized[i]=value end
         args=normalized
-        for _,i in ipairs(args[1]=='swap' and {2,3} or {1}) do
+        for _,i in ipairs(tostring(args[1] or ''):lower()=='swap' and {2,3} or {1}) do
             local name=type(args[i])=='string' and args[i]:lower()
-            if layer_aliases[name] then args[i]=layer_aliases[name] end
+            if name then args[i]=layer_aliases[name] or name end
         end
         local layer=(args[1] or ''):lower()
-        if layer=='link' then
-            if args[4] or (args[2]~='on' and args[2]~='off') or args[3] then self:help();return false end
-            self:settings().LinkedPositions=args[2]=='on';options.save()
-            options.say(status_format.notice('Bank linked positions: '..status_format.toggle(self:settings().LinkedPositions)));return true
-        end
         if layer=='swap' then
             if args[4] or not layers[args[2]] or not layers[args[3]] or args[2]==args[3] then self:help();return false end
             self:release_slots();self.output:cancel();self.r1used=true
@@ -437,14 +437,20 @@ function M.new(options)
         if not layers[layer] then self:help();return false end
         local offset=args[2]=='menu' and 1 or 0;local menu=offset==1
         local op=(args[2+offset] or 'status'):lower()
-        local side=layer:sub(1,1)=='l' and 'Left' or 'Right';local p=self:settings()[side..'Panel']
+        local side=layer:sub(1,1)=='l' and 'Left' or 'Right';local p=self:panel(side):settings()
         local changed=false
         if op=='help' then self:help();return
         elseif op=='status' then
             if args[3] and args[3]~='details' then self:help();return false end
             self:status(layer,args[3]=='details');return
-        elseif op=='edit' and offset==0 and not args[4] and (args[3]=='on' or args[3]=='off') then
-            local enabled=args[3]=='on';p.Locked=not enabled
+        elseif op=='edit' and offset==0 and not args[4] and (not args[3] or args[3]=='on' or args[3]=='off') then
+            local old=self.previews[side]
+            local editing=old and old.editing and old.layer==layer
+            local enabled=args[3]=='on' or not args[3] and not editing
+            args[3]=enabled and 'on' or 'off'
+            self.previews={}
+            self:settings().LeftPanel.Locked=true;self:settings().RightPanel.Locked=true
+            p.Locked=not enabled
             self.previews[side]=enabled and {layer=layer,until_time=math.huge,editing=true} or nil
             changed=true
         elseif op=='display' and offset==0 and not args[4] and (args[3]=='held' or args[3]=='always') then
@@ -460,9 +466,13 @@ function M.new(options)
         elseif op=='defaults' and not args[3+offset] then
             for i=1,8 do self:settings()[layers[layer]][menu and 'Menu' or 'Closed']['Slot'..i]=inherited() end
             changed=true
-        elseif op=='preview' then self.previews[side]={layer=layer,until_time=options.clock()+6};return
+        elseif op=='preview' then
+            for _,preview in pairs(self.previews) do if preview.editing then
+                self:settings().LeftPanel.Locked=true;self:settings().RightPanel.Locked=true
+            end end
+            self.previews={};self.previews[side]={layer=layer,until_time=options.clock()+6};return
         elseif op=='lock' or op=='unlock' then p.Locked=op=='lock';changed=true
-        elseif op=='resetpos' then self:move_panel(side,side=='Left' and 24 or 1000000,70);changed=true
+        elseif op=='resetpos' then self:move_panel(side,24,70);changed=true
         elseif op=='scale' then
             local v=args[3+offset];local n=tonumber(v)
             if v=='crossbar' then p.FollowCrossbar=true;changed=true

@@ -62,8 +62,11 @@ print('Cutscene bank permission: real XML boolean roundtrip and malformed-value 
 local settings={};require('libs/banks/banks').ensure(settings)
 settings.CompanionBanks.LinkedPositions=false
 settings.CompanionBanks.L1R1.Closed.Slot6={Alias='Together',Kind='command',Command='input /echo both',Key='',Hold=false}
+local shared_bank=require('libs/banks/banks').new({settings=settings,clock=function()return 1 end})
+shared_bank:panel('Right'):move(200,300)
 local body=Store.encode({global=settings})
 local value=assert(Store.decode(body,bank_test_parse)).global.CompanionBanks
 assert(value.LinkedPositions==false and value.L1R1.Enabled)
+assert(value.LeftPanel.X==200 and value.RightPanel.X==200 and value.LeftPanel.Y==300 and value.RightPanel.Y==300)
 assert(value.L1R1.Closed.Slot6.Command=='input /echo both')
-print('Combined shoulder bank and linked-position preference survive shipped XML parser roundtrip.')
+print('Combined shoulder bank, shared anchor and retained legacy preference survive shipped XML parser roundtrip.')
