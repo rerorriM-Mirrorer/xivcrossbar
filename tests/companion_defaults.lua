@@ -22,7 +22,7 @@ assert(bank:entry('r1r2',1,false).Command=='input /echo custom')
 assert(bank:stored_entry('r1r2',2,false).Kind=='default' and bank:entry('r1r2',2,false).Command=='')
 assert(bank:entry('l1l2',4,false).Command=='input /echo legacy')
 assert(not select(2,M.ensure(s)),'v2 migrated repeatedly')
-assert(bank:command({'l1','default','circle'}));assert(bank:entry('l1',7,false).Command=='send @all trust stop; input /echo Asked party to stand down!')
+assert(bank:command({'l1','default','circle'}));assert(bank:entry('l1',7,false).Command=='trust standdown')
 assert(bank:stored_entry('l1',7,false).Kind=='default')
 assert(bank:command({'r1r2','clear','down'}));M.ensure(s)
 assert(bank:stored_entry('r1r2',2,false).Kind=='command' and bank:entry('r1r2',2,false).Command=='')
@@ -77,3 +77,5 @@ for name,bar in pairs({l2=1,r2=2,r2l2=3,l2r2=4,l2l2=5,r2r2=6,rr=6,rl=3,lr=4,ll=5
     assert(bound.action.type=='ex' and saved and reloaded)
 end
 print('Bank defaults/aliases: v1 adoption, custom/clear preservation, per-context restoration, factory immutability, panel preservation, exact NPC/raw mappings and actual root short-editor dispatch passed.')
+
+for slot,command in pairs({[5]='trust toggle',[6]='trust ready',[7]='trust standdown',[8]='trust menu'})do assert(M.factory('l1',slot,false).Command==command and M.factory('l1',slot,true).Command==command)end

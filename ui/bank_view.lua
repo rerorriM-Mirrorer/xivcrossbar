@@ -84,11 +84,15 @@ function M.new(options)
         local main_scale=tonumber(options.settings and options.settings.CrossbarScale) or 1
         local font_size=math.max(1,math.floor((tonumber(typography.Size) or 7)*main_scale+.5))
         local title=(options.bank.title and options.bank:title(mode) or (mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts'))..(d.Locked and '' or '  [drag]')
+        local artwork={}
         local labels,parts={},{mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha),tostring(horizontal),tostring(vertical),font,tostring(font_size),title}
         for i=1,8 do
             local entry=d['Slot'..i]
             local label=mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
             if #label>10 then label=label:sub(1,9)..'~' end
+            local suggested={['trust ready']='assist',['trust standdown']='follow',['trust toggle']='return-trust',['trust menu']='abilities/book_white'}
+            artwork[i]=entry.Icon and entry.Icon~='' and entry.Icon or (suggested[entry.Command] and 'images/icons/default/'..suggested[entry.Command]..'.png') or 'images/icons/default/ui/binding_icons/'..icons[i]..'.png'
+            parts[#parts+1]=artwork[i]
             labels[i]=label;parts[#parts+1]=string.format('%q',label)
         end
         local key=table.concat(parts,'|')
@@ -118,6 +122,7 @@ function M.new(options)
             local px,py=30+layout[i][1]*horizontal,36+layout[i][2]*vertical
             slot.background:pos(x+(px-20)*s,y+py*s);slot.background:size(40*s,40*s)
             slot.background:alpha(math.floor(alpha*.6));slot.background:show()
+            slot.icon:path(options.path..artwork[i])
             slot.icon:pos(x+(px-20)*s,y+py*s);slot.icon:size(40*s,40*s);slot.icon:alpha(alpha);slot.icon:show()
             slot.frame:pos(x+(px-20)*s,y+py*s);slot.frame:size(40*s,40*s);slot.frame:alpha(alpha);slot.frame:show()
             slot.number:text(tostring(i));slot.number:font(font);slot.number:size(font_size);slot.number:pos(x+(px-18)*s,y+(py+1)*s)

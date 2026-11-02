@@ -1,3 +1,13 @@
+# Current Development Status — November 2, 2026 — L1 Party 1
+
+- Baseline c9e6bc6d93978879e6666d4be4b4ee93b8930689, personal development/ahk-v2-migration. User explicitly requests four L1 factory/Cioara face changes, preserving other saved entries and transport/stick. Runtime l1party1.
+- Verified Trust GeneralCommands.lua in latest Trust-Party-Commands-Focus-Stick-Widgets1-Cumulative-20261102.zip implements coordinated ready/standdown. Cross ready, Circle standdown, Square personal toggle, Triangle menu. No send/echo wrappers; Trust owns coordinated work and formatted acknowledgments.
+- Inspected uploaded data (2).zip companion_banks.xml: explicit face commands and customized Menu directional entries. Supplied no data replacement; no automatic override migration. Cioara preset delegates to factory; its existing broader explicit reset semantics unchanged. Selective four default commands documented instead.
+- Bank view uses assist/follow/return-trust/book_white artwork for these exact commands; explicit Icon and shared asset override precedence retained. No input, AHK, polling, movement or stick edits. Bank default shape includes optional Icon; inherited entries retain explicit artwork overrides.
+- Focused companion defaults/ownership/layout/combined bank/storage regressions and 184 normalized source parses passed including final optional-icon normalization. Layout/dependency and whitespace checks pass. No Windows/controller/in-game acceptance claimed. Delivery source/published head recorded in handoff and manifest. Other saved bindings/layouts/positions stay untouched.
+
+---
+
 # Current Development Status — November 2, 2026 — Delete Set 1
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration. Starting published checkpoint 538c9c85bbf96e07196833ec450feb05175c9f4b (Category Labels 1). User reports unable to deleteset trust or Switch. Confirmed code previously matched only normalized saved keys, not display labels, and regenerated eligible deleted category keys on reload. Actual installed Switch key/content remains unknown; no user deletion performed. Runtime 20261102.directlink1-ahkv2-deleteset1.

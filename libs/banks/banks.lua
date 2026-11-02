@@ -14,15 +14,15 @@ local function action(label,kind,value,hold)
 end
 local function empty() return action('','command','') end
 local function finite(n) return type(n)=='number' and n==n and math.abs(n)<math.huge end
-local function inherited() return {Alias='',Kind='default',Command='',Key='',Hold=false} end
+local function inherited() return {Alias='',Kind='default',Command='',Key='',Hold=false,Icon=''} end
 local factory={}
 -- A: Cioara's supplied October 23 L1 layout, with no fixed character names.
 factory.l1={Closed={action('Back','command','switch p'),action('Call','command','npc call'),
     action('Next','command','switch next'),action('Leader','command','switch p1'),
-    action('Trust','command','trust menu'),
-    action('Ready','command','send @others trust start; input /echo Asked party to stand ready!'),
-    action('Stand Down','command','send @all trust stop; input /echo Asked party to stand down!'),
-    action('Toggle','command','trust toggle')}}
+    action('Trust Toggle','command','trust toggle'),
+    action('Stand Ready','command','trust ready'),
+    action('Stand Down','command','trust standdown'),
+    action('Trust Menu','command','trust menu')}}
 factory.l1.Menu=factory.l1.Closed
 factory.r1={Closed={action('Left','command','npc raw left'),action('Down','command','npc raw down'),
     action('Right','command','npc raw right'),action('Up','command','npc raw up'),
@@ -47,7 +47,7 @@ function M.defaults()
     for _,name in pairs(layers) do
         d[name]={Closed={},Menu={},Display='held',Enabled=name=='L1' or name=='R1' or name=='L1R1',Visible=true,ShowOnMenu=true,MenuActions=false,AllowCutscenes=false,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
-            d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false}
+            d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false,Icon=''}
         end end
     end
     for _,side in ipairs({'Left','Right'}) do
@@ -89,7 +89,7 @@ function M.ensure(settings)
                     d[name][context][key]=entry
                 end
                 local e=d[name][context][key]
-                for _,field in ipairs({'Alias','Command','Key'}) do if type(e[field])~='string' then e[field]='' end end
+                for _,field in ipairs({'Alias','Command','Key','Icon'}) do if type(e[field])~='string' then e[field]='' end end
                 if e.Kind~='key' and e.Kind~='command' and e.Kind~='default' then e.Kind='command' end
                 e.Hold=e.Hold==true
                 if version==1 and ((name=='L1' or name=='R1') and same(e,M.factory(layer,i,context=='Menu'))
@@ -138,7 +138,10 @@ function M.new(options)
     end
     function self:entry(layer,slot,menu)
         local e=self:stored_entry(layer,slot,menu)
-        return e.Kind=='default' and M.factory(layer,slot,menu) or e
+        if e.Kind~='default' then return e end
+        local value=M.factory(layer,slot,menu)
+        if e.Icon and e.Icon~='' then value.Icon=e.Icon end
+        return value
     end
     function self:release_slots()
         self.feedback:cancel()

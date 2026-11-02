@@ -1,3 +1,8 @@
+Personal L1 Party update: Cross Stand Ready (trust ready), Circle Stand Down
+(trust standdown), Square personal Trust Toggle, Triangle Trust Menu. Factory
+and Cioara preset use the coordinated commands; saved overrides stay intact.
+See docs/L1-PARTY1.md for selective adoption and installation.
+
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
@@ -1652,3 +1657,7 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   Reject ambiguous names and retain core-set protection and load guards.
 - Persist disabled category creation per character/job combination; restoreset
   re-enables it. Failed hotbar saves retain the current in-memory set.
+
+### November 2, 2026 — L1 Party 1
+
+- Update four factory face buttons to coordinated Trust commands and matching artwork; keep saved overrides and controller behavior.
