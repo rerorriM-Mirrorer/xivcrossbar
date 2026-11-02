@@ -1,15 +1,21 @@
--- A: chooser availability comes from the client's ability list, which already
--- accounts for its current job/unlocks. Do not invent a second level database.
+-- Binding lists follow SMN level and learned summon spells, independently of
+-- the temporary native pet-command list. Execution guards stay separate.
 local M={}
-function M.available(resources,available,category)
-    local seen,out={},{}
-    for _,group in ipairs({'job_abilities','pet_commands'}) do
-        for _,id in pairs((available or {})[group] or {}) do
-            if type(id)=='number' and not seen[id] then
-                seen[id]=true
-                local ability=resources[id]
-                if ability and ability.type==category then out[#out+1]=ability end
-            end
+function M.available(resources,player,spells,known,category)
+    player=player or {}
+    local level=math.max(player.main_job_id==15 and (player.main_job_level or 0) or 0,
+        player.sub_job_id==15 and (player.sub_job_level or 0) or 0)
+    local summons,out={},{}
+    for id,spell in pairs(spells or {}) do
+        if spell.type=='SummonerPact' and (known or {})[id]==true
+                and spell.levels and spell.levels[15] and spell.levels[15]<=level then
+            summons[spell.en or spell.name]=true
+        end
+    end
+    for id,entry in pairs(require('libs/blood_pact_levels')) do
+        local ability=resources[id]
+        if ability and ability.type==category and level>=entry.level and summons[entry.summon] then
+            out[#out+1]=ability
         end
     end
     table.sort(out,function(a,b)return (a.name or a.en)<(b.name or b.en) end)

@@ -116,16 +116,17 @@ function build_module()
 
     -- Checks for Skillchain properties
     function check_sc_props(old, new)
+        if type(old)~='table' or type(new)~='table' then return end
         for k = 1, #old do
             local first = old[k]
             local combo = sc_info[first]
             for i = 1, #new do
                 local second = new[i]
-                local result = combo[second]
+                local result = combo and combo[second]
                 if result then
                     return unpack(result)
                 end
-                if #old > 3 and combo.lvl == sc_info[second].lvl then
+                if #old > 3 and combo and sc_info[second] and combo.lvl == sc_info[second].lvl then
                     break
                 end
             end
@@ -134,12 +135,13 @@ function build_module()
 
     -- Checks for Magic Burst properties
 	function check_burst_props(old, new)
+        if type(old)~='table' or type(new)~='table' then return end
         for k = 1, #old do
             local first = old[k]
             local combo = sc_elements[first]
             for i = 1, #new do
                 local second = new[i]
-                local result = combo[second]
+                local result = combo and combo[second]
                 if result then
 					return result
 				end
@@ -248,7 +250,9 @@ function build_module()
                 return
             end
             reson.name = res[reson.res][reson.id].name
-            reson.props = reson.props or not reson.bound and reson.active or 'Chainbound Lv.%d':format(reson.bound)
+            if not reson.props then
+                reson.props=reson.bound and ('Chainbound Lv.%d'):format(reson.bound) or reson.active or {}
+            end
             reson.elements = reson.elements or reson.step > 1 and '(%s)':format(table.concat(sc_info[reson.active[1]], ', ')) or ''
         end
     end
@@ -279,6 +283,9 @@ function build_module()
     }
 
     function apply_properties(target, resource, action_id, properties, delay, step, closed, bound)
+        -- Elemental-only attacks do not open resonance. Preserve the current
+        -- chain rather than publishing missing skillchain properties.
+        if type(properties)~='table' or #properties==0 then return end
         local clock = os.clock()
         resonating[target] = {
             res=resource,

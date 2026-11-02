@@ -1,6 +1,14 @@
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
+# Personal update — Pact Binding 1
+
+Blood Pact binding lists now follow SMN level and learned, level-eligible avatar
+summons, with no avatar or Astral Flow buff required just to bind. Summoning
+spell lists continue to use learned spells and job level independently of pets.
+Searing Light and other elemental-only attacks no longer create invalid
+skillchain tracking state. See [install and checks](docs/PACT-BINDING1.md).
+
 # Personal update — Summon Toggle 1
 
 A matching living avatar/spirit turns its summon spell slot into Release, with
@@ -1586,3 +1594,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   Saved spell bindings/artwork return after dismissal. No data migration.
 - Lua-only package also contains Pet Toggle 1; preserves installed Trust AHK.
   Per-Trust dismissal remains the next separate batch.
+
+### November 2, 2026 — Pact Binding 1
+
+- Rage/Ward binding eligibility uses level plus learned summons, independently
+  of the currently active pet-command list. Execution restrictions remain.
+- Prevent elemental-only attacks from opening invalid skillchain state; retain
+  valid resonance, normal skillchain/burst hints and Chainbound display.

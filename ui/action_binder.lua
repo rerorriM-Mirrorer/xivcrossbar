@@ -2326,7 +2326,7 @@ end
 function action_binder:display_magic_selector_internal(magic_type)
     local player = windower.ffxi.get_player()
     local main_job = player.main_job:lower()
-    local jp_spent = player.job_points[main_job].jp_spent
+    local jp_spent = player.job_points and player.job_points[main_job] and player.job_points[main_job].jp_spent or 0
     local level = player.main_job_level
 
     -- JP gift spells have a "level" requirement equivalent to their JP spend requirement
@@ -2443,14 +2443,14 @@ function action_binder:display_summoning_selector()
     self:show_control_hints('Confirm', 'Go Back')
 end
 
--- A: both pact selectors use native availability and identical icon fallback.
+-- A: both pact selectors use persistent level/unlock eligibility and icon fallback.
 function action_binder:display_blood_pact_selector(kind)
     local ward=kind=='BloodPactWard'
     self.title:text(ward and 'Select Blood Pact: Ward' or 'Select Blood Pact: Rage')
     self.title:show()
     local pacts=require('libs/blood_pacts')
     local ability_list=L{}
-    for _,ability in ipairs(pacts.available(res.job_abilities,windower.ffxi.get_abilities(),kind)) do
+    for _,ability in ipairs(pacts.available(res.job_abilities,windower.ffxi.get_player(),res.spells,windower.ffxi.get_spells(),kind)) do
         local name=ability.name or ability.en
         local metadata=crossbar_abilities[kebab_casify(name)]
         local icon,custom=pacts.icon(ability,metadata,get_icon_pathbase(),require('ui/assets').exists)
