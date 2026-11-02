@@ -1,6 +1,14 @@
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
+# Personal update — Delete Set 1
+
+`//xb deleteset "Set Name"` accepts a saved key or unique display label; `trust`
+also finds generated Trusts. Deleted generated categories stay disabled for the
+current character/server/main/subjob, rather than returning on reload.
+`//xb restoreset Trusts` re-enables an eligible empty category; it does not
+recover deleted bindings. See [deletion, restore and checks](docs/DELETE-SET1.md).
+
 # Personal update — Category Labels 1
 
 Generated destinations now use Weaponskill, Job Ability, Rage, Ward and Pet.
@@ -1637,3 +1645,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   Use Rage/Ward short labels with the main-menu SMN icon, and Pet with its crab.
 - Correct old generated labels while preserving keys, slots, custom labels and
   separate sets. No automatic consolidation or deletion.
+
+### November 2, 2026 — Delete Set 1
+
+- Resolve deletion targets by exact key, unique display label or category alias.
+  Reject ambiguous names and retain core-set protection and load guards.
+- Persist disabled category creation per character/job combination; restoreset
+  re-enables it. Failed hotbar saves retain the current in-memory set.

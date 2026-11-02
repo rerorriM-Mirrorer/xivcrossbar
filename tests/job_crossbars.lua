@@ -62,3 +62,14 @@ print('Category correction: main-menu artwork/offset, requested short labels, st
 local historical={['blood-pact-rage']={name='Blood Pact: Rage'}}
 J.ensure(historical,{main_job_id=3,main_job_level=1},spells,{},6)
 assert(historical['blood-pact-rage'].name=='Rage','saved category label depended on current job')
+local disabled={trusts=true}
+local hidden_bars={}
+J.ensure(hidden_bars,{main_job_id=3,main_job_level=1},spells,{[4]=true},6,disabled)
+assert(not hidden_bars.trusts and hidden_bars['white-magic'],'deleted generated category immediately returned')
+assert(J.category_key('Trust')=='trusts' and J.category_key('Job Ability')=='job-abilities')
+local config_state={};local one={name='Cioara',server='Fenrir',main_job='SMN',sub_job='WHM'}
+J.hidden(config_state,one,true).trusts=true
+assert(J.hidden(config_state,one).trusts)
+assert(not J.hidden(config_state,{name='Myrr',server='Fenrir',main_job='SMN',sub_job='WHM'}).trusts)
+assert(not J.hidden(config_state,{name='Cioara',server='Fenrir',main_job='WHM',sub_job='SMN'}).trusts)
+print('Generated category suppression: persists by identity/job scope without affecting other characters/jobs passed.')

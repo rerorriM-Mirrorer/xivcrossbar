@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-categorylabels1'
+_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-deleteset1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1160,45 +1160,66 @@ end
 -- There is NO going back, which is why you have to type the whole thing, 
 -- no aliases to avoid mistakes.
 function delete_environment_command(args)
-    if (not args[1]) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Usage: //xcb deleteset <name>'))
-        return
+    local format=require('libs/chat_status')
+    if player.hotbar_load_ok==false or not player.identity_confirmed then
+        windower.add_to_chat(0,format.notice('Log in and reload successfully before deleting a set.',167));return
     end
-
-    -- Allow multi-word names by joining argv.
-    local target_name = table.concat(args, ' ')
-    local target_key = kebab_casify(target_name)
-
-    if (PROTECTED_ENV_KEYS[target_key]) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Crossbar set "' .. target_name .. '" is reserved and cannot be deleted.'))
-        return
+    if not args[1] then
+        windower.add_to_chat(0,format.notice('Usage: //xb deleteset "Set Name"',140));return
     end
-    if (player.hotbar[target_key] == nil) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] No crossbar set named "' .. target_name .. '" found in the current job.'))
-        return
+    local target_name=table.concat(args,' ')
+    local target_key,reason=require('libs/set_names').resolve(player.hotbar,target_name)
+    if not target_key then windower.add_to_chat(0,format.notice(reason,140));return end
+    if PROTECTED_ENV_KEYS[target_key] then
+        windower.add_to_chat(0,format.notice('Crossbar set "'..target_name..'" is reserved and cannot be deleted.',140));return
     end
-
-    -- Drop the env (and all its slot bindings) entirely.
-    player.hotbar[target_key] = nil
-
-    -- If the deleted env was active, switch to a safe fallback computed
-    -- by env_chooser (same path as the addon's normal startup recovery).
-    if (player.hotbar_settings.active_environment == target_key) then
-        local fallback = env_chooser:get_default_active_environment(player.hotbar)
-        set_active_environment(fallback)
+    local previous=player.hotbar[target_key]
+    local categories=require('libs/job_crossbars')
+    local category=categories.category_key(target_key)==target_key
+    local hidden=category and categories.hidden(settings,player,true)
+    local prior_hidden=hidden and hidden[target_key]
+    player.hotbar[target_key]=nil
+    if hidden then hidden[target_key]=true end
+    local ok,err=pcall(player.save_hotbar,player)
+    if not ok or err==false then
+        player.hotbar[target_key]=previous
+        if hidden then hidden[target_key]=prior_hidden end
+        windower.add_to_chat(0,format.notice('Set deletion could not be saved; the current set was retained. '..tostring(err),167));return
     end
-
-    -- Warn about orphaned switch-type bindings before saving so the count
-    -- reflects the state seen by the user up to this moment.
-    local orphan_count = count_switch_references(target_key)
-
-    player:save_hotbar()
+    if hidden then
+        local saved,detail=pcall(config.save,settings)
+        if not saved or detail==false then
+            windower.add_to_chat(0,format.notice('Set deleted, but keeping its automatic creation disabled could not be saved. '..tostring(detail),140))
+        end
+    end
+    if player.hotbar_settings.active_environment==target_key then
+        set_active_environment(env_chooser:get_default_active_environment(player.hotbar))
+    end
+    local orphan_count=count_switch_references(target_key)
     reload_hotbar()
-
-    windower.add_to_chat(0,require('libs/chat_status').legacy(207,'[XIVCrossbar] Crossbar set deleted: "' .. target_name .. '" (and all its slot bindings).'))
-    if (orphan_count > 0) then
-        windower.add_to_chat(0,require('libs/chat_status').legacy(140,'[XIVCrossbar] Warning: ' .. orphan_count .. ' Quick XB Switch slot(s) referenced the deleted set and will no longer work.'))
+    windower.add_to_chat(0,format.notice('Crossbar set deleted: "'..target_name..'" ['..target_key..'].'))
+    if orphan_count>0 then
+        windower.add_to_chat(0,format.notice(tostring(orphan_count)..' quick-switch binding(s) still reference the deleted set.',140))
     end
+end
+
+function restore_environment_command(args)
+    local format=require('libs/chat_status')
+    if player.hotbar_load_ok==false or not player.identity_confirmed then
+        windower.add_to_chat(0,format.notice('Log in and reload successfully before restoring a category.',167));return
+    end
+    local categories=require('libs/job_crossbars')
+    local key=args[1] and categories.category_key(table.concat(args,' '))
+    if not key then windower.add_to_chat(0,format.notice('Usage: //xb restoreset <category name or key>',140));return end
+    local hidden=categories.hidden(settings,player,true)
+    local previous=hidden[key];hidden[key]=nil
+    local ok,err=pcall(config.save,settings)
+    if not ok or err==false then
+        hidden[key]=previous
+        windower.add_to_chat(0,format.notice('Category restoration could not be saved. '..tostring(err),167));return
+    end
+    reload_hotbar()
+    windower.add_to_chat(0,format.notice('Automatic category creation enabled: '..key..'. Deleted bindings are not restored.'))
 end
 
 -- command to rerun the setup dialog
@@ -1227,7 +1248,8 @@ function display_help_menu()
     help.command('l|r|ll|rr|lr|rl <button> "Label" "Command"','Bind a global custom action on the current set.')
     help.command('new <name>','Create a crossbar set.')
     help.command('rename <old> <new>','Rename a crossbar set (rn).')
-    help.command('deleteset <name>','Delete a set and its bindings.')
+    help.command('deleteset <name>','Delete a set by saved key or unique displayed name.')
+    help.command('restoreset <category>','Re-enable an automatically created category; bindings stay deleted.')
     help.command('set <env> <hb> <slot> <type> <action> [target] [alias] [icon]','Bind an action.')
     help.command('clear <env> <hb> <slot>','Remove a binding.')
     help.command('copy <env> <hb> <slot> <dest env> <dest hb> <dest slot>','Copy a binding (cp).')
@@ -1701,6 +1723,8 @@ windower.register_event('addon command', function(command, ...)
         -- This removes the whole crossbar set including every slot binding
         -- it contains.
         delete_environment_command(args)
+    elseif command == 'restoreset' then
+        restore_environment_command(args)
     elseif command == 'rn' or command == 'rename' then
         rename_environment_command(args)
     elseif command == 'cp' or command == 'copy' then

@@ -25,6 +25,29 @@ local defs={
  {key='pet-commands',name='Pet',old_name='Pet Commands',jobs={[9]=true,[14]=true,[15]=true,[18]=true},icon='pet'},
 }
 local paths={bst='jobs/BST',cor='jobs/COR',sch='jobs/SCH',dnc='jobs/DNC',run='jobs/RUN',whm='jobs/WHM',blm='jobs/BLM',blu='jobs/BLU',brd='jobs/BRD',nin='jobs/NIN',smn='jobs/SMN',geo='jobs/GEO',trust='trust/yoran-oran',ja='jobs/WAR',ws='weaponskills/sword/savage-blade',bpr='fallback/abilities/00173',bpw='fallback/abilities/00174',pet='mounts/crab'}
+-- Config state is isolated by character/server/main/subjob. It stores only
+-- disabled automatic creation, never a second copy of the user's slot data.
+function M.scope(player)
+    local parts={player.server or 'unknown',player.name or 'unknown',player.main_job or player.main_job_id or 'none',player.sub_job or player.sub_job_id or 'NOSUB'}
+    for i,v in ipairs(parts)do parts[i]=tostring(v):gsub('[^%w_]','_') end
+    return 'sets_'..table.concat(parts,'_')
+end
+function M.hidden(settings,player,create)
+    settings=settings or {}
+    local all=settings.HiddenCategorySets
+    if not all then if not create then return {} end;all={};settings.HiddenCategorySets=all end
+    local scope=M.scope(player)
+    if not all[scope] and create then all[scope]={} end
+    return all[scope] or {}
+end
+function M.category_key(name)
+    local normalized=require('libs/set_names').key(name)
+    if normalized=='trust' then return 'trusts' end
+    for _,d in ipairs(defs)do
+        if normalized==d.key or normalized==require('libs/set_names').key(d.name)
+                or d.old_name and normalized==require('libs/set_names').key(d.old_name) then return d.key end
+    end
+end
 function M.available(player,spells,known)
     player=player or {};local kinds={}
     for id,spell in pairs(spells or {})do
@@ -41,7 +64,7 @@ function M.available(player,spells,known)
     end
     return out
 end
-function M.ensure(hotbar,player,spells,known,count)
+function M.ensure(hotbar,player,spells,known,count,hidden)
     for _,d in ipairs(defs) do
         local bar=hotbar[d.key]
         if bar and d.old_name and bar.name==d.old_name then
@@ -51,7 +74,7 @@ function M.ensure(hotbar,player,spells,known,count)
         end
     end
     for _,d in ipairs(M.available(player,spells,known))do
-        if not hotbar[d.key] then
+        if not hotbar[d.key] and not (hidden and hidden[d.key]) then
             local bar={name=d.name};hotbar[d.key]=bar
             for i=1,count do bar['hotbar_'..i]={slot_9={}} end
         end

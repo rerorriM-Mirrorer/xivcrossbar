@@ -1,4 +1,5 @@
 local defaults = {}
+defaults.HiddenCategorySets = {}
 defaults.CustomActionSaveScope = 'global'
 
 defaults.buttonbackgroundalpha = 150

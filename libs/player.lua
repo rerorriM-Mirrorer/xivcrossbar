@@ -172,7 +172,7 @@ function player:load_hotbar()
         if (newly_created) then
             player:store_new_hotbars()
         end
-        require('libs/job_crossbars').ensure(self.hotbar,windower.ffxi.get_player(),res.spells,windower.ffxi.get_spells and windower.ffxi.get_spells(),self.hotbar_settings.max)
+        require('libs/job_crossbars').ensure(self.hotbar,windower.ffxi.get_player(),res.spells,windower.ffxi.get_spells and windower.ffxi.get_spells(),self.hotbar_settings.max,require('libs/job_crossbars').hidden(settings,self))
         if not self.has_reported_load then
             windower.add_to_chat(0,require('libs/chat_status').notice('Loaded '..self.main_job..'/'..(self.sub_job or 'NOSUB')..' crossbars.'))
             self.has_reported_load = true
