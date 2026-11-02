@@ -1,3 +1,18 @@
+# Current Development Status — November 1, 2026 — GitHub Publication Confirmed
+
+- User explicitly approved GitHub publication: "You have my approval to publish on GIthub if that'll unblock the approval rejection". This supersedes the pending authorization/blocked-publication statements in the historical entries below. The shell has no Git credentials; publication uses the connected GitHub integration. Destination remains rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration only; public/master/development-directlink unchanged.
+- All four pending conceptual changes are now published. Integration-created commits have new commit IDs but each entire source tree exactly matches the corresponding local tested/package checkpoint (Git tree SHA equality verified before advancing the branch):
+  - Shoulder Banks 1: local 1971b66e407654815dddf16fe4888c95144b4235 -> published 32cd9019dc49cf219a824736281a90733d4e0ef6.
+  - Shoulder Banks 2: local 91b768f4a743cdbe8264e96dd881384934915678 -> published f1c90e4a81836246b44d989a334657b3c39fa2f1.
+  - Five Banks 1: local 12493807cb776d80a39f98d6a123ed053b2f4456 -> published bdb59cb9dd81e8ca6552a204c92da7205f1f064d.
+  - Pet Actions 1: local c4496195e8eef2c0e0464e7f60f11008fc210262 -> published c8c07e29a4c6e41908d3801fba994bcdac7b246a.
+- Starting remote was d3443848d0204265a280fb75c6230e09129ae99e. Four-commit publication used a guarded non-force update; the remote branch head was then independently read back as c8c07e29a4c6e41908d3801fba994bcdac7b246a. Its Git tree is 8a4012be5e4c3e7cb137a2aebf4bb890e483ea8a, identical to the delivered Pet Actions 1 source checkpoint. Final documentation commit is reported in handoff.
+- Current runtime remains directlink1-ahkv2-petactions1. Latest cumulative ZIP remains valid without reinstalling or downloading a new package. Earlier package manifests identify the corresponding local IDs above; their runtime bytes are now published unchanged. This entry/README pointer are documentation-only.
+- Existing validation remains 80 local Lua suites / 172 normalized source parses plus layout/dependency/whitespace checks. No tests rerun solely for publication; no new native Windows, physical-controller or in-game acceptance claimed. Latest live controller confirmation remains PC device 2; new bank/pet behavior awaits the recorded live checks.
+- Next: user's live verification of shared bank position/edit aliases, five trigger banks, no-pet dim/block, Release page retention and paired summon combat. Keep historical testing information below intact; prior blocked-publication statements describe the earlier state, not the current status.
+
+---
+
 # Current Development Status — November 1, 2026 — Pet Actions 1
 
 - Personal repository rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration. Starting local source 12493807cb776d80a39f98d6a123ed053b2f4456 (Five Banks 1). Runtime suffix directlink1-ahkv2-petactions1. Remote remains the previously confirmed d3443848d0204265a280fb75c6230e09129ae99e; prior automatic approval rejection for unrecognized GitHub destination authorization remains unresolved. No bypass/new push attempted. Final local commit is in handoff. Public/master/development-directlink unchanged.

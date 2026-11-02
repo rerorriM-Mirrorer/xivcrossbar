@@ -1,3 +1,6 @@
+Publication status: the personal AHK v2 bank/pet updates are published on
+`development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
+
 # Personal update — Pet Actions 1
 
 Pet-dependent typed actions dim and refuse to fire without the required living
