@@ -57,3 +57,13 @@ assert(records.test.CompanionBanks.R1R2.AllowCutscenes==true)
 assert(records.global.CompanionBanks.R1R2.AllowCutscenes==false)
 assert(not Store.decode(raw:gsub('<AllowCutscenes>true</AllowCutscenes>','<AllowCutscenes>invalid</AllowCutscenes>'),bank_test_parse))
 print('Cutscene bank permission: real XML boolean roundtrip and malformed-value rejection passed.')
+
+-- New combined-bank definitions and linked geometry survive the real parser.
+local settings={};require('libs/banks/banks').ensure(settings)
+settings.CompanionBanks.LinkedPositions=false
+settings.CompanionBanks.L1R1.Closed.Slot6={Alias='Together',Kind='command',Command='input /echo both',Key='',Hold=false}
+local body=Store.encode({global=settings})
+local value=assert(Store.decode(body,bank_test_parse)).global.CompanionBanks
+assert(value.LinkedPositions==false and value.L1R1.Enabled)
+assert(value.L1R1.Closed.Slot6.Command=='input /echo both')
+print('Combined shoulder bank and linked-position preference survive shipped XML parser roundtrip.')

@@ -21,6 +21,7 @@ factory.r1r2={Closed={action('Call party','command','npcmirror call'),action('Ra
 factory.r1r2.Menu=factory.r1r2.Closed
 
 return function(bank)
+ bank:settings().L1R1.Enabled=false
  for layer,name in pairs({l1='L1',l1l2='L1L2',r1='R1',r1r2='R1R2'}) do
   local b=bank:settings()[name];b.Enabled=true;b.MenuActions=true;b.ShowOnMenu=false
   for _,ctx in ipairs({'Closed','Menu'})do for i=1,8 do

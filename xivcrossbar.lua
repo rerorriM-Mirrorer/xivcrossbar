@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261030.directlink1-ahkv2-faststart3'
+_addon.version = '0.4.0-a.20261101.directlink1-ahkv2-shoulderbanks1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -205,14 +205,17 @@ local l1_drag=require('ui/drag').new({
     enabled=function() return l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
     bounds=function() return l1_view:bounds() end,
     offsets=function() local d=l1_view.options.bank:settings();return d.X,d.Y end,
-    move=function(x,y) local d=l1_view.options.bank:settings();d.X,d.Y=x,y end,
+    move=function(x,y)
+        local b=l1_view.options.bank
+        if b.move then b:move(x,y) else local d=b:settings();d.X,d.Y=x,y end
+    end,
     save=function() bank_storage:save() end,
 })
 local r1_drag=require('ui/drag').new({
     enabled=function() return r1_view.opacity>.01 and not companion_right:settings().Locked end,
     bounds=function() return r1_view:bounds() end,
     offsets=function() local d=companion_right:settings();return d.X,d.Y end,
-    move=function(x,y) local d=companion_right:settings();d.X,d.Y=x,y end,
+    move=function(x,y) companion_right:move(x,y) end,
     save=function() bank_storage:save() end})
 
 local function move_crossbars(x,y)

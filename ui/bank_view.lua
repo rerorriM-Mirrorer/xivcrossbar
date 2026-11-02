@@ -62,13 +62,15 @@ function M.new(options)
     end
     function self:clamp(width,height)
         local d=options.bank:settings();local b=self:bounds()
+        if options.bank.clamp then options.bank:clamp(width,height,b.width,b.height);return end
         d.X=math.max(0,math.min(d.X,math.max(0,width-b.width)))
         d.Y=math.max(0,math.min(d.Y,math.max(0,height-b.height)))
     end
     function self:tick(eligible,width,height)
         self.opacity=options.bank:opacity(eligible)
+        self:clamp(width,height)
         if self.opacity<=0 and not self.allocated then return end
-        self:allocate();self:clamp(width,height)
+        self:allocate()
         if self.opacity<=0 then
             if self.visible~=false then for _,o in ipairs(self.objects) do o:hide() end end
             for _,slot in ipairs(self.slots) do slot.feedback_alpha=nil end
