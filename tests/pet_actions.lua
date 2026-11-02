@@ -90,5 +90,26 @@ end
 assert(P.pet_toggle({type='ex',action='assault; input /attack <t>'},state())==nil)
 assert(P.pet_toggle({type='pet',action='Fight'},state())==nil)
 assert(P.pet_toggle({type='pet',action='Heel'},state())==nil)
+-- A matching summon slot releases without the normal temporary-page return.
+for _,name in ipairs({'Carbuncle','Cait Sith','Fire Spirit'}) do
+ local binding={type='ma',action=name,alias=name,target='me',icon='custom-summon.png'}
+ current_pet={name=name,hpp=100,status=0};player.temp_switch_previous_env='basic'
+ action(binding)
+ assert(#sent==1 and sent[1]=='input /pet "Release" <me>','matching summon did not Release')
+ assert(not player.pending_env_switch and player.temp_switch_previous_env=='basic','summon Release returned page')
+ assert(binding.type=='ma' and binding.action==name and binding.icon=='custom-summon.png','summon binding mutated')
+ current_pet=nil;player.temp_switch_previous_env=nil;action(binding)
+ assert(#sent==1 and sent[1]=='input /ma "'..name..'" <me>','summon did not restore after dismissal')
+ current_pet={name='Ifrit',hpp=100};action(binding)
+ assert(sent[1]=='input /ma "'..name..'" <me>','different summon became Release')
+ current_pet={name=name,hpp=0};action(binding)
+ assert(sent[1]=='input /ma "'..name..'" <me>','dead summon became Release')
+end
+current_pet={name='Carbuncle',hpp=100}
+assert(not P.summon_toggle({type='ex',action='input /ma "Carbuncle" <me>'},state()))
+assert(not P.summon_toggle({type='ma',action='Kupipi'},state()))
+player.temp_switch_previous_env='basic';action({type='ma',action='Cure',target='me'})
+assert(player.pending_env_switch=='basic','ordinary magic quick-return changed')
+print('Summon toggle dispatch: matching avatar/spirit, missing/dead/different pet, saved bindings, custom macros, Trust exceptions and Release page retention passed.')
 package.loaded['resources/crossbar_abilities']=old
 print('Pet guard and actual player dispatch: absent/dead/avatar/spirit/BST, summons/custom exceptions, throttled notice, Release page retention, attack/retreat pairs, selectors and ordinary quick-return passed.')

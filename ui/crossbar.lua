@@ -1148,6 +1148,8 @@ end
 function ui:check_vitals(player_hotbar, player_vitals, environment)
     local selected=player_hotbar and player_hotbar[environment]
     if not selected then return end
+    local pet_policy=require('libs/pet_actions')
+    local pet_state=pet_policy.snapshot(windower.ffxi)
     for h=1,self.theme.hotbar_number,1 do
         for i=1,8,1 do
             local disable_key = h .. ":" .. i
@@ -1162,6 +1164,7 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                 action = maybe_get_default_action(player_hotbar, environment, h, slot)
             end
 
+            action=pet_policy.summon_toggle(action,pet_state) or action
             if action ~= nil then
                 local crossbar_action = nil
                 local is_disabled = false
@@ -2112,25 +2115,35 @@ function calc_recast_time(time, in_seconds)
     return recast
 end
 
--- Rebuild only the affected slot when the pet's actual engagement changes.
+-- Rebuild only the affected slot when summon identity or engagement changes.
 -- The regular loader supplies existing ability artwork and caption settings.
 function ui:resolve_pet_toggle(h,slot,action,state,hotbar,environment,vitals)
     self.pet_toggle_views=self.pet_toggle_views or {}
     local id=h..':'..slot
     local previous=self.pet_toggle_views[id]
-    local resolved=require('libs/pet_actions').pet_toggle(action,state)
+    local function reload(view)
+        -- The effective action changed; discard the previous spell's MP/recast
+        -- flags before the normal loader and current recast pass rebuild them.
+        for _,kind in ipairs({'actions','no_vitals','on_cooldown','on_warmup'}) do
+            self.disabled_slots[kind][id]=nil
+        end
+        self:toggle_slot(h,slot,true)
+        self:load_action(hotbar,environment,h,slot,view,vitals,true)
+    end
+    local policy=require('libs/pet_actions')
+    local resolved=policy.summon_toggle(action,state) or policy.pet_toggle(action,state)
     if resolved then
         if not previous or previous.source~=action or previous.environment~=environment
                 or previous.name~=resolved.action or previous.alias~=resolved.alias
                 or previous.icon~=resolved.icon then
-            self:load_action(hotbar,environment,h,slot,resolved,vitals,true)
+            reload(resolved)
             self.pet_toggle_views[id]={source=action,environment=environment,name=resolved.action,alias=resolved.alias,icon=resolved.icon}
         end
         return resolved
     end
     if previous then
         self.pet_toggle_views[id]=nil
-        self:load_action(hotbar,environment,h,slot,action,vitals,true)
+        reload(action)
     end
     return action
 end

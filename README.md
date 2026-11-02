@@ -1,6 +1,13 @@
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
+# Personal update — Summon Toggle 1
+
+A matching living avatar/spirit turns its summon spell slot into Release, with
+Release artwork and caption. When it leaves, the saved summon returns. Other
+summon slots stay spells; Release stays on the current page and does not inherit
+the summon's MP/recast restrictions. See [install and live checks](docs/SUMMON-TOGGLE1.md).
+
 # Personal update — Pet Toggle 1
 
 Either standard Assault or Retreat binding now follows the living summon’s own
@@ -1572,3 +1579,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   time, preserving saved bindings. Lua-only overlay preserves newer Trust AHK.
 - Summon/Trust dismissal toggles and shared Trust layouts remain subsequent
   batches. Inventory remains on All Jobs Default; no data migration.
+
+### November 2, 2026 — Summon Toggle 1
+
+- Matching typed summon spells become Release while that living summon is out.
+  Saved spell bindings/artwork return after dismissal. No data migration.
+- Lua-only package also contains Pet Toggle 1; preserves installed Trust AHK.
+  Per-Trust dismissal remains the next separate batch.

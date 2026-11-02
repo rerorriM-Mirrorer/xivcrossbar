@@ -711,6 +711,10 @@ function player:execute_action(slot)
         return
     end
 
+    local pet_policy=require('libs/pet_actions')
+    if action.type=='ma' then
+        action=pet_policy.summon_toggle(action,pet_policy.snapshot(windower.ffxi)) or action
+    end
     if self:dispatch_action(action)==false then return end
 
     -- Release must stay on the current page, including quick-switch pages.
@@ -722,6 +726,9 @@ end
 
 function player:dispatch_action(action)
     local pet_policy=require('libs/pet_actions')
+    if action.type=='ma' then
+        action=pet_policy.summon_toggle(action,pet_policy.snapshot(windower.ffxi)) or action
+    end
     if action.type=='pet' or action.type=='ja' then
         local state=pet_policy.snapshot(windower.ffxi)
         action=pet_policy.pet_toggle(action,state) or action

@@ -3,7 +3,7 @@ dofile('tests/compact.lua')
 local ui=require('ui/crossbar')
 local abilities=package.loaded['resources/crossbar_abilities']
 abilities['healing-ruby']={id=512,recast_id=173,type='pet',category='blood-pacts/ward',mp_cost=0,tp_cost=0}
-abilities.release={id=100,recast_id=0,type='pet',category='pet-commands',mp_cost=0,tp_cost=0}
+abilities.release={id=100,recast_id=0,type='pet',category='pet-commands',mp_cost=0,tp_cost=0,custom_icon='',default_icon='/images/release.png'}
 abilities['Healing Ruby']=abilities['healing-ruby'];abilities.Release=abilities.release
 local pet=nil;local recasts={}
 windower.ffxi.get_mob_by_target=function(target)if target=='pet' then return pet end end
@@ -12,7 +12,7 @@ windower.ffxi.get_spell_recasts=function()return {}end
 ui.theme.hotbar_number=1;ui.theme.combined_trigger_bank=false
 ui.autoattack:set_enabled(false)
 ui.disabled_slots={actions={},no_vitals={},on_cooldown={},on_warmup={}}
-local spells=package.loaded['resources/crossbar_spells'];spells.carbuncle={id=1,recast_id=1,category='summoning magic',mp_cost=5,tp_cost=0}
+local spells=package.loaded['resources/crossbar_spells'];spells.carbuncle={id=1,recast_id=1,category='summoning magic',mp_cost=5,tp_cost=0,custom_icon='',default_icon='/images/carbuncle.png'}
 local bar={test={hotbar_1={slot_1={type='pet',action='Healing Ruby'},slot_2={type='pet',action='Release'},slot_3={type='ma',action='Carbuncle'}}}}
 local vitals={mp=100,tp=0}
 local tracker={get_skillchain_window=function()return 0,0 end,get_skillchain_result=function()end}
