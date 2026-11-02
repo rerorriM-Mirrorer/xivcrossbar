@@ -2645,10 +2645,10 @@ function action_binder:display_crossbar_sets_selector()
         -- Accept older string callbacks too; production supplies stable keys.
         local name = type(destination)=='table' and destination.name or destination
         local key = type(destination)=='table' and destination.key or kebab_casify(destination)
-        local category_icon=require('libs/job_crossbars').icon(key,get_icon_pathbase(),require('ui/assets').exists)
+        local category_icon,category_offset=require('libs/job_crossbars').icon(key,get_icon_pathbase(),require('ui/assets').exists)
         local data = {target_type={None=true},icon_path=category_icon or icon,alias=name,action_name=key}
         if not is_quick_switch then data.command='xb bar '..key end
-        crossbar_set_list:append({id=key,name=name,icon=category_icon or icon_path,icon_offset=0,data=data})
+        crossbar_set_list:append({id=key,name=name,icon=category_icon or icon_path,icon_offset=category_offset or 0,data=data})
     end
 
     self.selector:display_options(crossbar_set_list)

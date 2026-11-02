@@ -14,7 +14,17 @@ assert(whm['white-magic'] and not whm.summoning and not whm.trusts)
 local bst={};J.ensure(bst,{main_job_id=9,main_job_level=30},spells,{},6);assert(bst.ready and bst['pet-commands'] and not bst.summoning)
 local paths={};local function exists(p)local f=io.open(p,'rb');if f then f:close();return true end end
 assert(J.icon('white-magic','icons/default',exists)=='images/icons/default/jobs/WHM.png')
-assert(J.icon('blood-pact-rage','icons/default',exists)=='images/icons/default/fallback/abilities/00173.png')
+assert(J.icon('blood-pact-rage','icons/default',exists)=='images/icons/default/jobs/SMN.png')
+assert(J.icon('blood-pact-ward','icons/default',exists)=='images/icons/default/jobs/SMN.png')
+local icon,offset=J.icon('weapon-skills','icons/default',exists);assert(icon=='images/icons/weapons/sword.png' and offset==4)
+icon,offset=J.icon('job-abilities','icons/default',exists);assert(icon=='images/icons/abilities/00001.png' and offset==4)
+assert(bars['blood-pact-rage'].name=='Rage' and bars['blood-pact-ward'].name=='Ward' and bars['pet-commands'].name=='Pet')
+local old_slot={action='Keep'}
+local migration={['weapon-skills']={name='Weapon Skills',hotbar_1={slot_1=old_slot}},['job-abilities']={name='Job Abilities'},['blood-pact-rage']={name='My Custom Rage'},['blood-pact-ward']={name='Blood Pact: Ward'},['pet-commands']={name='Pet Commands'},weaponskill={name='Existing second set'}}
+J.ensure(migration,{main_job_id=15,main_job_level=10},spells,{},6)
+assert(migration['weapon-skills'].name=='Weaponskill' and migration['job-abilities'].name=='Job Ability')
+assert(migration['weapon-skills'].hotbar_1.slot_1==old_slot and migration.weaponskill.name=='Existing second set','label correction merged or moved bindings')
+assert(migration['blood-pact-rage'].name=='My Custom Rage' and migration['blood-pact-ward'].name=='Ward' and migration['pet-commands'].name=='Pet')
 assert(not J.icon('my-custom-set','icons/default',exists))
 print('Job crossbars: main/sub capability sets, learned Trusts, arbitrary bindings, repeated loads, existing labels/slots/global inventory, BST/SMN/WHM and existing artwork passed.')
 -- Exercise the production load hook and its failure rollback, not just ensure().
@@ -41,3 +51,14 @@ assert(load(src:sub(a,b-1),'actual category destination selector','t',env))()
 binder:display_crossbar_sets_selector()
 assert(shown[1].icon=='images/icons/default/jobs/WHM.png' and shown[1].data.icon_path==shown[1].icon and shown[1].data.action_name=='white-magic')
 print('Actual destination selector: category portrait persists on freely bindable switch actions passed.')
+
+binder.get_crossbar_sets_binding=function()return{{key='weapon-skills',name='Weaponskill'},{key='job-abilities',name='Job Ability'},{key='blood-pact-ward',name='Ward'},{key='blood-pact-rage',name='Rage'}}end
+binder:display_crossbar_sets_selector()
+assert(shown[1].icon=='images/icons/weapons/sword.png' and shown[1].icon_offset==4 and shown[1].data.icon_path==shown[1].icon)
+assert(shown[2].icon=='images/icons/abilities/00001.png' and shown[2].icon_offset==4)
+assert(shown[3].icon=='images/icons/default/jobs/SMN.png' and shown[4].icon==shown[3].icon)
+print('Category correction: main-menu artwork/offset, requested short labels, stable keys/slots, custom labels and duplicate sets preserved passed.')
+
+local historical={['blood-pact-rage']={name='Blood Pact: Rage'}}
+J.ensure(historical,{main_job_id=3,main_job_level=1},spells,{},6)
+assert(historical['blood-pact-rage'].name=='Rage','saved category label depended on current job')

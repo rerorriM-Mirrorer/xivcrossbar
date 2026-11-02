@@ -1,6 +1,14 @@
 Publication status: the personal AHK v2 bank/pet updates are published on
 `development/ahk-v2-migration`. Live acceptance remains pending; see `TESTING.md`.
 
+# Personal update — Category Labels 1
+
+Generated destinations now use Weaponskill, Job Ability, Rage, Ward and Pet.
+Weaponskill/Job Ability use the exact main-menu artwork and chooser inset;
+Rage/Ward use its SMN artwork. Summoning, White Magic and Trusts retain theirs.
+Previous generated labels update without changing saved keys or slots.
+See [correction, deletion command and consolidation](docs/CATEGORY-LABELS1.md).
+
 # Personal update — Trust and Sets 1
 
 Typed Trust slots summon when absent and dismiss that named Trust when present.
@@ -1622,3 +1630,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
   icons; identical entries reuse their identity, conflicting names are rejected.
 - Added editable main/subjob category sets and artwork for their switch actions.
   Existing character slots and All Jobs Default inventory remain in place.
+
+### November 2, 2026 — Category Labels 1
+
+- Align Weaponskill/Job Ability destination artwork and labels with the binder.
+  Use Rage/Ward short labels with the main-menu SMN icon, and Pet with its crab.
+- Correct old generated labels while preserving keys, slots, custom labels and
+  separate sets. No automatic consolidation or deletion.

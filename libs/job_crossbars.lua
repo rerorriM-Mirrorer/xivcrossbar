@@ -10,10 +10,10 @@ local defs={
  {key='summoning',name='Summoning',kind='SummonerPact',icon='smn'},
  {key='geomancy',name='Geomancy',kind='Geomancy',icon='geo'},
  {key='trusts',name='Trusts',kind='Trust',icon='trust'},
- {key='job-abilities',name='Job Abilities',icon='ja'},
- {key='weapon-skills',name='Weapon Skills',icon='ws'},
- {key='blood-pact-rage',name='Blood Pact: Rage',job=15,icon='bpr'},
- {key='blood-pact-ward',name='Blood Pact: Ward',job=15,icon='bpw'},
+ {key='job-abilities',name='Job Ability',old_name='Job Abilities',icon='ja',menu_icon='images/icons/abilities/00001.png',menu_offset=4},
+ {key='weapon-skills',name='Weaponskill',old_name='Weapon Skills',icon='ws',menu_icon='images/icons/weapons/sword.png',menu_offset=4},
+ {key='blood-pact-rage',name='Rage',old_name='Blood Pact: Rage',job=15,icon='smn'},
+ {key='blood-pact-ward',name='Ward',old_name='Blood Pact: Ward',job=15,icon='smn'},
  {key='ready',name='Ready',job=9,icon='bst'},
  {key='phantom-rolls',name='Phantom Rolls',job=17,icon='cor'},
  {key='quick-draw',name='Quick Draw',job=17,icon='cor'},
@@ -22,7 +22,7 @@ local defs={
  {key='rune-enchantments',name='Rune Enchantments',job=22,icon='run'},
  {key='wards',name='Wards',job=22,icon='run'},
  {key='effusions',name='Effusions',job=22,icon='run'},
- {key='pet-commands',name='Pet Commands',jobs={[9]=true,[14]=true,[15]=true,[18]=true},icon='pet'},
+ {key='pet-commands',name='Pet',old_name='Pet Commands',jobs={[9]=true,[14]=true,[15]=true,[18]=true},icon='pet'},
 }
 local paths={bst='jobs/BST',cor='jobs/COR',sch='jobs/SCH',dnc='jobs/DNC',run='jobs/RUN',whm='jobs/WHM',blm='jobs/BLM',blu='jobs/BLU',brd='jobs/BRD',nin='jobs/NIN',smn='jobs/SMN',geo='jobs/GEO',trust='trust/yoran-oran',ja='jobs/WAR',ws='weaponskills/sword/savage-blade',bpr='fallback/abilities/00173',bpw='fallback/abilities/00174',pet='mounts/crab'}
 function M.available(player,spells,known)
@@ -42,6 +42,14 @@ function M.available(player,spells,known)
     return out
 end
 function M.ensure(hotbar,player,spells,known,count)
+    for _,d in ipairs(defs) do
+        local bar=hotbar[d.key]
+        if bar and d.old_name and bar.name==d.old_name then
+            -- Correct only the previous generated label. Keep saved keys,
+            -- slots, other sets and explicitly customized labels intact.
+            bar.name=d.name
+        end
+    end
     for _,d in ipairs(M.available(player,spells,known))do
         if not hotbar[d.key] then
             local bar={name=d.name};hotbar[d.key]=bar
@@ -52,6 +60,9 @@ end
 function M.icon(key,base,exists)
     for _,d in ipairs(defs)do
         if d.key==key then
+            -- Keep legacy menu paths: the shared asset resolver applies the
+            -- same canonical/override precedence as the main menu itself.
+            if d.menu_icon then return d.menu_icon,d.menu_offset end
             local path='images/'..base..'/'..paths[d.icon]..'.png'
             if exists(path)then return path end
             -- Category artwork is shipped in the default pack even if a custom
