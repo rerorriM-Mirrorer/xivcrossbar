@@ -19,16 +19,18 @@ local factory={}
 -- A: Cioara's supplied October 23 L1 layout, with no fixed character names.
 factory.l1={Closed={action('Back','command','switch p'),action('Call','command','npc call'),
     action('Next','command','switch next'),action('Leader','command','switch p1'),
-    action('Trust Toggle','command','trust toggle'),
-    action('Stand Ready','command','trust ready'),
+    action('Toggle','command','trust toggle'),
+    action('Ready','command','trust ready'),
     action('Stand Down','command','trust standdown'),
-    action('Trust Menu','command','trust menu')}}
+    action('Menu','command','trust menu')}}
 factory.l1.Menu=factory.l1.Closed
 factory.r1={Closed={action('Left','command','npc raw left'),action('Down','command','npc raw down'),
     action('Right','command','npc raw right'),action('Up','command','npc raw up'),
     action('Raw Enter','command','npc raw enter'),action('Enter','command','npc enter'),
     action('Cancel','command','npc cancel'),action('Interact','command','npc interact')}}
-factory.r1.Menu=factory.r1.Closed
+factory.r1.Menu={action('Previous','key','alt+left',true),action('Fast Down','key','ctrl+down',true),
+    action('Next','key','alt+right',true),action('Fast Up','key','ctrl+up',true)}
+for i=5,8 do factory.r1.Menu[i]=clone(factory.r1.Closed[i]) end
 -- Empty second levels are disabled independently of drawing; a shoulder-first
 -- extra trigger keeps its first-level bank, while trigger-first stays ordinary.
 function M.factory(layer,slot,menu)
@@ -43,9 +45,9 @@ function M.defaults()
     -- Windower config lowercases XML tags and restores their spelling from
     -- defaults. Declare the whole shape, including empty strings/booleans, so
     -- a fresh process can reload saved banks without losing names or types.
-    local d={Version=0,Preset='',LinkedPositions=true}
+    local d={Version=0,Preset='',LinkedPositions=true,Centered=true,R1MenuDefaultsApplied=false}
     for _,name in pairs(layers) do
-        d[name]={Closed={},Menu={},Display='held',Enabled=name=='L1' or name=='R1' or name=='L1R1',Visible=true,ShowOnMenu=true,MenuActions=false,AllowCutscenes=false,Title=''}
+        d[name]={Closed={},Menu={},Display='held',Enabled=name=='L1' or name=='R1' or name=='L1R1',Visible=true,ShowOnMenu=true,MenuActions=name=='R1',AllowCutscenes=false,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
             d[name][context]['Slot'..i]={Alias='',Kind='',Command='',Key='',Hold=false,Icon=''}
         end end
@@ -69,7 +71,9 @@ function M.ensure(settings)
         b.Enabled=b.Enabled==true
         b.Display=b.Display=='always' and 'always' or 'held'
         b.Visible=b.Visible~=false;b.ShowOnMenu=b.ShowOnMenu~=false
+        if b.MenuActions==nil then b.MenuActions=name=='R1' end
         b.MenuActions=b.MenuActions==true;b.Title=type(b.Title)=='string' and b.Title or ''
+        if name=='R1' and d.R1MenuDefaultsApplied~=true then b.MenuActions=true end
         b.AllowCutscenes=b.AllowCutscenes==true
         for _,context in ipairs({'Closed','Menu'}) do
             if type(d[name][context])~='table' then d[name][context]={} end
@@ -92,6 +96,10 @@ function M.ensure(settings)
                 for _,field in ipairs({'Alias','Command','Key','Icon'}) do if type(e[field])~='string' then e[field]='' end end
                 if e.Kind~='key' and e.Kind~='command' and e.Kind~='default' then e.Kind='command' end
                 e.Hold=e.Hold==true
+                if name=='R1' and context=='Menu' and i<=4 and d.R1MenuDefaultsApplied~=true
+                    and same(e,M.factory('r1',i,false)) and e.Icon=='' then
+                    d[name][context][key]=inherited()
+                end
                 if version==1 and ((name=='L1' or name=='R1') and same(e,M.factory(layer,i,context=='Menu'))
                     or name=='R1R2' and e.Kind=='command' and e.Alias=='' and e.Command=='' and e.Key=='') then
                     d[name][context][key]=inherited()
@@ -99,6 +107,7 @@ function M.ensure(settings)
             end
         end
     end
+    d.R1MenuDefaultsApplied=true
     for _,side in ipairs({'Left','Right'}) do
         local panel=side..'Panel'
         if type(d[panel])~='table' or migrate and d[panel].Initialized==false then
@@ -284,6 +293,7 @@ function M.new(options)
         self:move_panel(side,p.X,p.Y)
     end
     function self:move_panel(side,x,y)
+        self:settings().Centered=false
         if self.viewport and self.panel_bounds then
             local w,h=0,0
             for _,b in pairs(self.panel_bounds) do w=math.max(w,b.width);h=math.max(h,b.height) end

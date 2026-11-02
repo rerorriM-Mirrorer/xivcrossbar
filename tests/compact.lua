@@ -55,6 +55,13 @@ for _,res in ipairs(resolutions) do
     local options=theme.apply(defaults)
     options.button_layout='playstation'
     ui:setup(options,{})
+    local lo,hi=math.huge,-math.huge
+    for h=1,2 do for i=1,8 do
+        local x=ui.geometry:point(ui:get_slot_x(h,i),ui:get_slot_y(h,i))
+        lo=math.min(lo,x);hi=math.max(hi,x+40*scale)
+    end end
+    assert(math.abs((lo+hi)/2-res[1]/2)<.001,'main slot group not centered')
+    equal(defaults.Style.OffsetX,37,'saved horizontal offset preserved')
     ui.public_visible=true
     ui.chooser_open=true
     ui.geometry:set_opacity(.43)

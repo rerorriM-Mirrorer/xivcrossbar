@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-l1party1'
+_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-centeredbanks1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -163,7 +163,7 @@ local l1_bank=require('libs/banks/legacy').new({settings=bank_settings,clock=l1_
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local l1_bridge=require('libs/banks/legacy_transport').new({session=require('libs/windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
-local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings})
+local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings,main_top=function() return ui:get_screen_top() end})
 companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1_clock,
     chat_cancel=function(button)
         local signal=transport.signals[require('libs/controller/messages').diks[button]]
@@ -176,7 +176,7 @@ companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1
     say=function(message) windower.add_to_chat(0,message) end,
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
-local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion'})
+local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion',main_top=function() return ui:get_screen_top() end})
 controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
     trace=function(message) input_timing:record(message) end,
@@ -204,7 +204,7 @@ local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui/drag').new({
     enabled=function() return l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
     bounds=function() return l1_view:bounds() end,
-    offsets=function() local d=l1_view.options.bank:settings();return d.X,d.Y end,
+    offsets=function() local b=l1_view:bounds();return b.x,b.y end,
     move=function(x,y)
         local b=l1_view.options.bank
         if b.move then b:move(x,y) else local d=b:settings();d.X,d.Y=x,y end
@@ -214,7 +214,7 @@ local l1_drag=require('ui/drag').new({
 local r1_drag=require('ui/drag').new({
     enabled=function() return r1_view.opacity>.01 and not companion_right:settings().Locked end,
     bounds=function() return r1_view:bounds() end,
-    offsets=function() local d=companion_right:settings();return d.X,d.Y end,
+    offsets=function() local b=r1_view:bounds();return b.x,b.y end,
     move=function(x,y) companion_right:move(x,y) end,
     save=function() bank_storage:save() end})
 
@@ -229,8 +229,16 @@ local crossbar_drag = require('ui/drag').new({
             and ui.geometry.opacity > .01
     end,
     bounds=function() return ui:get_drag_bounds() end,
-    offsets=function() return settings.Style.OffsetX,settings.Style.OffsetY end,
+    offsets=function()
+        local x=settings.Style.OffsetX
+        if settings.CenterCrossbars then
+            local screen=windower.get_windower_settings()
+            x=ui.geometry.screen_x-(screen.ui_x_res/2-240*ui.geometry.scale)
+        end
+        return x,settings.Style.OffsetY
+    end,
     move=function(x,y)
+        settings.CenterCrossbars=false
         settings.Style.OffsetX,settings.Style.OffsetY=x,y
         theme_options.offset_x, theme_options.offset_y = x,y
         move_crossbars(x,y)
@@ -249,6 +257,7 @@ local function set_crossbar_position(args)
     end
     if not ui.is_setup then windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] Finish setup before positioning crossbars.'));return end
     crossbar_drag:finish()
+    settings.CenterCrossbars=false
     settings.Style.OffsetX,settings.Style.OffsetY=x,y
     theme_options.offset_x,theme_options.offset_y=x,y
     move_crossbars(x,y);config.save(settings);ui_dirty=true
@@ -1594,6 +1603,16 @@ windower.register_event('addon command', function(command, ...)
         if not safe then ok,err=false,tostring(ok) end
         if not ok then windower.add_to_chat(0,require('libs/chat_status').notice(err or 'Binding failed.',167)) end
         return
+    end
+    if command=='center' then
+        local value=args[1] and args[1]:lower() or 'on'
+        if #args>1 or (value~='on' and value~='off') then
+            windower.add_to_chat(0,'[XIVCrossbar] //xb center [on|off]');return
+        end
+        settings.CenterCrossbars=value=='on'
+        companion_banks:settings().Centered=value=='on'
+        move_crossbars(settings.Style.OffsetX,settings.Style.OffsetY)
+        config.save(settings);bank_storage:save();ui_dirty=true;return
     end
     if command=='pos' then return set_crossbar_position(args) end
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then

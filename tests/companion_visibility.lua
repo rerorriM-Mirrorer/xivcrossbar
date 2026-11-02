@@ -23,7 +23,7 @@ bank:edge(13,true);bank:edge(5,true);bank:edge(5,false);bank:edge(13,false)
 assert(#sent==1,'chat blocked deliberate bank input');sent={}
 allowed=true;bank:refresh();bank:edge(14,true)
 for b=1,8 do bank:edge(b,true);bank:edge(b,false)end
-assert(table.concat(sent,'|')=='npc raw up|npc raw right|npc raw down|npc raw left|npc enter|npc raw enter|npc cancel|npc interact')
+assert(table.concat(sent,'|')=='npc enter|npc raw enter|npc cancel|npc interact')
 bank:edge(14,false);bank:cancel()
 assert(bank:command({'l1','hide'}));assert(left:opacity(true)==0)
 assert(bank:command({'l1','show'}));bank:edge(13,true);assert(left:opacity(true)==1)

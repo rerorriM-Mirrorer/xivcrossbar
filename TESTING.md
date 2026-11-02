@@ -1,3 +1,12 @@
+# Current Development Status — November 2, 2026 — Centered Banks 1
+
+- Baseline 89d0947645473cab12e26976749c599cd2b59501 on rerorriM-Mirrorer/xivcrossbar development/ahk-v2-migration. Current GitHub AGENTS/WORKFLOW/TESTING read before edits. User approves centering and factory label/artwork/menu defaults only, preserving saved custom entries and unused-bank/transport/stick behavior. Runtime centeredbanks1.
+- Main geometry centers the actual main slot span; vertical offset and saved X remain intact. Companion draw coordinates center the common panel above main slot footprint without replacing saved panel coordinates. New center on/off command, manual drag/position opt-out, both panel drag bounds follow displayed coordinates. No user XML replacement.
+- L1 factory/Cioara labels Ready, Stand Down, Toggle, Menu; red disengage/custom_actions artwork replaces Stand Down/Menu suggestions with explicit Icon precedence. Current Trust command strings unchanged. R1 Menu directions use held Alt+Left/Right, Ctrl+Up/Down. User explicitly selected all native menus after menu signal investigation. Follow-up explicitly requests R1 Menu Actions on for existing settings too: a persisted one-time marker enables it, then respects later explicit off; exact old factory raw Menu directions adopt the new defaults once; custom entries remain preserved. Selective adoption documented in docs/CENTERED-BANKS1.md; broad preset not applied automatically.
+- All 88 top-level Lua suites and 185 temporarily normalized Lua parses passed, including 144 real UI geometry scenarios across six resolutions/three scales. Focused storage reload tests verify later explicit Menu Actions off survives the adoption marker. Canonical dependency/layout and whitespace checks pass. Published checkpoint recorded in delivery. No Windows/controller/in-game acceptance claimed. Requires live position, menu-release and Trust behavior checks in the guide. No AHK, polling, movement, stick, job-set or character-binding edits. Historical testing entries retained below.
+
+---
+
 # Current Development Status — November 2, 2026 — L1 Party 1
 
 - Baseline c9e6bc6d93978879e6666d4be4b4ee93b8930689, personal development/ahk-v2-migration. User explicitly requests four L1 factory/Cioara face changes, preserving other saved entries and transport/stick. Runtime l1party1.

@@ -1,4 +1,5 @@
 local defaults = {}
+defaults.CenterCrossbars = true
 defaults.HiddenCategorySets = {}
 defaults.CustomActionSaveScope = 'global'
 

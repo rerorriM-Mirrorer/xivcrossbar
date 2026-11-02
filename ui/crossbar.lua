@@ -642,8 +642,24 @@ end
 function ui:update_geometry_origin(move_contents)
     local screen = windower.get_windower_settings()
     local x = screen.ui_x_res / 2 - 240 * geometry.scale + (self.pos_x - (screen.ui_x_res / 2 - 240))
+    if settings.CenterCrossbars==true then
+        local lo,hi=math.huge,-math.huge
+        for h=1,2 do for i=1,8 do
+            local slot=self:get_slot_x(h,i)-self.pos_x
+            lo=math.min(lo,slot);hi=math.max(hi,slot+40)
+        end end
+        x=screen.ui_x_res/2-(lo+hi)/2*geometry.scale
+    end
     local y = screen.ui_y_res - 120 * geometry.scale + (self.pos_y - (screen.ui_y_res - 120))
     geometry:set_origin(self.pos_x, self.pos_y, x, y, move_contents)
+end
+function ui:get_screen_top()
+    local top=math.huge
+    for h=1,2 do for i=1,8 do
+        local _,y=geometry:point(self:get_slot_x(h,i),self:get_slot_y(h,i))
+        top=math.min(top,y)
+    end end
+    return top
 end
 function ui:set_scale(scale)
     if scale ~= scale or scale == math.huge or scale == -math.huge then scale = 1 end

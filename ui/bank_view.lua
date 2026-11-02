@@ -56,9 +56,19 @@ function M.new(options)
         local vertical=(tonumber(style.HotbarSpacing) or 56)/2
         return s,horizontal,vertical,60+5*horizontal,92+2*vertical
     end
+    function self:position(width,height)
+        local d=options.bank:settings();local s,_,_,w,h=self:metrics()
+        if options.settings and options.settings.CompanionBanks and options.settings.CompanionBanks.Centered==true then
+            local top=options.main_top and options.main_top() or height-120*s
+            return math.max(0,(width-w*s)/2),math.max(0,top-h*s-12*s)
+        end
+        return d.X,d.Y
+    end
     function self:bounds()
         local d=options.bank:settings();local s,_,_,w,h=self:metrics()
-        return {x=d.X,y=d.Y,width=w*s,height=h*s}
+        local v=self.viewport;local x,y=d.X,d.Y
+        if v then x,y=self:position(v.width,v.height) end
+        return {x=x,y=y,width=w*s,height=h*s}
     end
     function self:clamp(width,height)
         local d=options.bank:settings();local b=self:bounds()
@@ -68,7 +78,8 @@ function M.new(options)
     end
     function self:tick(eligible,width,height)
         self.opacity=options.bank:opacity(eligible)
-        self:clamp(width,height)
+        self.viewport={width=width,height=height}
+        if not (options.settings and options.settings.CompanionBanks and options.settings.CompanionBanks.Centered==true) then self:clamp(width,height) end
         if self.opacity<=0 and not self.allocated then return end
         self:allocate()
         if self.opacity<=0 then
@@ -76,7 +87,7 @@ function M.new(options)
             for _,slot in ipairs(self.slots) do slot.feedback_alpha=nil end
             self.visible=false;return
         end
-        local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=d.X,d.Y
+        local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=self:position(width,height)
         local alpha=math.floor(255*self.opacity+.5)
         local mode=options.bank:mode()
         local typography=options.settings and options.settings.Texts or {}
@@ -90,7 +101,7 @@ function M.new(options)
             local entry=d['Slot'..i]
             local label=mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
             if #label>10 then label=label:sub(1,9)..'~' end
-            local suggested={['trust ready']='assist',['trust standdown']='follow',['trust toggle']='return-trust',['trust menu']='abilities/book_white'}
+            local suggested={['trust ready']='assist',['trust standdown']='disengage',['trust toggle']='return-trust',['trust menu']='custom_actions'}
             artwork[i]=entry.Icon and entry.Icon~='' and entry.Icon or (suggested[entry.Command] and 'images/icons/default/'..suggested[entry.Command]..'.png') or 'images/icons/default/ui/binding_icons/'..icons[i]..'.png'
             parts[#parts+1]=artwork[i]
             labels[i]=label;parts[#parts+1]=string.format('%q',label)

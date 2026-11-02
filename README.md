@@ -1,3 +1,7 @@
+Personal Centered Banks 1: exact horizontal main-bar centering, shared companion
+banks above, shorter L1 defaults and red Stand Down/Menu artwork. Native-menu
+R1 scrolling defaults preserve saved overrides. See [installation and adoption](docs/CENTERED-BANKS1.md).
+
 Personal L1 Party update: Cross Stand Ready (trust ready), Circle Stand Down
 (trust standdown), Square personal Trust Toggle, Triangle Trust Menu. Factory
 and Cioara preset use the coordinated commands; saved overrides stay intact.
