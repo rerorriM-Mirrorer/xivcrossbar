@@ -358,6 +358,7 @@ end
 
 -- setup ui
 function ui:setup(theme_options, enchanted_items)
+    self.center_crossbars=theme_options.center_crossbars==true
     geometry:configure_fade(theme_options.fade_enabled, theme_options.fade_in,
         theme_options.fade_out, theme_options.load_fade_in, {claimed=false})
     geometry:set_text_fade(theme_options.text_fade)
@@ -642,7 +643,7 @@ end
 function ui:update_geometry_origin(move_contents)
     local screen = windower.get_windower_settings()
     local x = screen.ui_x_res / 2 - 240 * geometry.scale + (self.pos_x - (screen.ui_x_res / 2 - 240))
-    if settings.CenterCrossbars==true then
+    if self.center_crossbars==true then
         local lo,hi=math.huge,-math.huge
         for h=1,2 do for i=1,8 do
             local slot=self:get_slot_x(h,i)-self.pos_x

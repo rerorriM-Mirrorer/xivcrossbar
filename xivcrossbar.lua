@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261104.directlink1-ahkv2-summonswap1'
+_addon.version = '0.4.0-a.20261104.directlink1-ahkv2-centerscroll1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -163,7 +163,7 @@ local l1_bank=require('libs/banks/legacy').new({settings=bank_settings,clock=l1_
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local l1_bridge=require('libs/banks/legacy_transport').new({session=require('libs/windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
-local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings,main_top=function() return ui:get_screen_top() end})
+local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,main_top=function() return ui:get_screen_top() end})
 companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1_clock,
     chat_cancel=function(button)
         local signal=transport.signals[require('libs/controller/messages').diks[button]]
@@ -176,7 +176,7 @@ companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1
     say=function(message) windower.add_to_chat(0,message) end,
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
-local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,owner='r1-companion',main_top=function() return ui:get_screen_top() end})
+local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,owner='r1-companion',main_top=function() return ui:get_screen_top() end})
 controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
     trace=function(message) input_timing:record(message) end,
@@ -219,6 +219,7 @@ local r1_drag=require('ui/drag').new({
     save=function() bank_storage:save() end})
 
 local function move_crossbars(x,y)
+    ui.center_crossbars=settings.CenterCrossbars==true
     ui:move_to(x,y)
     env_chooser:set_anchor(ui:get_set_chooser_anchor())
 end
@@ -245,6 +246,23 @@ local crossbar_drag = require('ui/drag').new({
     end,
     save=function() config.save(settings) end,
 })
+
+local function set_centered_position(args)
+    local value=args[1] and args[1]:lower() or 'on'
+    if #args>1 or (value~='on' and value~='off') then
+        windower.add_to_chat(0,require('libs/chat_status').notice('Use //xb center [on|off].',167));return
+    end
+    settings.CenterCrossbars=value=='on'
+    companion_banks:settings().Centered=value=='on'
+    if ui.is_setup then move_crossbars(settings.Style.OffsetX,settings.Style.OffsetY) end
+    local saved=bank_storage:save()
+    config.save(settings)
+    ui_dirty=true
+    windower.add_to_chat(0,require('libs/chat_status').notice('Centering: Main '..value:upper()..' | Companion '..value:upper()))
+    if saved==false then
+        windower.add_to_chat(0,require('libs/chat_status').notice('Companion position settings could not be saved.',140))
+    end
+end
 
 local function set_crossbar_position(args)
     if #args==0 then
@@ -1286,6 +1304,7 @@ function display_help_menu()
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
     help.command('realkeys [on|off|status]','Test AHK keyboard IJKL in ordinary gameplay; default OFF, bare toggles.')
     help.command('scale <0.25-2>','Scale crossbars independently of menus.')
+    help.command('center [on|off]','Center main bars and companion banks above them; bare enables.')
     help.command('pos [<offset x> <offset y>]','Report copyable main-bar coordinates, or set them.')
     help.command('compact [on|off]','Switch layout immediately; bare toggles.')
     help.command('show','Show crossbars.')
@@ -1606,16 +1625,7 @@ windower.register_event('addon command', function(command, ...)
         if not ok then windower.add_to_chat(0,require('libs/chat_status').notice(err or 'Binding failed.',167)) end
         return
     end
-    if command=='center' then
-        local value=args[1] and args[1]:lower() or 'on'
-        if #args>1 or (value~='on' and value~='off') then
-            windower.add_to_chat(0,'[XIVCrossbar] //xb center [on|off]');return
-        end
-        settings.CenterCrossbars=value=='on'
-        companion_banks:settings().Centered=value=='on'
-        move_crossbars(settings.Style.OffsetX,settings.Style.OffsetY)
-        config.save(settings);bank_storage:save();ui_dirty=true;return
-    end
+    if command=='center' then return set_centered_position(args) end
     if command=='pos' then return set_crossbar_position(args) end
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
         return set_text_fade(command == 'textfade' and args[1] or args[2])
@@ -1663,6 +1673,7 @@ windower.register_event('addon command', function(command, ...)
         windower.add_to_chat(0,format.heading('Crossbars'))
         row('Layout',(settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)..' | Visibility: '..
             (({oninput='On Input',always='Always',hidden='Hidden'})[settings.VisibilityMode] or tostring(settings.VisibilityMode)))
+        row('Centering','Main: '..format.toggle(settings.CenterCrossbars)..' | Companion: '..format.toggle(companion_banks:settings().Centered))
         row('Position','//xb pos '..tostring(settings.Style.OffsetX)..' '..tostring(settings.Style.OffsetY))
         row('Animation','Fades: '..format.toggle(settings.Animation.Enabled)..' | Text Fade: '..format.toggle(settings.Animation.TextFade))
         row('D-pad',settings.GameplayDPad=='ijkl' and 'IJKL' or 'Arrow Keys')

@@ -211,6 +211,7 @@ function M.new(options)
             -- default already has the marker; a later explicit off must survive.
             records[self.character].CompanionBanks=records[self.character].CompanionBanks or {}
             records[self.character].CompanionBanks.R1MenuDefaultsApplied=true
+            records[self.character].CompanionBanks.R1ScrollDefaultsApplied=true
             local contents=M.encode(records)
             local verified,verify_error=checked(contents);if not verified then return false,verify_error end
             local backed,backup_error=options.replace(path..'.bak',raw);if not backed then return false,backup_error end

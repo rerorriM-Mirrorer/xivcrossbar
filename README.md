@@ -1,3 +1,7 @@
+Personal Center and Scroll 1: fixes companion centering and R1 ten-item list
+scrolling. Use `//xb center on` to center both groups. See
+[installation and checks](docs/CENTER-SCROLL1.md).
+
 Personal Summon Swap 1: active Trust slots show Return. Selecting a different
 avatar/spirit releases the current summon and waits for it to disappear before
 casting. See [installation and live checks](docs/SUMMON-SWAP1.md).
@@ -1674,3 +1678,8 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 
 - Short Return caption for active Trust dismissal slots.
 - Typed avatar/spirit bindings sequence Release and the new summon, with observed completion and cancellation.
+
+### November 4, 2026 — Center and Scroll 1
+
+- Companion rendering reads its separate bank settings, fixing L1/R1 staying at saved positions after center on.
+- R1 Menu Up/Down use Ctrl+Left/Right for ten-item scrolling; saved old defaults adopt the correction once.

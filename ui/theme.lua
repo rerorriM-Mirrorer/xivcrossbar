@@ -93,6 +93,7 @@ theme.apply = function (settings)
     options.slot_opacity = settings.Style.SlotAlpha
     options.slot_spacing = settings.Style.SlotSpacing
     options.hotbar_spacing = settings.Style.HotbarSpacing
+    options.center_crossbars = settings.CenterCrossbars==true
     options.offset_x = settings.Style.OffsetX
     options.offset_y = settings.Style.OffsetY
 

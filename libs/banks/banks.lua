@@ -28,8 +28,8 @@ factory.r1={Closed={action('Left','command','npc raw left'),action('Down','comma
     action('Right','command','npc raw right'),action('Up','command','npc raw up'),
     action('Raw Enter','command','npc raw enter'),action('Enter','command','npc enter'),
     action('Cancel','command','npc cancel'),action('Interact','command','npc interact')}}
-factory.r1.Menu={action('Previous','key','alt+left',true),action('Fast Down','key','ctrl+down',true),
-    action('Next','key','alt+right',true),action('Fast Up','key','ctrl+up',true)}
+factory.r1.Menu={action('Previous','key','alt+left',true),action('Fast Down','key','ctrl+right',true),
+    action('Next','key','alt+right',true),action('Fast Up','key','ctrl+left',true)}
 for i=5,8 do factory.r1.Menu[i]=clone(factory.r1.Closed[i]) end
 -- Empty second levels are disabled independently of drawing; a shoulder-first
 -- extra trigger keeps its first-level bank, while trigger-first stays ordinary.
@@ -45,7 +45,7 @@ function M.defaults()
     -- Windower config lowercases XML tags and restores their spelling from
     -- defaults. Declare the whole shape, including empty strings/booleans, so
     -- a fresh process can reload saved banks without losing names or types.
-    local d={Version=0,Preset='',LinkedPositions=true,Centered=true,R1MenuDefaultsApplied=false}
+    local d={Version=0,Preset='',LinkedPositions=true,Centered=true,R1MenuDefaultsApplied=false,R1ScrollDefaultsApplied=false}
     for _,name in pairs(layers) do
         d[name]={Closed={},Menu={},Display='held',Enabled=name=='L1' or name=='R1' or name=='L1R1',Visible=true,ShowOnMenu=true,MenuActions=name=='R1',AllowCutscenes=false,Title=''}
         for _,context in ipairs({'Closed','Menu'}) do for i=1,8 do
@@ -100,6 +100,11 @@ function M.ensure(settings)
                     and same(e,M.factory('r1',i,false)) and e.Icon=='' then
                     d[name][context][key]=inherited()
                 end
+                if name=='R1' and context=='Menu' and d.R1ScrollDefaultsApplied~=true
+                    and ((i==2 and same(e,action('Fast Down','key','ctrl+down',true)))
+                        or (i==4 and same(e,action('Fast Up','key','ctrl+up',true)))) and e.Icon=='' then
+                    d[name][context][key]=inherited()
+                end
                 if version==1 and ((name=='L1' or name=='R1') and same(e,M.factory(layer,i,context=='Menu'))
                     or name=='R1R2' and e.Kind=='command' and e.Alias=='' and e.Command=='' and e.Key=='') then
                     d[name][context][key]=inherited()
@@ -108,6 +113,7 @@ function M.ensure(settings)
         end
     end
     d.R1MenuDefaultsApplied=true
+    d.R1ScrollDefaultsApplied=true
     for _,side in ipairs({'Left','Right'}) do
         local panel=side..'Panel'
         if type(d[panel])~='table' or migrate and d[panel].Initialized==false then
@@ -290,10 +296,10 @@ function M.new(options)
         self.panel_bounds[side]={width=w,height=h}
         self.viewport={width=width,height=height}
         local p=self:settings().LeftPanel
-        self:move_panel(side,p.X,p.Y)
+        self:move_panel(side,p.X,p.Y,true)
     end
-    function self:move_panel(side,x,y)
-        self:settings().Centered=false
+    function self:move_panel(side,x,y,clamping)
+        if not clamping then self:settings().Centered=false end
         if self.viewport and self.panel_bounds then
             local w,h=0,0
             for _,b in pairs(self.panel_bounds) do w=math.max(w,b.width);h=math.max(h,b.height) end

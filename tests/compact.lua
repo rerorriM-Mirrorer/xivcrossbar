@@ -62,6 +62,10 @@ for _,res in ipairs(resolutions) do
     end end
     assert(math.abs((lo+hi)/2-res[1]/2)<.001,'main slot group not centered')
     equal(defaults.Style.OffsetX,37,'saved horizontal offset preserved')
+    ui.center_crossbars=false;ui:update_geometry_origin()
+    equal(ui.geometry.screen_x,res[1]/2-240*scale+37,'manual position mode')
+    ui.center_crossbars=true;ui:update_geometry_origin()
+
     ui.public_visible=true
     ui.chooser_open=true
     ui.geometry:set_opacity(.43)

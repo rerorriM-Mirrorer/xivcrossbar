@@ -56,9 +56,14 @@ function M.new(options)
         local vertical=(tonumber(style.HotbarSpacing) or 56)/2
         return s,horizontal,vertical,60+5*horizontal,92+2*vertical
     end
+    function self:centered()
+        -- Bank persistence is separate from the main style/settings table.
+        local state=options.bank_settings or options.settings
+        return state and state.CompanionBanks and state.CompanionBanks.Centered==true
+    end
     function self:position(width,height)
         local d=options.bank:settings();local s,_,_,w,h=self:metrics()
-        if options.settings and options.settings.CompanionBanks and options.settings.CompanionBanks.Centered==true then
+        if self:centered() then
             local top=options.main_top and options.main_top() or height-120*s
             return math.max(0,(width-w*s)/2),math.max(0,top-h*s-12*s)
         end
@@ -79,7 +84,7 @@ function M.new(options)
     function self:tick(eligible,width,height)
         self.opacity=options.bank:opacity(eligible)
         self.viewport={width=width,height=height}
-        if not (options.settings and options.settings.CompanionBanks and options.settings.CompanionBanks.Centered==true) then self:clamp(width,height) end
+        if not (self:centered()) then self:clamp(width,height) end
         if self.opacity<=0 and not self.allocated then return end
         self:allocate()
         if self.opacity<=0 then
