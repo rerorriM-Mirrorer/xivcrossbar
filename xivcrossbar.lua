@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261102.directlink1-ahkv2-centeredbanks1'
+_addon.version = '0.4.0-a.20261104.directlink1-ahkv2-summonswap1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -1427,6 +1427,7 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    if player.summon_swap then player.summon_swap:cancel() end
     controller_message_bridge:reset()
     l1_drag:finish();r1_drag:finish();l1_bridge:reset();l1_view:destroy();r1_view:destroy();personal_controls:close()
     profile_gate:reset()
@@ -1452,6 +1453,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    if player.summon_swap then player.summon_swap:cancel() end
     if client_registry then client_registry:close(settings.on_unload_killahk) end
     ui.autoattack:set_enabled(false)
     personal_controls:close()
@@ -2648,6 +2650,7 @@ end)
 
 -- ON JOB CHANGE
 windower.register_event('job change',function(main_job, main_job_level, sub_job, sub_job_level)
+    if player.summon_swap then player.summon_swap:cancel() end
     -- skillchains has its own internal state and is fine pre-init, so it
     -- runs unconditionally. Everything below it depends on initialize().
     skillchains.job_change(main_job, main_job_level)
@@ -2745,6 +2748,7 @@ windower.register_event('incoming chunk', function(id, data)
 end)
 
 windower.register_event('zone change', function()
+    if player.summon_swap then player.summon_swap:cancel() end
     skillchains.zone_change()
 end)
 

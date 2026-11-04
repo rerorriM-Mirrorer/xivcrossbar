@@ -1,6 +1,8 @@
 -- Actual availability and dispatch policies, including quick-switch behavior.
 package.loaded['resources/crossbar_spells']={}
 local P=require('libs/pet_actions')
+package.loaded['socket']={gettime=function()return 10 end}
+local scheduled={}
 local abilities={['healing-ruby']={type='pet',category='blood-pacts/ward'},
  ['poison-nails']={type='pet',category='blood-pacts/rage'},
  ['sheep-song']={type='ja',category='ready'}}
@@ -36,7 +38,7 @@ local f=assert(io.open('libs/player.lua'));local source=f:read('*a');f:close()
 local a=assert(source:find('function player:execute_action(',1,true))
 local b=assert(source:find('-- remove action from slot',a,true))
 local player={hotbar={avatar={hotbar_1={}}},hotbar_settings={active_environment='avatar',active_hotbar=1}}
-local env=setmetatable({player=player,windower={ffxi=ffxi,
+local env=setmetatable({player=player,coroutine={schedule=function(fn) scheduled[#scheduled+1]=fn end},windower={ffxi=ffxi,
  send_command=function(command)sent[#sent+1]=command end,
  add_to_chat=function(_,message)notices[#notices+1]=message end},
  avatar_names={contains=function()return false end},job_abilities={contains=function()return false end},
@@ -102,7 +104,9 @@ for _,name in ipairs({'Carbuncle','Cait Sith','Fire Spirit'}) do
  current_pet=nil;player.temp_switch_previous_env=nil;action(binding)
  assert(#sent==1 and sent[1]=='input /ma "'..name..'" <me>','summon did not restore after dismissal')
  current_pet={name='Ifrit',hpp=100};action(binding)
- assert(sent[1]=='input /ma "'..name..'" <me>','different summon became Release')
+ assert(#sent==1 and sent[1]=='input /pet "Release" <me>','different summon did not release first')
+ current_pet=nil;local poll=table.remove(scheduled,1);assert(poll);poll()
+ assert(#sent==2 and sent[2]=='input /ma "'..name..'" <me>','summon not cast after observed disappearance')
  current_pet={name=name,hpp=0};action(binding)
  assert(sent[1]=='input /ma "'..name..'" <me>','dead summon became Release')
 end

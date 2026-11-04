@@ -14,7 +14,7 @@ function M.snapshot(ffxi)
     local name=alive and key(pet.name) or ''
     local player=ffxi.get_player and ffxi.get_player()
     return {pet=alive,avatar=alive and avatars[name]==true,summon=alive and (avatars[name]==true or spirits[name]==true),
-        trust=require('libs/trust_actions').snapshot(ffxi),pet_name=name,pet_engaged=alive and pet.status==1,engaged=player and (player.status==1 or player.status==3),player=player}
+        trust=require('libs/trust_actions').snapshot(ffxi),pet_name=name,pet_id=alive and (pet.id or pet.index),pet_engaged=alive and pet.status==1,engaged=player and (player.status==1 or player.status==3),player=player}
 end
 -- Resolve transient display/dispatch values without changing the saved slot.
 -- Either standard SMN command can be used as the same stateful pet toggle.
@@ -31,8 +31,12 @@ function M.pet_toggle(action,state)
     elseif name=='retreat' or action.target=='me' or not action.target then resolved.target='t' end
     return resolved
 end
--- Only the matching summon slot becomes Release. Other summons remain spells,
--- so switching pets stays an explicit choice and saved artwork stays intact.
+-- Only the matching summon slot becomes Release. Other summon slots retain
+-- their spell labels/artwork; dispatch sequences Release before a new summon.
+function M.is_summon(action)
+    local name=action and action.type=='ma' and key(action.action)
+    return name and (avatars[name] or spirits[name]) or false
+end
 function M.summon_toggle(action,state)
     if not action or action.type~='ma' or not state.summon then return end
     local name=key(action.action)

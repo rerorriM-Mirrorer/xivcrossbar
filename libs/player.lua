@@ -727,6 +727,14 @@ end
 
 function player:dispatch_action(action)
     local pet_policy=require('libs/pet_actions')
+    local switching=false
+    if pet_policy.is_summon(action) then
+        local state=pet_policy.snapshot(windower.ffxi)
+        switching=state.summon and not pet_policy.summon_toggle(action,state)
+    end
+    if self.summon_swap and not switching then
+        self.summon_swap:cancel('Summon switch cancelled: another action was selected.')
+    end
     if action.type=='pet' or action.type=='ja' or action.type=='ma' then
         local state=pet_policy.snapshot(windower.ffxi)
         local spells=require('resources/crossbar_spells')
@@ -747,6 +755,25 @@ function player:dispatch_action(action)
             for _,command in ipairs(commands) do windower.send_command(command) end
             return
         end
+    end
+    if switching then
+        if not self.summon_swap then
+            self.summon_swap=require('libs/summon_swap').new({
+                clock=require('socket').gettime,schedule=function(fn,delay) coroutine.schedule(fn,delay) end,
+                snapshot=function() return pet_policy.snapshot(windower.ffxi) end,
+                context=function()
+                    local p=windower.ffxi.get_player() or {}
+                    local info=windower.ffxi.get_info and windower.ffxi.get_info() or {}
+                    return table.concat({tostring(p.id),tostring(p.name),tostring(p.main_job_id),
+                        tostring(p.sub_job_id),tostring(info.zone),tostring(info.logged_in)},':')
+                end,
+                send=function(command) windower.send_command(command) end,
+                cast=function(next_action) self:dispatch_action(next_action) end,
+                notice=function(message) windower.add_to_chat(0,require('libs/chat_status').notice(message,140)) end,
+            })
+        end
+        self.summon_swap:request(action,pet_policy.snapshot(windower.ffxi))
+        return
     end
     if action.type == 'ct' then
         local command = '/' .. action.action

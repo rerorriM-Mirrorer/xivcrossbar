@@ -16,7 +16,7 @@ local bar={test={hotbar_1={slot_1=binding}}};local vitals={mp=0,tp=0}
 local tracker={get_skillchain_window=function()return 0,0 end,get_skillchain_result=function()end}
 local function draw()ui:check_vitals(bar,vitals,'test');ui:check_recasts(bar,vitals,'test',{}, {active_bar=1},tracker,{},false,false)end
 ui:load_player_hotbar(bar,vitals,'test',{active_bar=1});draw()
-assert(ui.hotbars[1].slot_text[1]:text()=='Dismiss Kupipi' and ui.hotbars[1].slot_icon[1]:alpha()==255,'present Trust inherited spell MP/recast')
+assert(ui.hotbars[1].slot_text[1]:text()=='Return' and ui.hotbars[1].slot_icon[1]:alpha()==255,'present Trust inherited spell MP/recast')
 local a=T.resolve(binding,T.snapshot(windower.ffxi),spells);assert(a.action=='refa "Kupipi"' and a.trust_dismiss and a.type=='ct')
 assert(require('libs/pet_actions').is_release(a),'Trust dismissal would quick-return')
 assert(binding.action=='Kupipi' and binding.type=='ma','saved Trust binding mutated')

@@ -1,3 +1,7 @@
+Personal Summon Swap 1: active Trust slots show Return. Selecting a different
+avatar/spirit releases the current summon and waits for it to disappear before
+casting. See [installation and live checks](docs/SUMMON-SWAP1.md).
+
 Personal Centered Banks 1: exact horizontal main-bar centering, shared companion
 banks above, shorter L1 defaults and red Stand Down/Menu artwork. Native-menu
 R1 scrolling defaults preserve saved overrides. See [installation and adoption](docs/CENTERED-BANKS1.md).
@@ -1665,3 +1669,8 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 ### November 2, 2026 — L1 Party 1
 
 - Update four factory face buttons to coordinated Trust commands and matching artwork; keep saved overrides and controller behavior.
+
+### November 4, 2026 — Summon Swap 1
+
+- Short Return caption for active Trust dismissal slots.
+- Typed avatar/spirit bindings sequence Release and the new summon, with observed completion and cancellation.

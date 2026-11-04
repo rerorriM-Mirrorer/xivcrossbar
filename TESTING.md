@@ -1,3 +1,11 @@
+# Current Development Status — November 4, 2026 — Summon Swap 1
+
+- Repository rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration; baseline c7f1907d6092181634aeba60b149add60e0f5892 (Centered Banks 1). Current GitHub AGENTS/WORKFLOW/TESTING read before editing. User authorizes both pending Return label and different-summon replacement changes. Separate Ctrl+Left/Right menu-scroll correction remains on standby, not included. Runtime 20261104.directlink1-ahkv2-summonswap1.
+- Active typed Trust slots show Return with existing named refa target/portrait behavior; no saved label changes. Different typed avatar/spirit spells sequence Release, observed disappearance and one cast. Same summon remains Release; absent summon remains normal cast. Explicit pending-request module suppresses duplicates, replaces different requests, and cancels for other actions, context changes, death, replacement pet, five-second timeout and lifecycle events. Custom macros/BST Leave not automated. No layouts/bindings/assets/AHK/Trust changes.
+- Focused actual player dispatch/renderer tests verify Return/named dismissal, matching Release, different-summon sequence, saved bindings/artwork and quick-return behavior. New deterministic request tests verify observed completion, timeout, context/death/new-pet/cancel and stale callbacks. All 89 top-level local Lua 5.4 suites and 187 temporarily normalized source parses passed; canonical dependency/layout and git whitespace checks passed. Published checkpoint in delivery. No Windows/Windower/FFXI live acceptance claimed; see docs/SUMMON-SWAP1.md for checks. Historical records retained below.
+
+---
+
 # Current Development Status — November 2, 2026 — Centered Banks 1
 
 - Baseline 89d0947645473cab12e26976749c599cd2b59501 on rerorriM-Mirrorer/xivcrossbar development/ahk-v2-migration. Current GitHub AGENTS/WORKFLOW/TESTING read before edits. User approves centering and factory label/artwork/menu defaults only, preserving saved custom entries and unused-bank/transport/stick behavior. Runtime centeredbanks1.
