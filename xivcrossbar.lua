@@ -175,6 +175,12 @@ companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1
     save=function() bank_storage:save() end,
     say=function(message) windower.add_to_chat(0,message) end,
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
+local npc_owned_input=require('libs/controller/npc_actions').new({
+    emit=function(op,seq,token)
+        -- The command is local to this Windower client. NPCMirror checks the
+        -- fresh XIVCrossbar owner lease and exact buttons1 token before use.
+        windower.send_command('npc controller edge '..op..' '..seq..' '..token)
+    end})
 local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
 local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,owner='r1-companion',main_top=function() return ui:get_screen_top() end})
 controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
@@ -186,6 +192,13 @@ controller_message_bridge=require('libs/controller/messages').new({session=requi
     physical=function(button,pressed)
         if trust_menu and trust_menu:edge(button,pressed,buttonmapping,companion_banks.down[14]) then return end
         companion_banks:edge(button,pressed)
+        if pressed and (button==5 or button==7) then
+            -- "ordinary" is assigned only after the bank has decided. A
+            -- modified R1+Cross becomes the NPC command, never a bare Enter.
+            npc_owned_input:edge(button,true,companion_banks.owners[button],
+                companion_banks.cutscene,controller_message_bridge.token,
+                controller_message_bridge.ack)
+        end
     end,
     can_recover=function() return companion_context and companion_context() end,
     resume=function(button)
@@ -2412,6 +2425,7 @@ publish_personal_context = function()
             r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
             banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack,
+            npc_owner=controller_message_bridge.token~=nil,
             button_recover=controller_message_bridge.recovering,button_reason=controller_message_bridge.last_reason})
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
