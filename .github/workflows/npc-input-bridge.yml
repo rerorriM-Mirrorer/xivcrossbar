@@ -25,10 +25,11 @@ jobs:
           done
       - name: One-layer overlay and ZIP integrity
         run: |
-          mkdir -p build/xivcrossbar/libs/controller build/xivcrossbar/tests
+          mkdir -p build/xivcrossbar/libs/controller build/xivcrossbar/tests build/xivcrossbar/docs
           cp xivcrossbar.lua README.md WORKFLOW.md TESTING.md build/xivcrossbar/
           cp libs/controller/npc_actions.lua libs/controller/personal_controls.lua build/xivcrossbar/libs/controller/
           cp tests/npc_actions.lua build/xivcrossbar/tests/
+          cp docs/NPC-OWNED-INPUT-T33.md build/xivcrossbar/docs/
           cd build
           zip -qr xivcrossbar-npc-owned-input-t33-test.zip xivcrossbar
           unzip -t xivcrossbar-npc-owned-input-t33-test.zip
