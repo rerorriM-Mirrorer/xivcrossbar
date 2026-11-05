@@ -78,4 +78,4 @@ for name,bar in pairs({l2=1,r2=2,r2l2=3,l2r2=4,l2l2=5,r2r2=6,rr=6,rl=3,lr=4,ll=5
 end
 print('Bank defaults/aliases: v1 adoption, custom/clear preservation, per-context restoration, factory immutability, panel preservation, exact NPC/raw mappings and actual root short-editor dispatch passed.')
 
-for slot,command in pairs({[5]='trust toggle',[6]='trust ready',[7]='trust standdown',[8]=''})do assert(M.factory('l1',slot,false).Command==command and M.factory('l1',slot,true).Command==command)end
+for slot,command in pairs({[5]='trust toggle',[6]='trust ready',[7]='trust standdown',[8]='trust stop'})do assert(M.factory('l1',slot,false).Command==command and M.factory('l1',slot,true).Command==command)end

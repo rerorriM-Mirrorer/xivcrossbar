@@ -2,6 +2,15 @@
 -- and dragging are independent of the main trigger bars and their autohide.
 local bank=require('libs/banks/legacy')
 local M={}
+local suggested={
+    ['trust ready']='assist', ['trust standdown']='disengage',
+    ['trust toggle']='return-trust', ['trust menu']='custom_actions',
+    ['switch p']='return-trust', ['switch next']='switchtarget',
+    ['switch p1']='party-member', ['npc call']='assist', ['trust stop']='disengage',
+    ['npc target']='targetnpc', ['npc alltarget']='targetnpc',
+    ['npc join']='party-member', ['npc interact']='check', ['npc']='check',
+    ['npc auto']='custom_actions',
+}
 -- Same 40px slots, horizontal slot spacing and half hotbar spacing as compact
 -- XIVCrossbar. Coordinates describe columns/rows, not an independent layout.
 local layout={{0,1},{1,2},{2,1},{1,0},{3,1},{4,2},{5,1},{4,0}}
@@ -106,7 +115,7 @@ function M.new(options)
             local entry=d['Slot'..i]
             local label=mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
             if #label>10 then label=label:sub(1,9)..'~' end
-            local suggested={['trust ready']='assist',['trust standdown']='disengage',['trust toggle']='return-trust',['trust menu']='custom_actions'}
+
             artwork[i]=entry.Icon and entry.Icon~='' and entry.Icon or (suggested[entry.Command] and 'images/icons/default/'..suggested[entry.Command]..'.png') or 'images/icons/default/ui/binding_icons/'..icons[i]..'.png'
             parts[#parts+1]=artwork[i]
             labels[i]=label;parts[#parts+1]=string.format('%q',label)

@@ -1703,3 +1703,8 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 - XV companion bank router is authoritative for bare Cross/Circle, including cutscenes. New owned-action bridge to NPCMirror sends a sequenced, local, lease-checked notification only after ordinary ownership; banked inputs never notify.
 - Lease publishes npc_owner=xivcrossbar only while message-stream mode is active; NPCMirror t33 disables duplicate raw observation, falls back when missing.
 - No bank factory/saved XML, AHK code, controller profile, visual layout or input ownership of the actual FFXI client changed. Live Windows/FFXI validation pending.
+
+### November 5, 2026 — Cioara Party Banks 1
+
+The active Cioara L1 layout is the default, with Stop on Triangle. Party and
+NPC command slots use matching red artwork when no custom icon is assigned.

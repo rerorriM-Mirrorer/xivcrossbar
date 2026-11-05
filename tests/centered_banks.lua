@@ -6,7 +6,7 @@ local bank=Banks.new({settings=settings,clock=function()return 10 end,
 assert(bank:settings().R1.MenuActions)
 assert(Banks.factory('l1',5,false).Alias=='Toggle')
 assert(Banks.factory('l1',6,false).Alias=='Ready')
-assert(Banks.factory('l1',8,false).Alias=='')
+assert(Banks.factory('l1',8,false).Alias=='Stop')
 for slot,key in ipairs({'alt+left','ctrl+right','alt+right','ctrl+left'}) do
     local e=bank:entry('r1',slot,true)
     assert(e.Kind=='key' and e.Key==key and e.Hold)

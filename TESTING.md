@@ -1,3 +1,12 @@
+# Current Development Status — November 5, 2026 — Cioara Party Banks 1
+
+- Branch development/cioara-party-banks starts at NPC-owned-input artifact commit 3908af4b26f97222dcbc13624332a0de3ad77d8b, which contains Bank Faces 1. The artifact recipe ships the controller bridge and root loader without bank data or bank defaults. Uploaded current/backup XML agree on the L1 bindings for all four characters. Neither snapshot establishes when or why an earlier binding disappeared.
+- Cioara's active L1 Closed layout is the factory model. Triangle runs trust stop. The other seven bindings are Back, Call, Next, Leader, Toggle, Ready and Stand Down. Factory Menu uses the same defaults as Closed. An optional private recovery XML copies the active layout to Killala, Clairvaux and Myrr and preserves their separate saved Menu entries. Keep the recovery data out of GitHub.
+- Default artwork follows the exact command for Back, Next, Leader, Call, Stop, Target, Join, Interact and Auto. The palette uses existing red assets and respects explicit Icon overrides. The patch is based on the NPC owner bridge and retains its controller routing.
+- Eight focused local Lua suites passed, including NPC owner dispatch, controller routing and saved bank storage. All 189 Lua files parsed with temporary Windower syntax normalization. Dependency and whitespace checks passed. Live acceptance remains pending. Confirm L1 on all four characters and check bare Cross versus R1 Cross in NPC dialogue.
+
+---
+
 # Current Development Status — November 4, 2026 — NPC Owned Input 1 (t33)
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/npc-owned-input-t33` from latest published `development/ahk-v2-migration` Bank Faces 1. Paired addon: NPCMirror `dev/native-intent-ownership-t33` runtime 0.1.4-t33. Read current GitHub AGENTS.md, WORKFLOW.md, TESTING.md prior to work. Base branch and user settings are untouched.

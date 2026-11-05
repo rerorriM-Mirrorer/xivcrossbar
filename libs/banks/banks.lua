@@ -22,7 +22,7 @@ factory.l1={Closed={action('Back','command','switch p'),action('Call','command',
     action('Toggle','command','trust toggle'),
     action('Ready','command','trust ready'),
     action('Stand Down','command','trust standdown'),
-    empty()}}
+    action('Stop','command','trust stop')}}
 factory.l1.Menu=factory.l1.Closed
 factory.r1={Closed={action('Left','command','npc raw left'),action('Down','command','npc raw down'),
     action('Right','command','npc raw right'),action('Up','command','npc raw up'),
