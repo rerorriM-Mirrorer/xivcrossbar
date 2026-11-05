@@ -1,3 +1,8 @@
+Personal NPC Owned Input 1 (t33): XIVCrossbar now owns the bare-vs-banked
+Cross/Circle decision and sends only confirmed bare native-dialogue intent to
+NPCMirror 0.1.4-t33. R1+Cross remains a command, never an extra Enter.
+See [paired install/test guide](docs/NPC-OWNED-INPUT-T33.md).
+
 Personal Bank Faces 1: R1 Cross NPC, Square Target, Triangle Trust Menu;
 L1 Triangle reserved. Other bindings stay as before. See
 [selective adoption](docs/BANK-FACES1.md).
@@ -1692,3 +1697,9 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 
 - Factory/Cioara R1 Cross uses npc, Square npc target, Triangle trust menu; L1 Triangle is empty.
 - Other directions, Cancel, menu scrolling and saved overrides retained.
+
+### November 4, 2026 — NPC Owned Input 1
+
+- XV companion bank router is authoritative for bare Cross/Circle, including cutscenes. New owned-action bridge to NPCMirror sends a sequenced, local, lease-checked notification only after ordinary ownership; banked inputs never notify.
+- Lease publishes npc_owner=xivcrossbar only while message-stream mode is active; NPCMirror t33 disables duplicate raw observation, falls back when missing.
+- No bank factory/saved XML, AHK code, controller profile, visual layout or input ownership of the actual FFXI client changed. Live Windows/FFXI validation pending.
