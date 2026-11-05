@@ -1,3 +1,8 @@
+# Bank fades — 2026-11-05
+
+- Development branch development/bank-fades starts at dbd4dad. L1/R1 bank panels use the crossbar Fade, FadeIn, FadeOut and TextFade settings during their own visibility transitions. Text Fade off uses endpoint captions. Switching banks at the shared anchor clears the outgoing panel immediately. Startup reveal stays specific to the main crossbar.
+- Five focused Lua suites and source parsing passed, including simulated fade endpoints, reversal, text alpha, bank handoff and controller routing. Verify live with //xb fade on/off and //xb textfade on/off while holding and releasing each bank.
+
 # Battle menu compatibility — 2026-11-05
 
 Clairvaux's live pulling log confirms the generic Windower menu flag blocked pulls. The relevant check now treats an engaged character with a living monster selected and no subtarget as a battle-menu candidate. This is a heuristic because the flag carries no menu identity. Item menus opened while the same enemy cursor remains active may look identical. Check both the battle panel and Items during combat in-game, including item selection with a subtarget. Idle menu gating remains in effect.

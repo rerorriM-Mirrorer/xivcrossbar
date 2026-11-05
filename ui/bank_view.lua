@@ -19,6 +19,7 @@ local icons={'dpad_playstation_left','dpad_playstation_down','dpad_playstation_r
     'facebuttons_playstation_b','facebuttons_playstation_a','facebuttons_playstation_x','facebuttons_playstation_y'}
 function M.new(options)
     local self={options=options,objects={},slots={},opacity=0,allocated=false}
+    local fade = require('ui/fade').new(options.clock or os.clock, 0)
     local function text()
         local t=options.resources.text({flags={draggable=false}})
         require('ui/render_trace').track(t,nil,options.owner or 'l1-companion','caption')
@@ -90,8 +91,21 @@ function M.new(options)
         d.X=math.max(0,math.min(d.X,math.max(0,width-b.width)))
         d.Y=math.max(0,math.min(d.Y,math.max(0,height-b.height)))
     end
-    function self:tick(eligible,width,height)
-        self.opacity=options.bank:opacity(eligible)
+    function self:tick(eligible,width,height,target,other_visible)
+        target=target or options.bank:opacity(eligible)
+        self.target=target
+        local animation=options.settings and options.settings.Animation or {}
+        local duration=0
+        if eligible and animation.Enabled and not other_visible then
+            duration=target>0 and (animation.FadeIn or .12) or (animation.FadeOut or .18)
+        end
+        if duration==0 and (fade.active or fade.value~=target) then
+            fade.active=false
+            fade:to(target,0)
+        elseif fade.target~=target then
+            fade:to(target,duration)
+        end
+        self.opacity=fade:step()
         self.viewport={width=width,height=height}
         if not (self:centered()) then self:clamp(width,height) end
         if self.opacity<=0 and not self.allocated then return end
@@ -101,8 +115,32 @@ function M.new(options)
             for _,slot in ipairs(self.slots) do slot.feedback_alpha=nil end
             self.visible=false;return
         end
-        local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=self:position(width,height)
         local alpha=math.floor(255*self.opacity+.5)
+        local text_alpha=alpha
+        if animation.Enabled and not animation.TextFade then
+            text_alpha=target==1 and self.opacity==1 and 255 or 0
+        end
+        -- Paint opacity independently so animation never rebuilds geometry or
+        -- changes the outgoing bank's labels during its fade.
+        if self.draw_alpha~=alpha or self.text_alpha~=text_alpha then
+            self.bg:alpha(math.floor(alpha*.72))
+            self.title:alpha(text_alpha);self.title:stroke_alpha(math.floor(text_alpha*.7))
+            for _,slot in ipairs(self.slots) do
+                slot.background:alpha(math.floor(alpha*.6))
+                slot.icon:alpha(alpha);slot.frame:alpha(alpha)
+                for _,caption in ipairs({slot.number,slot.alias}) do
+                    caption:alpha(text_alpha);caption:stroke_alpha(math.floor(text_alpha*.7))
+                end
+            end
+            self.draw_alpha,self.text_alpha=alpha,text_alpha
+        end
+        if target==0 then
+            for _,slot in ipairs(self.slots) do
+                if slot.feedback_alpha and slot.feedback_alpha>0 then slot.feedback:hide();slot.feedback_alpha=0 end
+            end
+            return
+        end
+        local d=options.bank:settings();local s,horizontal,vertical,w,h=self:metrics();local x,y=self:position(width,height)
         local mode=options.bank:mode()
         local typography=options.settings and options.settings.Texts or {}
         local font=typography.Font or 'sans-serif'
@@ -110,7 +148,7 @@ function M.new(options)
         local font_size=math.max(1,math.floor((tonumber(typography.Size) or 7)*main_scale+.5))
         local title=(options.bank.title and options.bank:title(mode) or (mode=='bank' and 'L1 + L2  Actions' or 'L1  Shortcuts'))..(d.Locked and '' or '  [drag]')
         local artwork={}
-        local labels,parts={},{mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(alpha),tostring(horizontal),tostring(vertical),font,tostring(font_size),title}
+        local labels,parts={},{mode,tostring(s),tostring(x),tostring(y),tostring(d.Locked),tostring(horizontal),tostring(vertical),font,tostring(font_size),title}
         for i=1,8 do
             local entry=d['Slot'..i]
             local label=mode=='keyboard' and bank.references[i] or (entry.Alias~='' and entry.Alias or bank.buttons[i])
@@ -140,16 +178,16 @@ function M.new(options)
         -- Retry deferred native glyph measurements before allowing the cache.
         if self.visible and self.render_key==key and not self.needs_measurement then return end
         self.visible=true;self.render_key=key;self.needs_measurement=false
-        self.bg:pos(x,y);self.bg:size(w*s,h*s);self.bg:alpha(math.floor(alpha*.72));self.bg:show()
+        self.bg:pos(x,y);self.bg:size(w*s,h*s);self.bg:show()
         self.title:text(title);self.title:font(font);self.title:size(font_size);self.title:pos(x+10*s,y+8*s)
-        self.title:alpha(alpha);self.title:stroke_alpha(math.floor(alpha*.7));self.title:show()
+        self.title:show()
         for i,slot in ipairs(self.slots) do
             local px,py=30+layout[i][1]*horizontal,36+layout[i][2]*vertical
             slot.background:pos(x+(px-20)*s,y+py*s);slot.background:size(40*s,40*s)
-            slot.background:alpha(math.floor(alpha*.6));slot.background:show()
+            slot.background:show()
             slot.icon:path(options.path..artwork[i])
-            slot.icon:pos(x+(px-20)*s,y+py*s);slot.icon:size(40*s,40*s);slot.icon:alpha(alpha);slot.icon:show()
-            slot.frame:pos(x+(px-20)*s,y+py*s);slot.frame:size(40*s,40*s);slot.frame:alpha(alpha);slot.frame:show()
+            slot.icon:pos(x+(px-20)*s,y+py*s);slot.icon:size(40*s,40*s);slot.icon:show()
+            slot.frame:pos(x+(px-20)*s,y+py*s);slot.frame:size(40*s,40*s);slot.frame:show()
             slot.number:text(tostring(i));slot.number:font(font);slot.number:size(font_size);slot.number:pos(x+(px-18)*s,y+(py+1)*s)
             local label=labels[i]
             slot.alias:font(font)
@@ -162,12 +200,14 @@ function M.new(options)
                 slot.alias:commit_measurement()
             end
             for _,t in ipairs({slot.number,slot.alias}) do
-                t:alpha(alpha);t:stroke_alpha(math.floor(alpha*.7));t:show()
+                t:show()
             end
         end
     end
     function self:destroy()
         options.resources.clear(self.objects)
+        fade.active=false;fade:to(0,0)
+        self.target,self.draw_alpha,self.text_alpha=0,nil,nil
         self.objects={};self.slots={};self.allocated=false;self.visible=false;self.opacity=0
     end
     return self

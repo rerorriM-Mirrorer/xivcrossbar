@@ -33,7 +33,7 @@ package.loaded['ui/render_trace']={track=function()end}
 local visible,feedback=true,180
 local settings={X=10,Y=10,Scale=1,FollowCrossbar=false,Locked=true}
 for i=1,8 do settings['Slot'..i]={Alias='Test'} end
-local view=require('ui/bank_view').new({path='',settings={},bank={settings=function()return settings end,
+local view=require('ui/bank_view').new({path='',settings={},clock=function()return now end,bank={settings=function()return settings end,
     opacity=function()return visible and 1 or 0 end,mode=function()return 'l1' end,title=function()return 'L1' end,
     feedback=function(_,i)return i==4 and feedback or 0 end},resources={image=object,text=object,
     clear=function(list)for _,o in ipairs(list)do o.deleted=true end end}})
@@ -44,5 +44,18 @@ local calls=view.slots[4].feedback.calls;view:tick(true,1280,720);assert(view.sl
 feedback=0;view:tick(true,1280,720);assert(not view.slots[4].feedback.visible)
 feedback=180;view:tick(true,1280,720);visible=false;view:tick(false,1280,720)
 for _,o in ipairs(objects)do assert(not o.visible)end
+local animation={Enabled=true,TextFade=false,FadeIn=1,FadeOut=1}
+view.options.settings.Animation=animation
+visible=true;now=10;view:tick(true,1280,720)
+now=10.5;view:tick(true,1280,720)
+assert(view.slots[1].icon.alpha_value[1]==128 and view.title.alpha_value[1]==0)
+animation.TextFade=true;view:tick(true,1280,720)
+assert(view.title.alpha_value[1]==128 and view.slots[1].alias.alpha_value[1]==128)
+now=11;view:tick(true,1280,720);visible=false;view:tick(true,1280,720)
+now=11.5;view:tick(true,1280,720);assert(view.opacity==.5 and view.title.alpha_value[1]==128)
+visible=true;view:tick(true,1280,720);assert(view.opacity==.5,'reversal jumped')
+view:tick(true,1280,720,0,true);assert(view.opacity==0,'bank handoff overlapped')
+animation.Enabled=false;view:tick(true,1280,720)
+assert(view.opacity==1 and view.title.alpha_value[1]==255)
 view:destroy();for _,o in ipairs(objects)do assert(o.deleted)end
 print('Bank feedback: fast taps, independent held slots, timed release, empty slots, layer/context/focus cleanup, actual cached view and fixed resource lifetime passed.')

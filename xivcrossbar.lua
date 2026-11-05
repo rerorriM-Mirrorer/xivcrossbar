@@ -163,7 +163,7 @@ local l1_bank=require('libs/banks/legacy').new({settings=bank_settings,clock=l1_
     help=function(syntax,description) require('libs/chat_help').command(syntax,description) end})
 local l1_bridge=require('libs/banks/legacy_transport').new({session=require('libs/windows_file').new().session_id,
     event=function(kind,slot) l1_bank:event(kind,slot) end,cancel=function() l1_bank.held=false end})
-local l1_view=require('ui/bank_view').new({bank=l1_bank,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,main_top=function() return ui:get_screen_top() end})
+local l1_view=require('ui/bank_view').new({bank=l1_bank,clock=l1_clock,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,main_top=function() return ui:get_screen_top() end})
 companion_banks=require('libs/banks/banks').new({settings=bank_settings,clock=l1_clock,
     chat_cancel=function(button)
         local signal=transport.signals[require('libs/controller/messages').diks[button]]
@@ -182,7 +182,7 @@ local npc_owned_input=require('libs/controller/npc_actions').new({
         windower.send_command('npc controller edge '..op..' '..seq..' '..token)
     end})
 local companion_left,companion_right=companion_banks:panel('Left'),companion_banks:panel('Right')
-local r1_view=require('ui/bank_view').new({bank=companion_right,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,owner='r1-companion',main_top=function() return ui:get_screen_top() end})
+local r1_view=require('ui/bank_view').new({bank=companion_right,clock=l1_clock,resources=require('ui/resources'),path=windower.addon_path,settings=settings,bank_settings=bank_settings,owner='r1-companion',main_top=function() return ui:get_screen_top() end})
 controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
     trace=function(message) input_timing:record(message) end,
@@ -215,7 +215,7 @@ trust_menu=require('libs/controller/trust_menu').new({clock=l1_clock,
     end})
 local l1_epoch,l1_last_tick,l1_next_read=0,0,0
 local l1_drag=require('ui/drag').new({
-    enabled=function() return l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
+    enabled=function() return (l1_view.target or 0)>0 and l1_view.opacity>.01 and not l1_view.options.bank:settings().Locked end,
     bounds=function() return l1_view:bounds() end,
     offsets=function() local b=l1_view:bounds();return b.x,b.y end,
     move=function(x,y)
@@ -225,7 +225,7 @@ local l1_drag=require('ui/drag').new({
     save=function() bank_storage:save() end,
 })
 local r1_drag=require('ui/drag').new({
-    enabled=function() return r1_view.opacity>.01 and not companion_right:settings().Locked end,
+    enabled=function() return (r1_view.target or 0)>0 and r1_view.opacity>.01 and not companion_right:settings().Locked end,
     bounds=function() return r1_view:bounds() end,
     offsets=function() local b=r1_view:bounds();return b.x,b.y end,
     move=function(x,y) companion_right:move(x,y) end,
@@ -2571,8 +2571,10 @@ windower.register_event('prerender',function()
     l1_view.options.bank=companion_left
     -- Drawing remains available during chat/cutscenes; action guards remain in
     -- companion_context and the Trust adapter. Each panel owns its menu policy.
-    l1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
-    r1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res)
+    local left_opacity=companion_left:opacity(l1_display)
+    local right_opacity=companion_right:opacity(l1_display)
+    l1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res,left_opacity,right_opacity>0)
+    r1_view:tick(l1_display,viewport.ui_x_res or viewport.x_res,viewport.ui_y_res or viewport.y_res,right_opacity,left_opacity>0)
     if not l1_display then l1_drag:finish();r1_drag:finish() end
     if xivcrossbar.ready and action_binder.is_hidden and catalog_clock()>=next_catalog_refresh then
         next_catalog_refresh=catalog_clock()+1
