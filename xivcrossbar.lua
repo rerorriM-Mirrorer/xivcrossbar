@@ -2220,13 +2220,21 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
+local function companion_menu_open(info, character)
+    if not info.menu_open then return false end
+    -- The battle command panel also sets menu_open. Keep normal banks
+    -- on the engaged enemy cursor, while respecting subtarget selection.
+    local target = character and character.status == 1 and windower.ffxi.get_mob_by_target('t')
+    return not (target and target.spawn_type == 16 and target.hpp > 0
+        and not windower.ffxi.get_mob_by_target('st'))
+end
 companion_context=function()
     local info=windower.ffxi.get_info();local character=windower.ffxi.get_player();local context=input_context()
     local cutscene=character~=nil and character.status==4
     return not restart_pending and xivcrossbar.ready and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and settings.ControllerMessages and not settings.InputTest and windower.has_focus() and info.logged_in
         and character~=nil and (context=='gameplay' or context=='crossbar' or context=='chat'),
-        info.menu_open==true,cutscene,info.chat_open==true
+        companion_menu_open(info,character),cutscene,info.chat_open==true
 end
 -- A: both transports call this router. The source determines how a physical
 -- edge arrives; menu ownership, native translation and slot execution stay here.
@@ -2368,7 +2376,7 @@ publish_personal_context = function()
         l1_epoch=l1_epoch+1;controller_message_bridge:reset('stall')
     end
     l1_last_tick=now
-    local eligible=(context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not info.menu_open
+    local eligible=(context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not companion_menu_open(info,character)
         and character and character.status~=4
     -- Ordinary trigger transitions share one play session: releasing L2 while
     -- holding L1 can reveal the companion without a forced neutral rearm.

@@ -1,3 +1,7 @@
+# Battle menu compatibility — 2026-11-05
+
+Clairvaux's live pulling log confirms the generic Windower menu flag blocked pulls. The relevant check now treats an engaged character with a living monster selected and no subtarget as a battle-menu candidate. This is a heuristic because the flag carries no menu identity. Item menus opened while the same enemy cursor remains active may look identical. Check both the battle panel and Items during combat in-game, including item selection with a subtarget. Idle menu gating remains in effect.
+
 # Current Development Status — November 5, 2026 — Cioara Party Banks 2
 
 - Baseline d35b554 on development/cioara-party-banks. User clarified that banks includes both L1 and R1. R1 defaults now resolve to Cioara's uploaded normal and menu layouts, including the existing inherited slots. The optional recovery XML copies her R1 record to Killala, Clairvaux and Myrr alongside the prior L1 changes. NPC ownership routing remains present.
