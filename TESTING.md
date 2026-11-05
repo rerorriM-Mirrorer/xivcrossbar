@@ -1,3 +1,10 @@
+# Current Development Status — November 5, 2026 — Cioara Party Banks 2
+
+- Baseline d35b554 on development/cioara-party-banks. User clarified that banks includes both L1 and R1. R1 defaults now resolve to Cioara's uploaded normal and menu layouts, including the existing inherited slots. The optional recovery XML copies her R1 record to Killala, Clairvaux and Myrr alongside the prior L1 changes. NPC ownership routing remains present.
+- Seven focused Lua suites passed, including NPC ownership, bank contexts, defaults and storage. All 189 Lua sources parsed with temporary Windower normalization. Live verification remains pending.
+
+---
+
 # Current Development Status — November 5, 2026 — Cioara Party Banks 1
 
 - Branch development/cioara-party-banks starts at NPC-owned-input artifact commit 3908af4b26f97222dcbc13624332a0de3ad77d8b, which contains Bank Faces 1. The artifact recipe ships the controller bridge and root loader without bank data or bank defaults. Uploaded current/backup XML agree on the L1 bindings for all four characters. Neither snapshot establishes when or why an earlier binding disappeared.

@@ -20,7 +20,7 @@ for _,context in ipairs({'scene','chat'})do
  bank:cancel();bank:edge(13,true);bank:edge(14,true)
  assert(#bank.output.pending==0,'pair emitted Tab in chat/dialogue')
  bank:cancel();assert(bank:command({'r1','cutscenes','off'}))
- bank:edge(14,true);tap(5);assert(sent[#sent]=='npc','legacy flag blocked explicit bank')
+ bank:edge(14,true);tap(5);assert(sent[#sent]=='npc interact','legacy flag blocked explicit bank')
  bank:cancel();assert(bank:command({'r1','key','up','Native Enter','enter','hold'}))
  bank:edge(14,true);bank:edge(1,true);assert(bank.output.held.enter)
  eligible=false;bank:refresh();assert(not next(bank.output.held) and #bank.output.pending==0)

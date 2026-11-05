@@ -41,8 +41,8 @@ assert(not bank:command({'r1r2','default','down','extra'}))
 assert(not bank:command({'r1r2','defaults','all'}))
 assert(saves==count)
 -- Exact eight-slot routing in both contexts; no generated key shortcuts.
-local expected={[1]='npc raw up',[2]='npc raw right',[3]='npc raw down',[4]='npc raw left',
-    [5]='npc',[6]='npc target',[7]='npc cancel',[8]='trust menu'}
+local expected={[1]='npc raw up',[2]='npc raw right',[3]='npc auto',[4]='npc raw left',
+    [5]='npc interact',[6]='npc target',[7]='npc join',[8]='trust menu'}
 bank:edge(14,true)
 for b=1,8 do bank:edge(b,true);bank:edge(b,false);assert(executed[#executed]==expected[b]) end
 assert(#bank.output.pending==0)

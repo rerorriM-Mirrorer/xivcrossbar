@@ -23,7 +23,7 @@ bank:edge(13,true);bank:edge(5,true);bank:edge(5,false);bank:edge(13,false)
 assert(#sent==1,'chat blocked deliberate bank input');sent={}
 allowed=true;bank:refresh();bank:edge(14,true)
 for b=1,8 do bank:edge(b,true);bank:edge(b,false)end
-assert(table.concat(sent,'|')=='npc|npc target|npc cancel|trust menu')
+assert(table.concat(sent,'|')=='npc enter|npc alltarget|npc cancel|npc interact')
 bank:edge(14,false);bank:cancel()
 assert(bank:command({'l1','hide'}));assert(left:opacity(true)==0)
 assert(bank:command({'l1','show'}));bank:edge(13,true);assert(left:opacity(true)==1)
@@ -47,7 +47,7 @@ for _,layer in ipairs({'l1l2','r1r2'})do
  assert(not bank:settings()[layer=='l1l2' and 'L1L2' or 'R1R2'].Enabled)
  for _,mode in ipairs({false,true})do for i=1,8 do assert(bank:entry(layer,i,mode).Command=='')end end
 end
-assert(bank:command({'preset','cioara','apply'}));assert(bank:entry('r1',5,true).Command=='npc target')
+assert(bank:command({'preset','cioara','apply'}));assert(bank:entry('r1',5,true).Command=='npc alltarget')
 bank:cancel();bank:command({'l2','preview'});assert(left:mode()=='l1l2');
 -- Expired previews must return to their normal first-level view.
 now=17;assert(left:mode()=='l1' and left:opacity(true)==0)

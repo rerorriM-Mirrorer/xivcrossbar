@@ -24,13 +24,16 @@ factory.l1={Closed={action('Back','command','switch p'),action('Call','command',
     action('Stand Down','command','trust standdown'),
     action('Stop','command','trust stop')}}
 factory.l1.Menu=factory.l1.Closed
-factory.r1={Closed={action('Left','command','npc raw left'),action('Down','command','npc raw down'),
+factory.r1={Closed={action('Left','command','npc raw left'),action('Auto','command','npc auto'),
     action('Right','command','npc raw right'),action('Up','command','npc raw up'),
-    action('Target','command','npc target'),action('NPC','command','npc'),
-    action('Cancel','command','npc cancel'),action('Menu','command','trust menu')}}
+    action('Target','command','npc target'),action('Interact','command','npc interact'),
+    action('Join','command','npc join'),action('Menu','command','trust menu')}}
 factory.r1.Menu={action('Previous','key','alt+left',true),action('Fast Down','key','ctrl+right',true),
     action('Next','key','alt+right',true),action('Fast Up','key','ctrl+left',true)}
-for i=5,8 do factory.r1.Menu[i]=clone(factory.r1.Closed[i]) end
+factory.r1.Menu[5]=action('Target','command','npc alltarget')
+factory.r1.Menu[6]=action('Enter','command','npc enter')
+factory.r1.Menu[7]=action('Cancel','command','npc cancel')
+factory.r1.Menu[8]=action('Interact','command','npc interact')
 -- Empty second levels are disabled independently of drawing; a shoulder-first
 -- extra trigger keeps its first-level bank, while trigger-first stays ordinary.
 function M.factory(layer,slot,menu)
@@ -97,7 +100,7 @@ function M.ensure(settings)
                 if e.Kind~='key' and e.Kind~='command' and e.Kind~='default' then e.Kind='command' end
                 e.Hold=e.Hold==true
                 if name=='R1' and context=='Menu' and i<=4 and d.R1MenuDefaultsApplied~=true
-                    and same(e,M.factory('r1',i,false)) and e.Icon=='' then
+                    and same(e,action(M.buttons[i],'command','npc raw '..M.buttons[i]:lower())) and e.Icon=='' then
                     d[name][context][key]=inherited()
                 end
                 if name=='R1' and context=='Menu' and d.R1ScrollDefaultsApplied~=true
