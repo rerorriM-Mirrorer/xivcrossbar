@@ -1,0 +1,35 @@
+name: NPCMirror-owned controller bridge t33
+on:
+  push:
+    branches: [development/npc-owned-input-t33]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lua-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua
+        run: sudo apt-get update -qq && sudo apt-get install -y lua5.1 lua5.4
+      - name: Owned input and existing controller regression suites
+        run: |
+          for lua in lua5.1 lua5.4; do
+            for test in tests/npc_actions.lua tests/personal_lease.lua tests/controller_messages.lua tests/controller_message_routing.lua tests/bank_cutscenes.lua tests/companion_banks.lua; do
+              echo "-- $lua $test"
+              $lua "$test"
+            done
+          done
+      - name: One-layer overlay and ZIP integrity
+        run: |
+          mkdir -p build/xivcrossbar/libs/controller build/xivcrossbar/tests
+          cp xivcrossbar.lua README.md WORKFLOW.md TESTING.md build/xivcrossbar/
+          cp libs/controller/npc_actions.lua libs/controller/personal_controls.lua build/xivcrossbar/libs/controller/
+          cp tests/npc_actions.lua build/xivcrossbar/tests/
+          cd build
+          zip -qr xivcrossbar-npc-owned-input-t33-test.zip xivcrossbar
+          unzip -t xivcrossbar-npc-owned-input-t33-test.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xivcrossbar-npc-owned-input-t33-test
+          path: build/xivcrossbar-npc-owned-input-t33-test.zip
