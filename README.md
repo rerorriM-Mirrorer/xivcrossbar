@@ -1,3 +1,7 @@
+Personal Bank Faces 1: R1 Cross NPC, Square Target, Triangle Trust Menu;
+L1 Triangle reserved. Other bindings stay as before. See
+[selective adoption](docs/BANK-FACES1.md).
+
 Personal Center and Scroll 1: fixes companion centering and R1 ten-item list
 scrolling. Use `//xb center on` to center both groups. See
 [installation and checks](docs/CENTER-SCROLL1.md).
@@ -1683,3 +1687,8 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 
 - Companion rendering reads its separate bank settings, fixing L1/R1 staying at saved positions after center on.
 - R1 Menu Up/Down use Ctrl+Left/Right for ten-item scrolling; saved old defaults adopt the correction once.
+
+### November 4, 2026 — Bank Faces 1
+
+- Factory/Cioara R1 Cross uses npc, Square npc target, Triangle trust menu; L1 Triangle is empty.
+- Other directions, Cancel, menu scrolling and saved overrides retained.

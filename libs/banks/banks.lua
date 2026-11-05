@@ -22,12 +22,12 @@ factory.l1={Closed={action('Back','command','switch p'),action('Call','command',
     action('Toggle','command','trust toggle'),
     action('Ready','command','trust ready'),
     action('Stand Down','command','trust standdown'),
-    action('Menu','command','trust menu')}}
+    empty()}}
 factory.l1.Menu=factory.l1.Closed
 factory.r1={Closed={action('Left','command','npc raw left'),action('Down','command','npc raw down'),
     action('Right','command','npc raw right'),action('Up','command','npc raw up'),
-    action('Raw Enter','command','npc raw enter'),action('Enter','command','npc enter'),
-    action('Cancel','command','npc cancel'),action('Interact','command','npc interact')}}
+    action('Target','command','npc target'),action('NPC','command','npc'),
+    action('Cancel','command','npc cancel'),action('Menu','command','trust menu')}}
 factory.r1.Menu={action('Previous','key','alt+left',true),action('Fast Down','key','ctrl+right',true),
     action('Next','key','alt+right',true),action('Fast Up','key','ctrl+left',true)}
 for i=5,8 do factory.r1.Menu[i]=clone(factory.r1.Closed[i]) end

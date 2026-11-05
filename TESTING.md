@@ -1,3 +1,12 @@
+# Current Development Status — November 4, 2026 — Bank Faces 1
+
+- Repo rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration; baseline 8b2ef0483c142250249acc74bc71cbd4c20d96b5. Current GitHub AGENTS/WORKFLOW/TESTING read before edits. User approves requested default face changes, keeping other commands for now; no broad R1 clearing or suggested Follow/Stay/Mount bindings. Runtime 20261104.directlink1-ahkv2-bankfaces1.
+- Factory/Cioara Closed and Menu: R1 Cross npc, Square npc target, Triangle trust menu; L1 Triangle empty/reserved. R1 Circle, D-pad, menu scrolling and all other L1 entries retained. Saved overrides remain intact; selective per-slot adoption documented, no preset/data reset on login. Existing red Menu artwork follows the exact trust menu command on R1.
+- Verified NPCMirror dev/onepress-permissive-sync-t31 current TESTING.md directly from GitHub: bare npc/interact one-press opening and npc target target-only/share behavior. NPCMirror main README is historical and not the t31 contract. No NPCMirror source, AHK, controller, centering or summon changes in this batch. Latest user feedback on prior Center/Scroll patch: loves it, without detailed acceptance claims.
+- Eight focused Lua suites passed; all 187 Lua sources parsed after temporary Windower syntax normalization. Canonical dependency/layout and whitespace checks passed. Published head recorded in delivery; no Windows/Windower/FFXI live acceptance claimed. See docs/BANK-FACES1.md for selective defaults and live checks. Historical entries retained below.
+
+---
+
 # Current Development Status — November 4, 2026 — Center and Scroll 1
 
 - Repository rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration; baseline e09c04c0bec0080cb5371d439cf0929d9bf21410 (Summon Swap 1). Current GitHub AGENTS/WORKFLOW/TESTING read before edits. User reports L1 banks stayed in place after centering and authorizes the previously deferred Ctrl scrolling correction. R1 face rearrangement is a future possibility contingent on NPCMirror; not performed. Runtime 20261104.directlink1-ahkv2-centerscroll1.

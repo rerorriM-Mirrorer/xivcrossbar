@@ -42,7 +42,7 @@ assert(not bank:command({'r1r2','defaults','all'}))
 assert(saves==count)
 -- Exact eight-slot routing in both contexts; no generated key shortcuts.
 local expected={[1]='npc raw up',[2]='npc raw right',[3]='npc raw down',[4]='npc raw left',
-    [5]='npc enter',[6]='npc raw enter',[7]='npc cancel',[8]='npc interact'}
+    [5]='npc',[6]='npc target',[7]='npc cancel',[8]='trust menu'}
 bank:edge(14,true)
 for b=1,8 do bank:edge(b,true);bank:edge(b,false);assert(executed[#executed]==expected[b]) end
 assert(#bank.output.pending==0)
@@ -78,4 +78,4 @@ for name,bar in pairs({l2=1,r2=2,r2l2=3,l2r2=4,l2l2=5,r2r2=6,rr=6,rl=3,lr=4,ll=5
 end
 print('Bank defaults/aliases: v1 adoption, custom/clear preservation, per-context restoration, factory immutability, panel preservation, exact NPC/raw mappings and actual root short-editor dispatch passed.')
 
-for slot,command in pairs({[5]='trust toggle',[6]='trust ready',[7]='trust standdown',[8]='trust menu'})do assert(M.factory('l1',slot,false).Command==command and M.factory('l1',slot,true).Command==command)end
+for slot,command in pairs({[5]='trust toggle',[6]='trust ready',[7]='trust standdown',[8]=''})do assert(M.factory('l1',slot,false).Command==command and M.factory('l1',slot,true).Command==command)end
