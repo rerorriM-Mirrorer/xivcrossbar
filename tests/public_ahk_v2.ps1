@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $env:RUNNER_TEMP ('xivcrossbar public v2 ' + [Guid]::NewGuid())
 $data = Join-Path $stage 'data'
 [void][IO.Directory]::CreateDirectory($data)
-foreach ($name in @('ffxi_directinput.ahk','controller_messages.ahk','controller_diagnostics.ahk','launch-controller.cmd','launch-controller.ps1')) {
+foreach ($name in @('ffxi_directinput.ahk','controller_messages.ahk','controller_diagnostics.ahk','launch-controller.cmd','launch-controller.ps1','tests/public_ahk_v2.ahk')) {
     Copy-Item (Join-Path $root $name) $stage
 }
 $status = Join-Path $data 'controller-status.ini'
@@ -24,6 +24,9 @@ function Start-Reader([string]$arguments) {
     Start-Process -FilePath $Interpreter -ArgumentList ('/ErrorStdOut "{0}" {1}' -f $script, $arguments) -PassThru
 }
 try {
+    $fixture = Join-Path $stage 'public_ahk_v2.ahk'
+    $unit = Start-Process -FilePath $Interpreter -ArgumentList ('/ErrorStdOut "{0}"' -f $fixture) -PassThru -NoNewWindow
+    if (!$unit.WaitForExit(10000) -or $unit.ExitCode -ne 0) { throw 'Native DirectLink fixture failed' }
     Set-Content $runtime @('[Runtime]', "executable=$Interpreter")
     Set-Content $launch @('[Controller]', 'profile=f710-directinput', 'device=2', 'modifier=ctrl')
     & (Join-Path $stage 'launch-controller.cmd')
@@ -56,6 +59,8 @@ try {
     Set-Content $runtime @('[Runtime]', "executable=$env:ComSpec")
     & (Join-Path $stage 'launch-controller.cmd')
     if ($LASTEXITCODE -eq 0) { throw 'Bootstrap accepted a non-AHK executable' }
+    # GitHub's pwsh wrapper exits with the last native process code.
+    $global:LASTEXITCODE = 0
     Write-Host 'Public native bootstrap, duplicate rejection, explicit stop and all five profile selections passed.'
 } finally {
     if (Test-Path $status) {
