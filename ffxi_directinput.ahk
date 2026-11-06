@@ -294,7 +294,8 @@ WriteControllerFile(temporary, destination, contents) {
         FileAppend(contents, temporary, "UTF-8-RAW")
         FileMove(temporary, destination, 1)
         return true
-    } catch OSError {
+    } catch Error {
+        ; FileMove can throw a generic Error with a failed-file count.
         return false
     }
 }

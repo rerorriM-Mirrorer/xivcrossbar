@@ -1,3 +1,10 @@
+# November 6, 2026 — Public AHK v2 snapshot write recovery
+
+- Lionstag live report: DirectLink FileMove failed with a count of one and escaped the OSError handler. The snapshot writer now catches generic file-operation errors and lets the existing flush cadence retry unacknowledged events. The cause of the failed replacement is unconfirmed.
+- Live retest: repeat controller use after setup on Lionstag. Confirm a failed replacement does not interrupt polling and that subsequent input recovers.
+
+---
+
 # November 6, 2026 — Public AHK v2 DirectInput hotfix
 
 - Live report: selecting a DirectInput profile crashed on the first connected poll with invalid array index 5. The reader now appends eight buttons after the four POV entries.
