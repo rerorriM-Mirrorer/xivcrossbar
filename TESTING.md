@@ -1,3 +1,10 @@
+# AHK v2 shortcut startup
+
+- The bootstrap creates a validated interpreter shortcut. Subsequent starts use the shortcut and the current profile handoff, with one bootstrap retry if the reader does not start. Stop or unload cancels the pending retry.
+- Live check: first bootstrap may show a console. Stop and restart after discovery and confirm that the cached launch starts without it.
+
+---
+
 # November 6, 2026 — Public v2 menu preview
 
 - XIVCrossbar menus keep the HUD visible with dimmer icons and hide gameplay trigger fields. The binder exposes its selected bank for an amber field during binding selection and confirmation. Native FFXI menu routing is outside this change.
