@@ -1,3 +1,10 @@
+# Native hook detachment on addon unload
+
+- Enabled by default. `//xb diagnose native detach off|on` changes the persisted option. Wrapper stop still disables filtering without detaching. Addon unload restores native entry points while retaining the pinned DLL and trampolines for in-flight callbacks. Reload with a ready wrapper re-enables the hooks.
+- Live retest: load the guard, unload XIVCrossbar while AHK stays running, verify native controls, reload, and verify the guard and filtering return. Replacing the DLL still requires restarting FFXI.
+
+---
+
 # Automatic native guard alongside AHK
 
 - Experimental default: start the guard once a matching AHK reader reports ready. AHK remains the sole addon action source. Missing/stale readers disable the guard; native poll activity is required before skipping bare keyboard equivalents.

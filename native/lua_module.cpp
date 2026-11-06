@@ -7,6 +7,7 @@
 struct lua_State;
 extern "C" unsigned __cdecl xb_begin(unsigned, unsigned, unsigned, unsigned, const char*);
 extern "C" void __cdecl xb_off();
+extern "C" unsigned __cdecl xb_detach();
 extern "C" unsigned __cdecl xb_poll(unsigned, int*, unsigned, unsigned*);
 
 namespace {
@@ -35,6 +36,7 @@ int begin(lua_State* L) {
     return 1;
 }
 int off(lua_State*) { xb_off(); return 0; }
+int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
 int poll(lua_State* L) {
     int edges[256]{};
     unsigned status[7]{};
@@ -59,9 +61,10 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad(lua_State* L) {
         !resolve(host, api.string, "lua_tolstring") || !resolve(host, api.push, "lua_pushinteger") ||
         !resolve(host, api.table, "lua_createtable") || !resolve(host, api.closure, "lua_pushcclosure") ||
         !resolve(host, api.field, "lua_setfield") || !resolve(host, api.index, "lua_rawseti")) return 0;
-    api.table(L, 0, 3);
+    api.table(L, 0, 4);
     api.closure(L, begin, 0); api.field(L, -2, "begin");
     api.closure(L, off, 0); api.field(L, -2, "off");
+    api.closure(L, detach, 0); api.field(L, -2, "detach");
     api.closure(L, poll, 0); api.field(L, -2, "poll");
     return 1;
 }

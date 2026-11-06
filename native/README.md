@@ -1,5 +1,9 @@
 # Native gamepad bridge experiment
 
+Hook detachment on addon unload defaults to ON. Use **//xb diagnose native detach off**
+or **//xb diagnose native detach on** to change it. The DLL stays pinned, but the
+controller API entry points are restored on unload with this option enabled.
+
 The automatic guard now starts by default when a matching AHK wrapper is ready.
 Use **//xb diagnose native status** to confirm guard mode, **//xb diagnose native pass**
 to save an opt-out, or **//xb diagnose native auto** to re-enable automatic startup.

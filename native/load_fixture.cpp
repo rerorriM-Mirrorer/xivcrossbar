@@ -14,6 +14,8 @@ int main() {
         GetProcAddress(dll, "xb_poll"));
     if (!begin || !off || !poll || begin(0, 0, 0, 0, "") != 0 ||
         begin(1, 0, 1, 0, "xb_fixture_missing.dll") != 0) return 2;
+    auto detach = reinterpret_cast<unsigned (__cdecl*)()>(GetProcAddress(dll, "xb_detach"));
+    if (!detach || detach() != 1) return 5;
     off();
     int edges[8]{};
     unsigned status[7]{};

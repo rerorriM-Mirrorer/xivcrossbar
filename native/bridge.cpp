@@ -194,6 +194,17 @@ BOOL CALLBACK choose_device(const DIDEVICEINSTANCEA* info, void* context) {
 
 void* targets[2];
 unsigned target_count;
+bool hooks_enabled;
+
+bool set_hooks(bool enabled) {
+    for (unsigned i = 0; i < target_count; ++i) {
+        const auto result = enabled ? MH_QueueEnableHook(targets[i]) : MH_QueueDisableHook(targets[i]);
+        if (result != MH_OK) return false;
+    }
+    if (MH_ApplyQueued() != MH_OK) return false;
+    hooks_enabled = enabled;
+    return true;
+}
 bool install(unsigned kind, unsigned index, const char* module) {
     const auto mh = MH_Initialize();
     if (mh != MH_OK && mh != MH_ERROR_ALREADY_INITIALIZED) return false;
@@ -236,9 +247,7 @@ bool install(unsigned kind, unsigned index, const char* module) {
     HMODULE pinned = nullptr;
     if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
         reinterpret_cast<LPCSTR>(&install), &pinned)) return false;
-    for (unsigned i = 0; i < target_count; ++i)
-        if (MH_QueueEnableHook(targets[i]) != MH_OK) return false;
-    return MH_ApplyQueued() == MH_OK;
+    return true;
 }
 }
 
@@ -258,6 +267,7 @@ __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, u
         strncpy_s(installed_module.data(), installed_module.size(), module, _TRUNCATE);
     } else if (installed_kind != kind || installed_device != index ||
         strcmp(installed_module.data(), module) != 0) return 2;
+    if (!hooks_enabled && !set_hooks(true)) return 0;
     std::lock_guard lock(guard);
     reset();
     backend = kind; device = index; fightpad = fight != 0;
@@ -270,6 +280,12 @@ __declspec(dllexport) void __cdecl xb_off() {
     std::lock_guard lock(guard);
     mode = 0;
     reset();
+}
+__declspec(dllexport) unsigned __cdecl xb_detach() {
+    xb_off();
+    // Restore target entry points without freeing trampolines. A callback
+    // already in flight may still need its original-function trampoline.
+    return !target_count || set_hooks(false);
 }
 __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, unsigned capacity, unsigned* status) {
     std::lock_guard lock(guard);

@@ -9,6 +9,7 @@ function M.open(path)
     return {
         begin = dll.begin,
         stop = dll.off,
+        detach = dll.detach,
         poll = function(context, reset, deliver, previous)
             local edges
             edges, status = dll.poll(context)

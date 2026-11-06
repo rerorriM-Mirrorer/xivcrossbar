@@ -1296,7 +1296,15 @@ end)
 -- ON UNLOAD
 windower.register_event('unload',function()
     launch_attempt = nil
-    if native_mode then native_gamepad.stop(); native_mode=nil end
+    if native_gamepad then
+        native_gamepad.stop()
+        if settings.NativeDetachOnUnload~=false then
+            if not native_gamepad.detach or native_gamepad.detach()~=1 then
+                chat_format.say(123, '[XIVCrossbar] Native hooks could not detach. Filtering is off.')
+            end
+        end
+        native_mode=nil
+    end
     if diagnostic then diagnostic:close() end
     controller_switcher:cancel()
     if message_bridge then message_bridge:reset('unload') end
@@ -1324,6 +1332,15 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'diagnose' or command == 'diagnostics' then
         local mode,note,device=...
         if mode=='native' and native_command then
+            if note=='detach' then
+                if device=='on' or device=='off' then
+                    settings.NativeDetachOnUnload=device=='on'
+                    config.save(settings)
+                end
+                chat_format.say(207, '[XIVCrossbar] Detach native hooks on unload: ' ..
+                    (settings.NativeDetachOnUnload~=false and 'ON' or 'OFF'))
+                return
+            end
             return native_command(note=='block' and 'probe' or note=='pass' and 'off' or note=='auto' and 'auto' or 'status', nil, device)
         end
         return diagnostic:command(mode,note)
