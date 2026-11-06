@@ -1,3 +1,12 @@
+# Automatic native guard alongside AHK
+
+- Experimental default: start the guard once a matching AHK reader reports ready. AHK remains the sole addon action source. Missing/stale readers disable the guard; native poll activity is required before skipping bare keyboard equivalents.
+- The guard filters polled and buffered trigger chords and addon-menu presses. Buffered ownership advances in event order and peek reads do not commit it. Native menus/chat use Windower context flags; validate the native battle palette separately.
+- `//xb diagnose native pass` saves the opt-out, `//xb diagnose native auto` restores the default, and `//xb diagnose native status` reports the active guard.
+- Live: leave FFXI bindings assigned, verify bare inputs, menu Cancel ownership, R2+Up release ordering, AHK stop/restart, client focus handoff, and Xbox parity. Trust and other addons are not yet live-verified against this guard.
+
+---
+
 # Live Up/Circle probe with AHK
 
 - Lionstag confirmed native suppression with AHK stopped and raw/masked values 0x001, 0x040, and 0x041. With AHK running the native menu still reacted, consistent with the Lua gameplay fallback synthesizing keyboard equivalents.

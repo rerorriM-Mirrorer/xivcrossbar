@@ -1,5 +1,10 @@
 # Native gamepad bridge experiment
 
+The automatic guard now starts by default when a matching AHK wrapper is ready.
+Use **//xb diagnose native status** to confirm guard mode, **//xb diagnose native pass**
+to save an opt-out, or **//xb diagnose native auto** to re-enable automatic startup.
+The two-button diagnostic overrides the automatic guard until turned off or reloaded.
+
 For the AHK-compatible probe, keep AHK running and use **//xb diagnose native block**,
 **//xb diagnose native status**, and **//xb diagnose native pass**. Pass-through is
 the session default. The probe does not feed actions into the Lua controller router.

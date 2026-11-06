@@ -19,6 +19,7 @@ function M.open(path)
             end
             return generation
         end,
+        poll_count = function() return status[2] end,
         status = function()
             return ('polls=%d raw=0x%03x masked=0x%03x buffered=%d unsupported-size=%d overflow=%d')
                 :format(status[2], status[3], status[4], status[5], status[6], status[7])

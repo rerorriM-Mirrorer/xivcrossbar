@@ -4,6 +4,7 @@ defaults.buttonbackgroundalpha = 150
 defaults.iscompact = false
 
 defaults.iconpack = 'default'
+defaults.NativeControllerGuard = true
 defaults.ControllerProfile = 'ps5-directinput'
 defaults.ControllerDevice = 1
 defaults.on_logout_unload_addon = false

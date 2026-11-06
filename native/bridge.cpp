@@ -20,7 +20,8 @@ XboxRead xbox_original;
 DirectRead direct_original;
 DirectBuffered buffered_original;
 std::mutex guard;
-xb::Ownership ownership;
+xb::Ownership ownership, buffered_ownership;
+unsigned buffered_raw;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend;
@@ -30,6 +31,8 @@ ULONGLONG heartbeat, last_sample;
 
 void reset() {
     ownership.reset();
+    buffered_ownership.reset();
+    buffered_raw = 0;
     probe_ready = false;
     head = count = raw = suppressed = 0;
     ++generation;
@@ -51,12 +54,18 @@ unsigned observe(unsigned buttons) {
         if (suppressed || count) reset();
         ownership.reset();
         probe_ready = false;
+        buffered_ownership.reset();
+        buffered_raw = 0;
         suppressed = 0;
         return 0;
     }
-    if (mode == 1 && !(buttons & xb::controls)) probe_ready = true;
-    const auto result = ownership.apply(buttons, mode, menu, native_menu);
+    if ((mode == 1 || mode == 3) && !probe_ready && !(buttons & xb::controls)) {
+        probe_ready = true;
+        buffered_ownership.apply(0, 2, menu, native_menu);
+    }
+    const auto result = ownership.apply(buttons, mode == 3 ? 2 : mode, menu, native_menu);
     suppressed = result.suppressed;
+    if (mode == 3) return suppressed;
     // Releases precede presses; simultaneous triggers precede face/D-pad.
     for (int i = 0; i < 12; ++i)
         if (result.up & (1u << i)) enqueue(-(i + 1));
@@ -132,11 +141,13 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
         constexpr DWORD legacy_size = offsetof(DIDEVICEOBJECTDATA, uAppData);
         DWORD foreground = 0;
         GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
-        if (mode != 1 || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
+        if ((mode != 1 && mode != 3) || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
             foreground != GetCurrentProcessId() || FAILED(result) || !data || !entries ||
             *entries > capacity || (size != legacy_size && size != sizeof(DIDEVICEOBJECTDATA)))
             return result;
         auto* bytes = reinterpret_cast<unsigned char*>(data);
+        auto stream = buffered_ownership;
+        unsigned state = buffered_raw;
         for (DWORD i = 0; i < *entries; ++i) {
             auto* record = bytes + i * size;
             DWORD offset, value;
@@ -145,13 +156,28 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             DIDEVICEOBJECTINSTANCEA info{};
             info.dwSize = sizeof(info);
             if (FAILED(object->GetObjectInfo(&info, offset, DIPH_BYOFFSET))) continue;
-            if ((DIDFT_GETTYPE(info.dwType) & DIDFT_POV) && DIDFT_GETINSTANCE(info.dwType) == 0)
-                value = xb::filter_hat(value, xb::up);
-            else if ((DIDFT_GETTYPE(info.dwType) & DIDFT_BUTTON) &&
-                DIDFT_GETINSTANCE(info.dwType) == (fightpad ? xb::fightpad[2] : xb::dualsense[2]))
-                value &= ~0x80u;
-            else continue;
+            const auto instance = DIDFT_GETINSTANCE(info.dwType);
+            const auto type = DIDFT_GETTYPE(info.dwType);
+            if ((type & DIDFT_POV) && instance == 0) {
+                const std::uint8_t neutral[32]{};
+                state = (state & ~0xfu) | xb::read_joystick(value, neutral, fightpad);
+                const auto mask = mode == 1 ? xb::up : stream.apply(state, 2, menu, native_menu).suppressed;
+                value = xb::filter_hat(value, mask);
+            } else if (type & DIDFT_BUTTON) {
+                const auto* map = fightpad ? xb::fightpad : xb::dualsense;
+                unsigned bit = 0;
+                for (unsigned j = 0; j < 6; ++j)
+                    if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
+                if (!bit) continue;
+                state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
+                const auto mask = mode == 1 ? xb::circle : stream.apply(state, 2, menu, native_menu).buffered_mask();
+                if (mask & bit) value &= ~0x80u;
+            } else continue;
             memcpy(record + sizeof offset, &value, sizeof value);
+        }
+        if (!(flags & DIGDD_PEEK)) {
+            buffered_ownership = stream;
+            buffered_raw = state;
         }
     }
     return result;
@@ -219,7 +245,7 @@ bool install(unsigned kind, unsigned index, const char* module) {
 extern "C" {
 __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, unsigned experiment,
     unsigned fight, const char* module) {
-    if ((kind != 1 && kind != 2) || (experiment != 1 && experiment != 2) ||
+    if ((kind != 1 && kind != 2) || (experiment < 1 || experiment > 3) ||
         index >= (kind == 1 ? 4u : 16u) || !module) return 0;
     // Called only on Windower's Lua thread. Install without holding the
     // callback mutex so suspended input threads cannot deadlock installation.
