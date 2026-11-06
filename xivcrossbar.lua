@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261029.ps5-directlink-freshdefaults1'
+_addon.version = '0.4.0-beta1.20261106.public-ahk-v2-test1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -504,7 +504,7 @@ function start_controller_wrappers(profile, device, modifier)
         chat_format.say(123, '[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err))
         return false
     end
-    windower.send_command('run addons/xivcrossbar/ffxi_directinput.ahk ' .. modifier ..
+    windower.send_command('run addons/xivcrossbar/launch-controller.cmd ' .. modifier ..
         ' ' .. profile .. ' ' .. device)
     chat_format.say(207, '[XIVCrossbar] Wrapper start requested: ' .. controller_profiles.short_name(profile) ..
         ' / device ' .. device .. ' / ' .. modifier)

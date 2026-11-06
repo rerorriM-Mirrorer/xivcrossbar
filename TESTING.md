@@ -1,3 +1,14 @@
+# Current Development Status — November 6, 2026 — Public Beta AHK v2 Test 1
+
+- Branch `development/public-ahk-v2` starts at public Beta 1 commit `1f928a80e6187a772615c16b99d957625dff7ff1`. Personal v2 reference `ad368145a2790a5d947bb132f75c17732545ac66`. Read the current development guidance and testing history from both branches.
+- Converted the public reader and its two supporting modules in place. Adapted interpreter discovery, the per-installation mutex, explicit shutdown and reader identity diagnostics. Kept the public profiles, Lua receiver, public defaults, routing and on-disk protocol. The public explicit stop and restart model remains in use.
+- Native Windows CI covers both interpreter bitnesses, startup through CMD and launch INI, direct argument selection for all five profiles, duplicate-reader rejection, stop/restart and refusal of a non-AHK executable. The package job requires both native jobs and reruns the existing simulated Lua suite. This does not measure physical input.
+- First live pass: one DualSense and one client. Confirm startup and the configured profile, IJKL and face bindings, L2/R2 and simultaneous/double trigger order, native menus, custom-action menus, diagnostic save and stop/restart. Compare against public v1 with equivalent settings.
+- Then exercise two to four clients, rapid trigger input, held keys through focus changes, neutral rearm, reload/unload and disconnect/reconnect. Check for stale events, stuck keys, and duplicate or wrong-transport input. Test F710, FightPadPro and both XInput routes with actual hardware before accepting them.
+- Recheck historical compact Options-hint flicker and diagnostic-save memory failure in game. Follow README for a whole-folder install and rollback. This testing branch is for live acceptance before any community release decision.
+
+---
+
 # Current Development Status — October 29, 2026 — Public Beta 1 Fresh-Install Defaults
 
 - **Working repository/branch:** `rerorriM-Mirrorer/xivcrossbar`, `release/beta1-ps5-directlink`, following known-good automated `combatui1` checkpoint `50a67ee5f76f210c3c49f678dfac8f7ec4dfbbf4`; runtime `0.4.0-beta1.20261029.ps5-directlink-freshdefaults1`. Personal `development/directlink`, last-known-good stable/master and RC3 are untouched.

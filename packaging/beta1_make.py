@@ -22,7 +22,7 @@ for src in sorted(ROOT.rglob('*')):
     assert hashlib.sha256(src.read_bytes()).digest()==hashlib.sha256(dst.read_bytes()).digest()
     count+=1
 required=['xivcrossbar.lua','controller_messages.lua','controller_messages.ahk',
-          'controller_lease.lua','ffxi_directinput.ahk','README.md','LICENSE','NOTICE',
+          'controller_lease.lua','ffxi_directinput.ahk','launch-controller.cmd','launch-controller.ps1','README.md','LICENSE','NOTICE',
           'WORKFLOW.md','TESTING.md','FFXI_Input.py','FFXI_Input.sh']
 assert all((DEST/p).exists() for p in required)
 assert (DEST/'images').is_dir() and (DEST/'themes').is_dir()

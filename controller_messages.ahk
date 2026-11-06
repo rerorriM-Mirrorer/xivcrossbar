@@ -2,39 +2,42 @@
 ; Apps/F-key transport remains untouched for every other controller profile.
 ControllerMessageInit() {
     global CM
-    CM := {requested:false, token:"", ack:0, seq:0, pending:[], previous:[]
+    CM := {requested:false, token:"", ack:0, seq:0, pending:[], previous:NeutralButtons()
         , phase:"keys", seen:0, path:"", nextWrite:0, error:false}
 }
 ControllerMessageContext(hwnd) {
     global CM, profile
     if (profile != "ps5-directinput" or !hwnd)
         return
-    WinGetTitle, title, ahk_id %hwnd%
-    now := A_NowUTC
-    EnvSub, now, 19700101000000, Seconds
+    try title := WinGetTitle("ahk_id " . hwnd)
+    catch TargetError
+        return
+    now := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     found := false
-    Loop, Files, %A_ScriptDir%\data\directlink\*.ini
+    Loop Files, A_ScriptDir . "\data\directlink\*.ini"
     {
-        FileRead, lease, %A_LoopFileFullPath%
-        if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", name))
+        try lease := FileRead(A_LoopFileFullPath)
+        catch OSError
             continue
-        if (!RegExMatch(title, "i)(^|[^a-z])" . name1 . "([^a-z]|$)"))
+        if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", &name))
             continue
-        if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", stamp)
-            or !RegExMatch(lease, "m)^button_mode=(messages|keys)\r?$", mode)
+        if (!RegExMatch(title, "i)(^|[^a-z])" . name[1] . "([^a-z]|$)"))
+            continue
+        if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
+            or !RegExMatch(lease, "m)^button_mode=(messages|keys)\r?$", &mode)
             or !RegExMatch(lease, "m)^END\r?$"))
             break
-        age := now - stamp1
+        age := now - stamp[1]
         if (age < -1 or age > 2)
             break
-        requested := mode1 = "messages"
+        requested := mode[1] = "messages"
         token := ""
         ackValue := 0
         if (requested) {
-            if (!RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", value)
-                or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", ack))
+            if (!RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", &value)
+                or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", &ack))
                 break
-            token := value1, ackValue := ack1 + 0
+            token := value[1], ackValue := ack[1] + 0
         }
         ControllerMessageSelect(requested, token, ackValue, RegExReplace(A_LoopFileFullPath, "\.ini$", ".buttons"))
         found := true
@@ -49,7 +52,7 @@ ControllerMessageSelect(requested, token, ack, path) {
     if (requested != CM.requested or token != CM.token or path != CM.path) {
         ReleaseTransport()
         CM.requested := requested, CM.token := token, CM.seq := ack, CM.ack := ack
-        CM.pending := [], CM.previous := [], CM.phase := "neutral"
+        CM.pending := [], CM.previous := NeutralButtons(), CM.phase := "neutral"
         CM.nextWrite := 0, CM.path := path
         if (requested) {
             ControllerMessageAdd("cancel", 0)
@@ -60,7 +63,7 @@ ControllerMessageSelect(requested, token, ack, path) {
     ; A brief lease publication gap must never permanently freeze this token.
     ; Rejoin only after a neutral gesture and tell Lua to cancel old ownership.
     if (requested and CM.phase = "uncertain") {
-        CM.previous := []
+        CM.previous := NeutralButtons()
         CM.phase := "neutral"
         ControllerMessageAdd("cancel", 0)
         ControllerMessageFlush(true)
@@ -88,7 +91,7 @@ ControllerMessageCancel() {
         ControllerMessageAdd("cancel", 0)
         ControllerMessageFlush(true)
     }
-    CM.previous := [], CM.phase := "neutral"
+    CM.previous := NeutralButtons(), CM.phase := "neutral"
 }
 ControllerMessageFlush(force := false) {
     global CM
@@ -97,18 +100,13 @@ ControllerMessageFlush(force := false) {
     if (!force and A_TickCount < CM.nextWrite)
         return true
     CM.nextWrite := A_TickCount + 100
-    stamp := A_NowUTC
-    EnvSub, stamp, 19700101000000, Seconds
+    stamp := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     contents := "token=" . CM.token . "`nstamp=" . stamp . "`nbeat=" . A_TickCount . "`n"
     for _, event in CM.pending
         contents .= event.seq . "," . event.kind . "," . event.button . "`n"
     contents .= "END`n"
     temporary := CM.path . ".tmp"
-    FileDelete, %temporary%
-    FileAppend, %contents%, %temporary%
-    if (!ErrorLevel)
-        FileMove, %temporary%, % CM.path, 1
-    CM.error := ErrorLevel ? true : false
+    CM.error := !WriteControllerFile(temporary, CM.path, contents)
     return !CM.error
 }
 ControllerMessagePoll(states, hwnd) {
@@ -118,7 +116,7 @@ ControllerMessagePoll(states, hwnd) {
     if (hwnd)
         ControllerMessageContext(hwnd)
     neutral := true
-    Loop, 12
+    Loop 12
         if (states[A_Index])
             neutral := false
     now := A_TickCount
@@ -141,19 +139,19 @@ ControllerMessagePoll(states, hwnd) {
     if (!CM.requested)
         return false
     if (CM.phase = "backpressure") {
-        if (neutral and !CM.pending.Length())
+        if (neutral and !CM.pending.Length)
             CM.phase := "messages"
         ControllerMessageFlush()
         return true
     }
-    if (CM.pending.Length() > 96 or (CM.pending.Length() and now - CM.pending[1].tick > 350)) {
+    if (CM.pending.Length > 96 or (CM.pending.Length and now - CM.pending[1].tick > 350)) {
         ControllerMessageCancel()
         CM.phase := "backpressure"
-        DiagRecord("DirectLink backpressure pending=" . CM.pending.Length())
+        DiagRecord("DirectLink backpressure pending=" . CM.pending.Length)
         return true
     }
     changed := false
-    Loop, 12 {
+    Loop 12 {
         i := A_Index
         if (CM.previous[i] and !states[i]) {
             ControllerMessageAdd("up", i)
@@ -168,4 +166,11 @@ ControllerMessagePoll(states, hwnd) {
     }
     ControllerMessageFlush(changed)
     return true
+}
+
+NeutralButtons() {
+    buttons := []
+    Loop 12
+        buttons.Push(false)
+    return buttons
 }

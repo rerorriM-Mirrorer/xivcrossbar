@@ -1,41 +1,40 @@
-#Requires AutoHotkey v1.1.33+
+#Requires AutoHotkey v2.0.19+
 ; A: shared controller transport; physical readers are selected at startup.
 ; All twelve buttons send consistent F1-F12 signals, with Apps capture.
-#SingleInstance ignore
-#Persistent
+#SingleInstance Off
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
 ; A: physical modifier checks must distinguish our injected key-down.
-#InstallKeybdHook
-; Do not pause the controller poll between physical edges.
-SetBatchLines, -1
-SetWorkingDir, %A_ScriptDir%
-FileCreateDir, %A_ScriptDir%\data
-OnExit, TransportExit
+InstallKeybdHook()
+SetWorkingDir(A_ScriptDir)
+instanceMutex := AcquireWrapperMutex()
+if (!instanceMutex)
+    ExitApp()
+DirCreate(A_ScriptDir . "\data")
 ; A: one shared process; select transport only at startup, never mid-hold.
-modifierArgument = %1%
-profileArgument = %2%
-deviceArgument = %3%
+modifierArgument := A_Args.Length >= 1 ? A_Args[1] : ""
+profileArgument := A_Args.Length >= 2 ? A_Args[2] : ""
+deviceArgument := A_Args.Length >= 3 ? A_Args[3] : ""
 ; A: use a validated startup handoff if the launcher drops script arguments.
 origin := "arguments"
 if (profileArgument = "") {
     launchFile := A_ScriptDir . "\data\controller-launch.ini"
     if FileExist(launchFile) {
-        IniRead, modifierArgument, %launchFile%, Controller, modifier, apps
-        IniRead, profileArgument, %launchFile%, Controller, profile, ps5-directinput
-        IniRead, deviceArgument, %launchFile%, Controller, device, 1
+        modifierArgument := IniRead(launchFile, "Controller", "modifier", "apps")
+        profileArgument := IniRead(launchFile, "Controller", "profile", "ps5-directinput")
+        deviceArgument := IniRead(launchFile, "Controller", "device", "1")
         origin := "launch-file"
     } else {
         origin := "default"
     }
 }
 profile := profileArgument != "" ? profileArgument : "ps5-directinput"
-device := deviceArgument != "" ? deviceArgument + 0 : 1
+device := deviceArgument = "" ? 1 : (IsInteger(deviceArgument) ? Integer(deviceArgument) : 0)
 isXInput := (profile = "xinput" or profile = "xinput-r1-chooser")
 validProfile := isXInput or profile = "ps5-directinput" or profile = "f710-directinput" or profile = "fightpadpro-directinput"
 if (!validProfile or device < 1 or device > (isXInput ? 4 : 16) or Mod(device, 1))
-    ExitApp
-joystickPrefix := device = 1 ? "" : device
+    ExitApp()
+joystickPrefix := device = 1 ? "" : String(device)
 xinputLibrary := 0
 xinputGetState := 0
 xinputFault := false
@@ -51,116 +50,118 @@ labels := ["D-pad Up/F1", "D-pad Right/F2", "D-pad Down/F3", "D-pad Left/F4", "C
 joys := profile = "fightpadpro-directinput"
     ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
     : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
-previous := []
+previous := NeutralButtons()
 povDirection := 0
 owner := 0
 ready := false
 appsOwned := false
-Loop, 12
-    previous[A_Index] := false
 ControllerMessageInit()
 DiagInit()
 WriteTransportStatus(true)
-SetTimer, TransportPoll, 10
-return
+OnExit(TransportExit)
+SetTimer(TransportPoll, 10)
 
-TransportPoll:
-DiagTick()
-if FileExist(A_ScriptDir . "\data\input-stop.request") {
-    FileDelete, %A_ScriptDir%\data\input-stop.request
-    ExitApp
-}
-active := WinActive("ahk_class FFXiClass")
-if (!active) {
-    ReleaseTransport()
-    ready := false
-    phase := "unfocused"
-    DiagSample(false,active,phase)
+TransportPoll() {
+    global owner, ready, phase, connected, xinputFault, appsOwned, captureKey, keys, previous
+    Critical("On")
+    DiagTick()
+    if FileExist(A_ScriptDir . "\data\input-stop.request") {
+        try FileDelete(A_ScriptDir . "\data\input-stop.request")
+        ExitApp()
+    }
+    active := WinActive("ahk_class FFXiClass")
+    if (!active) {
+        ReleaseTransport()
+        ready := false
+        phase := "unfocused"
+        DiagSample(false,active,phase)
+        WriteTransportStatus()
+        return
+    }
+    if (owner and owner != active) {
+        ReleaseTransport()
+        ready := false
+    }
+    owner := active
+    states := ReadTransportStates()
+    connected := IsObject(states)
+    if (!connected) {
+        ReleaseTransport()
+        ready := false
+        phase := xinputFault ? "xinput-unavailable" : "disconnected"
+        DiagSample(false,active,phase)
+        WriteTransportStatus()
+        return
+    }
+    neutral := true
+    Loop 12 {
+        if (states[A_Index])
+            neutral := false
+    }
+    anyDown := !neutral
+    phase := ready ? "ready" : "waiting-neutral"
+    DiagSample(states,active,phase)
     WriteTransportStatus()
-    return
-}
-if (owner and owner != active) {
-    ReleaseTransport()
-    ready := false
-}
-owner := active
-states := ReadTransportStates()
-connected := IsObject(states)
-if (!connected) {
-    ReleaseTransport()
-    ready := false
-    phase := xinputFault ? "xinput-unavailable" : "disconnected"
-    DiagSample(false,active,phase)
-    WriteTransportStatus()
-    return
-}
-neutral := true
-Loop, 12 {
-    if (states[A_Index])
-        neutral := false
-}
-anyDown := !neutral
-phase := ready ? "ready" : "waiting-neutral"
-DiagSample(states,active,phase)
-WriteTransportStatus()
-if (!ready) {
-    if (neutral)
-        ready := true
-    return
-}
-; PS5 DirectLink owns all twelve ordinary signals when the focused Lua lease is active.
-; Other profiles still follow the unchanged Apps/F1-F12 route below.
-if (ControllerMessagePoll(states, active))
-    return
-if (anyDown and !appsOwned) {
-    appsOwned := true
-    SendEvent, % "{Blind}{" . captureKey . " down}"
-    DiagRecord("Apps " . captureKey . " down")
-}
-Loop, 12 {
-    i := A_Index
-    if (states[i] != previous[i]) {
-        key := keys[i]
-        edge := states[i] ? "down" : "up"
-        SendEvent, % "{Blind}{" . key . " " . edge . "}"
-        DiagRecord("Apps " . key . " " . edge)
-        previous[i] := states[i]
+    if (!ready) {
+        if (neutral)
+            ready := true
+        return
+    }
+    ; PS5 DirectLink owns all twelve ordinary signals when the focused Lua lease is active.
+    ; Other profiles still follow the unchanged Apps/F1-F12 route below.
+    if (ControllerMessagePoll(states, active))
+        return
+    if (anyDown and !appsOwned) {
+        appsOwned := true
+        SendEvent("{Blind}{" . captureKey . " down}")
+        DiagRecord("Apps " . captureKey . " down")
+    }
+    Loop 12 {
+        i := A_Index
+        if (states[i] != previous[i]) {
+            key := keys[i]
+            edge := states[i] ? "down" : "up"
+            SendEvent("{Blind}{" . key . " " . edge . "}")
+            DiagRecord("Apps " . key . " " . edge)
+            previous[i] := states[i]
+        }
+    }
+    if (!anyDown and appsOwned) {
+        physicallyHeld := GetKeyState(captureKey, "P")
+        if (!physicallyHeld)
+            SendEvent("{Blind}{" . captureKey . " up}")
+        DiagRecord("Apps " . captureKey . " up")
+        appsOwned := false
     }
 }
-if (!anyDown and appsOwned) {
-    physicallyHeld := GetKeyState(captureKey, "P")
-    if (!physicallyHeld)
-        SendEvent, % "{Blind}{" . captureKey . " up}"
-    DiagRecord("Apps " . captureKey . " up")
-    appsOwned := false
-}
-return
 
 ; Explicit local stop; it exits only this script, even outside FFXI.
-^!F12::ExitApp
+^!F12::ExitApp()
 
-TransportExit:
-DiagClose("wrapper exit")
-; A: a v1 OnExit label must explicitly finish termination.
-ReleaseTransport()
-phase := "stopped"
-WriteTransportStatus(true)
-if (xinputLibrary)
-    DllCall("FreeLibrary", "Ptr", xinputLibrary)
-ExitApp
+TransportExit(*) {
+    global phase, xinputLibrary
+    SetTimer(TransportPoll, 0)
+    ReleaseTransport()
+    DiagClose("wrapper exit")
+    phase := "stopped"
+    WriteTransportStatus(true)
+    if (xinputLibrary)
+        DllCall("FreeLibrary", "Ptr", xinputLibrary)
+    ; Windows closes the mutex handle when the process terminates.
+}
 
 ReleaseTransport() {
     global keys, previous, owner, appsOwned, captureKey
     DiagRecord("transport release owner=" . owner)
     ControllerMessageCancel()
-    Loop, 12 {
+    Loop 12 {
         i := A_Index
         if (previous[i]) {
             key := keys[i]
             if (owner == WinActive("ahk_class FFXiClass")) {
-                SendEvent, % "{Blind}{" . key . " up}"
+                SendEvent("{Blind}{" . key . " up}")
             } else if (owner) {
-                ControlSend,, % "{" . key . " up}", ahk_id %owner%
+                try ControlSend("{" . key . " up}", , "ahk_id " . owner)
             }
             previous[i] := false
         }
@@ -168,9 +169,9 @@ ReleaseTransport() {
     if (appsOwned) {
         if (owner == WinActive("ahk_class FFXiClass")) {
             if (!GetKeyState(captureKey, "P"))
-                SendEvent, % "{Blind}{" . captureKey . " up}"
+                SendEvent("{Blind}{" . captureKey . " up}")
         } else if (owner) {
-            ControlSend,, % "{" . captureKey . " up}", ahk_id %owner%
+            try ControlSend("{" . captureKey . " up}", , "ahk_id " . owner)
         }
         appsOwned := false
     }
@@ -212,7 +213,7 @@ ReadTransportStates() {
         } else {
             states := [pov == 0, pov == 9000, pov == 18000, pov == 27000]
         }
-        Loop, 8 {
+        Loop 8 {
             i := A_Index + 4
             states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
         }
@@ -220,8 +221,8 @@ ReadTransportStates() {
     }
     if (!xinputGetState)
         return false
-    VarSetCapacity(state, 16, 0)
-    if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", &state, "UInt") != 0)
+    state := Buffer(16, 0)
+    if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", state, "UInt") != 0)
         return false
     buttons := NumGet(state, 4, "UShort")
     ; Logical order: Up, Right, Down, Left, bottom, left, right, top, Back, chooser.
@@ -229,10 +230,9 @@ ReadTransportStates() {
     flags.Push(profile = "xinput-r1-chooser" ? 0x0200 : 0x0010)
     states := []
     for i, flag in flags
-        states[i] := (buttons & flag) ? true : false
+        states.Push((buttons & flag) != 0)
     ; Match upstream's threshold; neither trigger is derived from the other.
-    states[11] := NumGet(state, 6, "UChar") > 4
-    states[12] := NumGet(state, 7, "UChar") > 4
+    states.Push(NumGet(state, 6, "UChar") > 4, NumGet(state, 7, "UChar") > 4)
     return states
 }
 
@@ -258,17 +258,43 @@ WriteTransportStatus(force := false) {
     if (!force and A_TickCount - lastStatusTick < 1000)
         return
     lastStatusTick := A_TickCount
-    timestamp := A_NowUTC
-    EnvSub, timestamp, 19700101000000, Seconds
+    timestamp := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     pid := phase = "stopped" ? 0 : DllCall("GetCurrentProcessId", "UInt")
     modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
     route := profile = "ps5-directinput" and CM.requested ? CM.phase : "apps"
     contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
-        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`nroute=" . route . "`ntimestamp=" . timestamp . "`n"
+        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`nroute=" . route . "`ntimestamp=" . timestamp . "`nahk=" . A_AhkVersion . "`nexecutable=" . A_AhkPath . "`n"
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
-    FileDelete, %temporary%
-    FileAppend, %contents%, %temporary%
-    FileMove, %temporary%, %destination%, 1
+    WriteControllerFile(temporary, destination, contents)
+}
+AcquireWrapperMutex() {
+    ; Normalize case; hash keeps the name below Windows' MAX_PATH limit.
+    path := A_ScriptDir
+    path := StrLower(path)
+    hash := 2166136261
+    Loop Parse path
+        hash := ((hash ^ Ord(A_LoopField)) * 16777619) & 0xFFFFFFFF
+    handle := DllCall("CreateMutexW", "Ptr", 0, "Int", 0, "WStr", "Local\XIVCrossbar_" . hash, "Ptr")
+    mutexError := A_LastError
+    if (!handle or mutexError = 183) {
+        if (handle)
+            DllCall("CloseHandle", "Ptr", handle)
+        return 0
+    }
+    return handle
+}
+
+; Lease/status/feed readers must only see complete snapshots.
+WriteControllerFile(temporary, destination, contents) {
+    try {
+        if FileExist(temporary)
+            FileDelete(temporary)
+        FileAppend(contents, temporary, "UTF-8-RAW")
+        FileMove(temporary, destination, 1)
+        return true
+    } catch OSError {
+        return false
+    }
 }

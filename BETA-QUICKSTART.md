@@ -5,7 +5,7 @@ A Windower 4 preview of PS5 controller input without simulated gameplay F-keys.
 
 ## Extra setup
 
-- Install **AutoHotkey v1.1** (not v2). Back up your old `addons/xivcrossbar/` folder; stop the shared AHK reader, unload XIVCrossbar on every client, and replace the **whole** addon folder. Don't overlay a personal installation.
+- Install **AutoHotkey v2.0.19 or later in the v2 series**. Back up your old `addons/xivcrossbar/` folder; stop the shared AHK reader, unload XIVCrossbar on every client, and replace the **whole** addon folder. Don't overlay a personal installation.
 - In FFXI Gamepad Config, unassign duplicate native face/D-pad/trigger/hat-switch input that would conflict with XIVCrossbar; keep movement/camera sticks. See `images/setup/gamepad-directinput.jpg`.
 - Load with `//lua l xivcrossbar`, complete the button setup, then use `//xb controller profile ps5` for the PS5 DirectInput profile. Gameplay uses DirectLink; setup/login use the legacy keyboard route.
 - **Default D-pad is IJKL.** Assign I/J/K/L to **Menu/Target Cursor** in FFXI Key Assignment first, or use `//xb dpad arrows` for the previous arrow-key behavior. This applies to bare gameplay targeting, not menus.

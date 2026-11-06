@@ -183,8 +183,28 @@ Superwarp bindings require the separate Superwarp addon.
 
 ## Install or upgrade
 
-Requires **Windower 4** and **AutoHotkey v1.1.33 or newer in the v1 series**,
-associated with `.ahk` files.
+Requires **Windower 4** and **AutoHotkey v2.0.19 or later in the v2 series**. The Windows bootstrap selects a verified interpreter independently of the `.ahk` file association.
+
+This isolated Public Beta AHK v2 test build uses the five existing public controller
+profiles. Stop the old reader on all clients, unload the addon, and back up the
+entire existing `addons/xivcrossbar` folder outside the addons directory. Install
+the complete test folder in its place. For the first pass, start with fresh settings.
+
+The launcher checks the standard AutoHotkey v2 install locations. To use a portable
+or custom interpreter, create `data/controller-runtime.ini` with:
+
+```ini
+[Runtime]
+executable=C:\Path\To\AutoHotkey64.exe
+```
+
+Use `//xb controller status` for profile and device. The reader also writes its
+PID, phase, version and interpreter path to `data/controller-status.ini`.
+Discovery failures go to `data/controller-launch-error.log`.
+To roll back, stop the v2 reader with `//xb controller stop` or Ctrl+Alt+F12,
+unload all clients, restore the complete backed-up v1 folder, and restart it
+using its original AutoHotkey v1.1 setup.
+
 
 1. Stop your current AutoHotkey controller script and unload XIVCrossbar on all clients.
 2. Back up the existing `addons/xivcrossbar` folder, then move it out of the addons folder.

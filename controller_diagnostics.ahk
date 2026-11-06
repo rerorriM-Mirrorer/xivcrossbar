@@ -6,8 +6,8 @@ DiagInit() {
         , nextRequest:0, nextSave:0, deadline:0, lastSignature:"", lastPoll:0}
 }
 DiagClock() {
-    VarSetCapacity(ft, 8, 0)
-    DllCall("GetSystemTimeAsFileTime", "Ptr", &ft)
+    ft := Buffer(8, 0)
+    DllCall("GetSystemTimeAsFileTime", "Ptr", ft)
     return Floor((NumGet(ft, 0, "Int64") - 116444736000000000) / 10000)
 }
 DiagRecord(message) {
@@ -27,7 +27,9 @@ DiagWrite() {
     if (!DX.id)
         return
     folder := A_ScriptDir . "\data\diagnostics-staging"
-    FileCreateDir, %folder%
+    try DirCreate(folder)
+    catch OSError
+        return
     path := folder . "\" . DX.id . ".ahk"
     temp := path . ".tmp"
     content := "# diagnostic-feed " . DX.id . Chr(10)
@@ -35,10 +37,7 @@ DiagWrite() {
         . "dropped=" . DX.dropped . Chr(10)
     for _, line in DX.lines
         content .= line
-    FileDelete, %temp%
-    FileAppend, %content%, %temp%
-    if (!ErrorLevel)
-        FileMove, %temp%, %path%, 1
+    WriteControllerFile(temp, path, content)
 }
 DiagClose(reason) {
     global DX
@@ -66,19 +65,23 @@ DiagTick() {
     requestPath := A_ScriptDir . "\data\diagnostics-staging\request.txt"
     if (!FileExist(requestPath))
         return
-    FileRead, command, %requestPath%
-    FileDelete, %requestPath%
+    try {
+        command := FileRead(requestPath)
+        FileDelete(requestPath)
+    } catch OSError {
+        return
+    }
     command := Trim(command, " " . Chr(9) . Chr(13) . Chr(10))
-    if (RegExMatch(command, "^on ([A-Za-z0-9_-]+) ([A-Za-z]+)$", m)) {
+    if (RegExMatch(command, "^on ([A-Za-z0-9_-]+) ([A-Za-z]+)$", &m)) {
         if (DX.active)
             DiagClose("replaced-by-request")
-        DX.id := m1, DX.name := m2, DX.lines := [], DX.bytes := 0
+        DX.id := m[1], DX.name := m[2], DX.lines := [], DX.bytes := 0
         DX.dropped := 0, DX.active := true, DX.deadline := now + 30000
         DX.lastSignature := "", DX.nextSave := now + 1000
         DiagRecord("session start id=" . DX.id . " character=" . DX.name . " profile=" . profile . " device=" . device . " ahk=" . A_AhkVersion)
         DiagWrite()
-    } else if (RegExMatch(command, "^off ([A-Za-z0-9_-]+) ([A-Za-z]+)$", m)
-        and DX.active and m1 = DX.id) {
+    } else if (RegExMatch(command, "^off ([A-Za-z0-9_-]+) ([A-Za-z]+)$", &m)
+        and DX.active and m[1] = DX.id) {
         DiagClose("Lua stop requested")
     }
 }
@@ -88,12 +91,12 @@ DiagSample(states, hwnd, route) {
         return
     mask := ""
     if (IsObject(states)) {
-        Loop, 12
+        Loop 12
             mask .= states[A_Index] ? "1" : "0"
     } else mask := "disconnected"
     signature := "hwnd=" . hwnd . " route=" . route . " mask=" . mask
         . " messages=" . CM.requested . " phase=" . CM.phase
-        . " msg_seq=" . CM.seq . " ack=" . CM.ack . " pending=" . CM.pending.Length()
+        . " msg_seq=" . CM.seq . " ack=" . CM.ack . " pending=" . CM.pending.Length
         . " apps_owned=" . appsOwned
     if (signature != DX.lastSignature) {
         DX.lastSignature := signature
