@@ -40,6 +40,19 @@ int main() {
     owner.apply(0, 2, false, false);
     check(owner.apply(left_trigger | up, 2, false, false).down == (left_trigger | up), "fresh chord after reset");
 
+    owner.reset();
+    owner.apply(0, 2, false, false, default_passthrough);
+    edge = owner.apply(right_trigger | up | circle | face, 2, false, false, default_passthrough);
+    check(edge.suppressed == (right_trigger | face), "default policy reserves Up and Circle for FFXI");
+    owner.apply(0, 2, false, false, default_passthrough);
+    edge = owner.apply(right_trigger | up, 2, false, false);
+    check(edge.suppressed == (right_trigger | up), "explicit override allows R2 plus Up capture");
+    edge = owner.apply(up, 2, false, true, default_passthrough);
+    check(edge.suppressed == up && edge.up == right_trigger, "menu or policy change keeps captured Up");
+    edge = owner.apply(0, 2, false, true, default_passthrough);
+    check(!edge.suppressed && edge.buffered_mask() == up, "buffered Up release retains its owner");
+    check(!owner.apply(up, 2, false, true, default_passthrough).buffered_mask(), "fresh native Up passes");
+
     check(read_xbox(0x1009 | 0x0200, 5, 4) == (up | right | face | left_trigger),
         "Xbox layout ignores unrelated shoulder and preserves trigger threshold");
     std::uint8_t buttons[32]{};

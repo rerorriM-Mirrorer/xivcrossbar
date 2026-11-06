@@ -1,3 +1,9 @@
+# Buffered takeover ownership scaffold
+
+- Portable fixture covers the proposed default Up/Circle passthrough, explicit capture override, and a captured Up surviving trigger release and a menu or policy change. Buffered consumers can distinguish captured release edges from fresh native presses. The live diagnostic hook retains its existing behavior.
+
+---
+
 # Buffered DirectInput diagnostic with AHK running
 
 - Lionstag confirmed the LuaCore loader and raw Up/Circle masks, with buffered DirectInput reads preventing suppression in the prior build.
