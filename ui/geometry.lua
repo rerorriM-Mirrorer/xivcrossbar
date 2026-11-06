@@ -27,7 +27,7 @@ end
 local function primitive_color(g, name, p)
     if not p.color then return end
     local c = p.color
-    local alpha = math.floor((c[1] or 255)*g.opacity+.5)
+    local alpha = math.floor((c[1] or 255)*g.opacity*(g.presentation_opacity or 1)+.5)
     if p.rounded then p.rounded:color(alpha,c[2],c[3],c[4])
     else windower.prim.set_color(name,alpha,c[2],c[3],c[4]) end
 end
@@ -122,6 +122,7 @@ draw_opacity = function(g, m)
     if m.kind=='text' and animated_text and not g.text_fade then
         opacity=(g.opacity==1 and g.fade and g.fade.target==1) and 1 or 0
     end
+    opacity=opacity*(g.presentation_opacity or 1)
     local alpha=rounded_alpha(m.alpha,opacity)
     if alpha ~= m.draw_alpha then m.object:alpha(alpha);m.draw_alpha=alpha end
     if m.bg_alpha then

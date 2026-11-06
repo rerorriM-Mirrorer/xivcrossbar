@@ -500,6 +500,14 @@ function action_binder:set_ui_offset_callback(update_offsets)
     self.update_offsets = update_offsets
 end
 
+-- This is the same destination passed to the binding save callback.
+function action_binder:preview_destination()
+    if not self.is_hidden and (self.state == states.SELECT_BUTTON_ASSIGNMENT
+        or self.state == states.CONFIRM_BUTTON_ASSIGNMENT) then
+        return self.active_crossbar
+    end
+end
+
 function action_binder:update_active_crossbar(left_trigger_just_pressed, right_trigger_just_pressed)
     if (self.trigger_left_pressed and self.trigger_right_pressed) then
         if (self.theme_options.hotbar_number > 3 and not self.theme_options.combined_trigger_bank) then
@@ -1910,6 +1918,9 @@ function action_binder:show_icon(path, x, y)
     icon:repeat_xy(1, 1)
     icon:draggable(false)
     icon:fit(true)
+    if self:preview_destination() and path:match('^ui/binding_icons/trigger_') then
+        icon:color(255,216,112)
+    end
     icon:alpha(255)
     icon:show()
     icon:pos(x, y)

@@ -791,6 +791,7 @@ end
 
 -- trigger hotbar action
 function trigger_action(slot)
+    if not action_binder.is_hidden or env_chooser:is_showing() or gamepad_mapper.is_showing then return end
     if settings.InputTest then
         windower.add_to_chat(0,require('libs/chat_status').notice('Input Test: Crossbar ' .. tostring(gamepad_state.active_bar) .. ' / Slot ' .. slot .. ': dummy action'))
         ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
@@ -2585,7 +2586,11 @@ windower.register_event('prerender',function()
         end
     end
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
-    if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
+    local crossbar_menu = not action_binder.is_hidden or env_chooser:is_showing()
+    if ui.is_setup then
+        ui:set_chooser_open(env_chooser:is_showing())
+        ui:set_menu_presentation(crossbar_menu, action_binder:preview_destination())
+    end
     -- Elapsed-time fades must keep progressing even when recast frames skip.
     if ui.geometry then ui.geometry:tick() end
     -- allow settings to skip rendering frames
@@ -2606,7 +2611,8 @@ windower.register_event('prerender',function()
     local visible = visibility.should_show(settings.VisibilityMode,
         gamepad_state.left_trigger or gamepad_state.right_trigger, xivcrossbar.hide_hotbars,
         ui.is_setup and ui.geometry:is_startup_reveal_pending())
-        or action_binder:is_moving_crossbars() or env_chooser:is_showing()
+        or action_binder:is_moving_crossbars()
+        or (crossbar_menu and settings.VisibilityMode~='hidden' and not xivcrossbar.hide_hotbars)
     if not visible then crossbar_drag:finish() end
     if ui.is_setup and ui.public_visible ~= visible then
         if visible then
@@ -2614,7 +2620,7 @@ windower.register_event('prerender',function()
         else ui:hide(); ui.public_visible = false end
     end
 
-    if visible and ui.feedback.is_active then
+    if visible and not crossbar_menu and ui.feedback.is_active then
         ui:show_feedback()
     end
 

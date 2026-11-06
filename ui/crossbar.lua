@@ -799,10 +799,10 @@ end
 function ui:hide_button_hints()
     self.button_hints_visible=false
     -- Hints excluded by layout must not survive a closing crossbar fade.
-    self.action_binder_icon:hide(self.is_compact)
-    self.action_binder_text:hide(self.is_compact)
-    self.environment_selector_icon:hide(self.is_compact)
-    self.environment_selector_text:hide(self.is_compact)
+    self.action_binder_icon:hide(self.is_compact or self.menu_open)
+    self.action_binder_text:hide(self.is_compact or self.menu_open)
+    self.environment_selector_icon:hide(self.is_compact or self.menu_open)
+    self.environment_selector_text:hide(self.is_compact or self.menu_open)
 end
 
 -- show ui components
@@ -829,13 +829,28 @@ function ui:maybe_show_button_hints()
 end
 
 function ui:show_button_hints()
-    if self.is_compact then self:hide_button_hints(); return end
+    if self.is_compact or self.menu_open then self:hide_button_hints(); return end
     self.button_hints_visible=true
     self.action_binder_icon:show()
     self.action_binder_text:show()
     self.environment_selector_icon:show()
     self.environment_selector_text:show()
     if self.chooser_open then self.environment_selector_text:hide() end
+end
+
+function ui:set_menu_presentation(open, destination)
+    self.menu_destination=open and destination or nil
+    if self.menu_open==open then return end
+    self.menu_open=open
+    geometry.presentation_opacity=open and .78 or 1
+    geometry:set_opacity(geometry.opacity)
+    if open then
+        self:hide_button_hints()
+        self.feedback.is_active=false
+        self.feedback_icon:hide(true)
+    elseif self.public_visible then
+        self:maybe_show_button_hints()
+    end
 end
 
 function ui:set_chooser_open(open)
@@ -1519,8 +1534,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     self:display_gcd_indicator()
     if self.autoattack.enabled then self:display_aa_indicator() end
 
-    if (gamepad_state.active_bar ~= 0 and not (self.theme.combined_trigger_bank and gamepad_state.active_bar == 4)) then
-        self:show_bar_background(gamepad_state.active_bar)
+    local active_bar = self.menu_open and (self.menu_destination or 0) or gamepad_state.active_bar
+    if (active_bar ~= 0 and not (self.theme.combined_trigger_bank and active_bar == 4)) then
+        self:show_bar_background(active_bar)
     else
         self.bar_background:hide()
         self.bar_background_left:hide()
@@ -1528,18 +1544,27 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     end
 
     for h=1,self.theme.hotbar_number,1 do
-        local isThisBarActive = gamepad_state.active_bar == h
+        local isThisBarActive = active_bar == h
         local isThisBarVisibleByDefault
         local shouldDrawDefaultVisibleBars
         if not self.AutoHideExtraBars then
             isThisBarVisibleByDefault = h < 3 or h > 4
-            shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3 or gamepad_state.active_bar > 4
+            shouldDrawDefaultVisibleBars = active_bar < 3 or active_bar > 4
         else
             isThisBarVisibleByDefault = h < 3
-            shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3
+            shouldDrawDefaultVisibleBars = active_bar < 3
         end
         local shouldDrawThisBar = (isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars)
             and not (self.theme.combined_trigger_bank and h == 4)
+        local highlighted = self.menu_destination == h
+        local bar = self.hotbars[h]
+        if bar.menu_highlight ~= highlighted then
+            for i=1,8 do
+                if highlighted then bar.slot_frame[i]:color(255,216,112)
+                else bar.slot_frame[i]:color(255,255,255) end
+            end
+            bar.menu_highlight=highlighted
+        end
         if (shouldDrawThisBar) then
             for i=1,8,1 do
                 local slot = i
@@ -2008,8 +2033,11 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self:apply_pet_availability(h,i,action,pet_state)
             end
 
-            if (not self.is_compact) then
+            if not self.is_compact and not self.menu_open then
                 self:show_controller_icons(h)
+            elseif self.menu_open then
+                self.hotbars[h].slot_recast[9]:hide(true)
+                self.hotbars[h].slot_recast[10]:hide(true)
             end
         else
             for i=1,8,1 do

@@ -237,11 +237,16 @@ end
 function selectable_list:update_page_colors()
     local entry=self:get_selected_option()
     for _,direction in ipairs({'prev','next'}) do
-        local active=self.page_pressed_direction~=nil and (self.page_pressed_direction and 'next' or 'prev')==direction
+        local available=direction=='prev' and self.is_prev_button_showing or direction=='next' and self.is_next_button_showing
+        local active=available and self.page_pressed_direction~=nil and (self.page_pressed_direction and 'next' or 'prev')==direction
         local selected=entry and entry.id==(direction=='prev' and 'PREV' or 'NEXT')
         local rgb={57,57,83}
         if active or selected then rgb=(self.page_color_frame or 0)==0 and {101,70,41} or {132,87,48} end
         if self.page_backgrounds then self.page_backgrounds[direction]:color(unpack(rgb)) end
+        local trigger=self.page_trigger_icons and self.page_trigger_icons[direction]
+        if trigger then
+            if active then trigger:color(255,216,112) else trigger:color(255,255,255) end
+        end
         local caption=self.page_captions and self.page_captions[direction]
         if caption then
             if active or selected then caption:color(255,216,112)

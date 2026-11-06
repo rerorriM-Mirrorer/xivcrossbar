@@ -1,3 +1,11 @@
+# Menu crossbar preview — 2026-11-06
+
+- Branch development/menu-crossbar-preview starts at b5c4160 (Bank Fades). Binder and set chooser show the crossbar at 78% presentation opacity with controller hints hidden. Explicit hidden and cutscene visibility rules still apply. Menu input remains separate from gameplay dispatch.
+- Existing paged selectors highlight their available page control and trigger icon on a page gesture. Binding assignment and confirmation preview the same bank ID used by the save callback, with amber frames and trigger glyphs. Ordered and combined trigger gestures use the existing binder resolver.
+- Local renderer checks covered all six destination IDs, opacity and hint restoration. Menu resources, text fades and actual controller routing passed with mocked Windower APIs. Live checks remain for Select Trust page controls, Choose a Binding with combined and double-tap banks, and returning from menus.
+
+---
+
 # Bank fades — 2026-11-05
 
 - Development branch development/bank-fades starts at dbd4dad. L1/R1 bank panels use the crossbar Fade, FadeIn, FadeOut and TextFade settings during their own visibility transitions. Text Fade off uses endpoint captions. Switching banks at the shared anchor clears the outgoing panel immediately. Startup reveal stays specific to the main crossbar.
