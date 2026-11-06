@@ -1,5 +1,10 @@
 # Native gamepad bridge experiment
 
+For the AHK-compatible probe, keep AHK running and use **//xb diagnose native block**,
+**//xb diagnose native status**, and **//xb diagnose native pass**. Pass-through is
+the session default. The probe does not feed actions into the Lua controller router.
+The older takeover mode still requires AHK to be stopped.
+
 This isolated Win32 addon build starts with the bridge off. Its DLL is loaded
 only by an explicit nativepad command. Keep your FFXI Gamepad Config assignments.
 The prototype is session-only and works inside the selected FFXI client process.
@@ -35,7 +40,7 @@ The prototype is session-only and works inside the selected FFXI client process.
 
 Report the selected profile, module and device, poll count, raw and masked
 masks, buffered calls, unsupported sizes, and overflow. A rising buffered
-count means the bridge is declining takeover on that DirectInput device.
+count identifies buffered reads. The diagnostic probe filters both read paths.
 Zero polls means the selected hook has not seen a compatible game call.
 The raw status is sampled per poll, so hold a button while requesting status.
 
@@ -56,7 +61,8 @@ client, the callbacks pass input through.
   from DirectInput8Create, keyed to the selected device instance GUID. It
   assumes standard DIJOYSTATE/DIJOYSTATE2 offsets for matching sizes. A custom
   format of the same size cannot be distinguished by size alone. The
-  GetDeviceData observer latches pass-through if buffered access is seen.
+  GetDeviceData hook filters Up and Circle in probe mode using object offsets.
+  Full takeover still falls back to pass-through on buffered devices.
   Neither the exact game vtable nor the data format has been verified in FFXI.
 - In takeover mode, native menu/chat detection uses Windower's broad flags.
   Compare the battle palette and ordinary menus in live testing. Share,

@@ -477,7 +477,7 @@ diagnostic=require('diagnostic_bridge').new({
 local controller_runtime = require('libs/controller/runtime').new()
 local launch_attempt
 function start_controller_wrappers(profile, device, modifier)
-    if native_mode then return false end
+    if native_mode == "on" then return false end
     profile = profile or settings.ControllerProfile
     device = device or settings.ControllerDevice
     modifier = modifier or controller_modifier
@@ -518,7 +518,7 @@ function start_controller_wrappers(profile, device, modifier)
     windower.send_command(plan.command)
     if plan.mode == 'direct' then
         coroutine.schedule(function()
-            if launch_attempt ~= attempt or native_mode then return end
+            if launch_attempt ~= attempt or native_mode == "on" then return end
             local current = controller_status()
             if current and current.running then return end
             windower.send_command(plan.fallback_command)
@@ -1322,7 +1322,10 @@ windower.register_event('addon command', function(command, ...)
     if command == 'inputconsume' then
         return
     elseif command == 'diagnose' or command == 'diagnostics' then
-        local mode,note=...
+        local mode,note,device=...
+        if mode=='native' and native_command then
+            return native_command(note=='block' and 'probe' or note=='pass' and 'off' or 'status', nil, device)
+        end
         return diagnostic:command(mode,note)
     elseif command == 'nativepad' then
         if native_command then return native_command(...) end
@@ -1332,7 +1335,7 @@ windower.register_event('addon command', function(command, ...)
         if mode == 'stop' then controller_switcher:cancel(); stop_controller_wrapper()
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
-        elseif mode == 'profile' and not native_mode then select_controller_profile(name, device)
+        elseif mode == 'profile' and native_mode ~= 'on' then select_controller_profile(name, device)
         elseif mode == 'status' then report_controller_status()
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
@@ -2023,7 +2026,7 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
         return true
     end
     local signal = transport.signals[dik]
-    if native_mode and signal and source~='message' and gamepad_state.capturing then return true end
+    if native_mode=='on' and signal and source~='message' and gamepad_state.capturing then return true end
     -- Consume owned releases even if capture was lost; no orphan game key-ups.
     if signal and (source=='message' or gamepad_state.capturing or
         (transport.down[dik] and not message_down[dik])) then
@@ -2121,7 +2124,7 @@ message_bridge=require('controller_messages').new({
 })
 local next_message_poll=0
 local function poll_directlink()
-    if native_mode or settings.ControllerProfile~='ps5-directinput' then
+    if native_mode=='on' or settings.ControllerProfile~='ps5-directinput' then
         -- Retire the previous PS5 lease immediately during a profile switch.
         message_bridge:context('',false)
         message_lease:close()
@@ -2191,7 +2194,11 @@ do
     local function say(message) chat_format.say(207, '[XIVCrossbar] Native pad: '..message) end
     local function reset() clear_controller_input(false); message_down={} end
     local function stop()
-        if native_mode then native_gamepad.stop(); native_mode=nil; reset() end
+        if native_mode then
+            local was_takeover=native_mode=='on'
+            native_gamepad.stop(); native_mode=nil
+            if was_takeover then reset() end
+        end
     end
     native_command=function(command, dll_name, device)
         if command=='off' then stop(); return say('off. Use //xb controller start to resume AHK.') end
@@ -2211,7 +2218,7 @@ do
             return say('//xb nativepad probe|on [xinput DLL or auto] [device], status, menu, off')
         end
         local wrapper=controller_status()
-        if not wrapper or wrapper.state~='stopped' or wrapper.running or controller_switcher.pending then
+        if command=='on' and (not wrapper or wrapper.state~='stopped' or wrapper.running or controller_switcher.pending) then
             return say('Stop the shared AHK reader first and wait for its stopped status.')
         end
         if not xivcrossbar.ready or gamepad_mapper.is_showing or restart_pending then
@@ -2248,7 +2255,7 @@ do
         native_mode=command
         generation=nil
         next_wrapper_check=0
-        reset()
+        if command=='on' then reset() end
         say(command..' on '..chosen..', device '..device..'. Verify live polls with //xb nativepad status.')
     end
     native_poll=function()
@@ -2256,7 +2263,7 @@ do
         if profile_clock()>=next_wrapper_check then
             next_wrapper_check=profile_clock()+.25
             local wrapper=controller_status()
-            if wrapper and wrapper.running then
+            if native_mode=='on' and wrapper and wrapper.running then
                 stop()
                 return say('Disabled because the shared AHK reader started.')
             end
@@ -2266,7 +2273,7 @@ do
         if windower.has_focus() and info and info.logged_in and xivcrossbar.ready and not restart_pending then
             context=crossbar_menu_open() and 2 or ((info.menu_open or info.chat_open) and 3 or 1)
         end
-        generation=native_gamepad.poll(context, reset, function(index, pressed)
+        generation=native_gamepad.poll(context, function() if native_mode=='on' then reset() end end, function(index, pressed)
             if native_mode=='on' and logical[index] then
                 local dik=logical[index]
                 message_down[dik]=pressed or nil

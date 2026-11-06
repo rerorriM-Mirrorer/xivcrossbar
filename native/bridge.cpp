@@ -24,12 +24,13 @@ xb::Ownership ownership;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend;
-bool menu, native_menu, fightpad, overflow, buffered_seen;
+bool menu, native_menu, fightpad, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
 
 void reset() {
     ownership.reset();
+    probe_ready = false;
     head = count = raw = suppressed = 0;
     ++generation;
 }
@@ -46,12 +47,14 @@ unsigned observe(unsigned buttons) {
     DWORD foreground = 0;
     GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
     if (!mode || !heartbeat || foreground != GetCurrentProcessId() || now - heartbeat > 500 ||
-        buffered_seen || overflow) {
+        (mode == 2 && buffered_seen) || overflow) {
         if (suppressed || count) reset();
         ownership.reset();
+        probe_ready = false;
         suppressed = 0;
         return 0;
     }
+    if (mode == 1 && !(buttons & xb::controls)) probe_ready = true;
     const auto result = ownership.apply(buttons, mode, menu, native_menu);
     suppressed = result.suppressed;
     // Releases precede presses; simultaneous triggers precede face/D-pad.
@@ -115,11 +118,41 @@ HRESULT STDMETHODCALLTYPE direct_read(IDirectInputDevice8A* object, DWORD size, 
 
 HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD size,
     DIDEVICEOBJECTDATA* data, DWORD* entries, DWORD flags) {
+    const DWORD capacity = entries ? *entries : 0;
     const HRESULT result = buffered_original(object, size, data, entries, flags);
     std::lock_guard lock(guard);
     if (backend == 2 && mode && is_selected(object)) {
         ++buffered_calls;
-        if (!buffered_seen) { buffered_seen = true; reset(); }
+        if (!buffered_seen) {
+            buffered_seen = true;
+            if (mode == 2) reset();
+        }
+        // Probe only: neutralize matching records, retaining timestamps,
+        // sequence numbers, queue lengths and DIGDD_PEEK semantics.
+        constexpr DWORD legacy_size = offsetof(DIDEVICEOBJECTDATA, uAppData);
+        DWORD foreground = 0;
+        GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
+        if (mode != 1 || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
+            foreground != GetCurrentProcessId() || FAILED(result) || !data || !entries ||
+            *entries > capacity || (size != legacy_size && size != sizeof(DIDEVICEOBJECTDATA)))
+            return result;
+        auto* bytes = reinterpret_cast<unsigned char*>(data);
+        for (DWORD i = 0; i < *entries; ++i) {
+            auto* record = bytes + i * size;
+            DWORD offset, value;
+            memcpy(&offset, record, sizeof offset);
+            memcpy(&value, record + sizeof offset, sizeof value);
+            DIDEVICEOBJECTINSTANCEA info{};
+            info.dwSize = sizeof(info);
+            if (FAILED(object->GetObjectInfo(&info, offset, DIPH_BYOFFSET))) continue;
+            if ((DIDFT_GETTYPE(info.dwType) & DIDFT_POV) && DIDFT_GETINSTANCE(info.dwType) == 0)
+                value = xb::filter_hat(value, xb::up);
+            else if ((DIDFT_GETTYPE(info.dwType) & DIDFT_BUTTON) &&
+                DIDFT_GETINSTANCE(info.dwType) == (fightpad ? xb::fightpad[2] : xb::dualsense[2]))
+                value &= ~0x80u;
+            else continue;
+            memcpy(record + sizeof offset, &value, sizeof value);
+        }
     }
     return result;
 }

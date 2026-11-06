@@ -1,3 +1,11 @@
+# Buffered DirectInput diagnostic with AHK running
+
+- Lionstag confirmed the LuaCore loader and raw Up/Circle masks, with buffered DirectInput reads preventing suppression in the prior build.
+- Native input passes through by default. Use `//xb diagnose native block` with AHK running, `//xb diagnose native status` for counters, and `//xb diagnose native pass` to restore passthrough. This probe does not inject Lua actions. It filters both polled and buffered Up/Circle for the selected device, waiting for neutral before arming.
+- Live check: keep AHK running and verify native Up/Circle only are suppressed, diagonals retain the other direction, other native binds and AHK crossbars continue to work, and passthrough restores fresh Up/Circle presses. Buffered full takeover remains out of scope for this diagnostic.
+
+---
+
 # Native probe — Windower C module and Circle\n\n- Lionstag reached addon setup but Windower had no ffi module. The bridge now uses package.loadlib and resolves the already-loaded LuaCore.dll exports. Missing exports return a loader error without installing hooks.\n- Probe mode captures D-pad Up and Circle/B together, including separate release ownership. The other controls remain native. Live acceptance remains pending.\n\n---\n
 # AHK v2 shortcut startup
 
