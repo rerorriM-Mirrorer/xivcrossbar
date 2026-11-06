@@ -1,3 +1,11 @@
+# November 6, 2026 — Public v2 menu preview
+
+- XIVCrossbar menus keep the HUD visible with dimmer icons and hide gameplay trigger fields. The binder exposes its selected bank for an amber field during binding selection and confirmation. Native FFXI menu routing is outside this change.
+- A trigger held while the addon menu owns input must return to neutral before it can activate a gameplay slot.
+- Simulated Lua regression suite passed. Live: check Select Trust paging, single/combined/double-tap bank previews in compact and standard layouts, and closing the menu while holding R2.
+
+---
+
 # November 6, 2026 — Public AHK v2 conversion audit
 
 - Keep diagnostic request cleanup failures local to the diagnostic poll.

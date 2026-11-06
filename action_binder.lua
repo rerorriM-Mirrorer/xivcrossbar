@@ -733,6 +733,13 @@ function action_binder:button_y(pressed)
     end
 end
 
+function action_binder:get_binding_preview_bank()
+    if not self.is_hidden and not self.chooser_active
+        and (self.state == states.SELECT_BUTTON_ASSIGNMENT or self.state == states.CONFIRM_BUTTON_ASSIGNMENT) then
+        return self.active_crossbar
+    end
+end
+
 function action_binder:is_in_selector_state()
     return not self.capturing_text and self.selector and self.selector.is_showing and (self.state == states.SELECT_ACTION_TYPE
         or self.state == states.SELECT_ACTION

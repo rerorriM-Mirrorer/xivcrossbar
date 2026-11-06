@@ -1593,7 +1593,15 @@ local function finish_set_chooser(cancel)
 end
 
 -- ON KEY
+local function crossbar_menu_open()
+    return gamepad_mapper.is_showing or not action_binder.is_hidden
+        or env_chooser:is_showing() or env_chooser.capturing
+end
+
 local function close_addon_menus()
+    if gamepad_state.left_trigger or gamepad_state.right_trigger then
+        gamepad_state.menu_trigger_hold = true
+    end
     if env_chooser:is_showing() or env_chooser.capturing or action_binder.chooser_active then
         finish_set_chooser(true)
     end
@@ -1631,6 +1639,13 @@ local function handle_controller_key(dik, pressed, flags, blocked)
         gamepad_state.minus_button = pressed
     elseif (gamepad.is_plus(dik)) then
         gamepad_state.plus_button = pressed
+    end
+
+    local trigger_held = gamepad_state.left_trigger or gamepad_state.right_trigger
+    if not trigger_held then
+        gamepad_state.menu_trigger_hold = false
+    elseif crossbar_menu_open() then
+        gamepad_state.menu_trigger_hold = true
     end
 
     if (gamepad_mapper.is_showing) then
@@ -1872,6 +1887,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
 
     local any_trigger_down = gamepad_state.left_trigger or gamepad_state.right_trigger
     if (gamepad_state.capturing and any_trigger_down and gamepad.is_face_button_or_dpad(dik)) then
+        if gamepad_state.menu_trigger_hold or crossbar_menu_open() then return true end
         if (pressed) then
             if (gamepad.is_dpad_left(dik)) then
                 trigger_action(1)
@@ -2175,7 +2191,8 @@ windower.register_event('prerender',function()
         and (gamepad_state.left_trigger or gamepad_state.right_trigger) then
         ui.geometry:interrupt_startup_reveal()
     end
-    local visible = visibility.should_show(settings.VisibilityMode,
+    local menu_open = crossbar_menu_open()
+    local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(settings.VisibilityMode,
         gamepad_state.left_trigger or gamepad_state.right_trigger, xivcrossbar.hide_hotbars,
         ui.is_setup and ui.geometry:is_startup_reveal_pending())
         or action_binder:is_moving_crossbars() or env_chooser:is_showing()
@@ -2192,7 +2209,7 @@ windower.register_event('prerender',function()
 
     if visible and ui.is_setup then
         local dim_default_slots = not action_binder.is_hidden        
-        ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle)
+        ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open, action_binder:get_binding_preview_bank())
     end
 
     ui_dirty = false

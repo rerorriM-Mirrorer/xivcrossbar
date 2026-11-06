@@ -1559,7 +1559,7 @@ function ui:mark_default_set_action(h, i, environment)
 end
 
 -- check action recasts
-function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle)
+function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank)
     animation_frame_count = animation_frame_count + self.frame_skip + 1
     if (animation_frame_count > 40) then
         animation_frame_count = 1
@@ -1572,8 +1572,19 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     self:display_gcd_indicator()
     self:display_aa_indicator()
 
-    if (gamepad_state.active_bar ~= 0) then
-        self:show_bar_background(gamepad_state.active_bar)
+    local active_bar = menu_open and (preview_bank or 0)
+        or (gamepad_state.menu_trigger_hold and 0 or gamepad_state.active_bar)
+    if active_bar ~= 0 then
+        for _, field in ipairs({self.bar_background, self.bar_background_left, self.bar_background_right}) do
+            if menu_open then
+                field:color(255, 216, 112)
+                field:alpha(math.min(self.button_bg_alpha, 140))
+            else
+                field:color(255, 255, 255)
+                field:alpha(self.button_bg_alpha)
+            end
+        end
+        self:show_bar_background(active_bar)
     else
         self.bar_background:hide()
         self.bar_background_left:hide()
@@ -1581,15 +1592,15 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     end
 
     for h=1,self.theme.hotbar_number,1 do
-        local isThisBarActive = gamepad_state.active_bar == h
+        local isThisBarActive = active_bar == h
         local isThisBarVisibleByDefault
         local shouldDrawDefaultVisibleBars
         if not self.AutoHideExtraBars then
             isThisBarVisibleByDefault = h < 3 or h > 4
-            shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3 or gamepad_state.active_bar > 4
+            shouldDrawDefaultVisibleBars = active_bar < 3 or active_bar > 4
         else
             isThisBarVisibleByDefault = h < 3
-            shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3
+            shouldDrawDefaultVisibleBars = active_bar < 3
         end
         local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
         if (shouldDrawThisBar) then
@@ -1598,6 +1609,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 if slot == 10 then slot = 0 end
 
                 self.hotbars[h].slot_background[i]:show()
+                local shade = menu_open and 205 or 255
+                self.hotbars[h].slot_icon[i]:color(shade, shade, shade)
                 self.hotbars[h].slot_icon[i]:show()
                 self.hotbars[h].slot_frame[i]:show()
                 self.hotbars[h].slot_element[i]:show()
