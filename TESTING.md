@@ -1,3 +1,10 @@
+# November 6, 2026 — Public AHK v2 DirectInput hotfix
+
+- Live report: selecting a DirectInput profile crashed on the first connected poll with invalid array index 5. The reader now appends eight buttons after the four POV entries.
+- The Windows fixture calls the production reader with a simulated connected joystick. Recheck profile selection and controller input on physical hardware.
+
+---
+
 # Current Development Status — November 6, 2026 — Public Beta AHK v2 Test 1
 
 - Branch `development/public-ahk-v2` starts at public Beta 1 commit `1f928a80e6187a772615c16b99d957625dff7ff1`. Personal v2 reference `ad368145a2790a5d947bb132f75c17732545ac66`. Read the current development guidance and testing history from both branches.

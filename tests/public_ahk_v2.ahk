@@ -5,6 +5,12 @@ try {
     Check(Beta1PovCardinal(-1, 2) = 0, "neutral POV")
     DX := {active:false}
     profile := "ps5-directinput"
+    isXInput := false
+    joystickPrefix := ""
+    joys := [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+    povDirection := 0
+    states := ReadTransportStates(FakeJoystick)
+    Check(states.Length = 12 && states[2] && states[5] && !states[6] && states[12], "connected DirectInput maps all twelve states")
     owner := 0
     keys := []
     previous := NeutralButtons()
@@ -36,6 +42,14 @@ try {
 } catch Error as failure {
     FileAppend(failure.Message . " (line " . failure.Line . ")", "**")
     ExitApp(1)
+}
+
+FakeJoystick(key) {
+    if (key = "JoyName")
+        return "Test controller"
+    if (key = "JoyPOV")
+        return 9000
+    return key = "Joy2" or key = "Joy8"
 }
 
 Check(condition, description) {

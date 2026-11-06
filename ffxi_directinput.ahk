@@ -199,12 +199,12 @@ Beta1PovCardinal(pov, previous) {
 }
 
 ; A: read hardware only. Output, focus cleanup and rearming remain shared.
-ReadTransportStates() {
+ReadTransportStates(readKey := GetKeyState) {
     global isXInput, profile, device, joystickPrefix, joys, xinputGetState, povDirection
     if (!isXInput) {
-        if (GetKeyState(joystickPrefix . "JoyName") = "")
+        if (readKey(joystickPrefix . "JoyName") = "")
             return false
-        pov := GetKeyState(joystickPrefix . "JoyPOV")
+        pov := readKey(joystickPrefix . "JoyPOV")
         if (profile = "ps5-directinput") {
             ; Keep the adjacent cardinal during a diagonal roll. Other legacy
             ; profiles retain their upstream DirectInput POV behavior.
@@ -215,7 +215,7 @@ ReadTransportStates() {
         }
         Loop 8 {
             i := A_Index + 4
-            states[i] := GetKeyState(joystickPrefix . "Joy" . joys[i]) ? true : false
+            states.Push(readKey(joystickPrefix . "Joy" . joys[i]) ? true : false)
         }
         return states
     }
