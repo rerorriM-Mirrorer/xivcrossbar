@@ -2068,6 +2068,9 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
         -- owned by that menu and must never fall through to a crossbar action.
         if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
         if item.logical <= 66 and context == 'gameplay' then
+            -- The probe masks native Up/Circle. Do not recreate either as a
+            -- keyboard command; menu and crossbar routing still own their edges.
+            if native_mode == 'probe' and (item.logical == 59 or item.logical == 65) then return true end
             local key = transport:gameplay_key(item, buttonmapping, settings.GameplayDPad)
             if settings.InputTest then
                 if pressed then chat_format.say(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
@@ -2252,6 +2255,7 @@ do
             if result==2 and #modules==1 then break end
         end
         if not chosen then return say('Hook unavailable or a different target is resident. Restart this client before changing targets.') end
+        if command=='probe' then release_gameplay_keys() end
         native_mode=command
         generation=nil
         next_wrapper_check=0

@@ -1,3 +1,11 @@
+# Live Up/Circle probe with AHK
+
+- Lionstag confirmed native suppression with AHK stopped and raw/masked values 0x001, 0x040, and 0x041. With AHK running the native menu still reacted, consistent with the Lua gameplay fallback synthesizing keyboard equivalents.
+- During the probe, bare Up and Circle no longer synthesize gameplay keys. Existing injected holds are released on activation. XIVCrossbar menu and trigger-chord actions retain their normal routing.
+- Retest in a native main menu with AHK running, then try R2+Circle and restore passthrough.
+
+---
+
 # Buffered takeover ownership scaffold
 
 - Portable fixture covers the proposed default Up/Circle passthrough, explicit capture override, and a captured Up surviving trigger release and a menu or policy change. Buffered consumers can distinguish captured release edges from fresh native presses. The live diagnostic hook retains its existing behavior.
