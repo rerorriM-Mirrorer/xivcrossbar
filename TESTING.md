@@ -1,3 +1,10 @@
+# November 6, 2026 — Public AHK v2 conversion audit
+
+- Keep diagnostic request cleanup failures local to the diagnostic poll.
+- Native fixture now forces a failed snapshot flush and checks that pending events survive and publish on retry. Physical DirectInput and XInput testing remains open.
+
+---
+
 # November 6, 2026 — Public AHK v2 snapshot write recovery
 
 - Lionstag live report: DirectLink FileMove failed with a count of one and escaped the OSError handler. The snapshot writer now catches generic file-operation errors and lets the existing flush cadence retry unacknowledged events. The cause of the failed replacement is unconfirmed.

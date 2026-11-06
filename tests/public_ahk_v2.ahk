@@ -19,6 +19,11 @@ try {
     spool := A_Temp . "\xb-public-native-" . DllCall("GetCurrentProcessId", "UInt") . ".buttons"
     try {
         ControllerMessageSelect(true, "native-test", 0, spool)
+        ; Force a replacement failure with a missing destination directory.
+        CM.path := spool . "\\missing.buttons"
+        Check(!ControllerMessageFlush(true) && CM.error && CM.pending.Length = 1, "failed flush retains pending events")
+        CM.path := spool
+        Check(ControllerMessageFlush(true) && !CM.error && InStr(FileRead(spool), "1,cancel,0"), "retry publishes pending event")
         held := NeutralButtons()
         held[5] := true
         Check(ControllerMessagePoll(held, 0) && CM.seq = 1, "wait for neutral without keyboard fallback")
@@ -36,6 +41,7 @@ try {
             Check(!ControllerMessagePoll(held, 0), "legacy profile stays off DirectLink")
     } finally {
         try FileDelete(spool)
+        try FileDelete(spool . ".tmp")
     }
     FileAppend("Public native DirectLink checks passed.", "*")
     ExitApp(0)

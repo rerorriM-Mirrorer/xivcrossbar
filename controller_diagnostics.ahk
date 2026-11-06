@@ -68,7 +68,7 @@ DiagTick() {
     try {
         command := FileRead(requestPath)
         FileDelete(requestPath)
-    } catch OSError {
+    } catch Error {
         return
     }
     command := Trim(command, " " . Chr(9) . Chr(13) . Chr(10))
