@@ -474,6 +474,8 @@ diagnostic=require('diagnostic_bridge').new({
         }
     end,
 })
+local controller_runtime = require('libs/controller/runtime').new()
+local launch_attempt
 function start_controller_wrappers(profile, device, modifier)
     if native_mode then return false end
     profile = profile or settings.ControllerProfile
@@ -506,13 +508,28 @@ function start_controller_wrappers(profile, device, modifier)
         chat_format.say(123, '[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err))
         return false
     end
-    windower.send_command('run addons/xivcrossbar/launch-controller.cmd ' .. modifier ..
-        ' ' .. profile .. ' ' .. device)
+    local plan, launch_error = controller_runtime:plan(windower.addon_path, profile, device, modifier)
+    if not plan then
+        chat_format.say(123, '[XIVCrossbar] Could not start wrapper: ' .. tostring(launch_error))
+        return false
+    end
+    local attempt = {}
+    launch_attempt = attempt
+    windower.send_command(plan.command)
+    if plan.mode == 'direct' then
+        coroutine.schedule(function()
+            if launch_attempt ~= attempt or native_mode then return end
+            local current = controller_status()
+            if current and current.running then return end
+            windower.send_command(plan.fallback_command)
+        end, 1)
+    end
     chat_format.say(207, '[XIVCrossbar] Wrapper start requested: ' .. controller_profiles.short_name(profile) ..
         ' / device ' .. device .. ' / ' .. modifier)
     return true
 end
 local function stop_controller_wrapper()
+    launch_attempt = nil
     windower.create_dir(windower.addon_path .. 'data')
     local f = io.open(windower.addon_path .. 'data/input-stop.request', 'w')
     if not f then chat_format.say(123, '[XIVCrossbar] Could not write wrapper stop request.'); return false end
@@ -1278,6 +1295,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    launch_attempt = nil
     if native_mode then native_gamepad.stop(); native_mode=nil end
     if diagnostic then diagnostic:close() end
     controller_switcher:cancel()

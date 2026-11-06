@@ -1,3 +1,10 @@
+# AHK v2 shortcut startup
+
+- The bootstrap creates a validated interpreter shortcut. Subsequent starts use the shortcut and the current profile handoff, with one bootstrap retry if the reader does not start. Stop or unload cancels the pending retry.
+- Live check: first bootstrap may show a console. Stop and restart after discovery and confirm that the cached launch starts without it.
+
+---
+
 # Native gamepad bridge experiment — public AHK v2 baseline
 
 - Experimental branch starts at public v2 checkpoint 9b718705f1276a940a2c672eb17ae6dd220c04ae. Session-only opt-in adds a per-process XInput and polled DirectInput hook, isolated Up probe, and Lua takeover route. See native/README.md for setup and rollback.
