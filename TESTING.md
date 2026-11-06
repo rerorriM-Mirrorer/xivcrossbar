@@ -1,3 +1,11 @@
+# Native gamepad bridge experiment — public AHK v2 baseline
+
+- Experimental branch starts at public v2 checkpoint 9b718705f1276a940a2c672eb17ae6dd220c04ae. Session-only opt-in adds a per-process XInput and polled DirectInput hook, isolated Up probe, and Lua takeover route. See native/README.md for setup and rollback.
+- Portable C++ fixture passed for Up-only filtering, unrelated inputs, release ownership, neutral rearm and both layouts. Simulated public Lua regression suite passed. Windows x86 build and DLL-load fixture run in the experimental workflow.
+- Live FFXI verification pending for both APIs, especially the DirectInput polling implementation and format, LuaJIT DLL loading, context transitions and multiclient handoff. Buffered DirectInput is detected and left in pass-through.
+
+---
+
 # November 6, 2026 — Public v2 menu preview
 
 - XIVCrossbar menus keep the HUD visible with dimmer icons and hide gameplay trigger fields. The binder exposes its selected bank for an amber field during binding selection and confirmation. Native FFXI menu routing is outside this change.

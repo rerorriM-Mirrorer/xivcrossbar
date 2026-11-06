@@ -405,6 +405,7 @@ local diagnostic
 local controller_switcher
 local message_lease=require('controller_lease').new({clock=profile_clock})
 local message_bridge
+local native_gamepad, native_mode, native_command, native_poll
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
@@ -474,6 +475,7 @@ diagnostic=require('diagnostic_bridge').new({
     end,
 })
 function start_controller_wrappers(profile, device, modifier)
+    if native_mode then return false end
     profile = profile or settings.ControllerProfile
     device = device or settings.ControllerDevice
     modifier = modifier or controller_modifier
@@ -1276,6 +1278,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    if native_mode then native_gamepad.stop(); native_mode=nil end
     if diagnostic then diagnostic:close() end
     controller_switcher:cancel()
     if message_bridge then message_bridge:reset('unload') end
@@ -1303,13 +1306,15 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'diagnose' or command == 'diagnostics' then
         local mode,note=...
         return diagnostic:command(mode,note)
+    elseif command == 'nativepad' then
+        if native_command then return native_command(...) end
     elseif command == 'controller' then
         local mode, name, device = ...
         mode = type(mode) == 'string' and mode:lower() or 'status'
         if mode == 'stop' then controller_switcher:cancel(); stop_controller_wrapper()
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
-        elseif mode == 'profile' then select_controller_profile(name, device)
+        elseif mode == 'profile' and not native_mode then select_controller_profile(name, device)
         elseif mode == 'status' then report_controller_status()
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
@@ -2000,6 +2005,7 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
         return true
     end
     local signal = transport.signals[dik]
+    if native_mode and signal and source~='message' and gamepad_state.capturing then return true end
     -- Consume owned releases even if capture was lost; no orphan game key-ups.
     if signal and (source=='message' or gamepad_state.capturing or
         (transport.down[dik] and not message_down[dik])) then
@@ -2097,7 +2103,7 @@ message_bridge=require('controller_messages').new({
 })
 local next_message_poll=0
 local function poll_directlink()
-    if settings.ControllerProfile~='ps5-directinput' then
+    if native_mode or settings.ControllerProfile~='ps5-directinput' then
         -- Retire the previous PS5 lease immediately during a profile switch.
         message_bridge:context('',false)
         message_lease:close()
@@ -2160,6 +2166,101 @@ end
 windower.register_event('lose focus', function() clear_controller_input(false) end)
 windower.register_event('gain focus', function() clear_controller_input(true) end)
 
+-- Native events use the same logical keyboard router as DirectLink.
+do
+    local generation, next_wrapper_check
+    local logical = {59,60,61,62,63,64,65,66,67,68,87,88}
+    local function say(message) chat_format.say(207, '[XIVCrossbar] Native pad: '..message) end
+    local function reset() clear_controller_input(false); message_down={} end
+    local function stop()
+        if native_mode then native_gamepad.stop(); native_mode=nil; reset() end
+    end
+    native_command=function(command, dll_name, device)
+        if command=='off' then stop(); return say('off. Use //xb controller start to resume AHK.') end
+        if command=='menu' and native_mode=='on' and xivcrossbar.ready then
+            if action_binder.is_hidden then
+                action_binder:show()
+                ui:hide_button_hints()
+                env_chooser:temp_hide_default_sets_tooltip()
+            else close_addon_menus() end
+            ui_dirty=true
+            return
+        end
+        if command==nil or command=='status' then
+            return say(native_mode and (native_mode..' | '..native_gamepad.status()) or 'off')
+        end
+        if command~='probe' and command~='on' then
+            return say('//xb nativepad probe|on [xinput DLL or auto] [device], status, menu, off')
+        end
+        local wrapper=controller_status()
+        if not wrapper or wrapper.state~='stopped' or wrapper.running or controller_switcher.pending then
+            return say('Stop the shared AHK reader first and wait for its stopped status.')
+        end
+        if not xivcrossbar.ready or gamepad_mapper.is_showing or restart_pending then
+            return say('Finish controller setup first.')
+        end
+        local profile=settings.ControllerProfile
+        local xbox=profile=='xinput' or profile=='xinput-r1-chooser'
+        device=tonumber(device or settings.ControllerDevice)
+        if not device or device%1~=0 or device<1 or device>(xbox and 4 or 16) then
+            return say('Invalid device number.')
+        end
+        local modules={'xinput1_4.dll','xinput1_3.dll','xinput9_1_0.dll','xinput1_2.dll','xinput1_1.dll'}
+        if xbox and dll_name and dll_name~='auto' then
+            local valid=false
+            for _, name in ipairs(modules) do if name==dll_name then valid=true end end
+            if not valid then return say('Unsupported XInput module name.') end
+            modules={dll_name}
+        elseif not xbox then modules={'dinput8.dll'} end
+        if not native_gamepad then
+            local ok, result=pcall(function()
+                return require('native_gamepad').open(windower.addon_path..'native/xb_gamepad.dll')
+            end)
+            if not ok then return say(tostring(result)) end
+            native_gamepad=result
+        end
+        local chosen
+        for _, name in ipairs(modules) do
+            local result=native_gamepad.begin(xbox and 1 or 2,device-1,command=='probe' and 1 or 2,
+                profile=='fightpadpro-directinput' and 1 or 0,name)
+            if result==1 then chosen=name; break end
+            if result==2 and #modules==1 then break end
+        end
+        if not chosen then return say('Hook unavailable or a different target is resident. Restart this client before changing targets.') end
+        native_mode=command
+        generation=nil
+        next_wrapper_check=0
+        reset()
+        say(command..' on '..chosen..', device '..device..'. Verify live polls with //xb nativepad status.')
+    end
+    native_poll=function()
+        if not native_mode then return end
+        if profile_clock()>=next_wrapper_check then
+            next_wrapper_check=profile_clock()+.25
+            local wrapper=controller_status()
+            if wrapper and wrapper.running then
+                stop()
+                return say('Disabled because the shared AHK reader started.')
+            end
+        end
+        local info=windower.ffxi.get_info()
+        local context=0
+        if windower.has_focus() and info and info.logged_in and xivcrossbar.ready and not restart_pending then
+            context=crossbar_menu_open() and 2 or ((info.menu_open or info.chat_open) and 3 or 1)
+        end
+        generation=native_gamepad.poll(context, reset, function(index, pressed)
+            if native_mode=='on' and logical[index] then
+                local dik=logical[index]
+                message_down[dik]=pressed or nil
+                local captured=gamepad_state.capturing
+                gamepad_state.capturing=true
+                controller_keyboard(dik,pressed,0,false,'message')
+                gamepad_state.capturing=captured
+            end
+        end,generation)
+    end
+end
+
 -- ON PRERENDER
 local next_identity_retry = 0
 windower.register_event('prerender',function()
@@ -2172,6 +2273,7 @@ windower.register_event('prerender',function()
         check_profile_ready()
     end
     poll_directlink()
+    native_poll()
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.

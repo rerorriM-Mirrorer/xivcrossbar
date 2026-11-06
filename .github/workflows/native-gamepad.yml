@@ -1,0 +1,39 @@
+name: Experimental native gamepad bridge
+on:
+  push:
+    branches: [experiment/native-gamepad-bridge]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x86:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build x86 DLL and execute native fixtures
+        shell: pwsh
+        run: |
+          cmake -S native -B "$env:RUNNER_TEMP/xb" -A Win32
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build "$env:RUNNER_TEMP/xb" --config Release
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ctest --test-dir "$env:RUNNER_TEMP/xb" -C Release --output-on-failure
+      - name: Assemble isolated addon folder
+        shell: pwsh
+        run: |
+          python packaging/beta1_make.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item "$env:RUNNER_TEMP/xb/Release/xb_gamepad.dll" dist/xivcrossbar/native/
+          Copy-Item "$env:RUNNER_TEMP/xb/_deps/minhook-src/LICENSE.txt" dist/xivcrossbar/native/MinHook-LICENSE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XIVCrossbar-Native-Gamepad-Experiment-x86
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y liblua5.4-0
+      - run: python3 tests/run_lua.py tests/*.lua
