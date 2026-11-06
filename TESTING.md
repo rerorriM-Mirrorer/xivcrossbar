@@ -1,3 +1,4 @@
+# Native probe — Windower C module and Circle\n\n- Lionstag reached addon setup but Windower had no ffi module. The bridge now uses package.loadlib and resolves the already-loaded LuaCore.dll exports. Missing exports return a loader error without installing hooks.\n- Probe mode captures D-pad Up and Circle/B together, including separate release ownership. The other controls remain native. Live acceptance remains pending.\n\n---\n
 # AHK v2 shortcut startup
 
 - The bootstrap creates a validated interpreter shortcut. Subsequent starts use the shortcut and the current profile handoff, with one bootstrap retry if the reader does not start. Stop or unload cancels the pending retry.

@@ -2,7 +2,7 @@
 #include <cstdint>
 
 namespace xb {
-constexpr unsigned up = 1, slots = 0xff, triggers = 0xc00;
+constexpr unsigned up = 1, circle = 0x40, slots = 0xff, triggers = 0xc00;
 constexpr unsigned controls = slots | triggers;
 
 struct Sample {
@@ -18,7 +18,7 @@ class Ownership {
 public:
     void reset() { previous_ = owned_ = 0; armed_ = false; }
 
-    // mode 1 is the isolated Up probe. Mode 2 routes the normal crossbar.
+    // mode 1 is the isolated Up and Circle probe. Mode 2 routes the normal crossbar.
     Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu) {
         if (!armed_) {
             armed_ = !(raw & controls);
@@ -28,7 +28,7 @@ public:
         const unsigned released = owned_ & ~raw;
         previous_ = raw;
         owned_ &= raw;
-        unsigned capture = mode == 1 ? up : 0;
+        unsigned capture = mode == 1 ? (up | circle) : 0;
         if (mode == 2 && !native_menu) {
             capture = triggers;
             if (menu || (owned_ & triggers) || (down & triggers))

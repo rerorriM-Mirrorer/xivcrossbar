@@ -14,7 +14,7 @@ if(WIN32)
     FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git
         GIT_TAG c3fcafdc10146beb5919319d0683e44e3c30d537)
     FetchContent_MakeAvailable(minhook)
-    add_library(xb_gamepad SHARED bridge.cpp)
+    add_library(xb_gamepad SHARED bridge.cpp lua_module.cpp)
     target_compile_features(xb_gamepad PRIVATE cxx_std_17)
     target_link_libraries(xb_gamepad PRIVATE minhook dxguid)
     add_executable(gamepad_load_fixture load_fixture.cpp)

@@ -17,6 +17,10 @@ int main() {
     check(edge.suppressed == up && edge.down == up, "Up probe preserves other inputs");
     check(filter_hat(4500, edge.suppressed) == 9000, "diagonal retains native Right");
     check(owner.apply(0, 1, false, false).up == up, "Up release");
+    edge = owner.apply(up | circle | right, 1, false, false);
+    check(edge.suppressed == (up | circle) && edge.down == (up | circle), "Up and Circle probe leaves Right native");
+    check(owner.apply(circle, 1, false, false).suppressed == circle, "Circle ownership survives Up release");
+    owner.apply(0, 1, false, false);
     check(!owner.apply(up, 0, false, false).suppressed, "fresh disabled Up is native");
 
     owner.reset();
