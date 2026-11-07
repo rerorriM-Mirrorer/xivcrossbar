@@ -1,9 +1,22 @@
 # Current Development Status
 
-This cursor crop patch targets `rerorriM-Mirrorer/xivcrossbar` on
-`experiment/native-gamepad-bridge`, based on GitHub checkpoint `be250907`.
-The user confirmed the DXT3 cursor looked much better in-game and reported
-clipped upper tips and stray pixels near the lower edge.
+The cursor bounce patch targets `experiment/native-gamepad-bridge` in
+`rerorriM-Mirrorer/xivcrossbar`, based on GitHub checkpoint `1156565`.
+The user liked the corrected crops in-game and reported occlusion from long
+neighboring menu labels.
+
+## 2026-11-07 — Golden cursor bounce and caption clearance
+
+The complete cursor sprites now step down one pixel every two frames and
+reset at the end of the loop. The selectable-list cursor sits above the
+caption line because Windower text renders above image primitives.
+
+A local Lua fixture passed the six-frame sequence and reset, alignment of
+the four image layers, sizing, hide, and cleanup checks. The live check is
+to overlay the patch, run `//xb restart`, and watch the cursor loop in
+`//xb menu`, including in a column beside a long label and on page controls.
+
+---
 
 ## 2026-11-07 — Golden cursor crop correction
 

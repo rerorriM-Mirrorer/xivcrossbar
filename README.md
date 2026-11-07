@@ -418,3 +418,6 @@ transparency. See TESTING.md for the in-game appearance check.
 
 2026-11-07: Aligned the golden cursor crops to the transparent divider rows
 in the atlas to preserve both arrow tips through all six frames.
+
+2026-11-07: Restored the golden cursor’s downward bounce and moved it above
+the menu caption line to avoid overlap from long neighboring labels.

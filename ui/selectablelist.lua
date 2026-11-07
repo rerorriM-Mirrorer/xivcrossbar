@@ -213,8 +213,14 @@ function selectable_list:highlight_selection()
         end
     end
     if self.cursor then
-        if selected and not selected.disabled then self.cursor:pos(x-30,y+13);self.cursor:show()
-        else self.cursor:hide() end
+        if selected and not selected.disabled then
+            -- Windower draws text over image primitives. Keep the full bounce
+            -- above the caption line, clear of long labels from the left.
+            self.cursor:pos(x-30,y-7)
+            self.cursor:show()
+        else
+            self.cursor:hide()
+        end
     end
     self:update_page_colors()
 end
