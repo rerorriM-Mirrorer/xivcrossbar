@@ -51,6 +51,10 @@ function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, the
     self.state = states.HIDDEN
     self.title = self:create_text('', base_x + 50, base_y + 30)
     self.title:size(18)
+    self.title:pad(5)
+    self.title:bg_color(15, 17, 24)
+    self.title:bg_alpha(215)
+    self.title:bg_visible(true)
     self.title:hide()
     self.subtitle = self:create_text('', base_x + 50, base_y + 60)
     self.subtitle:size(14)

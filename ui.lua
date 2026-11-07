@@ -602,6 +602,13 @@ function ui:load(theme_options)
         self.hotbars[h].slot_recast[10] = new_image(images_setup)
     end
 
+    self.binding_tint = new_image(images_setup)
+    setup_image(self.binding_tint, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
+    self.binding_tint:size(40, 40)
+    self.binding_tint:color(75, 235, 126)
+    self.binding_tint:alpha(105)
+    self.binding_tint:hide()
+
     -- load feedback icon last so it stays above everything else
     self.feedback_icon = new_image(images_setup)
     setup_image(self.feedback_icon, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
@@ -741,6 +748,7 @@ function ui:hide()
         prim.set_visibility(name, false)
     end
     self.battle_notice:hide()
+    self.binding_tint:hide()
     self.feedback_icon:hide()
 
     self:hide_button_hints()
@@ -1559,7 +1567,7 @@ function ui:mark_default_set_action(h, i, environment)
 end
 
 -- check action recasts
-function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank)
+function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank, tentative_slot)
     animation_frame_count = animation_frame_count + self.frame_skip + 1
     if (animation_frame_count > 40) then
         animation_frame_count = 1
@@ -1574,6 +1582,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
     local active_bar = menu_open and (preview_bank or 0)
         or gamepad_state.active_bar
+    if menu_open and preview_bank and preview_bank >= 1 and preview_bank <= self.theme.hotbar_number
+        and tentative_slot and tentative_slot >= 1 and tentative_slot <= 8 then
+        self.binding_tint:pos(self:get_slot_x(preview_bank, tentative_slot), self:get_slot_y(preview_bank, tentative_slot))
+        self.binding_tint:show()
+    else
+        self.binding_tint:hide()
+    end
     if active_bar ~= 0 then
         for _, field in ipairs({self.bar_background, self.bar_background_left, self.bar_background_right}) do
             if menu_open then

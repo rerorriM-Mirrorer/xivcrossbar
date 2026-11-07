@@ -424,3 +424,6 @@ the menu caption line to avoid overlap from long neighboring labels.
 
 2026-11-07: Restored the menu cursor’s normal height with an overlap fallback.
 Added a session-only slot acceptance tap for testing with separate GripRumble.
+
+2026-11-06: Added a centered action preview and green tentative slot tint
+to the binder, a padded menu title backing, and space for the bouncing cursor.

@@ -1,11 +1,34 @@
 # Current Development Status
 
-Public-beta live-test build on `experiment/native-gamepad-bridge` in
-`rerorriM-Mirrorer/xivcrossbar`, based on `d21d631`. The public AHK v2
-branch at `3e0e982` was checked for equivalent slot dispatch paths. The
-user liked the cursor bounce and reported that its raised position sat too
-high in the Select Action Type menu. GripRumble 0.1.17 is a separate test
-companion.
+Binding-screen polish on `experiment/native-gamepad-bridge`, based on
+GitHub checkpoint `83d0fba` in `rerorriM-Mirrorer/xivcrossbar`. The user
+preferred the original cursor height with the restored bounce. GripRumble
+remains a separate optional test companion.
+
+## 2026-11-06 — Binding preview and menu title backing
+
+The binding screen shows a centered action icon and label above its prompt.
+A translucent green tint marks the chosen slot only during binding
+confirmation. The existing amber field marks the preview bank. Binder and
+controller setup titles use a padded, semi-opaque text background. The
+cursor stays at its normal height and long non-final-column captions are
+fitted to leave a gap for it. Windower text still draws above image
+primitives. The title backing can reduce overlap around the heading, but
+other addons retain control of their own visibility.
+
+Overlay the patch into Windower's addons folder and run `//xb restart`.
+Try a spell, a custom action with a distinct alias and icon, and an existing
+binding. Check that the preview stays visible while trying triggers. Choose a
+slot on a single, combined, or double-tap bank, and verify the green tint on
+that slot. Back out and confirm separately. Check compact and standard
+layouts, a long neighboring label, and the title with EnemyBar2 open.
+
+Local Lua regressions passed for preview redraw, Back, resource cleanup,
+custom Save & Bind, crossbar destinations, compact geometry, text settling,
+and combat overlay. Color, placement, and third-party layering still need
+a live client check.
+
+---
 
 ## 2026-11-07 — Slot acceptance tap and cursor alignment
 

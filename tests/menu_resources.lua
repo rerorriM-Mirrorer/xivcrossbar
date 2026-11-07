@@ -72,6 +72,30 @@ local function totals()
     return n
 end
 local baseline=totals()
+local function has_preview()
+    local icon, label
+    for _, image in ipairs(binder.images) do
+        if image:path()=='addon/images/bow.png' and image:visible() then icon=true end
+    end
+    for _, hint in ipairs(binder.hints) do
+        if hint:text()=='Wave' and hint:visible() then label=true end
+    end
+    return icon and label
+end
+binder.state=5 -- SELECT_BUTTON_ASSIGNMENT
+binder.action_name,binder.action_alias,binder.binding_preview_icon='Bow','Wave','images/bow.png'
+binder:display_button_assigner()
+assert(binder.title:bg_visible() and binder.title:bg_alpha()==215)
+assert(has_preview() and binder:get_tentative_binding_slot()==nil)
+binder.active_crossbar,binder.button_a_pressed,binder.hotkey=2,true,6
+binder:show_pressed_buttons()
+assert(has_preview(), 'held trigger removed the action preview')
+binder:submit_selected_option()
+assert(has_preview() and binder:get_tentative_binding_slot()==6)
+binder:go_back()
+assert(has_preview() and binder:get_tentative_binding_slot()==nil)
+binder:hide();binder:reset_state()
+assert(totals()==baseline, 'binding preview retained drawing objects')
 local peak
 for i=1,200 do
     binder.custom_action_draft={name='Bow',alias='Bow',command='input /bow'}

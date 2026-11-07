@@ -2442,7 +2442,8 @@ windower.register_event('prerender',function()
 
     if visible and ui.is_setup then
         local dim_default_slots = not action_binder.is_hidden        
-        ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open, action_binder:get_binding_preview_bank())
+        ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open,
+            action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot())
     end
 
     ui_dirty = false
