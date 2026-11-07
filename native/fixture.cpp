@@ -10,6 +10,7 @@ static void check(bool ok, const char* what) {
 int main() {
     using namespace xb;
     constexpr unsigned right = 2, face = 16, left_trigger = 1024, right_trigger = 2048;
+    constexpr unsigned l1 = 1u << 12, r1 = 1u << 13;
     Ownership owner;
     check(!owner.apply(up, 1, false, false).suppressed, "preheld Up remains native");
     owner.apply(0, 1, false, false);
@@ -63,15 +64,18 @@ int main() {
     check(owner.apply(up | circle, 2, false, false, 0, 140).suppressed == circle,
         "only direction returns to native control after delay");
 
-    check(read_xbox(0x1009 | 0x0200, 5, 4) == (up | right | face | left_trigger),
-        "Xbox layout ignores unrelated shoulder and preserves trigger threshold");
-    check(read_xbox(0x0100, 4, 5) == right_trigger, "LB stays native and RT works independently");
-    check(read_xbox(0x0100, 5, 5) == (left_trigger | right_trigger),
+    check(read_xbox(0x1009 | 0x0200, 5, 4) == (up | right | face | left_trigger | r1),
+        "Xbox layout reads RB and preserves trigger threshold");
+    check(read_xbox(0x0100, 4, 5) == (l1 | right_trigger), "LB and RT read independently");
+    check(read_xbox(0x0100, 5, 5) == (l1 | left_trigger | right_trigger),
         "physical LT and RT register together");
-    check(read_xbox(0x0230, 0, 0) == (share | chooser), "standard Xbox uses View and Menu");
+    check(read_xbox(0x0230, 0, 0) == (share | chooser | r1), "standard Xbox uses View and Menu");
     check(read_xbox(0x0010, 0, 0, true) == 0 &&
         read_xbox(0x0220, 0, 0, true) == (share | chooser), "Xbox alternate preserves Menu and captures RB");
     owner.reset();
+    owner.apply(0, 2, false, false);
+    check(!owner.apply(l1 | r1 | face, 2, false, false).suppressed,
+        "observed shoulders do not alter native ownership");
     owner.apply(0, 2, false, false);
     check(owner.apply(chooser | up, 2, false, false).suppressed == (chooser | up),
         "simultaneous chooser and direction are both captured");
@@ -91,6 +95,11 @@ int main() {
     check(read_joystick(0xffffffffu, buttons, false) == chooser, "DirectInput Options/Start mapping");
     filter_joystick(buttons, chooser, false);
     check(!buttons[9] && buttons[10], "DirectInput chooser preserves unrelated input");
+    buttons[4] = buttons[5] = 0x80;
+    check(read_joystick(0xffffffffu, buttons, false) == (l1 | r1), "DirectInput shoulder observation");
+    filter_joystick(buttons, 0, false);
+    check(buttons[4] && buttons[5], "DirectInput shoulders pass through");
+    buttons[4] = buttons[5] = 0;
     buttons[2] = 0x80;
     check(read_joystick(0xffffffffu, buttons, true) == face, "FightPad mapping");
 }

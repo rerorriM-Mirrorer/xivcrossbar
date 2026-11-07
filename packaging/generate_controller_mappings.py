@@ -16,10 +16,11 @@ def generate(data):
     profiles = dict(direct)
     profiles.update({alias: direct[target] for alias, target in data['directinput_aliases'].items()})
     masks = data['xinput_masks']
+    shoulders = data['xinput_shoulders']
     chooser = data['xinput_alternate_chooser']
     threshold = data['xinput_trigger_threshold']
     logical = data['logical_order']
-    assert len(masks) == len(logical) - 2
+    assert len(masks) + len(shoulders) + 2 == len(logical)
     assert all(len(buttons) == len(logical) - 4 for buttons in profiles.values())
 
     ahk_profiles = '\n'.join(
@@ -40,6 +41,10 @@ ControllerXInputButtons(profile) {{
         profile = "xinput-r1-chooser" ? {chooser} : {masks[-1]}]
 }}
 
+ControllerXInputShoulders(profile) {{
+    return [{shoulders[0]}, profile = "xinput-r1-chooser" ? 0 : {shoulders[1]}]
+}}
+
 ControllerXInputTriggerThreshold() => {threshold}
 '''
     native = f'''// Generated from {SOURCE.as_posix()}. Edit the source and regenerate.
@@ -47,6 +52,7 @@ ControllerXInputTriggerThreshold() => {threshold}
 
 namespace xb {{
 constexpr unsigned xbox[] = {{{values(masks)}}};
+constexpr unsigned xbox_shoulders[] = {{{values(shoulders)}}};
 constexpr unsigned xbox_alternate_chooser = {chooser};
 constexpr unsigned xbox_trigger_threshold = {threshold};
 constexpr unsigned dualsense[] = {{{values(button - 1 for button in direct["ps5-directinput"])}}};

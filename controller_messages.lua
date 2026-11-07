@@ -1,5 +1,5 @@
--- Twelve logical edges for all profiles, one ordered acknowledged stream.
-local M={diks={59,60,61,62,63,64,65,66,67,68,87,88}}
+-- Shoulder edges are accepted only when the client explicitly leases them.
+local M={diks={59,60,61,62,63,64,65,66,67,68,87,88,89,90}}
 function M.new(opts)
     local self={token=nil,key=nil,epoch=0,ack=0,held={},captured=false,last_seen=0,received=0,rejected=0}
     local function cancel()
@@ -47,7 +47,7 @@ function M.new(opts)
         for line in body:sub(1,-5):gmatch('[^\n]+') do
             local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
             seq,button=tonumber(seq),tonumber(button)
-            if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=12)
+            if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=(opts.shoulders and #M.diks or 12))
                 or ((kind=='cancel' or kind=='stall') and button==0)) then
                 self.rejected=self.rejected+1;return false
             end

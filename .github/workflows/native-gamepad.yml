@@ -1,7 +1,7 @@
 name: Experimental native gamepad bridge
 on:
   push:
-    branches: [experiment/native-gamepad-bridge, experiment/messages-native-all-profiles]
+    branches: [experiment/native-gamepad-bridge, experiment/messages-native-all-profiles, integration/shoulder-banks]
   workflow_dispatch:
 permissions:
   contents: read

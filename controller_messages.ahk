@@ -1,7 +1,7 @@
 ; Ordered messages for every controller profile. A missing lease emits no input.
 ControllerMessageInit() {
     global CM
-    CM := {requested:false, token:"", ack:0, seq:0, pending:[], previous:NeutralButtons()
+    CM := {requested:false, token:"", ack:0, seq:0, count:12, pending:[], previous:NeutralButtons()
         , phase:"waiting-lease", seen:0, path:"", nextWrite:0, error:false}
 }
 ControllerMessageContext(hwnd) {
@@ -27,13 +27,14 @@ ControllerMessageContext(hwnd) {
     age := now - stamp[1]
     if (age < -1 or age > 2)
         return
-    ControllerMessageSelect(true, token[1], ack[1] + 0, RegExReplace(path, "\.ini$", ".buttons"))
+    count := RegExMatch(lease, "m)^button_count=14\r?$") ? 14 : 12
+    ControllerMessageSelect(true, token[1], ack[1] + 0, RegExReplace(path, "\.ini$", ".buttons"), count)
 }
-ControllerMessageSelect(requested, token, ack, path) {
+ControllerMessageSelect(requested, token, ack, path, count := 12) {
     global CM
-    if (requested != CM.requested or token != CM.token or path != CM.path) {
+    if (requested != CM.requested or token != CM.token or path != CM.path or count != CM.count) {
         ReleaseTransport()
-        CM.requested := requested, CM.token := token, CM.seq := ack, CM.ack := ack
+        CM.requested := requested, CM.token := token, CM.seq := ack, CM.ack := ack, CM.count := count
         CM.pending := [], CM.previous := NeutralButtons(), CM.phase := "neutral"
         CM.nextWrite := 0, CM.path := path
         if (requested) {
@@ -98,7 +99,7 @@ ControllerMessagePoll(states, hwnd) {
     if (!CM.requested)
         return false
     neutral := true
-    Loop 12
+    Loop CM.count
         if (states[A_Index])
             neutral := false
     now := A_TickCount
@@ -131,15 +132,15 @@ ControllerMessagePoll(states, hwnd) {
         return true
     }
     changed := false
-    Loop 12 {
+    Loop CM.count {
         i := A_Index
         if (CM.previous[i] and !states[i]) {
             ControllerMessageAdd("up", i)
             CM.previous[i] := false, changed := true
         }
     }
-    for _, i in [11, 12, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8] {
-        if (states[i] and !CM.previous[i]) {
+    for _, i in [11, 12, 13, 14, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8] {
+        if (i <= CM.count and states[i] and !CM.previous[i]) {
             ControllerMessageAdd("down", i)
             CM.previous[i] := true, changed := true
         }
@@ -150,7 +151,7 @@ ControllerMessagePoll(states, hwnd) {
 
 NeutralButtons() {
     buttons := []
-    Loop 12
+    Loop 14
         buttons.Push(false)
     return buttons
 }

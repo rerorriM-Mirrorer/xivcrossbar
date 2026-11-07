@@ -1,3 +1,34 @@
+# Current Development Status — November 7, 2026 — Shoulder input transport
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint: `d7c6b6b98b79a0e5fac06633a8ba56ac65e96e1c`.
+Personal behavior reference: `72e7b6dfb9df0d5832d143af37081a6d489691fe`.
+
+The first milestone adds L1 and R1 observation to the generated hardware
+maps and the existing acknowledged stream. Extended clients can lease
+14 inputs. The current router still leases 12 and native shoulder
+ownership is unchanged. The alternate XInput profile continues to use
+RB only for its chooser. The additional DirectInput mappings use Joy5
+and Joy6, as on the personal DualSense. Physical FightPad and F710
+mapping confirmation remains pending.
+
+Local generated-mapping and portable C++ fixture checks pass. The Lua
+fixture covers rejection on ordinary leases and ordered shoulder edges
+on an extended lease. The Windows workflow builds the actual x86 DLL
+and runs the AutoHotkey fixture. Hardware tests remain pending.
+
+Next milestones are ownership, dispatch and the binder, persistent shared
+bindings, and centered rendering. The agreed optional command is
+`//xb bank targeting on|off`, off by default. On eligible R1 down,
+run `/targetnpc` with no selected target or send Tab with one selected.
+Holding and releasing send nothing further. If both shoulders are down
+in the same input sample, send neither shortcut. If the other shoulder
+arrives later, entering the chord sends no additional shortcut. Verify
+menus, trigger priority, each chord order and focus rearming before a
+live testing package.
+
+---
+
 # Current Development Status — November 7, 2026 — Compact Options hint
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

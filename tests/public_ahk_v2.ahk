@@ -13,10 +13,10 @@ try {
     joystickPrefix := ""
     joys := ControllerDirectInputButtons(profile)
     states := ReadTransportStates(FakeJoystick.Bind(9000))
-    Check(states.Length = 12 && states[2] && states[5] && !states[6] && states[12], "connected DirectInput maps all twelve states")
+    Check(states.Length = 14 && states[2] && states[5] && !states[6] && states[12] && states[13] && !states[14], "connected DirectInput maps base inputs and both shoulders")
     Check(!ReadTransportStates(FakeJoystick.Bind("")), "missing POV invalidates the DirectInput sample")
     states := ReadTransportStates(FakeJoystick.Bind(-1))
-    Check(states.Length = 12 && !states[1] && !states[2] && !states[3] && !states[4] && states[5],
+    Check(states.Length = 14 && !states[1] && !states[2] && !states[3] && !states[4] && states[5],
         "centered POV preserves face input")
     states := ReadTransportStates(FakeJoystick.Bind(31500))
     Check(states[1] && !states[2] && !states[3] && states[4], "diagonal POV maps Up and Left")
@@ -35,12 +35,14 @@ try {
     NumPut("UShort", 0x0100, packet, 4)
     NumPut("UChar", 4, "UChar", 5, packet, 6)
     states := DecodeXInputState(packet, "xinput")
-    Check(!states[11] && states[12], "LB stays native and physical RT works independently")
+    Check(!states[11] && states[12] && states[13], "LB and physical RT are read independently")
     NumPut("UChar", 5, packet, 6)
     states := DecodeXInputState(packet, "xinput")
     Check(states[11] && states[12], "both physical triggers register together")
     NumPut("UShort", 0x0200, packet, 4)
     Check(!DecodeXInputState(packet, "xinput")[10] && DecodeXInputState(packet, "xinput-r1-chooser")[10], "alternate RB chooser")
+    Check(DecodeXInputState(packet, "xinput")[14] && !DecodeXInputState(packet, "xinput-r1-chooser")[14],
+        "alternate RB chooser never emits a second RB edge")
     owner := 0
     ControllerMessageInit()
     spool := A_Temp . "\xb-public-native-" . DllCall("GetCurrentProcessId", "UInt") . ".buttons"
@@ -64,6 +66,15 @@ try {
         Check(InStr(FileRead(spool), "4,up,5" . Chr(10) . "5,up,11"), "publish both releases")
         ControllerMessageCancel()
         Check(InStr(FileRead(spool), "6,cancel,0"), "publish cancellation")
+        held[13] := true
+        for count in [12, 14] {
+            ControllerMessageSelect(true, "shoulder-test-" . count, 0, spool, count)
+            ControllerMessagePoll(NeutralButtons(), 0)
+            ControllerMessagePoll(held, 0)
+            Check((InStr(FileRead(spool), ",down,13") != 0) = (count = 14),
+                "shoulder edges require an explicit extended lease")
+        }
+        held[13] := false
         for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput", "xinput", "xinput-r1-chooser"] {
             ControllerMessageSelect(false, "", 0, "")
             Check(!ControllerMessagePoll(held, 0) && !CM.pending.Length, "no lease stays silent")
@@ -88,7 +99,7 @@ FakeJoystick(pov, key) {
         return "Test controller"
     if (key = "JoyPOV")
         return pov
-    return key = "Joy2" or key = "Joy8"
+    return key = "Joy2" or key = "Joy8" or key = "Joy5"
 }
 
 Check(condition, description) {

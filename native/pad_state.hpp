@@ -5,12 +5,15 @@
 
 namespace xb {
 inline unsigned xbox_button(unsigned i, bool r1_chooser) {
+    if (i >= 12) return i == 13 && r1_chooser ? 0 : xbox_shoulders[i - 12];
     return i == 9 && r1_chooser ? xbox_alternate_chooser : xbox[i];
 }
 
 inline unsigned read_xbox(unsigned buttons, unsigned left, unsigned right, bool r1_chooser = false) {
     unsigned raw = (left > xbox_trigger_threshold ? 0x400 : 0) | (right > xbox_trigger_threshold ? 0x800 : 0);
     for (unsigned i = 0; i < 10; ++i)
+        if (buttons & xbox_button(i, r1_chooser)) raw |= 1u << i;
+    for (unsigned i = 12; i < 14; ++i)
         if (buttons & xbox_button(i, r1_chooser)) raw |= 1u << i;
     return raw;
 }
@@ -21,7 +24,7 @@ inline unsigned read_joystick(unsigned pov, const std::uint8_t* buttons, bool fi
         if (pov % 9000) raw |= 1u << ((pov / 9000 + 1) % 4);
     }
     const auto* map = fight ? fightpad : dualsense;
-    for (unsigned i = 0; i < 8; ++i)
+    for (unsigned i = 0; i < sizeof(logical_buttons) / sizeof(*logical_buttons); ++i)
         if (buttons[map[i]] & 0x80) raw |= 1u << logical_buttons[i];
     return raw;
 }
@@ -36,7 +39,7 @@ inline unsigned filter_hat(unsigned pov, unsigned suppressed) {
 }
 inline void filter_joystick(std::uint8_t* buttons, unsigned suppressed, bool fight) {
     const auto* map = fight ? fightpad : dualsense;
-    for (unsigned i = 0; i < 8; ++i)
+    for (unsigned i = 0; i < sizeof(logical_buttons) / sizeof(*logical_buttons); ++i)
         if (suppressed & (1u << logical_buttons[i])) buttons[map[i]] &= 0x7f;
 }
 }

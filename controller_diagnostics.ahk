@@ -91,8 +91,8 @@ DiagSample(states, hwnd, route) {
         return
     mask := ""
     if (IsObject(states)) {
-        Loop 12
-            mask .= states[A_Index] ? "1" : "0"
+        for _, pressed in states
+            mask .= pressed ? "1" : "0"
     } else mask := "disconnected"
     signature := "hwnd=" . hwnd . " route=" . route . " mask=" . mask
         . " messages=" . CM.requested . " phase=" . CM.phase

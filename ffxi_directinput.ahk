@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0.19+
 ; A: shared controller transport; physical readers are selected at startup.
-; All profiles publish the same twelve DirectLink message edges.
+; All profiles share one DirectLink message stream.
 #SingleInstance Off
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
@@ -161,6 +161,8 @@ DecodeXInputState(state, profile) {
         states.Push((buttons & flag) != 0)
     threshold := ControllerXInputTriggerThreshold()
     states.Push(NumGet(state, 6, "UChar") > threshold, NumGet(state, 7, "UChar") > threshold)
+    for _, flag in ControllerXInputShoulders(profile)
+        states.Push((buttons & flag) != 0)
     return states
 }
 

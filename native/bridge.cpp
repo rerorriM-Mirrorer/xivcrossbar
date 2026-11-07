@@ -222,7 +222,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             } else if (type & DIDFT_BUTTON) {
                 const auto* map = fightpad ? xb::fightpad : xb::dualsense;
                 unsigned bit = 0;
-                for (unsigned j = 0; j < 8; ++j)
+                for (unsigned j = 0; j < sizeof(xb::logical_buttons) / sizeof(*xb::logical_buttons); ++j)
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
