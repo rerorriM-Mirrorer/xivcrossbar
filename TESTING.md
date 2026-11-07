@@ -1,3 +1,14 @@
+# Current Development Status — November 7, 2026 — Superwarp City Folders 1
+
+- Repository `rerorriM-Mirrorer/xivcrossbar`, branch `test/superwarp-city-folders-20261107`, baseline `74724f10471cc64532d31464efc0eb3618d58462` (personal AHK v2 migration). Root AGENTS/WORKFLOW/TESTING reviewed directly from this branch before modification. Main and personal development branch remain untouched.
+- Initial city browser: three folders at the beginning of the Superwarp binder for Bastok, San d'Oria and Windurst; no nested zone folders. 38 city Home Points and 3 city Survival Guides, each independently bindable. The remaining legacy HP/SG options retain their alphabetical order and existing command format, omitting city entries already inside folders. Icons use the existing map, Home Point and Survival Guide artwork. Some landmarks are intentionally `HP #n` pending in-game confirmation.
+- Existing Superwarp party/all selection setting is preserved. There is no unlock scanning, enabled/dimmed sorting, new packet handling, input transport change, bank change, or saved XML conversion in this batch.
+- Verification: source-backed static checks for all 41 folder entries, numerical HP commands and SG commands, folder order, duplicate exclusion, navigation/Back restoration, unchanged legacy sorting and icon names. Actual Lua 5.1, Windower menu rendering, controller navigation, command execution, warp landing positions, and per-client arrival are pending live acceptance.
+- Test: Back up addon; overlay only `ui/action_binder.lua` and `libs/sw_zones.lua`; reload XIVCrossbar. Open action binder > Superwarp, inspect first three folders; enter and Back each folder, including after scrolling; bind Bastok Markets #1/#4, Mines #1/#2/#3, San d'Oria and Windurst points; verify actual destinations and revise temporary landmark labels. Check every SG (Bastok Mines, Northern San d'Oria, Port Windurst), legacy flat zones after folders, direct bindings, party scope when configured, and old saved bindings. Do not assume a placeholder label identifies a verified landmark.
+- No claim of live FFXI testing. Do not promote the test branch to the working branch until accepted.
+
+---
+
 # Current Development Status — November 6, 2026 — Personal Menu Preview 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/ahk-v2-migration`, baseline `c8b38b8d94b27ce3a74f0546508b32face812781`. Reviewed current AGENTS/WORKFLOW/TESTING from GitHub. Adapted public beta in-menu HUD reveal, icon dim and amber binding-bank field to personal's separate UI and combined five-bank policy, while preserving companion controls.

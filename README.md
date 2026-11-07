@@ -870,7 +870,12 @@ be read as field commands.
 `//xb reload` refreshes crossbar data.
 `//xb restart` closes menus and fades out before reloading the entire addon.
 `//lua r xivcrossbar` performs the same full reload immediately.
-Superwarp bindings require the separate Superwarp addon.
+Superwarp bindings require the separate Superwarp addon. In the test city-folder selector,
+Bastok, San d'Oria and Windurst appear first as folders. Each opens directly to
+numbered Home Points and its city's Survival Guide, where present. The remaining
+warp destinations follow in their original alphabetical list. Unverified landmark
+labels remain `HP #n` until confirmed in FFXI; unlocking/scan filtering is not
+included in this first experiment.
 
 ## Install or upgrade
 
@@ -1700,3 +1705,13 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 ### November 6, 2026 — Personal in-menu crossbar preview
 
 - Adopt Public Beta's dimmed in-menu HUD and amber selected-bank field while retaining personal trigger layers and five-bank combining. Triggers held while a menu owns input must be released fully before gameplay can activate; no user bindings or saved settings change. Physical controller verification remains pending.
+
+### November 7, 2026 — Superwarp city folders 1 (test branch)
+
+- Add top-of-selector Bastok, San d'Oria and Windurst folders with all 38
+  individual city Home Points plus three Survival Guides as direct bind choices.
+- Keep original destinations after the folders, excluding duplicate city-zone
+  entries. Preserve existing `sw hp`/`sw sg` and optional all-client command
+  handling. Confirmed landmark aliases label points; others remain numbered
+  pending travel verification. Folder selection and Back restore menu position.
+- Source review/static checks only; no in-game verification yet.

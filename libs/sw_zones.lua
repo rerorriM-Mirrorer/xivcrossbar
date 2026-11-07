@@ -170,4 +170,29 @@ sw_zones.sg = S{
 	"Castle Zvahl Baileys [S]"
 }
 
+
+-- Initial travel-browser experiment. Each array position is the Home Point
+-- number in Superwarp's map/homepoints.lua, not its unlock-bit index.
+-- Only landmarks confirmed by Superwarp's existing aliases are named.
+-- Number-only entries await in-game landmark verification.
+sw_zones.city_folders = {
+    {name = "Bastok", zones = {
+        {zone = "Bastok Markets", short = "Markets", points = {"Entrance", "Auction House", "Mog House", "HP #4"}},
+        {zone = "Bastok Mines", short = "Mines", points = {"Auction House", "Mog House", "Alchemy Guild"}, guide = true},
+        {zone = "Port Bastok", short = "Port", points = {"Entrance", "Mog House", "HP #3"}},
+        {zone = "Metalworks", short = "Metalworks", points = {"HP #1", "HP #2"}},
+    }},
+    {name = "San d'Oria", zones = {
+        {zone = "Southern San d'Oria", short = "South", points = {"Entrance", "Auction House", "Mog House", "HP #4"}},
+        {zone = "Northern San d'Oria", short = "North", points = {"Entrance", "HP #2", "Mog House", "HP #4"}, guide = true},
+        {zone = "Port San d'Oria", short = "Port", points = {"HP #1", "Mog House", "Auction House"}},
+    }},
+    {name = "Windurst", zones = {
+        {zone = "Windurst Woods", short = "Woods", points = {"HP #1", "Entrance", "Mog House", "Auction House", "HP #5"}},
+        {zone = "Windurst Waters", short = "Waters", points = {"Entrance", "Mog House", "HP #3", "HP #4"}},
+        {zone = "Windurst Walls", short = "Walls", points = {"HP #1", "Mog House", "Auction House"}},
+        {zone = "Port Windurst", short = "Port", points = {"HP #1", "Entrance", "Mog House"}, guide = true},
+    }},
+}
+
 return sw_zones
