@@ -1,13 +1,27 @@
 local theme = {}
 
+local xi_palette = {
+    mp = {194, 253, 195},
+    tp = {151, 211, 255},
+    insufficient = {255, 149, 151},
+    lockout_start = {116, 137, 161},
+    ws = {255, 149, 151},
+}
+
+function theme.display_palette(preset)
+    if preset == 'xi' then return xi_palette end
+end
+
 theme.apply = function (settings)
     local options = {}
+    options.display_palette = theme.display_palette(settings.DisplayPreset)
+    options.slot_pulse_enabled = settings.DisplayPreset == 'xi'
     options.crossbar_scale = settings.CrossbarScale
     options.fade_enabled = settings.Animation.Enabled
     options.text_fade = settings.Animation.TextFade == true
     options.fade_in = settings.Animation.FadeIn
     options.fade_out = settings.Animation.FadeOut
-    options.load_fade_in = settings.Animation.LoadFadeIn
+    options.load_fade_in = settings.DisplayPreset == 'legacy' and 0 or settings.Animation.LoadFadeIn
 
     options.frame_skip = settings.FrameSkip or 0
     options.allow_stpc_for_self_targeted_actions = settings.AllowSTPCForSelfTargetedActions ~= false

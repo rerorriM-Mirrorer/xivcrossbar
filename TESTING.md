@@ -1,5 +1,41 @@
 # Current Development Status — November 7, 2026
 
+Display preset patch for `experiment/messages-native-all-profiles` in
+`rerorriM-Mirrorer/xivcrossbar`, based on `cbbad60`. Lionstag confirmed
+PS5 startup, binding icon cleanup, and Up/Down blocking with both triggers
+at a Survival Guide. A bound echo still needs a live check.
+
+## Display presets and Event visibility
+
+`//xb display` toggles presets, with XI selected on first use. Use
+`//xb display legacy`, `//xb display xi`, or `//xb display status` explicitly.
+The preset saves immediately. Existing installs use their current appearance
+until a preset is selected.
+
+- Legacy uses always-visible bars, configured MP/TP and lockout colors,
+  no crossbar fades, and the original shared flash. It keeps the current layout.
+- XI selects compact, trigger-driven visibility, crossbar and text fades,
+  pale green affordable MP, blue affordable TP, and pink insufficient costs.
+  The lockout bars transition from gray-blue to green for spells, pink for
+  weaponskills, or blue for job abilities. The independent slot pulses sit
+  above the normal flash.
+- Auto can show the main bars when a trigger is held during status 4.
+  Always-visible mode hides the main bars during status 4.
+
+Overlay this Lua patch onto the complete `cbbad60` native test install with
+the addon unloaded. Load it again and switch presets while in game. Test
+an affordable and unaffordable spell, TP crossing 1,000, one of each lockout
+type, then reload and check the saved preset. At a Survival Guide compare
+Auto with a held trigger and Legacy. Check simultaneous slot pulses and
+focus or trigger release while a slot is held.
+
+The full Lua suite passed, including preset save/apply, cost threshold,
+lockout endpoints, status 4 and DirectLink release. Live visuals are pending.
+
+---
+
+# Current Development Status — November 7, 2026
+
 Hotfix for `experiment/messages-native-all-profiles` in `rerorriM-Mirrorer/xivcrossbar`,
 based on `7f8fd18`.
 

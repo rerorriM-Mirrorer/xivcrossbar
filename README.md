@@ -364,3 +364,6 @@ to the binder, a padded menu title backing, and space for the bouncing cursor.
 2026-11-07: Added PID-scoped DirectLink and selective native blocking for all five Windows profiles. Retired the injected keyboard transport.
 
 2026-11-07: Cleared the binding preview and combo panel when backing out.
+
+2026-11-07: Added saved `//xb display legacy|xi` presets and allowed
+trigger-held Auto bars to show during Event status.

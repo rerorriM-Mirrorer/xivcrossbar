@@ -17,8 +17,10 @@ assert(not visibility.should_show(d.VisibilityMode,false,false,false),
 assert(visibility.should_show(d.VisibilityMode,true,false,false))
 assert(visibility.should_show(d.VisibilityMode,false,false,true),
     'Startup reveal still visible')
-assert(not visibility.should_show(d.VisibilityMode,true,true,false),
-    'Cutscenes suppress bar')
+assert(visibility.should_show('oninput',true,true,false), 'Trigger shows auto bars during an event')
+assert(not visibility.should_show('oninput',false,true,true), 'Events suppress startup reveal')
+assert(not visibility.should_show('always',true,true,false), 'Legacy visibility hides during events')
+assert(not visibility.should_show('hidden',true,true,false), 'Explicit hide wins')
 -- Simulate saved values taking precedence after config has merged settings.
 local previous_fade,previous_tracking=d.Animation.TextFade,d.AutoAttackIndicator.Enabled
 d.Animation.TextFade,d.AutoAttackIndicator.Enabled=false,true

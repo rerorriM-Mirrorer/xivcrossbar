@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.messages-native-test2'
+_addon.version = '0.4.0-beta1.20261107.messages-native-display1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -141,6 +141,44 @@ local function set_compact_mode(mode)
     config.save(settings)
     chat_format.say(207, '[XIVCrossbar] Compact: ' .. (enabled and 'ON' or 'OFF'))
 end
+local function set_display_preset(mode)
+    mode = mode and mode:lower()
+    if mode and mode ~= 'legacy' and mode ~= 'xi' and mode ~= 'status' then
+        chat_format.say(123, '[XIVCrossbar] //xb display [legacy|xi|status]')
+        return
+    end
+    if mode ~= 'status' then
+        local preset = mode or (settings.DisplayPreset == 'xi' and 'legacy' or 'xi')
+        local xi = preset == 'xi'
+        settings.DisplayPreset = preset
+        settings.VisibilityMode = xi and 'oninput' or 'always'
+        settings.Animation.Enabled, settings.Animation.TextFade = xi, xi
+        theme_options.fade_enabled, theme_options.text_fade = xi, xi
+        theme_options.load_fade_in = xi and settings.Animation.LoadFadeIn or 0
+        theme_options.display_palette = theme.display_palette(preset)
+        theme_options.slot_pulse_enabled = xi
+        if xi then
+            crossbar_drag:finish()
+            settings.iscompact, theme_options.is_compact = true, true
+            ui:set_compact(true)
+            if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
+        end
+        ui.display_palette = theme_options.display_palette
+        ui:set_slot_pulse_enabled(xi)
+        ui.geometry.deferring_hide = false
+        ui.geometry:configure_fade(xi, settings.Animation.FadeIn, settings.Animation.FadeOut)
+        ui.geometry:interrupt_startup_reveal()
+        ui.geometry:set_text_fade(xi)
+        if ui.is_setup and xivcrossbar.ready then
+            ui:check_vitals(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+        end
+        ui.public_visible = nil
+        ui_dirty = true
+        config.save(settings)
+    end
+    chat_format.say(207, '[XIVCrossbar] Display: ' .. settings.DisplayPreset:upper())
+end
+
 windower.register_event('mouse',function(kind,x,y,delta,blocked)
     return crossbar_drag:mouse(kind,x,y,blocked)
 end)
@@ -635,6 +673,7 @@ function initialize(server_id, expected_name, expected_id)
     local current_status = windower.ffxi.get_player().status
     aa_set_engaged(current_status == 1 or current_status == 3)
 
+    xivcrossbar.hide_hotbars = windower_player.status == 4
     xivcrossbar.ready = true
     xivcrossbar.initialized = true
     return true
@@ -678,6 +717,7 @@ end
 
 -- trigger hotbar action
 function trigger_action(slot)
+    ui:press_slot_pulse(player.hotbar_settings.active_hotbar, slot)
     if settings.InputTest then
         chat_format.say(207, '[XIVCrossbar test] Crossbar ' .. tostring(gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
         ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
@@ -1194,6 +1234,7 @@ function display_help_menu()
     chat_help.command("status","Show current state and settings.")
     chat_help.command("resources","Report live drawing objects.")
     chat_help.command("scale <0.25-2>","Scale crossbar independently of menus.")
+    chat_help.command("display [legacy|xi|status]","Toggle or apply a saved crossbar appearance preset.")
     chat_help.command("compact [on|off]","Switch layout immediately.")
     chat_help.command("hide","Hide bars without disabling actions.")
     chat_help.command("show","Show bars.")
@@ -1410,7 +1451,7 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(0,chat_format.heading('Crossbars'))
         chat_format.say(0,chat_format.row('Layout',
             (settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)))
-        chat_format.say(0,chat_format.row('Visibility',settings.VisibilityMode))
+        chat_format.say(0,chat_format.row('Visibility',settings.VisibilityMode..' | Display: '..settings.DisplayPreset:upper()))
         chat_format.say(0,chat_format.row('Animation',
             'Fades: '..chat_format.toggle(settings.Animation.Enabled)..
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
@@ -1420,6 +1461,8 @@ windower.register_event('addon command', function(command, ...)
         report_controller_status(true)
         return
     end
+
+    if command == 'display' then return set_display_preset(args[1]) end
 
     if command == 'compact' or (command == 'ui' and args[1] == 'compact') then
         return set_compact_mode(command == 'compact' and args[1] or args[2])
@@ -2019,6 +2062,8 @@ local function controller_keyboard(dik, pressed, flags, blocked)
 end
 windower.register_event('keyboard', controller_keyboard)
 
+local pulse_slot_for_dik = {[62]=1, [61]=2, [60]=3, [59]=4, [65]=5, [63]=6, [64]=7, [66]=8}
+
 -- DirectLink routes addon input only. FFXI receives untouched native
 -- gameplay/navigation, including dialogue and the login screens.
 local function route_controller_message(dik, pressed)
@@ -2028,6 +2073,7 @@ local function route_controller_message(dik, pressed)
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return end
+    if not pressed and pulse_slot_for_dik[dik] then ui:release_slot_pulse(pulse_slot_for_dik[dik]) end
     local transition = item.logical >= 67
     if settings.InputTrace then
         chat_format.say(207, '[XIVCrossbar test] '..item.name..' '..edge..' | '..tostring(owner or context))
@@ -2051,6 +2097,7 @@ message_bridge=require('controller_messages').new({
     event=route_controller_message,
     capture=function() end,
     cancel=function()
+        ui:clear_slot_pulses()
         transport:reset()
         gamepad_state.capturing=false
         gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
@@ -2095,6 +2142,7 @@ local frame = 0
 
 -- Clear local controller ownership without submitting or discarding menu drafts.
 local function clear_controller_input()
+    ui:clear_slot_pulses()
     set_chooser_button_down=false
     menu_escape_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
@@ -2237,7 +2285,7 @@ windower.register_event('prerender',function()
         return
     end
 
-    if ui.is_setup and settings.VisibilityMode ~= 'hidden' and not xivcrossbar.hide_hotbars
+    if ui.is_setup and settings.VisibilityMode ~= 'hidden' and (not xivcrossbar.hide_hotbars or settings.VisibilityMode == 'oninput')
         and (gamepad_state.left_trigger or gamepad_state.right_trigger) then
         ui.geometry:interrupt_startup_reveal()
     end
@@ -2261,6 +2309,7 @@ windower.register_event('prerender',function()
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open,
             action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot())
+        ui:show_slot_pulse()
     end
 
     ui_dirty = false
@@ -2290,14 +2339,10 @@ end)
 windower.register_event('status change', function(new_status_id)
     if (not xivcrossbar.ready) then return end
     ui.public_visible = nil
-    -- hide/show bar in cutscenes
-    if xivcrossbar.hide_hotbars == false and new_status_id == 4 then
-        xivcrossbar.hide_hotbars = true
-        ui:hide()
-    elseif xivcrossbar.hide_hotbars and new_status_id ~= 4 then
-        xivcrossbar.hide_hotbars = false
-        ui:show(player.hotbar, player.hotbar_settings.active_environment)
-    end
+    -- Presentation is resolved on render so held triggers can override Event
+    -- hiding in Auto without showing inactive bars on a status transition.
+    xivcrossbar.hide_hotbars = new_status_id == 4
+    ui_dirty = true
 
     -- Disabling this for now, but we might want it later
     -- -- alternate environment on battle

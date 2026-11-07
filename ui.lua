@@ -62,6 +62,11 @@ ui.feedback.is_active = false
 ui.feedback.current_opacity = 0
 ui.feedback.max_opacity = 0
 ui.feedback.speed = 0
+ui.slot_pulse_enabled = false
+ui.pulse_views = {}
+ui.pulse_tracks = {}
+ui.pulse_visible_bars = {}
+ui.slot_pulse = nil
 
 ui.disabled_slots = {}
 ui.disabled_slots.actions = {}
@@ -426,6 +431,7 @@ function ui:setup(theme_options, enchanted_items)
     self.AutoHideExtraBars = theme_options.AutoHideExtraBars
     self.UseAltLayout = theme_options.UseAltLayout
 
+    self.display_palette = theme_options.display_palette
     self.theme.mp_cost_color_red = theme_options.mp_cost_color_red
     self.theme.mp_cost_color_green = theme_options.mp_cost_color_green
     self.theme.mp_cost_color_blue = theme_options.mp_cost_color_blue
@@ -616,6 +622,17 @@ function ui:load(theme_options)
     self.feedback.speed = theme_options.feedback_speed
     self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback_icon:hide()
+    -- Eight independently owned physical slot directions. Each may occupy a
+    -- different bar while the original single legacy flash stays untouched.
+    self.slot_pulse = require('slot_pulse').new(require('socket').gettime)
+    self.slot_pulse_enabled = theme_options.slot_pulse_enabled
+    self.pulse_views,self.pulse_tracks,self.pulse_visible_bars = {},{},{}
+    for slot=1,8 do
+        local view=new_image(images_setup)
+        setup_image(view,windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
+        view:hide()
+        self.pulse_views[slot]=view
+    end
     ui:update_offsets(settings.Style.OffsetX, settings.Style.OffsetY)
 end
 
@@ -678,6 +695,10 @@ function ui:set_compact(enabled)
     if self.feedback.is_active then
         self.feedback_icon:pos(self:get_slot_x(self.feedback.hotbar,self.feedback.slot),
             self:get_slot_y(self.feedback.hotbar,self.feedback.slot))
+    end
+    for slot,track in pairs(self.pulse_tracks or {}) do
+        local view=self.pulse_views[slot]
+        if view then view:pos(self:get_slot_x(track.hotbar,track.slot),self:get_slot_y(track.hotbar,track.slot)) end
     end
     local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/'
     self.bar_background:path(base .. (enabled and 'bar_bg_compact.png' or 'bar_bg.png'))
@@ -750,6 +771,7 @@ function ui:hide()
     self.battle_notice:hide()
     self.binding_tint:hide()
     self.feedback_icon:hide()
+    self:clear_slot_pulses()
 
     self:hide_button_hints()
 
@@ -981,31 +1003,15 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
                     end
                 end
 
-                -- display mp cost
-                if crossbar_action.mp_cost ~= nil and crossbar_action.mp_cost ~= 0 then
-                    self.hotbars[hotbar].slot_cost[slot]:color(self.theme.mp_cost_color_red, self.theme.mp_cost_color_green, self.theme.mp_cost_color_blue)
-                    
-                    if(settings.Hotbar.HideActionCost == true) then
-                        self.hotbars[hotbar].slot_cost[slot]:text("")
-                    else    
-                        self.hotbars[hotbar].slot_cost[slot]:text(tostring(crossbar_action.mp_cost))
-                    end
-
-                    if player_vitals.mp < crossbar_action.mp_cost then
-                        self.disabled_slots.no_vitals[action.action] = true
-                        is_disabled = true
-                    end
-                -- display tp cost
-                elseif crossbar_action.tp_cost ~= nil and crossbar_action.tp_cost ~= 0 then
-                    self.hotbars[hotbar].slot_cost[slot]:color(self.theme.tp_cost_color_red, self.theme.tp_cost_color_green, self.theme.tp_cost_color_blue)
-
-                    if(settings.Hotbar.HideActionCost == true) then
-                        self.hotbars[hotbar].slot_cost[slot]:text("")
-                    else
-                        self.hotbars[hotbar].slot_cost[slot]:text(tostring(crossbar_action.tp_cost))
-                    end
-
-                    if player_vitals.tp < crossbar_action.tp_cost then
+                local mp_cost = tonumber(crossbar_action.mp_cost) or 0
+                local tp_cost = tonumber(crossbar_action.tp_cost) or 0
+                if mp_cost > 0 or tp_cost > 0 then
+                    local kind = mp_cost > 0 and 'mp' or 'tp'
+                    local cost = mp_cost > 0 and mp_cost or tp_cost
+                    local insufficient = player_vitals[kind] < cost
+                    self:set_action_cost_color(hotbar, slot, kind, insufficient)
+                    self.hotbars[hotbar].slot_cost[slot]:text(settings.Hotbar.HideActionCost and '' or tostring(cost))
+                    if insufficient then
                         self.disabled_slots.no_vitals[action.action] = true
                         is_disabled = true
                     end
@@ -1144,6 +1150,18 @@ end
 -- Disabled Slots
 -----------------------------
 
+function ui:set_action_cost_color(hotbar, slot, kind, insufficient)
+    local field = self.hotbars[hotbar].slot_cost[slot]
+    local palette = self.display_palette
+    if palette then
+        local color = insufficient and palette.insufficient or palette[kind]
+        field:color(color[1], color[2], color[3])
+    else
+        local prefix = kind .. '_cost_color_'
+        field:color(self.theme[prefix .. 'red'], self.theme[prefix .. 'green'], self.theme[prefix .. 'blue'])
+    end
+end
+
 -- check player vitals
 function ui:check_vitals(player_hotbar, player_vitals, environment)
     local selected=player_hotbar and player_hotbar[environment]
@@ -1174,14 +1192,21 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                 -- if its magic, look for it in spells
                 if (lookup_type == 'ma') then
                     crossbar_action = crossbar_spells[kebab_casify(lookup_name)]
-                elseif (lookup_type == 'ja' or lookup_type == 'ws') then
+                elseif (lookup_type == 'ja' or lookup_type == 'ws' or lookup_type == 'pet') then
                     crossbar_action = crossbar_abilities[kebab_casify(lookup_name)]
                 end
 
                 if (crossbar_action ~= nil) then
-                    local can_afford_mp = crossbar_action.mp_cost ~= nil and crossbar_action.mp_cost ~= '0' and player_vitals.mp < crossbar_action.mp_cost
-                    local can_afford_tp = crossbar_action.tp_cost ~= nil and crossbar_action.tp_cost ~= '0' and player_vitals.tp < crossbar_action.tp_cost
-                    if (can_afford_mp or can_afford_tp) then
+                    local mp_cost = tonumber(crossbar_action.mp_cost) or 0
+                    local tp_cost = tonumber(crossbar_action.tp_cost) or 0
+                    local short_mp = mp_cost > 0 and player_vitals.mp < mp_cost
+                    local short_tp = tp_cost > 0 and player_vitals.tp < tp_cost
+                    if mp_cost > 0 then
+                        self:set_action_cost_color(h, i, 'mp', short_mp)
+                    elseif tp_cost > 0 then
+                        self:set_action_cost_color(h, i, 'tp', short_tp)
+                    end
+                    if short_mp or short_tp then
                         self.disabled_slots.no_vitals[action.action] = true
                         is_disabled = true
                     else
@@ -1350,6 +1375,15 @@ function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillc
     end
 end
 
+local function lockout_tint(palette, kind, fraction)
+    local start = palette.lockout_start
+    local finish = kind == 'ws' and palette.ws or kind == 'ja' and palette.tp or palette.mp
+    local remaining = math.max(0, math.min(1, fraction))
+    return math.round(start[1] * remaining + finish[1] * (1 - remaining)),
+        math.round(start[2] * remaining + finish[2] * (1 - remaining)),
+        math.round(start[3] * remaining + finish[3] * (1 - remaining))
+end
+
 function ui:display_gcd_indicator()
     if gcd_active then
         local elapsed = os.clock() - gcd_start_time
@@ -1395,6 +1429,10 @@ function ui:display_gcd_indicator()
                 prim.set_visibility('gcd_indicator', false)
                 prim.set_visibility('gcd_indicator_bg', false)
                 return
+            end
+
+            if self.display_palette then
+                cr, cg, cb = lockout_tint(self.display_palette, gcd_kind, fraction)
             end
 
             prim.set_color('gcd_indicator', alpha, cr, cg, cb)
@@ -1618,6 +1656,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
             shouldDrawDefaultVisibleBars = active_bar < 3
         end
         local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
+        self.pulse_visible_bars[h]=shouldDrawThisBar
         if (shouldDrawThisBar) then
             for i=1,8,1 do
                 local slot = i
@@ -2247,25 +2286,62 @@ end
 -- Feedback UI
 -----------------------------
 
+-- Optional companion-bank pulse layered above the existing white flash.
+-- The pulse acknowledges a routed press, not a successful FFXI action.
+function ui:clear_slot_pulses()
+    if self.slot_pulse then self.slot_pulse:cancel() end
+    self.pulse_tracks,self.pulse_visible_bars={},{}
+    for _,view in ipairs(self.pulse_views) do view:hide() end
+end
+
+function ui:set_slot_pulse_enabled(enabled)
+    self.slot_pulse_enabled = enabled == true
+    if not self.slot_pulse_enabled then self:clear_slot_pulses() end
+end
+
+function ui:press_slot_pulse(hotbar,slot)
+    if not self.slot_pulse_enabled or not self.slot_pulse or not self.pulse_views[slot] then return end
+    local view=self.pulse_views[slot]
+    self.slot_pulse:press(slot,hotbar,slot)
+    self.pulse_tracks[slot]={hotbar=hotbar,slot=slot}
+    view:pos(self:get_slot_x(hotbar,slot),self:get_slot_y(hotbar,slot))
+end
+function ui:release_slot_pulse(slot)
+    if self.slot_pulse then self.slot_pulse:release(slot) end
+end
+function ui:show_slot_pulse()
+    if not self.slot_pulse_enabled or not self.slot_pulse then return end
+    for slot,view in ipairs(self.pulse_views or {}) do
+        local track=self.pulse_tracks[slot]
+        local alpha=track and self.slot_pulse:alpha(track.hotbar,track.slot) or 0
+        if alpha>0 and self.pulse_visible_bars[track.hotbar] then
+            view:alpha(alpha)
+            view:show()
+        else
+            view:hide()
+            if alpha<=0 then self.pulse_tracks[slot]=nil end
+        end
+    end
+end
+
 -- trigger feedback visuals in given hotbar and slot
 function ui:trigger_feedback(hotbar, slot)
     if slot == 0 then slot = 10 end    
     self.feedback.hotbar, self.feedback.slot = hotbar, slot
     self.feedback_icon:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
+    self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback.is_active = true
 end
 
 -- show feedback
 function ui:show_feedback()
-    if self.feedback.current_opacity ~= 0 then
-        self.feedback.current_opacity = self.feedback.current_opacity - self.feedback.speed
-        self.feedback_icon:alpha(self.feedback.current_opacity)
-        self.feedback_icon:show()
-    elseif self.feedback.current_opacity < 1 then
-        self.feedback_icon:hide()
-        self.feedback.current_opacity = self.feedback.max_opacity
-        self.feedback.is_active= false
-    end
+    if not self.feedback.is_active then return end
+    local step = math.max(1, tonumber(self.feedback.speed) or 1)
+    local opacity = math.max(0, math.min(255, self.feedback.current_opacity - step))
+    self.feedback.current_opacity = opacity
+    self.feedback_icon:alpha(opacity)
+    if opacity > 0 then self.feedback_icon:show()
+    else self.feedback_icon:hide(); self.feedback.is_active = false end
 end
 
 return ui
