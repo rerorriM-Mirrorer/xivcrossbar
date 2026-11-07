@@ -1,0 +1,28 @@
+name: Personal recovery source snapshot
+on:
+  push:
+    branches: [test/personal-recovery-snapshot-20261107]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package full clean personal source without user data
+        shell: bash
+        run: |
+          mkdir -p dist/xivcrossbar
+          tar --exclude=.git --exclude=.github --exclude=dist --exclude=data \
+              -cf - . | tar -xf - -C dist/xivcrossbar
+          test -f dist/xivcrossbar/xivcrossbar.lua
+          test -f dist/xivcrossbar/ui/action_binder.lua
+          test -f dist/xivcrossbar/WORKFLOW.md
+          test -f dist/xivcrossbar/TESTING.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XIVCrossbar-Personal-GitHub-Source-Snapshot
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
