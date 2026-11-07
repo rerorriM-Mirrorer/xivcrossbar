@@ -340,6 +340,10 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.theme_options = theme_options
     self.title = self:create_text('Select Action Type', base_x + 50, base_y + 30)
     self.title:size(18)
+    self.title:pad(5)
+    self.title:bg_color(15, 17, 24)
+    self.title:bg_alpha(215)
+    self.title:bg_visible(true)
     self.title:hide()
     self.base_x = base_x
     self.base_y = base_y
@@ -353,6 +357,7 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.active_crossbar = nil
     self.action_command = nil
     self.action_icon = nil
+    self.binding_preview_icon = nil
     self.hotkey = nil
     self.selection_states = {}
     self.images = L{}
@@ -404,6 +409,7 @@ function action_binder:reset_state()
     self.active_crossbar = nil
     self.action_command = nil
     self.action_icon = nil
+    self.binding_preview_icon = nil
     self.icon_picker_return = nil
     self.action_linked_action = nil
     self.action_linked_type = nil
@@ -740,6 +746,14 @@ function action_binder:get_binding_preview_bank()
     end
 end
 
+function action_binder:get_tentative_binding_slot()
+    if self.state == states.CONFIRM_BUTTON_ASSIGNMENT and self.action_name
+        and self.action_type ~= action_types.DELETE and self.action_type ~= action_types.CHANGE_ICON
+        and self.action_type ~= action_types.GLOBAL_ICON_SET then
+        return self.hotkey
+    end
+end
+
 function action_binder:is_in_selector_state()
     return not self.capturing_text and self.selector and self.selector.is_showing and (self.state == states.SELECT_ACTION_TYPE
         or self.state == states.SELECT_ACTION
@@ -879,7 +893,10 @@ function action_binder:submit_selected_option()
     end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self.selection_states[states.SELECT_ACTION_TYPE] = self.selector:export_selection_state()
-        self.action_type = self.selector:submit_selected_option().id
+        local option = self.selector:submit_selected_option()
+        self.action_type = option.id
+        self.action_name, self.action_alias = nil, nil
+        self.binding_preview_icon = option.asset_path
 
         if (self.action_type == action_types.SHOW_CREDITS) then
             self.state = states.SHOW_CREDITS
@@ -975,6 +992,7 @@ function action_binder:submit_selected_option()
             end
         else
             self.action_name = option.data.action_name or option.text
+            self.binding_preview_icon = option.asset_path
             self.target_type = option.data.target_type
 
             -- Choosing a new action replaces nullable metadata too: Back from
@@ -1247,6 +1265,7 @@ function action_binder:submit_selected_option()
                 self.action_type = action_types.CUSTOM_ACTION
                 self.action_name,self.action_alias = d.name,review.alias(d)
                 self.action_command,self.action_icon = d.command,d.icon
+                self.binding_preview_icon = self:custom_action_icon(d)
                 self.action_linked_action,self.action_linked_type = d.linked_action,d.linked_type
                 self.action_target = nil
                 self.state = states.SELECT_BUTTON_ASSIGNMENT
@@ -1838,42 +1857,57 @@ function action_binder:refresh_set_title()
     end
 end
 
-function action_binder:display_button_assigner()
-    self:show_set_title('Enter Button Combo')
+function action_binder:binding_caption_y()
+    local y = self.base_y + self.height / 2 - 40
+    return self.action_name and math.max(y, self.base_y + 130) or y
+end
 
-    self:reset_gamepad()
+function action_binder:show_binding_action_preview(caption_y)
+    if not self.action_name then return end
+    local center = self.base_x + self.width / 2
+    local icon_path = self.binding_preview_icon or ('images/' .. get_icon_pathbase() .. '/custom_actions.png')
+    local icon = ui_resources.image({draggable = false})
+    icon:path(windower.addon_path .. icon_path)
+    icon:fit(true)
+    icon:size(38, 38)
+    icon:pos(center - 19, caption_y - 68)
+    icon:show()
+    self.images:append(icon)
 
-    self.selector:hide()
+    local label = self:create_text(review.nonempty(self.action_alias) and self.action_alias or self.action_name,
+        center, caption_y - 25)
+    label:size(13)
+    self:center_caption(label, caption_y - 25)
+    self.hints:append(label)
+end
 
-    windower.prim.set_position('button_entry_bg', self.base_x+30, self.base_y+self.height/2-60)
-    windower.prim.set_size('button_entry_bg',self.width-60,120)
-    windower.prim.set_color('button_entry_bg',150,0,0,0)
-    windower.prim.set_visibility('button_entry_bg', true)
-
-    ui_resources.clear(self.images); self.images = L{}
-    ui_resources.clear(self.hints); self.hints = L{}
+function action_binder:show_button_entry_captions(confirming)
+    self:show_control_hints('Confirm', 'Go Back')
 
     local caption_x = self.base_x + self.width / 2
-    local caption_y = self.base_y + self.height / 2 - 40
-    local caption_text = ''
-    local secondary_text = nil
-    if (self.action_type == action_types.DELETE) then
-        caption_text = 'Press a button combo to remove its bound action'
-    elseif (self.action_type == action_types.CHANGE_ICON) then
-        caption_text = 'Press the button combo for the slot to change icon.'
-    elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
-        caption_text = 'Press the button combo for the action to change icon.'
-        secondary_text = 'Matches action names or aliases across your sets; slot icons take precedence.'
+    local caption_y = self:binding_caption_y()
+    self:show_binding_action_preview(caption_y)
+    local caption_text, secondary_text
+    if self.action_type == action_types.DELETE then
+        caption_text = confirming and 'Delete binding?' or 'Press a button combo to remove its bound action'
+    elseif self.action_type == action_types.CHANGE_ICON then
+        caption_text = confirming and 'Change icon for this slot?' or 'Press the button combo for the slot to change icon.'
+    elseif self.action_type == action_types.GLOBAL_ICON_SET then
+        caption_text = confirming and 'Change icon for matching actions across your sets?'
+            or 'Press the button combo for the action to change icon.'
+        if not confirming then
+            secondary_text = 'Matches action names or aliases across your sets; slot icons take precedence.'
+        end
     else
-        caption_text = 'Press a button combo to bind it to this action'
+        caption_text = confirming and ('Bind ' .. self.action_name .. '?')
+            or 'Press a button combo to bind it to this action'
     end
 
-    self:show_control_hints('Confirm', 'Go Back')
     local caption = self:create_text(caption_text, caption_x, caption_y)
     caption:size(14)
     self:center_caption(caption, caption_y)
     self.hints:append(caption)
-    if (secondary_text ~= nil) then
+    if secondary_text then
         local secondary = self:create_text(secondary_text, caption_x, caption_y + 25)
         secondary:size(11)
         self:center_caption(secondary, caption_y + 25)
@@ -1881,32 +1915,25 @@ function action_binder:display_button_assigner()
     end
 end
 
-function action_binder:display_button_confirmer()
+function action_binder:display_button_assigner()
     self:show_set_title('Enter Button Combo')
-
+    self:reset_gamepad()
     self.selector:hide()
 
-    ui_resources.clear(self.hints); self.hints = L{}
+    windower.prim.set_position('button_entry_bg', self.base_x + 30, self:binding_caption_y() - 20)
+    windower.prim.set_size('button_entry_bg', self.width - 60, 120)
+    windower.prim.set_color('button_entry_bg', 150, 0, 0, 0)
+    windower.prim.set_visibility('button_entry_bg', true)
 
-    local caption_x = self.base_x + self.width / 2
-    local caption_y = self.base_y + self.height / 2 - 40
-    local caption_text = ''
-    if (self.action_type == action_types.DELETE) then
-        caption_text = 'Delete binding?'
-    elseif (self.action_type == action_types.CHANGE_ICON) then
-        caption_text = 'Change icon for this slot?'
-    elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
-        caption_text = 'Change icon for matching actions across your sets?'
-    else
-        caption_text = 'Bind ' .. self.action_name .. '?'
-    end
+    ui_resources.clear(self.images); self.images = L{}
+    self:show_button_entry_captions(false)
+end
+
+function action_binder:display_button_confirmer()
+    self:show_set_title('Enter Button Combo')
+    self.selector:hide()
     self:confirm_buttons()
-    self:show_control_hints('Confirm', 'Go Back')
-
-    local caption = self:create_text(caption_text, caption_x, caption_y)
-    caption:size(14)
-    self:center_caption(caption, caption_y)
-    self.hints:append(caption)
+    self:show_button_entry_captions(true)
 end
 
 function action_binder:assign_action()
@@ -2004,13 +2031,14 @@ function action_binder:show_pressed_buttons()
     local all_icon_width = #icons * 40
     local center = self.width / 2
     local start_x = self.base_x + center - (all_icon_width / 2)
-    local start_y = self.base_y + self.height / 2
+    local caption_y = self:binding_caption_y()
+    local start_y = caption_y + 40
 
     for i=1,#icons,1 do
         self:show_icon(icons[i], start_x + (i - 1) * 40, start_y)
     end
 
-    self:show_control_hints('Confirm', 'Go Back')
+    self:show_button_entry_captions(false)
 end
 
 function action_binder:confirm_buttons()
@@ -2082,7 +2110,7 @@ function action_binder:confirm_buttons()
     local all_icon_width = #icons * 40
     local center = self.width / 2
     local start_x = self.base_x + center - (all_icon_width / 2)
-    local start_y = self.base_y + self.height / 2
+    local start_y = self:binding_caption_y() + 40
 
     for i=1,#icons,1 do
         self:show_icon(icons[i], start_x + (i - 1) * 40, start_y)

@@ -435,3 +435,6 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 
 - Added `//xb slotpulse on|off|status` (ON for this public development test) to layer personal companion-bank feedback over the existing main-bar flash. Eight lazily updated physical-button layers support simultaneous presses on different slots, a 60 ms minimum pulse, held settling and 140 ms release fade. The existing flash is unchanged and remains visible beneath the new layer.
 - It represents receipt of a physical slot event, not confirmation the command executed in FFXI. It doesn't change spell/TP/MP colors, action logic, controller transport or stored bindings. Compare `//xb slotpulse off` versus `on` with rapid Cross/Square, alternating triggers, and simultaneous presses; check for overly bright overlays, stale flashes and performance on four clients.
+
+2026-11-07: Ported the binding preview, tentative slot tint, title backing,
+and corrected bouncing cursor to the public AHK v2 test build.

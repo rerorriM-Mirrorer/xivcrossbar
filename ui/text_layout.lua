@@ -14,6 +14,10 @@ function layout:center(text, x, y, max_width)
     self:update_text(text, self.entries[text])
 end
 
+function layout:fit(text, max_width)
+    self:center(text, nil, nil, max_width)
+end
+
 function layout:update_text(text, entry)
     if entry.resizing then entry.resizing=nil; return end
     local width = text:measure_width()
@@ -29,8 +33,10 @@ function layout:update_text(text, entry)
             return
         end
     end
-    local x = entry.x - width / 2
-    if x ~= entry.last_x then text:pos(x, entry.y); entry.last_x=x end
+    if entry.x then
+        local x = entry.x - width / 2
+        if x ~= entry.last_x then text:pos(x, entry.y); entry.last_x=x end
+    end
     text:commit_measurement()
 end
 

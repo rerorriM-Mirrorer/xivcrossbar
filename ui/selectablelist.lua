@@ -5,6 +5,7 @@ texts = require('texts')
 images = require('images')
 
 local selectable_list = {}
+local caption_layout = require('ui/text_layout').new()
 local unpack = unpack or table.unpack
 
 local BORDER_PADDING = 10
@@ -198,6 +199,11 @@ function selectable_list:create_text(text_string, row, col)
     text:pos(x + 50, y + 18)
     text:text(text_string)
     text:show()
+    if col < self.max_col then
+        -- Reserve room for the next cell's cursor on Windower's image layer.
+        local stroke = self.theme_options.font_stroke_width or 0
+        caption_layout:fit(text, COLUMN_WIDTH - 50 - 30 - stroke - 2)
+    end
     return text
 end
 
@@ -349,7 +355,7 @@ function selectable_list:display_options(options, presentation)
 
                 -- populate the "collision" map for dpad navigation
                 local field_col = self.field_coords[col] or {}
-                field_col[row] = {id=option_id, text=option_caption, data=data,
+                field_col[row] = {id=option_id, text=option_caption, data=data, asset_path=value.icon,
                     icon=data and data.icon_path or value.name, disabled=value.disabled, disabled_focusable=value.disabled_focusable}
                 if value.disabled then
                     self.fields[#self.fields]:color(255,149,151)
@@ -453,6 +459,7 @@ end)
 
 windower.register_event('prerender',function()
     if selectable_list.is_showing then
+        caption_layout:update()
         if selectable_list.cursor then selectable_list.cursor:update() end
         if selectable_list.page_pressed_direction~=nil and (selectable_list.page_color_frame or 0)<1 then
             selectable_list.page_color_frame=1;selectable_list:update_page_colors()

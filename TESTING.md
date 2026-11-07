@@ -1,3 +1,31 @@
+# Current Development Status
+
+Binding preview test branch `experiment/public-ahk-v2-binding-preview` in
+`rerorriM-Mirrorer/xivcrossbar`, based on public AHK v2 checkpoint
+`1036782cc1737de9e01b747c32ddfb9ab75a0dc3` (Actions run 42344078166).
+The port keeps the public slot pulse, controller autostop, and editor wrap.
+
+## 2026-11-07 — Public binding preview port
+
+The binding screen shows the action icon and label above the prompt. A green
+tint marks the tentative slot while confirming; the amber field still marks
+the selected bank. Binder and controller setup titles use a padded backing.
+The cursor uses the corrected DXT3 crops and a two-pixel downward bounce at
+its original anchor. Long neighboring labels are fitted to leave it space.
+
+This full package can overlay the public AHK v2 artifact from run 42344078166.
+Unload XIVCrossbar, back up its folder, extract the archive into Windower's
+addons folder, then load XIVCrossbar again. The archive omits saved data.
+For rollback, restore the backed-up folder and reload the addon.
+
+In FFXI, bind a spell and a custom action, then use Back and confirm on
+separate attempts. Check the tint on single, combined, and double-tap banks,
+compact and full layouts, cursor clearance, and title legibility. Verify
+`//xb slotpulse status` and `//xb controller autostop status` still work.
+The full local Lua suite passed. This port has no Windows or in-game run.
+
+---
+
 # Current Development Status — November 6, 2026 — Isolated Lifecycle Fixture Completeness 2
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, starting source `796f542eef288db4bbc41ef8d8a73bf862316be4`. GitHub native AHK32/64 passed earlier but package Lua fixture failed twice in succession: first lacked a mock path/registry (corrected), then lacked the new `settings.on_unload_killahk` field. This change supplies and asserts the preference in the already isolated callback fixture. Production Lua and AHK behavior unchanged; actual registry test and independent pulse overlay test remain intact.

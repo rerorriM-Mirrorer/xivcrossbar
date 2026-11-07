@@ -4,6 +4,8 @@ local ui_resources = require('ui/resources')
 -- produce about 87% opacity there without changing the texture or its outline.
 local images=require('images')
 local cursor={}
+-- Match the old crops: each pair sits one pixel below the previous pair.
+local frame_y_offsets = {0, 0, 1, 1, 2, 2}
 local methods={};methods.__index=methods
 function cursor.new(folder,options)
     options=options or {}
@@ -37,13 +39,15 @@ end
 function methods:update()
     if not self.shown then return end
     local index=math.floor(math.max(0,self.clock()-self.started)*self.fps)%6+1
-    if self.frame~=index then
+    local y = self.y + frame_y_offsets[index] * self.scale
+    local changed = self.frame ~= index
+    if changed then
         if self.frame then for _,part in ipairs(self.frames[self.frame]) do part:hide() end end
         self.frame=index
-        for _,part in ipairs(self.frames[index]) do part:show() end
     end
     for _,part in ipairs(self.frames[index]) do
-        part:pos(self.x,self.y);part:size(32*self.scale,20*self.scale)
+        part:pos(self.x,y);part:size(32*self.scale,20*self.scale)
+        if changed then part:show() end
     end
 end
 function methods:destroy()
