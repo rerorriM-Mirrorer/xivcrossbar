@@ -1205,6 +1205,7 @@ function display_help_menu()
     chat_help.heading('Other')
     chat_help.command("reload","Reload saved crossbar bindings.")
     chat_help.command("restart","Fade out then reload the addon.")
+    chat_help.command("unload","Fade out and unload the addon.")
     chat_help.command("regenerate","Regenerate cached resource files.")
     chat_help.command("inputtest [on|off]","Replace real actions with dummy tests.")
     chat_help.command("inputtrace [on|off]","Enable keyboard/input trace logging.")
@@ -1225,8 +1226,8 @@ end
 -----------------------------
 
 -- A: Lua teardown cannot finish an animation. Close first, then ask Windower
--- for the same full reload as lua r; the shared controller process stays alive.
-local function graceful_restart()
+-- to unload or reload. The shared wrapper follows its last-client policy.
+local function graceful_restart(unload)
     if restart_pending then return end
     restart_pending = true
     xivcrossbar.ready = false
@@ -1244,7 +1245,7 @@ local function graceful_restart()
     if release_gameplay_keys then release_gameplay_keys() end
     if ui.is_setup then ui:hide() end
     local delay = theme_options.fade_enabled and math.max(0, tonumber(theme_options.fade_out) or 0) or 0
-    coroutine.schedule(function() windower.send_command('lua r xivcrossbar') end, delay)
+    coroutine.schedule(function() windower.send_command(unload and 'lua u xivcrossbar' or 'lua r xivcrossbar') end, delay)
 end
 
 -- ON LOAD
@@ -1553,7 +1554,9 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
-    if command == 'restart' then
+    if command == 'unload' then
+        return graceful_restart(true)
+    elseif command == 'restart' then
         return graceful_restart()
     elseif command == 'reload' then
         return reload_hotbar()

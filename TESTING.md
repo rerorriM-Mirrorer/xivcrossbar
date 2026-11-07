@@ -1,3 +1,10 @@
+# Graceful XIVCrossbar unload command
+
+- User confirmed the shared AHK wrapper exited on unload and returned smoothly on load. Added `//xb unload` using the existing fade and cleanup path, followed by Windower unload.
+- Live: verify the alias follows the same shutdown path, then repeat with a second loaded client to confirm the shared reader stays alive until the last unload.
+
+---
+
 # Shared AHK last-client shutdown
 
 - Ported the personal branch owner-file registry. AHK keeps running while any registered client is loaded, including minimized clients. After the final unload it waits two seconds before exiting. StopWrapperAfterLastClient defaults on and can be set false in settings. The old forced-off field does not override this setting.
