@@ -1,3 +1,25 @@
+# Current Development Status
+
+This golden cursor test targets `rerorriM-Mirrorer/xivcrossbar` on
+`experiment/native-gamepad-bridge`, based on GitHub checkpoint `02a2b84`.
+The user previously confirmed repeated Trust paging and smoother menu navigation.
+
+## 2026-11-07 — Golden cursor atlas extraction
+
+The six cursor frames now use the DXT3 alpha indicated by the original
+`51.DAT` atlas. Decoding the same payload as DXT5 reproduced the previous
+PNGs exactly. Crop bounds, frame order, and playback timing are preserved.
+
+Local checks passed for the source hash, all 3,840 alpha samples against
+the raw DXT3 nibbles, and all six PNG round trips. In-game appearance is pending.
+
+Back up `images/assets/menu/cursor`, overlay the patch into Windower's
+`addons` folder, and run `//xb restart`. Open `//xb menu` and watch the
+cursor on one option and while moving between options. Check for dark lines
+and legibility. To roll back, restore the cursor folder and restart the addon.
+
+---
+
 # Menu browsing and compact startup
 
 - User reported repeated successful Trust paging. Cold startup could render Full while saved Compact was true. UI setup now reads the current setting after character initialization.

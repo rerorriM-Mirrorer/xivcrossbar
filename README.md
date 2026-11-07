@@ -412,3 +412,6 @@ AutoHide currently has no post-release delay (visibility switches on release,
 then the existing 0.5s fade-out). A future delay of 3/9/15/30 seconds is only
 under discussion, NOT implemented or claimed in this build. Existing
 fade-in/fade-out/startup durations and text-settling behavior are unchanged.
+
+2026-11-07: Re-extracted the golden menu cursor using the original atlas DXT3
+transparency. See TESTING.md for the in-game appearance check.
