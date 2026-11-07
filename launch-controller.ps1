@@ -1,6 +1,6 @@
 # Independent bootstrap; no launcher app or .ahk association is required.
 param(
-    [ValidateSet('apps','ctrl')][string]$Modifier = 'apps',
+    [ValidateSet('messages')][string]$Modifier = 'messages',
     [ValidateSet('ps5-directinput','f710-directinput','fightpadpro-directinput','xinput','xinput-r1-chooser')][string]$Profile = 'ps5-directinput',
     [ValidateRange(1,16)][int]$Device = 1
 )

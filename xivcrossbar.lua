@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261106.public-ahk-v2-test1'
+_addon.version = '0.4.0-beta1.20261107.messages-native-test1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -52,15 +52,7 @@ settings.ControllerProfile, settings.ControllerDevice = selected_profile, select
 local client_registry
 config.save(settings)
 
--- A: immutable for this load; changing one client cannot safely reconfigure
--- the wrapper shared by every client. Reload all clients after stopping it.
-local controller_modifier = tostring(settings.ControllerModifier or 'apps'):lower()
-if controller_modifier ~= 'apps' and controller_modifier ~= 'ctrl' then
-    controller_modifier = 'apps'
-    chat_format.say(123, '[XIVCrossbar] Invalid ControllerModifier; using apps.')
-end
-local controller_capture_dik = controller_modifier == 'ctrl' and 29 or 221
-local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
+local controller_modifier = 'messages' -- distinguishes older keyboard-injecting readers
 
 -- Load theme options according to settings
 local character_identity = require('character_identity')
@@ -106,7 +98,6 @@ gamepad_state.active_bar = 0
 local shift_pressed = false
 local menu_escape_down = false
 local shift_keys_down = {}
-local release_gameplay_keys
 local ui_dirty = false
 local restart_pending = false
 local left_trigger_lifted_during_doublepress_window = false
@@ -406,7 +397,7 @@ local diagnostic
 local controller_switcher
 local message_lease=require('controller_lease').new({clock=profile_clock})
 local message_bridge
-local native_gamepad, native_mode, native_command, native_poll, native_receiving
+local native_gamepad, native_mode, native_command, native_poll, native_receiving, native_filtering
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
@@ -424,10 +415,9 @@ local function report_controller_status(embedded)
             ' / Device '..tostring(status.device)))
         chat_format.say(0,chat_format.row('State',chat_format.state(status.state)..
             ' | Connected: '..chat_format.toggle(status.connected == '1')))
-        local route=(settings.ControllerProfile=='ps5-directinput' and message_bridge and message_bridge.token)
-            and 'DirectLink' or (status.route or 'Keyboard (Legacy)')
+        local route=status.route or 'waiting-lease'
         chat_format.say(0,chat_format.row('Input',route))
-        chat_format.say(0,chat_format.row('Modifier',status.modifier or controller_modifier))
+        chat_format.say(0,chat_format.row('Native guard',native_filtering and 'active' or native_receiving and 'waiting for DirectLink' or 'waiting for game polls'))
         if not controller_profiles.matches(status,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)
             and not pending then
             chat_format.say(123,'[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
@@ -449,7 +439,7 @@ diagnostic=require('diagnostic_bridge').new({
             editor=action_binder.state,
             width=v.ui_x_res or v.x_res,height=v.ui_y_res or v.y_res,
             scale=settings.CrossbarScale,
-            route=message_bridge and message_bridge.token and 'messages' or 'keys'}
+            route=message_bridge and message_bridge.token and 'messages' or 'waiting-lease'}
     end,
     snapshot=function()
         local p=windower.ffxi.get_player()
@@ -478,7 +468,6 @@ diagnostic=require('diagnostic_bridge').new({
 local controller_runtime = require('libs/controller/runtime').new()
 local launch_attempt
 function start_controller_wrappers(profile, device, modifier)
-    if native_mode == "on" then return false end
     profile = profile or settings.ControllerProfile
     device = device or settings.ControllerDevice
     modifier = modifier or controller_modifier
@@ -519,7 +508,7 @@ function start_controller_wrappers(profile, device, modifier)
     windower.send_command(plan.command)
     if plan.mode == 'direct' then
         coroutine.schedule(function()
-            if launch_attempt ~= attempt or native_mode == "on" then return end
+            if launch_attempt ~= attempt then return end
             local current = controller_status()
             if current and current.running then return end
             windower.send_command(plan.fallback_command)
@@ -1199,7 +1188,6 @@ function display_help_menu()
     chat_help.heading('Controller')
     chat_help.command("controller status|start|stop|profiles","Show/control the shared controller reader.")
     chat_help.command("controller profile <name> [device]","Select controller and device.")
-    chat_help.command("dpad [arrows|ijkl]","Choose bare D-pad target keys.")
     chat_help.command("remap","Run controller setup.")
     chat_help.command("diagnose [start|stop|mark|status|snapshot]","Record 30-second unified diagnostics.")
     chat_help.heading('Display')
@@ -1257,7 +1245,6 @@ local function graceful_restart(unload)
     end
     if gamepad_mapper.is_showing then gamepad_mapper:hide() end
     text_input_guard:release(windower.send_command)
-    if release_gameplay_keys then release_gameplay_keys() end
     if ui.is_setup then ui:hide() end
     local delay = theme_options.fade_enabled and math.max(0, tonumber(theme_options.fade_out) or 0) or 0
     coroutine.schedule(function() windower.send_command(unload and 'lua u xivcrossbar' or 'lua r xivcrossbar') end, delay)
@@ -1286,11 +1273,6 @@ windower.register_event('load',function()
     end
     skillchains.load()
 
-    -- A: Windower bindings stop native F-key targeting; Lua still routes
-    -- the keyboard event. Reserve only Apps+F1-F12 for this experiment.
-    for index = 1, 12 do
-        windower.send_command('bind ' .. controller_bind_prefix .. 'f' .. index .. ' xivcrossbar inputconsume')
-    end
 
 end)
 
@@ -1308,7 +1290,6 @@ windower.register_event('logout', function()
     xivcrossbar.initialized = false
     storage.identity_valid = false
     player.identity_confirmed = false
-    if release_gameplay_keys then release_gameplay_keys() end
     transport:reset()
     if diagnostic then diagnostic:record('LIFECYCLE','logout') end
     if message_bridge then message_bridge:reset('logout') end
@@ -1342,12 +1323,7 @@ windower.register_event('unload',function()
     crossbar_drag:finish()
     text_input_guard:reset_confirmation()
     text_input_guard:release(windower.send_command)
-    -- Release the twelve combinations reserved by this test build.
-    for index = 1, 12 do
-        windower.send_command('unbind ' .. controller_bind_prefix .. 'f' .. index)
-    end
     -- No broad killahk.bat: the wrapper is shared across FFXI clients.
-    if release_gameplay_keys then release_gameplay_keys() end
     if ui.geometry then ui.geometry:shutdown() end
     require('ui/resources').destroy_all()
     if client_registry then client_registry:close(settings.StopWrapperAfterLastClient ~= false) end
@@ -1356,11 +1332,7 @@ end)
 -- ON COMMAND
 windower.register_event('addon command', function(command, ...)
     command = command and command:lower() or 'help'
-    -- A: the binding consumes native input without echoing or executing
-    -- an action; the keyboard router independently handles the actual slot.
-    if command == 'inputconsume' then
-        return
-    elseif command == 'diagnose' or command == 'diagnostics' then
+    if command == 'diagnose' or command == 'diagnostics' then
         local mode,note,device=...
         if mode=='native' and native_command then
             if note=='detach' then
@@ -1383,7 +1355,7 @@ windower.register_event('addon command', function(command, ...)
         if mode == 'stop' then controller_switcher:cancel(); stop_controller_wrapper()
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
-        elseif mode == 'profile' and native_mode ~= 'on' then select_controller_profile(name, device)
+        elseif mode == 'profile' then select_controller_profile(name, device)
         elseif mode == 'status' then report_controller_status()
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
@@ -1410,18 +1382,6 @@ windower.register_event('addon command', function(command, ...)
         else settings[key] = not settings[key] end
         config.save(settings)
         chat_format.say(207, '[XIVCrossbar] ' .. key .. ' ' .. (settings[key] and 'ON' or 'OFF'))
-        return
-    elseif command == 'dpad' then
-        local mode = (...)
-        mode = mode and mode:lower()
-        if mode and mode ~= 'arrows' and mode ~= 'ijkl' then
-            chat_format.say(123, '[XIVCrossbar] //xb dpad [arrows|ijkl]'); return
-        end
-        -- Release the old output before changing mapping; require another press.
-        release_gameplay_keys()
-        settings.GameplayDPad = mode or (settings.GameplayDPad == 'ijkl' and 'arrows' or 'ijkl')
-        config.save(settings)
-        chat_format.say(207, '[XIVCrossbar] Gameplay D-pad: ' .. settings.GameplayDPad)
         return
     elseif command == 'inputstatus' then
         chat_format.say(207, '[XIVCrossbar] ' .. _addon.version .. ' | ' .. controller_modifier .. ' | Profile=' .. settings.ControllerProfile .. ' | InputTest=' .. tostring(settings.InputTest) .. ' | InputTrace=' .. tostring(settings.InputTrace))
@@ -1456,7 +1416,7 @@ windower.register_event('addon command', function(command, ...)
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
             ' | Text Settling: '..chat_format.toggle(settings.TextSettling ~= false)))
         chat_format.say(0,chat_format.row('Autoattack Estimate',chat_format.toggle(settings.AutoAttackIndicator.Enabled~=false)))
-        chat_format.say(0,chat_format.row('D-pad',settings.GameplayDPad=='ijkl' and 'IJKL' or 'Arrows'))
+        chat_format.say(0,chat_format.row('D-pad','Native'))
         report_controller_status(true)
         return
     end
@@ -1732,8 +1692,6 @@ local function handle_controller_key(dik, pressed, flags, blocked)
         gamepad_state.left_trigger = pressed
     elseif (gamepad.is_right_trigger(dik)) then
         gamepad_state.right_trigger = pressed
-    elseif (dik == controller_capture_dik) then
-        gamepad_state.capturing = pressed
     elseif (dik == keyboard.shift or dik == 54) then
         -- A: right Shift is DIK 54; releasing one must retain the other.
         shift_keys_down[dik] = pressed
@@ -1763,7 +1721,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
         elseif (gamepad.is_right_trigger(dik)) then
             gamepad_mapper:trigger_right(pressed)
         end
-        return gamepad.is_left_trigger(dik) or gamepad.is_right_trigger(dik) or dik == controller_capture_dik
+        return gamepad.is_left_trigger(dik) or gamepad.is_right_trigger(dik)
     end
 
     if not gamepad_mapper.is_showing and gamepad.is_plus(dik) and
@@ -2012,16 +1970,6 @@ local function handle_controller_key(dik, pressed, flags, blocked)
 
 end
 
--- A: menu decisions stay beside the menu code. Raw keys never masquerade
--- as ordinary Enter/arrows; only deliberate gameplay translation emits those.
-local gameplay_down = {}
-release_gameplay_keys = function()
-    for dik, key in pairs(gameplay_down) do
-        if diagnostic then diagnostic:record('NATIVE','request '..key..' up cleanup') end
-        windower.send_command('setkey ' .. key .. ' up')
-        gameplay_down[dik] = nil
-    end
-end
 local function input_context()
     if gamepad_mapper.is_showing then return 'setup' end
     if not xivcrossbar.ready then return 'login' end
@@ -2032,23 +1980,14 @@ local function input_context()
     if gamepad_state.left_trigger or gamepad_state.right_trigger then return 'crossbar' end
     return 'gameplay'
 end
-local message_down={} -- never confuse a DirectLink hold with a physical keyboard F-key
-local function controller_keyboard(dik, pressed, flags, blocked, source)
+local function controller_keyboard(dik, pressed, flags, blocked)
     -- Physical keyboard review controls are owned through release. Enter
     -- confirming a text field belongs to text_input_guard, not this handler.
-    if source~='message' and review_keyboard:edge(dik,pressed,action_binder,
+    if review_keyboard:edge(dik,pressed,action_binder,
         not restart_pending and windower.has_focus() and not blocked
         and not env_chooser:is_showing() and not env_chooser.capturing
         and not (dik==keyboard.enter and text_input_guard.enter_down)) then
         return true
-    end
-    -- Only mapped controller input is traced; never record typed text or chat.
-    if diagnostic and diagnostic.recorder.active and
-        (source=='message' or dik==controller_capture_dik or
-            (gamepad_state.capturing and transport.signals[dik])) and
-        not action_binder:is_capturing_text() and not env_chooser.capturing then
-        diagnostic:record('ROUTER','dik='..tostring(dik)..' pressed='..tostring(pressed)..
-            ' source='..tostring(source or 'keyboard')..' context='..input_context())
     end
     -- Own Escape through key-up after closing: neither repeats nor release
     -- may cancel a native FFXI menu underneath the addon.
@@ -2074,183 +2013,92 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
             return true
         end
     end
-    -- Setup tracing must precede capture/readiness filters, otherwise a lost
-    -- marker or incomplete initialization produces no diagnostic at all.
-    if settings.InputTrace and gamepad_mapper.is_showing then
-        chat_format.say(207, '[XIVCrossbar test] RAW DIK=' .. tostring(dik) ..
-            (pressed and ' down' or ' up') .. ' capture=' .. tostring(gamepad_state.capturing == true) ..
-            ' ready=' .. tostring(xivcrossbar.ready == true) .. ' setup=' .. tostring(gamepad_mapper.state) ..
-            ' blocked=' .. tostring(blocked == true))
-    end
-    if dik == controller_capture_dik then
-        if not pressed then
-            release_gameplay_keys()
-            transport:reset()
-            gamepad_state.left_trigger = false
-            gamepad_state.right_trigger = false
-            gamepad_state.minus_button = false
-            gamepad_state.plus_button = false
-            gamepad_state.active_bar = 0
-        end
-        handle_controller_key(dik, pressed, flags, blocked)
-        return true
-    end
-    local signal = transport.signals[dik]
-    if native_mode=='on' and signal and source~='message' and gamepad_state.capturing then return true end
-    -- Consume owned releases even if capture was lost; no orphan game key-ups.
-    if signal and (source=='message' or gamepad_state.capturing or
-        (transport.down[dik] and not message_down[dik])) then
-        -- The wizard bootstraps button configuration and can be visible before
-        -- hotbar initialization finishes. Gameplay still requires readiness.
-        if restart_pending then return true end
-        if blocked and pressed and input_context() ~= 'text' and not action_binder.chooser_active then
-            if settings.InputTrace then chat_format.say(123, '[XIVCrossbar test] BLOCKED ' .. signal.name .. ' DIK=' .. dik .. ' by another input handler') end
-            return true
-        end
-        local context = input_context()
-        if native_mode=='guard' and native_receiving
-            and (context=='gameplay' or context=='crossbar') and signal.logical~=67 and signal.logical~=68 then
-            local info=windower.ffxi.get_info()
-            if info and info.chat_open then context='native-menu' end
-        end
-        local item, edge, owner = transport:edge(dik, pressed, context)
-        if edge == 'repeat' then return true end
-        if settings.InputTrace then
-            local role = item.name
-            if item.button == buttonmapping.confirm_button then role = role .. ' / Confirm' end
-            if item.button == buttonmapping.cancel_button then role = role .. ' / Back' end
-            chat_format.say(207, '[XIVCrossbar test] ' .. role .. ' ' .. edge .. ' DIK=' .. dik .. ' context=' .. tostring(owner or context))
-        end
-        if gameplay_down[dik] and not pressed then
-            if diagnostic then diagnostic:record('NATIVE','request '..gameplay_down[dik]..' up') end
-            windower.send_command('setkey ' .. gameplay_down[dik] .. ' up')
-            gameplay_down[dik] = nil
-        end
-        -- Triggers and menu buttons must finish their transition even when the
-        -- menu opens/closes between edges. Slots keep their original owner.
-        local transition = item.logical >= 67
-        if owner=='native-menu' or (context=='native-menu' and pressed) then return true end
-        if not pressed and owner ~= context and not transition then return true end
-        if context == 'login' then
-            local key = transport:login_key(item, buttonmapping)
-            if key and pressed then
-                gameplay_down[dik] = key
-                if diagnostic then diagnostic:record('NATIVE','request '..key..' down context='..context) end
-                windower.send_command('setkey ' .. key .. ' down')
-            end
-            return true
-        end
-        -- The base set chooser uses only Up/Down; other slot buttons stay
-        -- owned by that menu and must never fall through to a crossbar action.
-        if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return true end
-        if item.logical <= 66 and context == 'gameplay' then
-            -- The probe masks native Up/Circle. Do not recreate either as a
-            -- keyboard command; menu and crossbar routing still own their edges.
-            if (native_mode == 'probe' and (item.logical == 59 or item.logical == 65))
-                or (native_mode == 'guard' and native_receiving) then return true end
-            local key = transport:gameplay_key(item, buttonmapping, settings.GameplayDPad)
-            if settings.InputTest then
-                if pressed then chat_format.say(207, '[XIVCrossbar test] Gameplay ' .. item.name .. ' -> ' .. tostring(key) .. ' — dummy action') end
-            elseif key and pressed then
-                gameplay_down[dik] = key
-                windower.send_command('setkey ' .. key .. ' down')
-            end
-            return true
-        end
-        if pressed and transition then release_gameplay_keys() end
-        handle_controller_key(item.logical, pressed, flags, blocked)
-        return true
-    end
-    -- A: plain F1-F12 pass through; Apps-gated signals were consumed above.
-    if (dik >= 59 and dik <= 68) or dik == 87 or dik == 88 then return false end
-    if gamepad_state.capturing and not signal and settings.InputTrace then
-        chat_format.say(123, '[XIVCrossbar test] UNMAPPED ' .. (pressed and 'DOWN' or 'UP') .. ' DIK=' .. tostring(dik) .. ' — compare data/input-transport.log')
-        if settings.InputTest then return true end
-    end
+    -- Internal logical DIKs never claim the physical keyboard equivalents.
+    if transport.signals[dik] then return false end
     return handle_controller_key(dik, pressed, flags, blocked)
 end
 windower.register_event('keyboard', controller_keyboard)
 
--- A: PS5 DirectLink feeds the existing keyboard router with synthetic logical
--- DIKs, never native keyboard injection. Other profiles still use Apps.
-local message_session='beta1-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
+-- DirectLink routes addon input only. FFXI receives untouched native
+-- gameplay/navigation, including dialogue and the login screens.
+local function route_controller_message(dik, pressed)
+    if restart_pending or native_mode ~= 'guard' or not native_filtering then return end
+    local context = input_context()
+    local info = windower.ffxi.get_info()
+    if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
+    local item, edge, owner = transport:edge(dik, pressed, context)
+    if not item or edge == 'repeat' then return end
+    local transition = item.logical >= 67
+    if settings.InputTrace then
+        chat_format.say(207, '[XIVCrossbar test] '..item.name..' '..edge..' | '..tostring(owner or context))
+    end
+    if context == 'login' or (pressed and context == 'native-chat') then return end
+    if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return end
+    if item.logical <= 66 and (context == 'gameplay' or context == 'native-chat') then return end
+    if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return end
+    local captured = gamepad_state.capturing
+    gamepad_state.capturing = true
+    handle_controller_key(dik, pressed, 0, false)
+    gamepad_state.capturing = captured
+end
+
+local message_session='messages-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
 message_bridge=require('controller_messages').new({
     session=message_session,clock=profile_clock,wallclock=os.time,
     observe=function(message)
         if diagnostic then diagnostic:record('DIRECTLINK',message) end
     end,
-    event=function(dik,pressed)
-        message_down[dik]=pressed or nil
-        -- Message delivery must not latch the Apps capture bit: a physical
-        -- keyboard F-key pressed during a held PS5 trigger still passes through.
-        local captured=gamepad_state.capturing
-        gamepad_state.capturing=true
-        controller_keyboard(dik,pressed,0,false,'message')
-        gamepad_state.capturing=captured
-    end,
+    event=route_controller_message,
     capture=function() end,
     cancel=function()
-        if release_gameplay_keys then release_gameplay_keys() end
         transport:reset()
-        message_down={}
         gamepad_state.capturing=false
         gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
+        gamepad_state.left_trigger_doublepress=false;gamepad_state.right_trigger_doublepress=false
         gamepad_state.minus_button=false;gamepad_state.plus_button=false
         gamepad_state.active_bar=0
+        close_left_doublepress_window()
+        close_right_doublepress_window()
         set_chooser_button_down=false
+        action_binder:clear_controller_input()
         if action_binder.chooser_active then finish_set_chooser(true) end
         ui_dirty=true
     end,
 })
 local next_message_poll=0
 local function poll_directlink()
-    if native_mode=='on' or settings.ControllerProfile~='ps5-directinput' then
-        -- Retire the previous PS5 lease immediately during a profile switch.
-        message_bridge:context('',false)
+    local enabled = native_mode == 'guard' and native_receiving and windower.has_focus()
+        and not restart_pending and (xivcrossbar.ready or gamepad_mapper.is_showing)
+    if not enabled then
+        message_bridge:context('', false)
         message_lease:close()
         return
     end
-    local info=windower.ffxi.get_info()
-    local character=windower.ffxi.get_player()
-    local active=windower.has_focus() and info.logged_in and character and type(character.name)=='string'
-    local enabled=active and xivcrossbar.ready and not restart_pending and not gamepad_mapper.is_showing
-    local key=active and table.concat({tostring(info.server),character.name,tostring(character.id),tostring(settings.ControllerDevice)},':') or ''
-    message_bridge:context(key,enabled)
-    if enabled and message_bridge:watchdog() then message_bridge:context(key,true) end
+    local pid = native_gamepad.pid()
+    local key = settings.ControllerProfile..':'..settings.ControllerDevice
+    message_bridge:context(key, true)
+    if message_bridge:watchdog() then message_bridge:context(key, true) end
+    local directory=windower.addon_path..'data/directlink/'
     local now=profile_clock()
-    if enabled and message_bridge.token and now>=next_message_poll then
+    if now>=next_message_poll then
         next_message_poll=now+.02
-        local f=io.open(windower.addon_path..'data/directlink/'..character.name..'.buttons','rb')
+        local f=io.open(directory..pid..'.buttons','rb')
         if f then
             local contents=f:read(8193);f:close()
             message_bridge:accept(contents)
         end
     end
-    if active then
-        message_lease:update(windower.addon_path..'data/directlink/',character.name,
-            enabled and 'gameplay' or 'setup',message_bridge.token,message_bridge.ack)
-    else
-        message_lease:close()
-    end
+    message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,message_bridge.ack)
 end
 
 local frame = 0
 
--- A: a background key-up may never reach this client's Lua handler.
--- Release only gameplay keys we injected, retry them on regain, and clear
--- local controller ownership without submitting or discarding menu drafts.
-local focus_release_keys = {}
-local function clear_controller_input(regained)
+-- Clear local controller ownership without submitting or discarding menu drafts.
+local function clear_controller_input()
     set_chooser_button_down=false
     menu_escape_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
     text_input_guard:reset_confirmation()
-    for _, key in pairs(gameplay_down) do focus_release_keys[key] = true end
-    release_gameplay_keys()
-    if regained then
-        for key in pairs(focus_release_keys) do windower.send_command('setkey ' .. key .. ' up') end
-        focus_release_keys = {}
-    end
     transport:reset()
     if message_bridge then message_bridge:reset('focus') end
     message_lease:close()
@@ -2264,20 +2112,20 @@ local function clear_controller_input(regained)
     if env_chooser:is_showing() and not env_chooser.capturing then env_chooser:close() end
     ui_dirty = true
 end
-windower.register_event('lose focus', function() clear_controller_input(false) end)
-windower.register_event('gain focus', function() clear_controller_input(true) end)
+windower.register_event('lose focus', function() clear_controller_input() end)
+windower.register_event('gain focus', function() clear_controller_input() end)
 
--- Native events use the same logical keyboard router as DirectLink.
+-- Native filtering and DirectLink have one active profile per client.
 do
     local generation, next_wrapper_check, last_polls, last_native_poll, guard_selection, attempted
-    local logical = {59,60,61,62,63,64,65,66,67,68,87,88}
     local function say(message) chat_format.say(207, '[XIVCrossbar] Native pad: '..message) end
-    local function reset() clear_controller_input(false); message_down={} end
     local function stop()
         if native_mode then
-            local was_takeover=native_mode=='on'
-            native_gamepad.stop(); native_mode=nil; native_receiving=false
-            if was_takeover then reset() end
+            native_gamepad.stop()
+            native_mode=nil
+            native_receiving=false
+            native_filtering=false
+            clear_controller_input()
         end
     end
     native_command=function(command, dll_name, device)
@@ -2286,43 +2134,23 @@ do
             settings.NativeControllerGuard=command=='auto'
             config.save(settings)
             attempted=nil
-            return say(command=='auto' and 'automatic guard enabled' or 'pass-through enabled')
-        end
-        if command=='menu' and native_mode=='on' and xivcrossbar.ready then
-            if action_binder.is_hidden then
-                action_binder:show()
-                ui:hide_button_hints()
-                env_chooser:temp_hide_default_sets_tooltip()
-            else close_addon_menus() end
-            ui_dirty=true
-            return
+            return say(command=='auto' and 'automatic guard enabled' or 'native pass-through enabled')
         end
         if command==nil or command=='status' then
-            return say(native_mode and (native_mode..' | '..native_gamepad.status()) or 'off')
+            return say(native_mode and (native_mode..' | messages='..(native_filtering and 'active' or 'waiting')
+                ..' | '..native_gamepad.status()) or 'off')
         end
-        if command~='probe' and command~='on' and command~='guard' then
-            return say('//xb nativepad probe|on [xinput DLL or auto] [device], status, menu, off')
-        end
-        local wrapper=controller_status()
-        if command=='on' and (not wrapper or wrapper.state~='stopped' or wrapper.running or controller_switcher.pending) then
-            return say('Stop the shared AHK reader first and wait for its stopped status.')
-        end
-        if not xivcrossbar.ready or gamepad_mapper.is_showing or restart_pending then
-            return say('Finish controller setup first.')
+        if command~='probe' and command~='guard' then
+            return say('//xb nativepad [status|auto|off|probe [XInput DLL] [device]]')
         end
         local profile=settings.ControllerProfile
-        local xbox=profile=='xinput' or profile=='xinput-r1-chooser'
+        local xbox=controller_profiles.profiles[profile].backend=='xinput'
         device=tonumber(device or settings.ControllerDevice)
         if not device or device%1~=0 or device<1 or device>(xbox and 4 or 16) then
             return say('Invalid device number.')
         end
-        local modules={'xinput1_4.dll','xinput1_3.dll','xinput9_1_0.dll','xinput1_2.dll','xinput1_1.dll'}
-        if xbox and dll_name and dll_name~='auto' then
-            local valid=false
-            for _, name in ipairs(modules) do if name==dll_name then valid=true end end
-            if not valid then return say('Unsupported XInput module name.') end
-            modules={dll_name}
-        elseif not xbox then modules={'dinput8.dll'} end
+        local module = xbox and (dll_name or 'auto') or 'dinput8.dll'
+        local layout = profile=='fightpadpro-directinput' and 1 or profile=='xinput-r1-chooser' and 2 or 0
         if not native_gamepad then
             local ok, result=pcall(function()
                 return require('native_gamepad').open(windower.addon_path..'native/xb_gamepad.dll')
@@ -2330,64 +2158,53 @@ do
             if not ok then return say(tostring(result)) end
             native_gamepad=result
         end
-        local chosen
-        for _, name in ipairs(modules) do
-            local result=native_gamepad.begin(xbox and 1 or 2,device-1,command=='probe' and 1 or command=='guard' and 3 or 2,
-                profile=='fightpadpro-directinput' and 1 or 0,name)
-            if result==1 then chosen=name; break end
-            if result==2 and #modules==1 then break end
+        local result=native_gamepad.begin(xbox and 1 or 2,device-1,command=='probe' and 1 or 3,layout,module)
+        if result~=1 then
+            return say(result==2 and 'Another hook target is resident. Restart FFXI after changing controller backend or DirectInput device.'
+                or 'Hook unavailable. FFXI input remains native.')
         end
-        if not chosen then return say('Hook unavailable or a different target is resident. Restart this client before changing targets.') end
-        if command~='on' then release_gameplay_keys() end
         native_mode=command
         generation=nil
-        last_polls,last_native_poll,native_receiving=0,nil,false
-        next_wrapper_check=0
-        if command=='on' then reset() end
-        if command~='guard' then
-            say(command..' on '..chosen..', device '..device..'. Verify live polls with //xb nativepad status.')
-        end
+        last_polls,last_native_poll,native_receiving,native_filtering=0,nil,false,false
+        if command=='probe' then say('Probe active. Check //xb nativepad status, then restore with //xb nativepad auto.') end
     end
     native_poll=function()
-        if profile_clock()>=(next_wrapper_check or 0) then
-            next_wrapper_check=profile_clock()+.25
+        local now=profile_clock()
+        if now>=(next_wrapper_check or 0) then
+            next_wrapper_check=now+.25
             local wrapper=controller_status()
-            local ready = wrapper and wrapper.running and wrapper.state=='ready'
+            local ready = wrapper and wrapper.state=='ready'
                 and controller_profiles.matches(wrapper,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)
-            local selection = ready and (settings.ControllerProfile..':'..settings.ControllerDevice) or nil
+            local selection = ready and (settings.ControllerProfile..':'..settings.ControllerDevice..':'..wrapper.pid) or nil
             if native_mode=='guard' and selection~=guard_selection then stop() end
             if not selection then attempted=nil end
             if not native_mode and selection and settings.NativeControllerGuard~=false and attempted~=selection
-                and xivcrossbar.ready and not gamepad_mapper.is_showing and not restart_pending then
+                and windower.has_focus() and (xivcrossbar.ready or gamepad_mapper.is_showing) and not restart_pending then
                 attempted=selection
                 native_command('guard')
                 if native_mode=='guard' then guard_selection=selection end
-            end
-            if native_mode=='on' and wrapper and wrapper.running then
-                stop()
-                return say('Disabled because the shared AHK reader started.')
             end
         end
         if not native_mode then return end
         local info=windower.ffxi.get_info()
         local context=0
-        if windower.has_focus() and info and info.logged_in and xivcrossbar.ready and not restart_pending then
-            context=crossbar_menu_open() and 2 or (info.chat_open and 3 or 1)
-        end
-        generation=native_gamepad.poll(context, function() if native_mode=='on' then reset() end end, function(index, pressed)
-            if native_mode=='on' and logical[index] then
-                local dik=logical[index]
-                message_down[dik]=pressed or nil
-                local captured=gamepad_state.capturing
-                gamepad_state.capturing=true
-                controller_keyboard(dik,pressed,0,false,'message')
-                gamepad_state.capturing=captured
+        if windower.has_focus() and info and not restart_pending and (xivcrossbar.ready or gamepad_mapper.is_showing) then
+            local lease_alive = message_bridge.last_beat and now-message_bridge.last_seen < .35
+            if native_mode=='guard' and not lease_alive then
+                context=4 -- observe only until the reader has joined this PID
+            else
+                context=(gamepad_mapper.is_showing or crossbar_menu_open()) and 2 or (info.chat_open and 3 or 1)
             end
-        end,generation)
+        end
+        if native_filtering and context==4 then clear_controller_input() end
+        generation=native_gamepad.poll(context, function()
+            if generation and message_bridge.token then clear_controller_input() end
+        end, function() end, generation)
         local polls=native_gamepad.poll_count()
-        if context~=0 and polls~=last_polls then last_native_poll=profile_clock() end
+        if context~=0 and polls~=last_polls then last_native_poll=now end
         last_polls=polls
-        native_receiving=context~=0 and last_native_poll and profile_clock()-last_native_poll<.5
+        native_receiving=context~=0 and native_gamepad.armed() and last_native_poll and now-last_native_poll<.5
+        native_filtering=native_receiving and context~=4 and message_bridge.last_beat~=nil
     end
 end
 
@@ -2402,8 +2219,8 @@ windower.register_event('prerender',function()
         next_identity_retry = profile_clock() + .25
         check_profile_ready()
     end
-    poll_directlink()
     native_poll()
+    poll_directlink()
     action_binder:tick_navigation(profile_clock(), windower.has_focus())
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end

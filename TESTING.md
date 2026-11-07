@@ -1,3 +1,47 @@
+# Current Development Status — November 7, 2026
+
+Messages-only native guard test branch `experiment/messages-native-all-profiles`
+in `rerorriM-Mirrorer/xivcrossbar`, starting from native experiment
+`6c77a2602963be82fb5a8c0e67355adec350cd1a`. The prior public beta and
+controller fallback remain available as separate builds.
+
+## All-profile native blocking and DirectLink
+
+The Windows reader sends twelve ordered DirectLink edges for every profile.
+Each focused FFXI process publishes its own PID, profile, device, and token.
+The guard waits for native game polls, neutral, and a reader heartbeat.
+Without a compatible live hook or reader, FFXI keeps normal native controls.
+No Apps/Ctrl or F-key capture, synthetic gameplay arrows, or IJKL routing
+remains in this Windows path. Login, dialogue, and bare gameplay use the
+existing FFXI Gamepad Config. Keep those assignments enabled.
+
+Install the complete Windows x86 artifact in a backed-up test install. Stop
+the old shared reader and close every FFXI process before replacing the DLL.
+See BETA-QUICKSTART.md and native/README.md. Roll back by restoring the backed-up
+addon with every process closed. No character settings or bindings ship.
+
+| Profile | Physical check | Result |
+| --- | --- | --- |
+| xinput | Xbox A/B/X/Y, LT/RT, D-pad, View/Menu | Pending |
+| xinputalt | Xbox RB opens chooser, Menu stays native | Pending |
+| ps5 | DualSense DirectInput, Create/Options, both trigger orders | Pending |
+| f710 | DirectInput mode, face labels and hat including diagonals | Pending |
+| fightpadpro | DirectInput face ordering, Start/Select, D-pad and triggers | Pending |
+
+For each profile, verify controller and native status, login, dialogue, bare
+native controls, single/combined/double-tap chords, binder, chooser, chat,
+and release ordering. Verify a held native direction stays native when a
+trigger is pressed and a captured direction returns to FFXI after trigger
+release. Check focus handoff between two clients, reader stop/start,
+disconnect/reconnect and unload. XInput DLL variants and multiple attached
+DirectInput devices need separate physical results.
+
+Local Lua and portable C++ verification are separate from Windows CI and
+live FFXI. CI builds the x86 DLL and runs the Windows loader and AHK fixtures.
+Use the GitHub workflow result for the published head to verify Windows status.
+
+---
+
 # Current Development Status
 
 Binding-screen polish on `experiment/native-gamepad-bridge`, based on

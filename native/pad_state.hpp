@@ -2,15 +2,18 @@
 #include <cstdint>
 
 namespace xb {
-constexpr unsigned xbox[] = {1, 8, 2, 4, 0x1000, 0x4000, 0x2000, 0x8000};
-constexpr unsigned dualsense[] = {1, 0, 2, 3, 6, 7};
-constexpr unsigned fightpad[] = {2, 1, 3, 0, 6, 7};
-constexpr unsigned logical_buttons[] = {4, 5, 6, 7, 10, 11};
+constexpr unsigned xbox[] = {1, 8, 2, 4, 0x1000, 0x4000, 0x2000, 0x8000, 0x0020, 0x0010};
+inline unsigned xbox_button(unsigned i, bool r1_chooser) {
+    return i == 9 && r1_chooser ? 0x0200 : xbox[i];
+}
+constexpr unsigned dualsense[] = {1, 0, 2, 3, 8, 9, 6, 7};
+constexpr unsigned fightpad[] = {2, 1, 3, 0, 8, 9, 6, 7};
+constexpr unsigned logical_buttons[] = {4, 5, 6, 7, 8, 9, 10, 11};
 
-inline unsigned read_xbox(unsigned buttons, unsigned left, unsigned right) {
+inline unsigned read_xbox(unsigned buttons, unsigned left, unsigned right, bool r1_chooser = false) {
     unsigned raw = (left > 4 ? 0x400 : 0) | (right > 4 ? 0x800 : 0);
-    for (unsigned i = 0; i < 8; ++i)
-        if (buttons & xbox[i]) raw |= 1u << i;
+    for (unsigned i = 0; i < 10; ++i)
+        if (buttons & xbox_button(i, r1_chooser)) raw |= 1u << i;
     return raw;
 }
 inline unsigned read_joystick(unsigned pov, const std::uint8_t* buttons, bool fight) {
@@ -20,7 +23,7 @@ inline unsigned read_joystick(unsigned pov, const std::uint8_t* buttons, bool fi
         if (pov % 9000) raw |= 1u << ((pov / 9000 + 1) % 4);
     }
     const auto* map = fight ? fightpad : dualsense;
-    for (unsigned i = 0; i < 6; ++i)
+    for (unsigned i = 0; i < 8; ++i)
         if (buttons[map[i]] & 0x80) raw |= 1u << logical_buttons[i];
     return raw;
 }
@@ -35,7 +38,7 @@ inline unsigned filter_hat(unsigned pov, unsigned suppressed) {
 }
 inline void filter_joystick(std::uint8_t* buttons, unsigned suppressed, bool fight) {
     const auto* map = fight ? fightpad : dualsense;
-    for (unsigned i = 0; i < 6; ++i)
+    for (unsigned i = 0; i < 8; ++i)
         if (suppressed & (1u << logical_buttons[i])) buttons[map[i]] &= 0x7f;
 }
 }

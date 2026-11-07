@@ -30,8 +30,8 @@ binder.state=1;assert(not binder:is_keyboard_review());binder.state=17
 
 -- Execute the real public keyboard-router prefix with a stub game environment.
 f=assert(io.open('xivcrossbar.lua'));source=f:read('*a');f:close()
-local start=assert(source:find('local function controller_keyboard(dik, pressed, flags, blocked, source)',1,true))
-local stop=assert(source:find('    -- Only mapped controller input is traced;',start,true))
+local start=assert(source:find('local function controller_keyboard(dik, pressed, flags, blocked)',1,true))
+local stop=assert(source:find('    -- Own Escape through key-up',start,true))
 local prefix=source:sub(start,stop-1):gsub('^local function controller_keyboard','return function',1)
 local rootenv=setmetatable({
  review_keyboard=require('libs/controller/review_keyboard').new(),

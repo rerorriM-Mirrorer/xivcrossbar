@@ -13,7 +13,7 @@ function M.new(options)
     end
     function self:request(profile, device, modifier, done)
         local name, number = profiles.validate(profile, device)
-        if not name or (modifier ~= 'apps' and modifier ~= 'ctrl') then
+        if not name or modifier ~= 'messages' then
             if done then done(false, 'Invalid controller selection.') end
             return false
         end

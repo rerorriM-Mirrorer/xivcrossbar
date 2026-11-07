@@ -18,7 +18,7 @@ int main() {
     if (!detach || detach() != 1) return 5;
     off();
     int edges[8]{};
-    unsigned status[7]{};
+    unsigned status[8]{};
     const auto count = poll(0, edges, 8, status);
     FreeLibrary(dll);
     return count || status[1] ? 3 : 0;

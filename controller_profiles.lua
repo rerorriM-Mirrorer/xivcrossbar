@@ -30,7 +30,7 @@ end
 -- Write only validated values before launching; the running reader never rereads it.
 function M.write_launch(path, profile, device, modifier)
     local name, number = M.validate(profile, device)
-    if not name or (modifier ~= 'apps' and modifier ~= 'ctrl') then
+    if not name or modifier ~= 'messages' then
         return false, 'Invalid wrapper startup selection.'
     end
     local f, err = io.open(path, 'w')

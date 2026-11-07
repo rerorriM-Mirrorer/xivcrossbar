@@ -52,7 +52,7 @@ function M.new(options)
     function self:plan(directory,profile,device,modifier)
         if not safe_path(directory,false) then return nil,'Invalid addon path for wrapper startup.' end
         local name,number=require('controller_profiles').validate(profile,device)
-        if not name or (modifier~='apps' and modifier~='ctrl') then return nil,'Invalid wrapper startup selection.' end
+        if not name or modifier~='messages' then return nil,'Invalid wrapper startup selection.' end
         local override_contents,err,code=read(directory..'data/controller-runtime.ini')
         if not override_contents and code and code~=2 then return nil,err end
         local override

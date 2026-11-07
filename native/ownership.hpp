@@ -4,7 +4,8 @@
 namespace xb {
 constexpr unsigned up = 1, circle = 0x40, slots = 0xff, triggers = 0xc00;
 constexpr unsigned directions = 0xf, direction_resume_ms = 120;
-constexpr unsigned controls = slots | triggers;
+constexpr unsigned share = 0x100, chooser = 0x200;
+constexpr unsigned controls = slots | triggers | share | chooser;
 constexpr unsigned default_passthrough = up | circle;
 
 struct Sample {
@@ -37,8 +38,8 @@ public:
         owned_ &= raw;
         unsigned capture = mode == 1 ? (up | circle) : 0;
         if (mode == 2 && !native_menu) {
-            capture = triggers;
-            if (menu || (owned_ & triggers) || (down & triggers))
+            capture = triggers | share | chooser;
+            if (menu || ((owned_ | down) & (triggers | share | chooser)))
                 capture |= slots & ~passthrough;
         }
         const unsigned acquired = down & capture;

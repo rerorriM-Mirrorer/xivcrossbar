@@ -1,5 +1,4 @@
--- Beta 1: twelve ordinary PS5 edges, one ordered acknowledged stream.
--- The same router handles Apps-key and message events; companion banks are absent.
+-- Twelve logical edges for all profiles, one ordered acknowledged stream.
 local M={diks={59,60,61,62,63,64,65,66,67,68,87,88}}
 function M.new(opts)
     local self={token=nil,key=nil,epoch=0,ack=0,held={},captured=false,last_seen=0,received=0,rejected=0}

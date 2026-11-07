@@ -7,21 +7,30 @@ try {
     Check(!WrapperClientsDecision(WC, 0, 10, true, 2199), "grace period has not elapsed")
     Check(WrapperClientsDecision(WC, 0, 10, true, 2200), "last client requests shutdown after grace")
     Check(!WrapperClientsDecision(WC, 1, 10, true, 2201), "reload cancels shutdown")
-    Check(Beta1PovCardinal(4500, 2) = 2, "retain adjacent cardinal")
-    Check(Beta1PovCardinal(4500, 3) = 1, "diagonal fallback")
-    Check(Beta1PovCardinal(-1, 2) = 0, "neutral POV")
     DX := {active:false}
     profile := "ps5-directinput"
     isXInput := false
     joystickPrefix := ""
     joys := [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
-    povDirection := 0
     states := ReadTransportStates(FakeJoystick)
     Check(states.Length = 12 && states[2] && states[5] && !states[6] && states[12], "connected DirectInput maps all twelve states")
+    for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput"] {
+        joys := profile = "fightpadpro-directinput"
+            ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
+            : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+        states := ReadTransportStates(FakeJoystick)
+        Check(states[2] && states[12] && states[profile = "fightpadpro-directinput" ? 6 : 5], "DirectInput profile mapping")
+    }
+    packet := Buffer(16, 0)
+    NumPut("UShort", 0x1231, packet, 4)
+    NumPut("UChar", 5, "UChar", 4, packet, 6)
+    for profile in ["xinput", "xinput-r1-chooser"] {
+        states := DecodeXInputState(packet, profile)
+        Check(states[1] && states[5] && states[9] && states[10] && states[11] && !states[12], "XInput state and trigger threshold")
+    }
+    NumPut("UShort", 0x0200, packet, 4)
+    Check(!DecodeXInputState(packet, "xinput")[10] && DecodeXInputState(packet, "xinput-r1-chooser")[10], "alternate RB chooser")
     owner := 0
-    keys := []
-    previous := NeutralButtons()
-    appsOwned := false
     ControllerMessageInit()
     spool := A_Temp . "\xb-public-native-" . DllCall("GetCurrentProcessId", "UInt") . ".buttons"
     try {
@@ -44,8 +53,14 @@ try {
         Check(InStr(FileRead(spool), "4,up,5" . Chr(10) . "5,up,11"), "publish both releases")
         ControllerMessageCancel()
         Check(InStr(FileRead(spool), "6,cancel,0"), "publish cancellation")
-        for profile in ["f710-directinput", "fightpadpro-directinput", "xinput", "xinput-r1-chooser"]
-            Check(!ControllerMessagePoll(held, 0), "legacy profile stays off DirectLink")
+        for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput", "xinput", "xinput-r1-chooser"] {
+            ControllerMessageSelect(false, "", 0, "")
+            Check(!ControllerMessagePoll(held, 0) && !CM.pending.Length, "no lease stays silent")
+            ControllerMessageSelect(true, profile, 0, spool)
+            ControllerMessagePoll(NeutralButtons(), 0)
+            ControllerMessagePoll(held, 0)
+            Check(CM.seq = 3 && InStr(FileRead(spool), "3,down,5"), "every profile sends messages")
+        }
     } finally {
         try FileDelete(spool)
         try FileDelete(spool . ".tmp")

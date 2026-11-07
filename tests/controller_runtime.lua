@@ -20,7 +20,7 @@ local function fresh(version,protocol)
     return runtime.new({open=open})
 end
 local function plan(r,profile,device,modifier)
-    return r:plan(root,profile or 'ps5-directinput',device or 1,modifier or 'apps',
+    return r:plan(root,profile or 'ps5-directinput',device or 1,modifier or 'messages',
         {ahk_major='2',ahk_version='2.0.31',ahk_path=exe})
 end
 local r=fresh();local p=assert(plan(r))
@@ -28,8 +28,8 @@ assert(p.mode=='direct' and p.source=='cache' and p.executable==exe)
 assert(p.shortcut==root..'data/controller-start.lnk')
 assert(p.command=='run addons/xivcrossbar/data/controller-start.lnk')
 assert(not p.arguments,'selection must remain in launch.ini, never frozen in shortcut')
-p=assert(plan(r,'xinput',4,'ctrl'));assert(p.mode=='direct')
-assert(p.fallback_command=='run addons/xivcrossbar/launch-controller.cmd ctrl xinput 4')
+p=assert(plan(r,'xinput',4,'messages'));assert(p.mode=='direct')
+assert(p.fallback_command=='run addons/xivcrossbar/launch-controller.cmd messages xinput 4')
 -- Old caches/status cannot manufacture a Windows shortcut. One upgrade bootstrap.
 r=fresh(nil,'ahk-v2-cache1');assert(plan(r).mode=='bootstrap')
 r=fresh();files[root..'data/controller-runtime-cache.ini']=nil;assert(plan(r).mode=='bootstrap')
@@ -49,11 +49,11 @@ for _,path in ipairs({'AutoHotkey64.exe','C:/bad;reload.exe','C:/bad"quote.exe',
 end
 r=fresh();files[root..'data/controller-runtime.ini']='[Other]\nexecutable='..exe..'\n';assert(not plan(r))
 r=fresh();assert(not plan(r,'bogus'));assert(not plan(r,'xinput',5));assert(not plan(r,nil,nil,'shift'))
-assert(not r:plan('C:/unsafe;command/','ps5-directinput',1,'apps'))
+assert(not r:plan('C:/unsafe;command/','ps5-directinput',1,'messages'))
 -- Native Windows paths and spaces never enter Run's argument parser.
 r=fresh();local native_root='C:\\Users\\Player\\Saved Games\\Windower\\addons\\xivcrossbar\\'
 files[native_root..'data/controller-start.lnk']='shortcut'
 files[native_root..'data/controller-runtime-cache.ini']=cache(nil,nil,native_root)
-p=assert(r:plan(native_root,'ps5-directinput',1,'apps'))
+p=assert(r:plan(native_root,'ps5-directinput',1,'messages'))
 assert(p.mode=='direct' and p.command=='run addons/xivcrossbar/data/controller-start.lnk')
 print('Shortcut resolver: verified cache, upgrade discovery, changed/missing/moved files, explicit overrides, version/profile validation and argument-free Run command passed.')

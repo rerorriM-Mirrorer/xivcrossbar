@@ -2,12 +2,14 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <windows.h>
 #include <dinput.h>
+#include <dinputd.h>
 #include <xinput.h>
 #include <MinHook.h>
 #include <array>
 #include <cstddef>
 #include <cstring>
 #include <mutex>
+#include <utility>
 #include "ownership.hpp"
 #include "pad_state.hpp"
 
@@ -16,7 +18,17 @@ namespace {
 using XboxRead = DWORD (WINAPI*)(DWORD, XINPUT_STATE*);
 using DirectRead = HRESULT (STDMETHODCALLTYPE*)(IDirectInputDevice8A*, DWORD, void*);
 using DirectBuffered = HRESULT (STDMETHODCALLTYPE*)(IDirectInputDevice8A*, DWORD, DIDEVICEOBJECTDATA*, DWORD*, DWORD);
-XboxRead xbox_original;
+// Five system XInput DLLs, each with public GetState and optional GetStateEx.
+constexpr unsigned max_xbox_hooks = 10;
+struct XboxHook {
+    XboxRead original{};
+    XINPUT_GAMEPAD previous{};
+    DWORD source_packet{}, visible_packet{};
+    bool initialized{};
+};
+std::array<XboxHook, max_xbox_hooks> xbox_hooks;
+thread_local bool xbox_nested;
+
 DirectRead direct_original;
 DirectBuffered buffered_original;
 std::mutex guard;
@@ -27,7 +39,7 @@ bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend;
-bool menu, native_menu, fightpad, overflow, buffered_seen, probe_ready;
+bool menu, native_menu, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
 
@@ -79,22 +91,48 @@ unsigned observe(unsigned buttons) {
     return suppressed;
 }
 
+template<unsigned Hook>
 DWORD WINAPI xbox_read(DWORD index, XINPUT_STATE* state) {
-    const DWORD result = xbox_original(index, state);
+    auto& hook = xbox_hooks[Hook];
+    // One system XInput export can call another. Observe the outermost read.
+    if (xbox_nested) return hook.original(index, state);
+    xbox_nested = true;
+    const DWORD result = hook.original(index, state);
+    xbox_nested = false;
     std::lock_guard lock(guard);
     if (backend != 1 || index != device) return result;
     if (result != ERROR_SUCCESS || !state) {
+        hook.initialized = false;
         if (last_sample) { reset(); last_sample = 0; }
         return result;
     }
     auto& pad = state->Gamepad;
-    const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger));
-    for (unsigned i = 0; i < 8; ++i)
-        if (mask & (1u << i)) pad.wButtons &= static_cast<WORD>(~xb::xbox[i]);
+    const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger, r1_chooser));
+    for (unsigned i = 0; i < 10; ++i)
+        if (mask & (1u << i)) pad.wButtons &= static_cast<WORD>(~xb::xbox_button(i, r1_chooser));
     if (mask & 0x400) pad.bLeftTrigger = 0;
     if (mask & 0x800) pad.bRightTrigger = 0;
+    if (!mode && !hook.initialized) return result;
+    // A context change or D-pad handoff can change the filtered state without
+    // changing the hardware packet number. Notify consumers of that change.
+    if (!hook.initialized) hook.visible_packet = state->dwPacketNumber;
+    else if (hook.source_packet != state->dwPacketNumber ||
+        memcmp(&hook.previous, &pad, sizeof pad) != 0) ++hook.visible_packet;
+    hook.source_packet = state->dwPacketNumber;
+    hook.previous = pad;
+    hook.initialized = true;
+    state->dwPacketNumber = hook.visible_packet;
     return result;
 }
+
+template<std::size_t... I>
+constexpr auto xbox_entries(std::index_sequence<I...>) {
+    return std::array<XboxRead, sizeof...(I)>{xbox_read<I>...};
+}
+constexpr auto xbox_detours = xbox_entries(std::make_index_sequence<max_xbox_hooks>{});
+constexpr const char* xbox_modules[] = {
+    "xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll", "xinput1_2.dll", "xinput1_1.dll"
+};
 
 bool is_selected(IDirectInputDevice8A* object) {
     DIDEVICEINSTANCEA info{};
@@ -140,7 +178,13 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             buffered_seen = true;
             if (mode == 2) reset();
         }
-        // Probe only: neutralize matching records, retaining timestamps,
+        if (!probe_ready && heartbeat && SUCCEEDED(result)) {
+            DIJOYSTATE2 current{};
+            auto hr = direct_original(object, sizeof current, &current);
+            if (FAILED(hr)) hr = direct_original(object, sizeof(DIJOYSTATE), &current);
+            if (SUCCEEDED(hr)) observe(xb::read_joystick(current.rgdwPOV[0], current.rgbButtons, fightpad));
+        }
+        // Neutralize matching records, retaining timestamps,
         // sequence numbers, queue lengths and DIGDD_PEEK semantics.
         constexpr DWORD legacy_size = offsetof(DIDEVICEOBJECTDATA, uAppData);
         DWORD foreground = 0;
@@ -149,6 +193,8 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             foreground != GetCurrentProcessId() || FAILED(result) || !data || !entries ||
             *entries > capacity || (size != legacy_size && size != sizeof(DIDEVICEOBJECTDATA)))
             return result;
+        last_sample = GetTickCount64();
+        ++calls;
         auto* bytes = reinterpret_cast<unsigned char*>(data);
         auto stream = buffered_ownership;
         unsigned state = buffered_raw;
@@ -176,7 +222,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             } else if (type & DIDFT_BUTTON) {
                 const auto* map = fightpad ? xb::fightpad : xb::dualsense;
                 unsigned bit = 0;
-                for (unsigned j = 0; j < 6; ++j)
+                for (unsigned j = 0; j < 8; ++j)
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
@@ -203,16 +249,14 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
     return result;
 }
 
-struct Enumeration { unsigned remaining; GUID instance; bool found; };
+struct Enumeration { GUID instance; unsigned count; };
 BOOL CALLBACK choose_device(const DIDEVICEINSTANCEA* info, void* context) {
     auto& pick = *static_cast<Enumeration*>(context);
-    if (pick.remaining--) return DIENUM_CONTINUE;
-    pick.instance = info->guidInstance;
-    pick.found = true;
-    return DIENUM_STOP;
+    if (!pick.count++) pick.instance = info->guidInstance;
+    return pick.count == 1 ? DIENUM_CONTINUE : DIENUM_STOP;
 }
 
-void* targets[2];
+void* targets[max_xbox_hooks];
 unsigned target_count;
 bool hooks_enabled;
 
@@ -229,12 +273,30 @@ bool install(unsigned kind, unsigned index, const char* module) {
     const auto mh = MH_Initialize();
     if (mh != MH_OK && mh != MH_ERROR_ALREADY_INITIALIZED) return false;
     if (kind == 1) {
-        const auto loaded = GetModuleHandleA(module);
-        if (!loaded) return false;
-        targets[0] = reinterpret_cast<void*>(GetProcAddress(loaded, "XInputGetState"));
-        if (!targets[0] || MH_CreateHook(targets[0], reinterpret_cast<void*>(xbox_read),
-            reinterpret_cast<void**>(&xbox_original)) != MH_OK) return false;
-        target_count = 1;
+        for (auto name : xbox_modules) {
+            if (strcmp(module, "auto") != 0 && _stricmp(module, name) != 0) continue;
+            const auto loaded = GetModuleHandleA(name);
+            if (!loaded) continue;
+            const LPCSTR entries[] = {"XInputGetState", MAKEINTRESOURCEA(100)};
+            for (auto entry : entries) {
+                auto* target = reinterpret_cast<void*>(GetProcAddress(loaded, entry));
+                if (!target) continue;
+                bool duplicate = false;
+                for (unsigned i = 0; i < target_count; ++i)
+                    if (targets[i] == target) duplicate = true;
+                if (duplicate) continue;
+                const auto i = target_count;
+                const auto created = MH_CreateHook(target, reinterpret_cast<void*>(xbox_detours[i]),
+                    reinterpret_cast<void**>(&xbox_hooks[i].original));
+                if (created == MH_ERROR_UNSUPPORTED_FUNCTION) continue;
+                if (created != MH_OK) {
+                    while (target_count) MH_RemoveHook(targets[--target_count]);
+                    return false;
+                }
+                targets[target_count++] = target;
+            }
+        }
+        if (!target_count) return false;
     } else {
         const auto loaded = GetModuleHandleA("dinput8.dll");
         if (!loaded) return false;
@@ -243,13 +305,30 @@ bool install(unsigned kind, unsigned index, const char* module) {
         IDirectInput8A* direct = nullptr;
         if (!factory || FAILED(factory(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
             IID_IDirectInput8A, reinterpret_cast<void**>(&direct), nullptr))) return false;
-        Enumeration pick{index, {}, false};
-        direct->EnumDevices(DI8DEVCLASS_GAMECTRL, choose_device, &pick, DIEDFL_ATTACHEDONLY);
+        IDirectInputJoyConfig8* config = nullptr;
+        DIJOYCONFIG selected{};
+        selected.dwSize = sizeof selected;
+        bool found = false;
+        if (SUCCEEDED(direct->QueryInterface(IID_IDirectInputJoyConfig8,
+            reinterpret_cast<void**>(&config)))) {
+            found = config->GetConfig(index, &selected, DIJC_GUIDINSTANCE) == DI_OK;
+            config->Release();
+        }
+        // Enumeration order is not a Windows joystick ID. The only safe
+        // fallback is the single attached controller in the default slot.
+        if (!found && index == 0) {
+            Enumeration pick{};
+            if (SUCCEEDED(direct->EnumDevices(DI8DEVCLASS_GAMECTRL, choose_device, &pick, DIEDFL_ATTACHEDONLY)) &&
+                pick.count == 1) {
+                selected.guidInstance = pick.instance;
+                found = true;
+            }
+        }
         IDirectInputDevice8A* probe = nullptr;
-        if (pick.found) direct->CreateDevice(pick.instance, &probe, nullptr);
+        if (found) direct->CreateDevice(selected.guidInstance, &probe, nullptr);
         direct->Release();
         if (!probe) return false;
-        joystick = pick.instance;
+        joystick = selected.guidInstance;
         auto** methods = *reinterpret_cast<void***>(probe);
         targets[0] = methods[9];  // IDirectInputDevice8::GetDeviceState
         targets[1] = methods[10]; // IDirectInputDevice8::GetDeviceData
@@ -285,12 +364,13 @@ __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, u
         installed_kind = kind;
         installed_device = index;
         strncpy_s(installed_module.data(), installed_module.size(), module, _TRUNCATE);
-    } else if (installed_kind != kind || installed_device != index ||
+    } else if (installed_kind != kind || (kind == 2 && installed_device != index) ||
         strcmp(installed_module.data(), module) != 0) return 2;
     if (!hooks_enabled && !set_hooks(true)) return 0;
     std::lock_guard lock(guard);
     reset();
-    backend = kind; device = index; fightpad = fight != 0;
+    backend = kind; device = index; fightpad = fight == 1; r1_chooser = fight == 2;
+    for (auto& hook : xbox_hooks) hook.initialized = false;
     overflow = false;
     mode = experiment;
     heartbeat = GetTickCount64();
@@ -318,9 +398,9 @@ __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, un
     if (context == 0) { if (heartbeat) reset(); heartbeat = 0; }
     else { heartbeat = now; }
     menu = context == 2;
-    native_menu = context == 3;
+    native_menu = context == 3 || context == 4;
     status[0] = generation; status[1] = calls; status[2] = raw; status[3] = suppressed;
-    status[4] = buffered_calls; status[5] = unsupported; status[6] = overflow;
+    status[4] = buffered_calls; status[5] = unsupported; status[6] = overflow; status[7] = probe_ready;
     unsigned delivered = 0;
     while (count && delivered < capacity) {
         output[delivered++] = events[head];

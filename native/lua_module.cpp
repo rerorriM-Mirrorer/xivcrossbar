@@ -35,19 +35,20 @@ int begin(lua_State* L) {
     api.push(L, result);
     return 1;
 }
+int pid(lua_State* L) { api.push(L, GetCurrentProcessId()); return 1; }
 int off(lua_State*) { xb_off(); return 0; }
 int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
 int poll(lua_State* L) {
     int edges[256]{};
-    unsigned status[7]{};
+    unsigned status[8]{};
     const auto count = xb_poll(static_cast<unsigned>(api.integer(L, 1)), edges, 256, status);
     api.table(L, count, 0);
     for (unsigned i = 0; i < count; ++i) {
         api.push(L, edges[i]);
         api.index(L, -2, i + 1);
     }
-    api.table(L, 7, 0);
-    for (int i = 0; i < 7; ++i) {
+    api.table(L, 8, 0);
+    for (int i = 0; i < 8; ++i) {
         api.push(L, status[i]);
         api.index(L, -2, i + 1);
     }
@@ -61,8 +62,9 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad(lua_State* L) {
         !resolve(host, api.string, "lua_tolstring") || !resolve(host, api.push, "lua_pushinteger") ||
         !resolve(host, api.table, "lua_createtable") || !resolve(host, api.closure, "lua_pushcclosure") ||
         !resolve(host, api.field, "lua_setfield") || !resolve(host, api.index, "lua_rawseti")) return 0;
-    api.table(L, 0, 4);
+    api.table(L, 0, 5);
     api.closure(L, begin, 0); api.field(L, -2, "begin");
+    api.closure(L, pid, 0); api.field(L, -2, "pid");
     api.closure(L, off, 0); api.field(L, -2, "off");
     api.closure(L, detach, 0); api.field(L, -2, "detach");
     api.closure(L, poll, 0); api.field(L, -2, "poll");

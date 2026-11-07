@@ -4,10 +4,13 @@ function M.open(path)
     local loader, err = package.loadlib(path:gsub('\\', '/'), 'luaopen_xb_gamepad')
     if not loader then error(err) end
     local dll = loader()
-    if type(dll) ~= 'table' then error('Native bridge could not resolve the Windower LuaCore.dll API.') end
-    local status = {0, 0, 0, 0, 0, 0, 0}
+    if type(dll) ~= 'table' or type(dll.pid) ~= 'function' then
+        error('Install the matching x86 native bridge, then restart FFXI.')
+    end
+    local status = {0, 0, 0, 0, 0, 0, 0, 0}
     return {
         begin = dll.begin,
+        pid = dll.pid,
         stop = dll.off,
         detach = dll.detach,
         poll = function(context, reset, deliver, previous)
@@ -20,6 +23,7 @@ function M.open(path)
             end
             return generation
         end,
+        armed = function() return status[8] == 1 end,
         poll_count = function() return status[2] end,
         status = function()
             return ('polls=%d raw=0x%03x masked=0x%03x buffered=%d unsupported-size=%d overflow=%d')

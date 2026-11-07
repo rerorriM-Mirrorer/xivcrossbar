@@ -1,14 +1,16 @@
-# XIVCrossbar Beta 1 — PS5 DirectLink
+# XIVCrossbar — Native Blocking and DirectLink
 
-A Windower 4 preview of PS5 controller input without simulated gameplay F-keys.
-**Experimental beta:** Windows/FFXI verification of the latest fixes is pending.
-
-## Extra setup
-
-- Install **AutoHotkey v2.0.19 or later in the v2 series**. Back up your old `addons/xivcrossbar/` folder; stop the shared AHK reader, unload XIVCrossbar on every client, and replace the **whole** addon folder. Don't overlay a personal installation.
-- In FFXI Gamepad Config, unassign duplicate native face/D-pad/trigger/hat-switch input that would conflict with XIVCrossbar; keep movement/camera sticks. See `images/setup/gamepad-directinput.jpg`.
-- Load with `//lua l xivcrossbar`, complete the button setup, then use `//xb controller profile ps5` for the PS5 DirectInput profile. Gameplay uses DirectLink; setup/login use the legacy keyboard route.
-- **Default D-pad is IJKL.** Assign I/J/K/L to **Menu/Target Cursor** in FFXI Key Assignment first, or use `//xb dpad arrows` for the previous arrow-key behavior. This applies to bare gameplay targeting, not menus.
+1. Stop the old reader and close all FFXI clients before replacing the addon.
+   Back up the existing addon and its data. Use the complete x86 test artifact
+   with `native/xb_gamepad.dll`, and keep your existing settings and bindings.
+2. Install AutoHotkey v2.0.19+ and keep native FFXI Gamepad Config assignments.
+   Restore them if they were cleared for an older XIVCrossbar test.
+3. Select a profile with `//xb controller profile <name> [device]`.
+   Profiles are `ps5`, `f710`, `fightpadpro`, `xinput`, and `xinputalt`.
+   Use F710 DirectInput mode with `f710`; use an XInput profile in its X mode.
+4. Release the buttons. Check `//xb controller status` and
+   `//xb nativepad status`. The guard needs live game polls and a matching
+   reader lease. Use the keyboard or mouse for setup if the hook is unavailable.
 
 ## Additional commands
 

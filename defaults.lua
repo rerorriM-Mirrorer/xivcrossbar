@@ -145,11 +145,6 @@ defaults.Texts.Stroke.Blue = 20
 -- A: this transport test prints actions instead of executing slot commands.
 defaults.InputTest = false
 defaults.InputTrace = false
--- A: wrapper and Lua must use the same modifier. Change with all clients
--- unloaded and the shared wrapper stopped; Apps preserves Ctrl shortcuts.
-defaults.ControllerModifier = 'apps'
--- A: bare gameplay D-pad only; menus and trigger-held slots stay logical.
-defaults.GameplayDPad = 'ijkl'
 defaults.VisibilityMode = 'oninput' -- always, oninput, hidden; no hold delay yet
 defaults.CrossbarScale = 1
 -- Fade labels together with artwork by default; text settling protects widths.

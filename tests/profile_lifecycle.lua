@@ -25,10 +25,10 @@ local env=setmetatable({xivcrossbar=state,storage=storage,player=player,ui=ui,
     settings={iscompact=true},theme_options={},y_adjust=450,action_binder={setup=function()end,set_ui_offset_callback=function()end},
     env_chooser={get_default_active_environment=function()return 'default'end,setup=function()end,set_anchor=function()end},
     consumables={setup=function()end},gamepad_converter={setup=function()end},aa_set_engaged=function()end,
-    set_active_environment=function()end,gamepad_state={},controller_bind_prefix='#',
+    set_active_environment=function()end,gamepad_state={},
     skillchains={load=function()end,login=function()end,logout=function()end},
     start_controller_wrappers=function()started=started+1 end,
-    release_gameplay_keys=function()released=released+1 end,transport={reset=function()end},
+    transport={reset=function()released=released+1 end},
     message_lease={close=function()end},message_bridge=nil}, {__index=_G})
 local first=assert(source:find('function initialize(',1,true))
 local last=assert(source:find('-- Continue observing after initialization:',first,true))

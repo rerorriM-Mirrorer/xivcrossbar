@@ -1,5 +1,4 @@
--- Beta 1 focused-client context lease. Only the PS5 reader consumes it.
--- Per-character filename matches the focused FFXI window title on the AHK side.
+-- The reader matches this lease to the foreground FFXI process ID.
 local M={}
 function M.new(opts)
     local self={clock=opts.clock,create_dir=opts.create_dir or windower.create_dir}
@@ -12,19 +11,19 @@ function M.new(opts)
         end
         self.path=nil;self.next_write=nil;self.payload=nil
     end
-    function self:update(directory,name,mode,token,ack)
-        if type(name)~='string' or not name:match('^%a+$') then self:close();return false end
-        local path=directory..name..'.ini'
+    function self:update(directory,pid,profile,device,token,ack)
+        if type(pid)~='number' or pid<1 or pid%1~=0 or not token then self:close();return false end
+        local path=directory..pid..'.ini'
         if self.path~=path then self:close();self.create_dir(directory);self.path=path end
         local now=self.clock()
-        local payload='mode='..mode..'\nbutton_mode='..(token and 'messages' or 'keys')..
+        local payload='profile='..profile..'\ndevice='..device..'\nbutton_mode=messages'..
             '\nbutton_token='..(token or '')..'\nbutton_ack='..tostring(ack or 0)..'\n'
         if self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.10
         local temporary=path..'.tmp'
         local f=io.open(temporary,'wb')
         if not f then os.remove(path);self.payload=nil;return false end
-        local ok=f:write('[Controller]\nname='..name..'\ntimestamp='..math.floor(now)..'\n'..payload..'END\n')
+        local ok=f:write('[Controller]\ntimestamp='..math.floor(now)..'\n'..payload..'END\n')
         local closed=f:close()
         if not ok or not closed then os.remove(temporary);os.remove(path);self.payload=nil;return false end
         os.remove(path)

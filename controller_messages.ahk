@@ -1,51 +1,33 @@
-; Beta 1: independent twelve-button PS5 message reader.
-; Apps/F-key transport remains untouched for every other controller profile.
+; Ordered messages for every controller profile. A missing lease emits no input.
 ControllerMessageInit() {
     global CM
     CM := {requested:false, token:"", ack:0, seq:0, pending:[], previous:NeutralButtons()
-        , phase:"keys", seen:0, path:"", nextWrite:0, error:false}
+        , phase:"waiting-lease", seen:0, path:"", nextWrite:0, error:false}
 }
 ControllerMessageContext(hwnd) {
-    global CM, profile
-    if (profile != "ps5-directinput" or !hwnd)
+    global CM, profile, device
+    try {
+        pid := WinGetPID("ahk_id " . hwnd)
+        path := A_ScriptDir . "\data\directlink\" . pid . ".ini"
+        lease := FileRead(path)
+    } catch Error {
         return
-    try title := WinGetTitle("ahk_id " . hwnd)
-    catch TargetError
+    }
+    if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
+        or !RegExMatch(lease, "m)^profile=([a-z0-9-]+)\r?$", &selected)
+        or selected[1] != profile
+        or !RegExMatch(lease, "m)^device=(\d+)\r?$", &number)
+        or number[1] + 0 != device
+        or !RegExMatch(lease, "m)^button_mode=messages\r?$")
+        or !RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", &token)
+        or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", &ack)
+        or !RegExMatch(lease, "m)^END\r?$"))
         return
     now := DateDiff(A_NowUTC, "19700101000000", "Seconds")
-    found := false
-    Loop Files, A_ScriptDir . "\data\directlink\*.ini"
-    {
-        try lease := FileRead(A_LoopFileFullPath)
-        catch OSError
-            continue
-        if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", &name))
-            continue
-        if (!RegExMatch(title, "i)(^|[^a-z])" . name[1] . "([^a-z]|$)"))
-            continue
-        if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
-            or !RegExMatch(lease, "m)^button_mode=(messages|keys)\r?$", &mode)
-            or !RegExMatch(lease, "m)^END\r?$"))
-            break
-        age := now - stamp[1]
-        if (age < -1 or age > 2)
-            break
-        requested := mode[1] = "messages"
-        token := ""
-        ackValue := 0
-        if (requested) {
-            if (!RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", &value)
-                or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", &ack))
-                break
-            token := value[1], ackValue := ack[1] + 0
-        }
-        ControllerMessageSelect(requested, token, ackValue, RegExReplace(A_LoopFileFullPath, "\.ini$", ".buttons"))
-        found := true
-        break
-    }
-    ; Do not trust the previous client's cached permission after a focus switch.
-    if (!found and CM.requested and A_TickCount - CM.seen > 150)
-        CM.phase := "uncertain"
+    age := now - stamp[1]
+    if (age < -1 or age > 2)
+        return
+    ControllerMessageSelect(true, token[1], ack[1] + 0, RegExReplace(path, "\.ini$", ".buttons"))
 }
 ControllerMessageSelect(requested, token, ack, path) {
     global CM
@@ -110,9 +92,7 @@ ControllerMessageFlush(force := false) {
     return !CM.error
 }
 ControllerMessagePoll(states, hwnd) {
-    global CM, profile
-    if (profile != "ps5-directinput")
-        return false
+    global CM
     if (hwnd)
         ControllerMessageContext(hwnd)
     neutral := true
@@ -126,13 +106,13 @@ ControllerMessagePoll(states, hwnd) {
         CM.phase := "uncertain"
         DiagRecord("DirectLink uncertain lease_age_ms=" . (now-CM.seen))
         if (neutral and now - CM.seen > 2500) {
-            CM.requested := false, CM.token := "", CM.phase := "keys"
+            CM.requested := false, CM.token := "", CM.phase := "waiting-lease"
         }
         return true
     }
     if (CM.phase = "neutral") {
         if (neutral)
-            CM.phase := CM.requested ? "messages" : "keys"
+            CM.phase := CM.requested ? "messages" : "waiting-lease"
         ControllerMessageFlush()
         return true
     }

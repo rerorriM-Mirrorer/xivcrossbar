@@ -1,64 +1,18 @@
-# XIVCrossbar — Beta 1 PS5 DirectLink testing candidate
+# XIVCrossbar — Native Blocking and DirectLink test
 
-**New to this beta?** [Two-minute setup and new commands](BETA-QUICKSTART.md).
+Start with [BETA-QUICKSTART.md](BETA-QUICKSTART.md) and [TESTING.md](TESTING.md).
+This isolated Windower 4 build uses AutoHotkey v2 DirectLink messages for
+all supported Windows profiles. An x86 bridge filters only the addon-owned
+buttons in the focused client. FFXI handles ordinary gamepad input.
 
-Current verification and pending in-game checks: [TESTING.md](TESTING.md).
-Focused PS5 acceptance checklist: [Beta 1 scope](docs/BETA1-PS5-DIRECTLINK-SCOPE.md).
+Keep your native Gamepad Config assignments. Switch profiles with buttons
+released and use the same reader profile/device across clients. Install the
+complete test folder with its matching `native/xb_gamepad.dll`.
 
-This is a **complete testing installation**, including required images/themes.
-It is not a released stable version. Beta 1 adds ordinary PS5 DirectLink
-messages to the public RC3 Maintenance 2 foundation. Community publication
-and final hardware verification are pending. Read [the branch handoff](docs/HANDOFF-PUBLIC-RC3.md) and
-[the branch map](docs/BRANCH-MAP.md) before testing or opening a new development
-conversation. Package-root TESTING.md gives installation and first tests.
+## Unified diagnostics in this beta (new)
 
-No saved settings, config.ini, catalogs, bindings or controller preferences
-are supplied. Preserve the appropriate installation's data separately. Both
-variants use the xivcrossbar name and keyboard transport: test one at a time per
-PC, stopping the wrapper and unloading all clients before changing variants.
-
-Current runtime is **0.4.0-beta1.20261029.ps5-directlink-freshdefaults1**, with RC3 Icons/Credits/Escape,
-compact/stroke/resource maintenance, target pagination, stable character identity,
-Default-set switch destinations and custom-action save return. It does not include the personal
-controller profile, personal catalogs, movement signaling or any L1/R1 banks.
-A dedicated //xb unload alias is pending; use //lua u xivcrossbar.
-
----
-
-# XIVCrossbar — Apps-key public release candidate
-
-Based on qEagleStrikerp's consolidated XIVCrossbar repository, with updates by A.
-
-## What this update addresses
-
-- Native macro palettes no longer appear when using crossbars in Apps mode.
-- D-pad and face buttons navigate the addon menu or execute a bound action without
-  also moving the in-game menu (when duplicate native assignments are disabled).
-- Ordinary keyboard F-keys and Ctrl+F-key shortcuts remain available.
-- Crossbars can be scaled, dragged and hidden without disabling bindings. Menus
-  fit the screen independently, including smaller resolutions.
-- Custom actions use one review screen, with inline editing and name/alias fallbacks.
-- Item icons, Superwarp bindings, draft navigation, chat messages and XML
-  read/write safeguards received fixes developed during testing.
-
-### Beta 1 controller transport
-
-The ordinary **PS5 DirectInput** profile sends the twelve face/D-pad/menu/trigger
-signals over a token/acknowledged message stream when the FFXI client is focused,
-logged in and ready. The same public Lua input router interprets them, without
-synthetic Apps/F-key events in that mode. During login and the controller wizard
-the PS5 reader uses the Apps+F1–F12 keyboard path. Other profiles always keep
-their existing Apps route, selected through the one unified AutoHotkey v1 script.
-Switch profiles only with controls released.
-
-This is a **PS5 live-test candidate**. Original public RC3 Apps mapping was tested
-in game; the newly ported DirectLink route has NOT been accepted in FFXI yet.
-See the safety/rollback instructions and the single focused checklist in TESTING.md.
-
-### Unified diagnostics in this beta (new)
-
-Run `//xb diagnose` on a character to capture **30 seconds** of PS5/Apps
-AHK hardware observations, Lua button reception, routing and key requests,
+Run `//xb diagnose` on a character to capture **30 seconds** of
+AHK hardware observations, Lua button reception, routing,
 context/focus/transport state, and public text/image rendering observations.
 All go into a **single new file** per request under
 `data/diagnostics/<Character>-<timestamp>-<session>.log`. AHK writes only a
@@ -82,35 +36,14 @@ observations, not proof of game engine timing; high-rate tracing may itself
 add overhead. The personal build's text-settling algorithm and banks are
 not imported. No normal gameplay logging is active until you request it.
 
-## Important: gamepad configuration
+## Gamepad controls
 
-In **FINAL FANTASY XI GAMEPAD Config**, disable **hat switches** and duplicate D-pad, face-button and trigger assignments
-as shown below. The addon supplies those buttons through AutoHotkey. Retain stick movement and camera controls.
-
-![DirectInput gamepad configuration; pink marks duplicate native input and yellow marks macro assignments to avoid on L2/R2](images/setup/gamepad-directinput.jpg)
-
-The screenshot shows the tested PS5 DirectInput setup, with native XInput disabled.
-All gamepad functions (like Ctrl and Alt macro keys) can stay assigned to other buttons; but avoid assigning them
-to L2/R2 and the face buttons used for XIVCrossbar. The yellow markings identify that distinction.
-
-## Controls
-
-Apps+F1–F12 are reserved for legacy-profile and PS5 login/setup input; PS5 gameplay uses DirectLink messages. Follow the setup
-wizard to assign functions to face buttons.
-On PlayStation 5 controllers:
-
-- Share exits addon menus
-- Keyboard Escape exits the full addon menu, including text fields and overlays
-- Options opens the crossbar chooser, including over a custom-action draft.
-- Triggers select crossbar slots or turn pages where the addon menu permits it.
-
-For in-game D-pad targeting, use the command **`//xb dpad ijkl`**. This sends I/J/K/L for bare
-Up/Left/Down/Right. In FFXI, go to **Config > Misc. 2 > Key Assignment > Movement**
-and move I/J/K/L from **Menu Cursor & Camera** to **Menu/Target Cursor**, as shown:
-
-![Four-step navigation and final IJKL targeting assignments](images/setup/ffxi-ijkl-targeting.png)
-
-`//xb dpad arrows` restores arrow output; bare `//xb dpad` toggles between the two modes.
+- Keep movement, camera, D-pad, and native face assignments in FFXI Gamepad Config.
+- L2/R2 select the addon crossbar. View/Share opens the binder. Menu/Options opens
+  the set chooser. The XInput alternate profile uses RB for the chooser.
+- Ordinary targeting, NPC dialogue, and login navigation use native controls.
+- If the reader or hook is unavailable, native controls remain available.
+  Use `//xb controller status` and `//xb nativepad status` to inspect the two sides.
 
 ## Appearance and visibility
 
@@ -232,7 +165,7 @@ across clients sharing a controller.
 
 | Profile command | Controller mapping | Test status |
 | --- | --- | --- |
-| `ps5` | PS5 DirectInput, DirectLink in gameplay and Apps during setup | Beta 1 live acceptance pending |
+| `ps5` | PS5 DirectInput, DirectLink | Live retest pending |
 | `f710` | Logitech F710 DirectInput | Experimental |
 | `fightpadpro` | FightPadPro DirectInput | Experimental |
 | `xinput` | Xbox-style XInput; Start opens the chooser | Experimental |
@@ -427,3 +360,5 @@ Added a session-only slot acceptance tap for testing with separate GripRumble.
 
 2026-11-06: Added a centered action preview and green tentative slot tint
 to the binder, a padded menu title backing, and space for the bouncing cursor.
+
+2026-11-07: Added PID-scoped DirectLink and selective native blocking for all five Windows profiles. Retired the injected keyboard transport.

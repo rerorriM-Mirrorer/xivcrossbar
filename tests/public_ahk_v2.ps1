@@ -28,16 +28,16 @@ try {
     $unit = Start-Process -FilePath $Interpreter -ArgumentList ('/ErrorStdOut "{0}"' -f $fixture) -PassThru -NoNewWindow
     if (!$unit.WaitForExit(10000) -or $unit.ExitCode -ne 0) { throw 'Native DirectLink fixture failed' }
     Set-Content $runtime @('[Runtime]', "executable=$Interpreter")
-    Set-Content $launch @('[Controller]', 'profile=f710-directinput', 'device=2', 'modifier=ctrl')
+    Set-Content $launch @('[Controller]', 'profile=f710-directinput', 'device=2', 'modifier=messages')
     & (Join-Path $stage 'launch-controller.cmd')
     if ($LASTEXITCODE -ne 0) { throw 'Bootstrap failed' }
     $first = Await-Status '(?m)^pid=[1-9]\d*$'
     if ($first -notmatch 'origin=launch-file' -or $first -notmatch 'profile=f710-directinput' -or
-        $first -notmatch 'device=2' -or $first -notmatch 'modifier=ctrl' -or $first -notmatch 'ahk=2\.') {
+        $first -notmatch 'device=2' -or $first -notmatch 'modifier=messages' -or $first -notmatch 'ahk=2\.') {
         throw "Incorrect fallback selection: $first"
     }
     $readerPid = [int][regex]::Match($first, '(?m)^pid=(\d+)').Groups[1].Value
-    $duplicate = Start-Reader 'apps ps5-directinput 1'
+    $duplicate = Start-Reader 'messages ps5-directinput 1'
     if (!$duplicate.WaitForExit(5000) -or $duplicate.ExitCode -ne 0) { throw 'Duplicate reader did not exit cleanly' }
     $after = Await-Status "(?m)^pid=$readerPid$"
     if ($after -notmatch 'profile=f710-directinput') { throw 'Duplicate replaced the running selection' }
@@ -47,7 +47,7 @@ try {
     if (!$firstProcess.WaitForExit(5000)) { throw 'Reader did not stop' }
 
     foreach ($profile in @('ps5-directinput','f710-directinput','fightpadpro-directinput','xinput','xinput-r1-chooser')) {
-        $reader = Start-Reader "apps $profile 1"
+        $reader = Start-Reader "messages $profile 1"
         $selection = Await-Status "(?m)^pid=$($reader.Id)$"
         if ($selection -notmatch "(?m)^profile=$profile$" -or $selection -notmatch 'origin=arguments') {
             throw "Wrong explicit profile: $selection"

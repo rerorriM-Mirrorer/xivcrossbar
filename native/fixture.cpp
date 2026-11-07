@@ -65,11 +65,29 @@ int main() {
 
     check(read_xbox(0x1009 | 0x0200, 5, 4) == (up | right | face | left_trigger),
         "Xbox layout ignores unrelated shoulder and preserves trigger threshold");
+    check(read_xbox(0x0230, 0, 0) == (share | chooser), "standard Xbox uses View and Menu");
+    check(read_xbox(0x0010, 0, 0, true) == 0 &&
+        read_xbox(0x0220, 0, 0, true) == (share | chooser), "Xbox alternate preserves Menu and captures RB");
+    owner.reset();
+    owner.apply(0, 2, false, false);
+    check(owner.apply(chooser | up, 2, false, false).suppressed == (chooser | up),
+        "simultaneous chooser and direction are both captured");
+    check(owner.apply(up, 2, false, false).suppressed == up, "chooser direction owns its release");
+    owner.apply(0, 2, false, false);
+    check(owner.apply(share | face, 2, false, false).suppressed == (share | face),
+        "simultaneous binder and face are both captured");
+    owner.apply(0, 2, false, false);
+    check(owner.apply(share | chooser | face, 2, false, true).suppressed == 0,
+        "monitor or chat leaves auxiliary buttons native");
     std::uint8_t buttons[32]{};
-    buttons[1] = buttons[6] = buttons[9] = 0x80;
+    buttons[1] = buttons[6] = buttons[10] = 0x80;
     check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger), "DirectInput layout");
     filter_joystick(buttons, face | left_trigger, false);
-    check(!buttons[1] && !buttons[6] && buttons[9], "DirectInput unrelated button stays intact");
+    check(!buttons[1] && !buttons[6] && buttons[10], "DirectInput unrelated button stays intact");
+    buttons[9] = 0x80;
+    check(read_joystick(0xffffffffu, buttons, false) == chooser, "DirectInput Options/Start mapping");
+    filter_joystick(buttons, chooser, false);
+    check(!buttons[9] && buttons[10], "DirectInput chooser preserves unrelated input");
     buttons[2] = 0x80;
     check(read_joystick(0xffffffffu, buttons, true) == face, "FightPad mapping");
 }

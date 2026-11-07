@@ -86,7 +86,7 @@ DiagTick() {
     }
 }
 DiagSample(states, hwnd, route) {
-    global DX, CM, appsOwned
+    global DX, CM
     if (!DX.active)
         return
     mask := ""
@@ -97,7 +97,6 @@ DiagSample(states, hwnd, route) {
     signature := "hwnd=" . hwnd . " route=" . route . " mask=" . mask
         . " messages=" . CM.requested . " phase=" . CM.phase
         . " msg_seq=" . CM.seq . " ack=" . CM.ack . " pending=" . CM.pending.Length
-        . " apps_owned=" . appsOwned
     if (signature != DX.lastSignature) {
         DX.lastSignature := signature
         DiagRecord("poll " . signature)
