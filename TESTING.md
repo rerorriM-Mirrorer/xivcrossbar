@@ -1,3 +1,10 @@
+# Skillchain indicator opacity command
+
+- `//xb skillchain off` sets opacity to zero; `on` restores the built-in default (220). The bare command toggles, and `status` reports the current opacity. Changes save and apply without a reload.
+- Live check: toggle off and on during a skillchain window and confirm the indicator and saved value follow the setting.
+
+---
+
 # Native FFXI menus and crossbar chords
 
 - Native FFXI menu_open no longer gates the guard or Lua controller router. Bare controls retain native passthrough; L2/R2 chords work over ordinary and battle menus. Chat still yields to native input, and XIVCrossbar menus still own their inputs. Automatic guard startup no longer prints the poll reminder.

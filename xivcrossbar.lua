@@ -36,6 +36,7 @@ local chat_help = require('libs/chat_help')
 
 -- User settings
 local defaults = require('defaults')
+local default_skillchain_opacity = defaults.SkillchainIndicator.Opacity
 local settings = config.load(defaults)
 -- Keep new/changed captions transparent until Windower reports a stable width.
 require('ui/text_measure').enabled=settings.TextSettling~=false
@@ -1199,6 +1200,7 @@ function display_help_menu()
     chat_help.command("fade [on|off]","Enable/disable fades.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
+    chat_help.command("skillchain [on|off|status]","Show or hide the skillchain indicator.")
     chat_help.command("autoattack [on|off|status]","Enable/stop swing estimation separately from opacity.")
     chat_help.heading('Other')
     chat_help.command("reload","Reload saved crossbar bindings.")
@@ -1422,6 +1424,26 @@ windower.register_event('addon command', function(command, ...)
 
     if command == 'compact' or (command == 'ui' and args[1] == 'compact') then
         return set_compact_mode(command == 'compact' and args[1] or args[2])
+    end
+
+    if command == 'skillchain' then
+        local mode = args[1] and args[1]:lower()
+        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb skillchain [on|off|status]')
+            return
+        end
+        if mode ~= 'status' then
+            local enabled = mode == 'on' or (not mode and settings.SkillchainIndicator.Opacity == 0)
+            local opacity = enabled and default_skillchain_opacity or 0
+            settings.SkillchainIndicator.Opacity = opacity
+            theme_options.skillchain_window_opacity = opacity
+            if ui.is_setup then ui.theme.skillchain_window_opacity = opacity end
+            ui_dirty = true
+            config.save(settings)
+        end
+        chat_format.say(207, '[XIVCrossbar] Skillchain indicator opacity: ' ..
+            tostring(settings.SkillchainIndicator.Opacity))
+        return
     end
 
     if command == 'autoattack' then
