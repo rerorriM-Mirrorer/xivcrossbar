@@ -160,10 +160,9 @@ local function set_display_preset(mode)
         if xi then
             crossbar_drag:finish()
             settings.iscompact, theme_options.is_compact = true, true
-            ui:set_compact(true)
-            if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
         end
-        ui.display_palette = theme_options.display_palette
+        ui:set_display_layout(theme_options.display_palette, xi or ui.is_compact)
+        if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
         ui:set_slot_pulse_enabled(xi)
         ui.geometry.deferring_hide = false
         ui.geometry:configure_fade(xi, settings.Animation.FadeIn, settings.Animation.FadeOut)

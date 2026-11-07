@@ -14,7 +14,7 @@ local ui={is_setup=true,geometry={interrupt_startup_reveal=function() end,
     configure_fade=function(self,value) self.enabled=value end,
     set_text_fade=function(self,value) self.text=value end},
     set_slot_pulse_enabled=function(self,value) self.pulses=value end,
-    set_compact=function(self,value) self.compact=value end,
+    set_display_layout=function(self,palette,value) self.display_palette=palette;self.compact=value end,
     get_set_chooser_anchor=function() return 0,0 end,
     check_vitals=function() refreshes=refreshes+1 end}
 local env=setmetatable({settings=settings,theme=theme,theme_options=options,ui=ui,

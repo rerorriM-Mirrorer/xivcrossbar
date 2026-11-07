@@ -48,6 +48,13 @@ not imported. No normal gameplay logging is active until you request it.
 
 ## Appearance and visibility
 
+`//xb display xi` tightens compact spacing, uses a recessed frame for
+empty slots, and fits a warm-white trigger field behind the active bank.
+`//xb display legacy` restores the original spacing, field and frame
+artwork, and thicker square-ended combat ribbons. The saved compact
+setting remains available in Legacy.
+
+
 Use `//xb recastflash on` to flash a visible slot white when its observed
 recast reaches zero. The soft white fill and feathered edge fade together in 150 ms. Use
 `//xb recastflash off` or `//xb recastflash status` to control the saved option.
@@ -451,3 +458,6 @@ and Square clearing each other’s slot glow.
 
 2026-11-07: Softened the recast-ready flash with a translucent warm-white
 fill and brighter feathered edge, fading together over 150 ms.
+
+2026-11-07: Added tighter XI compact spacing, recessed empty slots and
+warm trigger fields. Legacy restores original spacing and ribbon shapes.

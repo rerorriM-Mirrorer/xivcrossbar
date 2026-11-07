@@ -281,6 +281,11 @@ function ui:get_slot_x(h, i)
             column = column - 1
         end
 
+        if self.is_compact and self.display_palette then
+            local inset = (5*self.slot_spacing-4)/2
+            local toward_center = h == 1 and 20 or h == 2 and -20 or 0
+            return base + inset + toward_center + 40*(column-1) + (column >= 4 and 4 or 0)
+        end
         return base + ((40 + self.slot_spacing) * (column - 1))
     else
         local base = self.pos_x - 50
@@ -328,6 +333,11 @@ function ui:get_slot_x(h, i)
             end
         end
 
+        if self.is_compact and self.display_palette then
+            local span = h <= 2 and 9 or h <= 4 and 5 or 12
+            local toward_center = h == 1 and 6 or h == 2 and -6 or 0
+            return base + span*self.slot_spacing/2 + toward_center + 40*(column-1)
+        end
         return base + ((40 + self.slot_spacing) * (column - 1))
     end
 end
@@ -356,6 +366,9 @@ function ui:get_slot_y(h, i)
         row = 1
     elseif (i == 4 or i == 8) then
         row = 3
+    end
+    if self.is_compact and self.display_palette then
+        return base - spacing + (2-row)*22
     end
     return base - (((row - 1) * spacing))
 end
@@ -474,6 +487,7 @@ function ui:load(theme_options)
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
     self.battle_notice:hide()
     self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
+    self.empty_frame_image_path = windower.addon_path..'themes/ffxiv/empty-frame.png'
 
     prim.create_rounded('skillchain_indicator_bg')
     prim.set_color('skillchain_indicator_bg', 150, 0, 0, 0)
@@ -518,21 +532,7 @@ function ui:load(theme_options)
     self.bar_background = new_image(images_setup)
     self.bar_background_left = new_image(images_setup)
     self.bar_background_right = new_image(images_setup)
-    if (self.is_compact) then
-            self.bar_background:size(330, 180)
-            self.bar_background:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_compact.png')
-
-            self.bar_background_left:size(330, 180)
-            self.bar_background_left:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_compact_alt.png')
-
-            self.bar_background_right:size(330, 180)
-            self.bar_background_right:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_compact_alt.png')
-    else
-        self.bar_background:size(330, 220)
-        self.bar_background:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg.png')
-        self.bar_background_left:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_alt.png')
-        self.bar_background_right:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/bar_bg_alt.png')
-    end
+    self:update_trigger_field_art()
     self.bar_background:alpha(self.button_bg_alpha)
     self.bar_background_left:alpha(self.button_bg_alpha)
     self.bar_background_right:alpha(self.button_bg_alpha)
@@ -686,15 +686,22 @@ end
 -- A: compact is a layout change, not a reload. Keep the objects and their
 -- recast crops/fade state; neither menus nor player bindings are rebuilt.
 function ui:set_compact(enabled)
-    if self.is_compact == enabled then return false end
-    if not self.is_setup then self.is_compact = enabled; return true end
+    return self:set_display_layout(self.display_palette, enabled)
+end
+
+function ui:set_display_layout(palette, enabled)
+    if self.is_compact == enabled and self.display_palette == palette then return false end
+    if not self.is_setup then
+        self.display_palette, self.is_compact = palette, enabled
+        return true
+    end
     local old = {}
     for h, bar in ipairs(self.hotbars) do
         old[h] = {}
         for i = 1, 8 do old[h][i] = {self:get_slot_x(h,i), self:get_slot_y(h,i)} end
     end
     local old_x, old_y = self:get_slot_x(1,1), self:get_slot_y(1,4)
-    self.is_compact = enabled
+    self.display_palette, self.is_compact = palette, enabled
     for h, bar in ipairs(self.hotbars) do
         for i = 1, 8 do
             local dx,dy = self:get_slot_x(h,i)-old[h][i][1], self:get_slot_y(h,i)-old[h][i][2]
@@ -721,15 +728,7 @@ function ui:set_compact(enabled)
             self.glow_views[slot]:pos(x-slot_glow_padding,y-slot_glow_padding)
         end
     end
-    local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/'
-    self.bar_background:path(base .. (enabled and 'bar_bg_compact.png' or 'bar_bg.png'))
-    self.bar_background_left:path(base .. (enabled and 'bar_bg_compact_alt.png' or 'bar_bg_alt.png'))
-    self.bar_background_right:path(base .. (enabled and 'bar_bg_compact_alt.png' or 'bar_bg_alt.png'))
-    self.bar_background:size(330,enabled and 180 or 220)
-    -- Match a fresh layout's alternate background geometry, including upstream's
-    -- noncompact size. Do not quietly redesign the alternate layout here.
-    self.bar_background_left:size(enabled and 330 or 40,enabled and 180 or 40)
-    self.bar_background_right:size(enabled and 330 or 40,enabled and 180 or 40)
+    self:update_trigger_field_art()
     self.action_binder_icon:pos(self:get_slot_x(1,1)-10,self:get_slot_y(1,4)-27)
     self.action_binder_text:pos(self:get_slot_x(1,1)+35,self:get_slot_y(1,4)-15)
     self.environment_selector_icon:pos(self:get_slot_x(2,5)-5,self:get_slot_y(1,4)-27)
@@ -909,11 +908,49 @@ function ui:set_chooser_open(open)
     elseif self.button_hints_visible then self.environment_selector_text:show() end
 end
 
+function ui:update_trigger_field_art()
+    local base = windower.addon_path .. (self.display_palette and 'images/assets/xi-'
+        or ('images/' .. get_icon_pathbase() .. '/ui/'))
+    local name = self.is_compact and 'bar_bg_compact' or 'bar_bg'
+    local height = self.is_compact and 180 or 220
+    self.bar_background:path(base .. name .. '.png')
+    self.bar_background:size(330,height)
+    for _,field in ipairs({self.bar_background_left,self.bar_background_right}) do
+        field:path(base .. name .. '_alt.png')
+        field:size(self.is_compact and 330 or 40,self.is_compact and 180 or 40)
+    end
+end
+
+local function fit_trigger_field(self, field, bank, first, last)
+    local min_x,max_x,min_y,max_y = math.huge,-math.huge,math.huge,-math.huge
+    for slot=first,last do
+        local x,y=self:get_slot_x(bank,slot),self:get_slot_y(bank,slot)
+        min_x,max_x=math.min(min_x,x),math.max(max_x,x+40)
+        min_y,max_y=math.min(min_y,y),math.max(max_y,y+40)
+    end
+    field:pos(min_x-26,min_y-20)
+    field:size(max_x-min_x+52,max_y-min_y+40)
+    field:show()
+end
+
 function ui:show_bar_background(hotbar_number)
     self.background_hotbar = hotbar_number
     geometry:assign_bank(self.bar_background, hotbar_number)
     geometry:assign_bank(self.bar_background_left, hotbar_number)
     geometry:assign_bank(self.bar_background_right, hotbar_number)
+
+    if self.display_palette then
+        if self.UseAltLayout and hotbar_number ~= 3 and hotbar_number ~= 4 then
+            self.bar_background:hide()
+            fit_trigger_field(self,self.bar_background_left,hotbar_number,1,4)
+            fit_trigger_field(self,self.bar_background_right,hotbar_number,5,8)
+        else
+            self.bar_background_left:hide()
+            self.bar_background_right:hide()
+            fit_trigger_field(self,self.bar_background,hotbar_number,1,8)
+        end
+        return
+    end
 
     self.bar_background:pos(self:get_slot_x(hotbar_number, 1) - 30, self:get_slot_y(hotbar_number, 4) - 35)
     self.bar_background_left:pos(self:get_slot_x(hotbar_number, 1) - 30, self:get_slot_y(hotbar_number, 4) - 35)
@@ -1362,6 +1399,13 @@ function aa_clear_pause_after(src, delay_seconds)
     end, delay_seconds)
 end
 
+function ui:combat_strip_left()
+    if self.display_palette and self.is_compact then
+        return (self:get_slot_x(1,1)+self:get_slot_x(2,7)+40)/2-300
+    end
+    return self:get_slot_x(1,1)-10
+end
+
 function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
     local opacity = self.theme.skillchain_window_opacity
     local target = opacity > 0 and windower.ffxi.get_mob_by_target('t', 'bt')
@@ -1374,10 +1418,12 @@ function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillc
     local waiting = skillchain_delay > 0
     local fraction = waiting and (1 - skillchain_delay / 3) or skillchain_window / 7
     local width = math.round(600 * math.max(0, math.min(1, fraction)))
-    local x = self:get_slot_x(1, 1) - 10 + math.round((600-width)/2)
-    local y = self:get_slot_y(1, 4) - 27
-    local height = waiting and 3 or 5
+    local x = self:combat_strip_left() + math.round((600-width)/2)
     local palette = self.display_palette
+    local y = self:get_slot_y(1, 4) - ((palette or waiting) and 27 or 30)
+    local height = palette and (waiting and 3 or 5) or (waiting and 4 or 10)
+    prim.set_rounding('skillchain_indicator', palette ~= nil, palette ~= nil)
+    prim.set_rounding('skillchain_indicator_bg', palette ~= nil, palette ~= nil)
     local alpha, red, green, blue = opacity
     local border = math.min(150, opacity)
 
@@ -1483,18 +1529,22 @@ function ui:display_gcd_indicator(visible)
                 effective_y_offset = effective_y_offset + self.hotbar_spacing
             end
 
-            prim.set_size('gcd_indicator', base_width, 4)
+            local rounded = self.display_palette ~= nil
+            local height = rounded and 4 or 6
+            prim.set_rounding('gcd_indicator', rounded, rounded)
+            prim.set_rounding('gcd_indicator_bg', rounded, rounded)
+            prim.set_size('gcd_indicator', base_width, height)
             prim.set_position(
                 'gcd_indicator',
-                left_spacer + self:get_slot_x(1, 1) - 10 + self.gcd_offset_x,
+                left_spacer + self:combat_strip_left() + self.gcd_offset_x,
                 self:get_slot_y(1, 4) + effective_y_offset
             )
             prim.set_visibility('gcd_indicator', true)
 
-            prim.set_size('gcd_indicator_bg', base_width + 4, 8)
+            prim.set_size('gcd_indicator_bg', base_width + 4, height+4)
             prim.set_position(
                 'gcd_indicator_bg',
-                left_spacer + self:get_slot_x(1, 1) - 12 + self.gcd_offset_x,
+                left_spacer + self:combat_strip_left() - 2 + self.gcd_offset_x,
                 self:get_slot_y(1, 4) + effective_y_offset - 2
             )
             prim.set_visibility('gcd_indicator_bg', true)
@@ -1590,7 +1640,7 @@ function ui:display_aa_indicator()
 
     -- Symmetric contraction: compute left edge so the combined bar is centered.
     local left_spacer = math.round((600 - visible_px) / 2)
-    local base_x = self:get_slot_x(1, 1) - 10 + self.aa_offset_x
+    local base_x = self:combat_strip_left() + self.aa_offset_x
     local effective_y_offset = self.aa_offset_y
     if not self.is_compact then
         effective_y_offset = effective_y_offset + self.hotbar_spacing
@@ -1616,11 +1666,14 @@ function ui:display_aa_indicator()
         past and past[2] or self.theme.aa_past_green,
         past and past[3] or self.theme.aa_past_blue)
     prim.set_color('aa_indicator_bg', math.min(bg_alpha,alpha), 0, 0, 0)
-    prim.set_rounding('aa_indicator_red', true, green_px == 0)
-    prim.set_rounding('aa_indicator_green', red_px == 0, true)
+    local rounded = palette ~= nil
+    local height = rounded and 4 or 6
+    prim.set_rounding('aa_indicator_bg', rounded, rounded)
+    prim.set_rounding('aa_indicator_red', rounded, rounded and green_px == 0)
+    prim.set_rounding('aa_indicator_green', rounded and red_px == 0, rounded)
 
     if (red_px > 0) then
-        prim.set_size('aa_indicator_red', red_px, 4)
+        prim.set_size('aa_indicator_red', red_px, height)
         prim.set_position('aa_indicator_red', red_x, base_y)
         prim.set_visibility('aa_indicator_red', true)
     else
@@ -1628,14 +1681,14 @@ function ui:display_aa_indicator()
     end
 
     if (green_px > 0) then
-        prim.set_size('aa_indicator_green', green_px, 4)
+        prim.set_size('aa_indicator_green', green_px, height)
         prim.set_position('aa_indicator_green', green_x, base_y)
         prim.set_visibility('aa_indicator_green', true)
     else
         prim.set_visibility('aa_indicator_green', false)
     end
 
-    prim.set_size('aa_indicator_bg', visible_px + 4, 8)
+    prim.set_size('aa_indicator_bg', visible_px + 4, height+4)
     prim.set_position('aa_indicator_bg', red_x - 2, base_y - 2)
     prim.set_visibility('aa_indicator_bg', true)
 end
@@ -1797,8 +1850,22 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     action = player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]
                 end
 
-                if (action == nil or action.action == nil) then
+                if (action == nil or action.action == nil or (self.display_palette and action.action == '')) then
                     action = maybe_get_default_action(player_hotbar, environment, h, slot)
+                end
+                if self.display_palette and action and (not action.action or action.action == '') then
+                    action = nil
+                end
+
+                local frame = self.hotbars[h].slot_frame[i]
+                if self.display_palette and not action then
+                    frame:path(self.empty_frame_image_path)
+                    if self.theme.hide_empty_slots then
+                        frame:hide()
+                        self.hotbars[h].slot_background[i]:hide()
+                    end
+                elseif frame:path() == self.empty_frame_image_path then
+                    frame:path(self.frame_image_path)
                 end
 
                 if (action ~= nil and action.type == 'a' and action.action == 'a' and action.alias == 'Attack') then

@@ -1,3 +1,27 @@
+# Current Development Status — November 7, 2026 — XI compact spacing and artwork
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `8c6767c199cbe1bf891f303633274d17772763fb`.
+The user approved the softer recast flash and requested tighter XI spacing.
+
+- Select `//xb display xi`, turn `//xb triggerscale off`, and use
+  `//xb show` to compare both banks. At 1×, standard compact XI uses
+  touching side tiles, a 4 px gap between vertically stacked tiles, and a
+  16 px gap between the L2 and R2 banks. The alternate layout preserves its
+  split grouping. Saved HUD scale and offsets apply to the entire layout.
+- Compare occupied and empty slots. Empty XI frames have a shaded top
+  and brighter lower lip. Four new warm-white field textures are fitted
+  around the active bank or its two clusters. Check single, combined,
+  double-tap and binding-preview states.
+- Switch to `//xb display legacy` while compact. Original spacing,
+  empty-slot artwork, dark fields and thicker square-ended combat strips
+  should return. Legacy leaves compact enabled so spacing is easy to compare.
+- Lua fixtures cover live layout changes, empty visibility, field fitting,
+  and the Legacy skillchain ribbon shape. In-game density, label readability
+  and asset appearance are pending. This patch overlays the soft recast build.
+
+---
+
 # Current Development Status — November 7, 2026 — Softer recast-ready flash
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

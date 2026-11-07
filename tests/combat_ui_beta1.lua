@@ -10,7 +10,7 @@ local clock=10
 local pending={}
 local surface, calls={},{}
 local prim={}
-for _,key in ipairs({'set_visibility','set_color','set_size','set_position'}) do
+for _,key in ipairs({'set_visibility','set_color','set_size','set_position','set_rounding'}) do
     prim[key]=function(name,...)
         if key=='set_visibility' then surface[name]=select(1,...) end
         calls[#calls+1]={key,name,...}
@@ -37,7 +37,7 @@ local aa=section('-- Auto-attack swing timer state.','function ui:display_skillc
 assert(load(aa,'actual autoattack state','t',env))()
 assert(load(section('function ui:set_autoattack_enabled(enabled)','-- Hide all three auto-attack bar primitives.'),
     'actual estimator toggle','t',env))()
-assert(load(section('function ui:display_skillchain_indicator','function ui:display_gcd_indicator'),
+assert(load(section('function ui:combat_strip_left','function ui:display_gcd_indicator'),
     'actual skillchain bar','t',env))()
 assert(load(section('local function lockout_tint', '-- Separate tracking from opacity'),
     'actual lockout renderer','t',env))()
@@ -92,6 +92,17 @@ ui:display_skillchain_indicator({},0,.55)
 a,r,g,b=ribbon_color('skillchain_indicator')
 assert(a==220 and r==255 and g==255 and b==255, 'XI open white')
 ui.display_palette=nil
+local function last_call(method,name)
+    for i=#calls,1,-1 do
+        local c=calls[i]
+        if c[1]==method and c[2]==name then return c end
+    end
+end
+assert(last_call('set_size','skillchain_indicator')[4]==5)
+assert(last_call('set_rounding','skillchain_indicator')[3]==true)
+ui:display_skillchain_indicator({},0,1)
+assert(last_call('set_size','skillchain_indicator')[4]==10)
+assert(last_call('set_rounding','skillchain_indicator')[3]==false)
 ui.theme.skillchain_window_opacity=0
 ui:display_skillchain_indicator({},2,0)
 assert(surface.skillchain_indicator==false and surface.skillchain_indicator_bg==false,
