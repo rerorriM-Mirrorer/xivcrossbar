@@ -415,3 +415,6 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 
 2026-11-07: Re-extracted the golden menu cursor using the original atlas DXT3
 transparency. See TESTING.md for the in-game appearance check.
+
+2026-11-07: Aligned the golden cursor crops to the transparent divider rows
+in the atlas to preserve both arrow tips through all six frames.

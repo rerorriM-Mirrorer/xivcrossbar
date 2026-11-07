@@ -1,8 +1,22 @@
 # Current Development Status
 
-This golden cursor test targets `rerorriM-Mirrorer/xivcrossbar` on
-`experiment/native-gamepad-bridge`, based on GitHub checkpoint `02a2b84`.
-The user previously confirmed repeated Trust paging and smoother menu navigation.
+This cursor crop patch targets `rerorriM-Mirrorer/xivcrossbar` on
+`experiment/native-gamepad-bridge`, based on GitHub checkpoint `be250907`.
+The user confirmed the DXT3 cursor looked much better in-game and reported
+clipped upper tips and stray pixels near the lower edge.
+
+## 2026-11-07 — Golden cursor crop correction
+
+The transparent divider rows are at atlas y=0, 21, 42, and 63. The six
+32×20 crops now start at y=1, 22, and 43. Local checks verified that each
+crop covers exactly one complete sprite and that all six saved PNGs match
+their atlas crops pixel for pixel. The renderer and animation are unchanged.
+
+Back up the existing cursor folder, overlay the patch in Windower's
+`addons` folder, run `//xb restart`, and open `//xb menu`. Check both
+arrow edges through a full loop. Live verification of the new crops is pending.
+
+---
 
 ## 2026-11-07 — Golden cursor atlas extraction
 
