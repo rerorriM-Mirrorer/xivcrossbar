@@ -157,7 +157,13 @@ for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,14
             'spell page leaked into target selection')
         binder:submit_selected_option()
         assert(binder.state==5 and not binder.selector.is_showing, 'target did not reach binding')
-        binder:go_back();binder:go_back()
+        local entry_images = binder.images
+        binder:go_back()
+        for _, image in ipairs(entry_images) do
+            assert(resources.is_disposed(image), 'binding image survived Back to target picker')
+        end
+        assert(prim_values.button_entry_bg.set_visibility[1] == false)
+        binder:go_back()
         assert(binder.selector.current_page==page and binder.selector:get_selected_option().text=='Shellra II',
             'Back lost the selected spell/page')
         binder:submit_selected_option();binder:submit_selected_option()

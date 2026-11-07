@@ -1,3 +1,22 @@
+# Current Development Status — November 7, 2026
+
+Hotfix for `experiment/public-ahk-v2-binding-preview` in `rerorriM-Mirrorer/xivcrossbar`,
+based on `629ccb2`.
+
+## Binding preview cleanup
+
+Lionstag's diagnostic showed the Attack preview stayed visible when Back
+returned from Enter Button Combo to the target picker. The binder now
+clears the combo panel, glyphs, action icon and captions when leaving that
+page. Back from confirmation to the combo page still shows the preview.
+The menu-resource fixture verifies image disposal and panel visibility on Back.
+
+Unload the addon, overlay this patch on the public binding-preview build
+and load it again. Exercise Back from a targeted spell's combo page and
+Escape out of a second combo page.
+
+---
+
 # Current Development Status
 
 Binding preview test branch `experiment/public-ahk-v2-binding-preview` in

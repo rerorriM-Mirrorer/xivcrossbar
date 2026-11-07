@@ -438,3 +438,5 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 
 2026-11-07: Ported the binding preview, tentative slot tint, title backing,
 and corrected bouncing cursor to the public AHK v2 test build.
+
+2026-11-07: Cleared the binding preview and combo panel when backing out.
