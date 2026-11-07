@@ -22,6 +22,8 @@ DirectBuffered buffered_original;
 std::mutex guard;
 xb::Ownership ownership, buffered_ownership;
 unsigned buffered_raw;
+DIDEVICEOBJECTDATA buffered_hat{};
+bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend;
@@ -33,6 +35,7 @@ void reset() {
     ownership.reset();
     buffered_ownership.reset();
     buffered_raw = 0;
+    buffered_hat_pending = false;
     probe_ready = false;
     head = count = raw = suppressed = 0;
     ++generation;
@@ -56,6 +59,7 @@ unsigned observe(unsigned buttons) {
         probe_ready = false;
         buffered_ownership.reset();
         buffered_raw = 0;
+        buffered_hat_pending = false;
         suppressed = 0;
         return 0;
     }
@@ -63,7 +67,7 @@ unsigned observe(unsigned buttons) {
         probe_ready = true;
         buffered_ownership.apply(0, 2, menu, native_menu);
     }
-    const auto result = ownership.apply(buttons, mode == 3 ? 2 : mode, menu, native_menu);
+    const auto result = ownership.apply(buttons, mode == 3 ? 2 : mode, menu, native_menu, 0, mode == 3 ? now : 0);
     suppressed = result.suppressed;
     if (mode == 3) return suppressed;
     // Releases precede presses; simultaneous triggers precede face/D-pad.
@@ -148,6 +152,9 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
         auto* bytes = reinterpret_cast<unsigned char*>(data);
         auto stream = buffered_ownership;
         unsigned state = buffered_raw;
+        auto hat = buffered_hat;
+        bool hat_pending = buffered_hat_pending;
+        const auto now = GetTickCount64();
         for (DWORD i = 0; i < *entries; ++i) {
             auto* record = bytes + i * size;
             DWORD offset, value;
@@ -161,8 +168,11 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             if ((type & DIDFT_POV) && instance == 0) {
                 const std::uint8_t neutral[32]{};
                 state = (state & ~0xfu) | xb::read_joystick(value, neutral, fightpad);
-                const auto mask = mode == 1 ? xb::up : stream.apply(state, 2, menu, native_menu).suppressed;
-                value = xb::filter_hat(value, mask);
+                const auto mask = mode == 1 ? xb::up : stream.apply(state, 2, menu, native_menu, 0, now).suppressed;
+                if (mode == 3) memcpy(&hat, record, size);
+                const auto filtered = xb::filter_hat(value, mask);
+                hat_pending = mode == 3 && filtered != value;
+                value = filtered;
             } else if (type & DIDFT_BUTTON) {
                 const auto* map = fightpad ? xb::fightpad : xb::dualsense;
                 unsigned bit = 0;
@@ -170,12 +180,22 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
-                const auto mask = mode == 1 ? xb::circle : stream.apply(state, 2, menu, native_menu).buffered_mask();
+                const auto mask = mode == 1 ? xb::circle : stream.apply(state, 2, menu, native_menu, 0, now).buffered_mask();
                 if (mask & bit) value &= ~0x80u;
             } else continue;
             memcpy(record + sizeof offset, &value, sizeof value);
         }
+        if (mode == 3 && hat_pending && *entries < capacity && result == DI_OK) {
+            const auto mask = stream.apply(state, 2, menu, native_menu, 0, now).suppressed;
+            if (!(mask & state & xb::directions)) {
+                hat.dwTimeStamp = GetTickCount();
+                memcpy(bytes + (*entries)++ * size, &hat, size);
+                hat_pending = false;
+            }
+        }
         if (!(flags & DIGDD_PEEK)) {
+            buffered_hat = hat;
+            buffered_hat_pending = hat_pending;
             buffered_ownership = stream;
             buffered_raw = state;
         }

@@ -53,6 +53,16 @@ int main() {
     check(!edge.suppressed && edge.buffered_mask() == up, "buffered Up release retains its owner");
     check(!owner.apply(up, 2, false, true, default_passthrough).buffered_mask(), "fresh native Up passes");
 
+    owner.reset();
+    owner.apply(0, 2, false, false, 0, 1);
+    owner.apply(right_trigger | up | circle, 2, false, false, 0, 10);
+    check(owner.apply(up | circle, 2, false, false, 0, 20).suppressed == (up | circle),
+        "trigger release begins directional handoff delay");
+    check(owner.apply(up | circle, 2, false, false, 0, 139).suppressed == (up | circle),
+        "held direction stays captured during delay");
+    check(owner.apply(up | circle, 2, false, false, 0, 140).suppressed == circle,
+        "only direction returns to native control after delay");
+
     check(read_xbox(0x1009 | 0x0200, 5, 4) == (up | right | face | left_trigger),
         "Xbox layout ignores unrelated shoulder and preserves trigger threshold");
     std::uint8_t buttons[32]{};

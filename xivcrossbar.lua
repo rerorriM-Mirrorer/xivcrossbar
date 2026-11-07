@@ -1664,9 +1664,6 @@ local function crossbar_menu_open()
 end
 
 local function close_addon_menus()
-    if gamepad_state.left_trigger or gamepad_state.right_trigger then
-        gamepad_state.menu_trigger_hold = true
-    end
     if env_chooser:is_showing() or env_chooser.capturing or action_binder.chooser_active then
         finish_set_chooser(true)
     end
@@ -1704,13 +1701,6 @@ local function handle_controller_key(dik, pressed, flags, blocked)
         gamepad_state.minus_button = pressed
     elseif (gamepad.is_plus(dik)) then
         gamepad_state.plus_button = pressed
-    end
-
-    local trigger_held = gamepad_state.left_trigger or gamepad_state.right_trigger
-    if not trigger_held then
-        gamepad_state.menu_trigger_hold = false
-    elseif crossbar_menu_open() then
-        gamepad_state.menu_trigger_hold = true
     end
 
     if (gamepad_mapper.is_showing) then
@@ -1952,7 +1942,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
 
     local any_trigger_down = gamepad_state.left_trigger or gamepad_state.right_trigger
     if (gamepad_state.capturing and any_trigger_down and gamepad.is_face_button_or_dpad(dik)) then
-        if gamepad_state.menu_trigger_hold or crossbar_menu_open() then return true end
+        if crossbar_menu_open() then return true end
         if (pressed) then
             if (gamepad.is_dpad_left(dik)) then
                 trigger_action(1)

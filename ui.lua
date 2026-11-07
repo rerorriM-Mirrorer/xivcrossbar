@@ -1573,7 +1573,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     self:display_aa_indicator()
 
     local active_bar = menu_open and (preview_bank or 0)
-        or (gamepad_state.menu_trigger_hold and 0 or gamepad_state.active_bar)
+        or gamepad_state.active_bar
     if active_bar ~= 0 then
         for _, field in ipairs({self.bar_background, self.bar_background_left, self.bar_background_right}) do
             if menu_open then

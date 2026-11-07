@@ -3,6 +3,7 @@
 
 namespace xb {
 constexpr unsigned up = 1, circle = 0x40, slots = 0xff, triggers = 0xc00;
+constexpr unsigned directions = 0xf, direction_resume_ms = 120;
 constexpr unsigned controls = slots | triggers;
 constexpr unsigned default_passthrough = up | circle;
 
@@ -18,12 +19,14 @@ struct Sample {
 class Ownership {
     unsigned previous_ = 0;
     unsigned owned_ = 0;
+    std::uint64_t direction_resume_at_ = 0;
     bool armed_ = false;
 public:
-    void reset() { previous_ = owned_ = 0; armed_ = false; }
+    void reset() { previous_ = owned_ = 0; armed_ = false; direction_resume_at_ = 0; }
 
     // mode 1 is the isolated Up and Circle probe. Mode 2 routes the normal crossbar.
-    Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu, unsigned passthrough = 0) {
+    Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu, unsigned passthrough = 0,
+        std::uint64_t now = 0) {
         if (!armed_) {
             armed_ = !(raw & controls);
             return {};
@@ -40,6 +43,14 @@ public:
         }
         const unsigned acquired = down & capture;
         owned_ |= acquired;
+        if (now && mode == 2) {
+            if (menu || (owned_ & triggers)) direction_resume_at_ = 0;
+            else if (released & triggers) direction_resume_at_ = now + direction_resume_ms;
+            if (direction_resume_at_ && now >= direction_resume_at_) {
+                owned_ &= ~directions;
+                direction_resume_at_ = 0;
+            }
+        }
         return {owned_, acquired, released};
     }
 };

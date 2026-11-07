@@ -1,3 +1,10 @@
+# Held-trigger handoff
+
+- Closing the XIVCrossbar menu keeps the held trigger bank available immediately. In automatic guard mode, releasing the final owned trigger returns held D-pad directions to FFXI after 120 ms. Face-button ownership remains through release. Buffered DirectInput replays a held POV value when space is available.
+- Live: close the addon menu while holding each trigger, use a fresh face press, then hold a direction and release the trigger first. Check release before the delay and menu Cancel separately. DLL update requires a full client restart.
+
+---
+
 # Skillchain indicator opacity command
 
 - `//xb skillchain off` sets opacity to zero; `on` restores the built-in default (220). The bare command toggles, and `status` reports the current opacity. Changes save and apply without a reload.
