@@ -677,8 +677,22 @@ local function check_profile_ready()
     if not ok and reason == 'identity' then profile_gate.loaded = nil end
 end
 
+-- All eight physical slot directions can animate independently in the
+-- experimental layer, while the legacy single feedback flash remains.
+local function feedback_slot_for_dik(dik)
+    if gamepad.is_dpad_left(dik) then return 1
+    elseif gamepad.is_dpad_down(dik) then return 2
+    elseif gamepad.is_dpad_right(dik) then return 3
+    elseif gamepad.is_dpad_up(dik) then return 4
+    elseif gamepad.is_button_b(dik) then return 5
+    elseif gamepad.is_button_a(dik) then return 6
+    elseif gamepad.is_button_x(dik) then return 7
+    elseif gamepad.is_button_y(dik) then return 8 end
+end
+
 -- trigger hotbar action
 function trigger_action(slot)
+    ui:press_slot_pulse(player.hotbar_settings.active_hotbar,slot)
     if settings.InputTest then
         chat_format.say(207, '[XIVCrossbar test] Crossbar ' .. tostring(gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
         ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
@@ -1204,6 +1218,7 @@ function display_help_menu()
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
     chat_help.command("autoattack [on|off|status]","Enable/stop swing estimation separately from opacity.")
+    chat_help.command("slotpulse [on|off|status]","Test independent press/hold/release pulse over the normal flash.")
     chat_help.heading('Other')
     chat_help.command("reload","Reload saved crossbar bindings.")
     chat_help.command("restart","Fade out then reload the addon.")
@@ -1430,6 +1445,7 @@ windower.register_event('addon command', function(command, ...)
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
             ' | Text Settling: '..chat_format.toggle(settings.TextSettling ~= false)))
         chat_format.say(0,chat_format.row('Autoattack Estimate',chat_format.toggle(settings.AutoAttackIndicator.Enabled~=false)))
+        chat_format.say(0,chat_format.row('Slot Pulse',chat_format.toggle(settings.SlotPulse.Enabled~=false)))
         chat_format.say(0,chat_format.row('D-pad',settings.GameplayDPad=='ijkl' and 'IJKL' or 'Arrows'))
         report_controller_status(true)
         return
@@ -1437,6 +1453,22 @@ windower.register_event('addon command', function(command, ...)
 
     if command == 'compact' or (command == 'ui' and args[1] == 'compact') then
         return set_compact_mode(command == 'compact' and args[1] or args[2])
+    end
+
+    if command == 'slotpulse' then
+        local mode=args[1] and args[1]:lower() or 'status'
+        if mode~='on' and mode~='off' and mode~='status' then
+            chat_format.say(123,'[XIVCrossbar] //xb slotpulse [on|off|status]')
+            return
+        end
+        if mode~='status' then
+            settings.SlotPulse.Enabled=mode=='on'
+            theme_options.slot_pulse_enabled=settings.SlotPulse.Enabled
+            ui:set_slot_pulse_enabled(settings.SlotPulse.Enabled)
+            config.save(settings)
+        end
+        chat_format.say(207,'[XIVCrossbar] Independent slot pulse: '..(settings.SlotPulse.Enabled and 'ON' or 'OFF'))
+        return
     end
 
     if command == 'autoattack' then
@@ -1676,6 +1708,12 @@ local function close_addon_menus()
 end
 
 local function handle_controller_key(dik, pressed, flags, blocked)
+    -- Key releases remain owned by their original slot, even if menus or
+    -- trigger states change before the button comes up.
+    if not pressed then
+        local released_slot=feedback_slot_for_dik(dik)
+        if released_slot then ui:release_slot_pulse(released_slot) end
+    end
     local left_trigger_just_pressed = pressed and gamepad.is_left_trigger(dik) and not gamepad_state.left_trigger
     local right_trigger_just_pressed = pressed and gamepad.is_right_trigger(dik) and not gamepad_state.right_trigger
     local left_trigger_just_released = (not pressed) and gamepad.is_left_trigger(dik) and gamepad_state.left_trigger
@@ -2268,6 +2306,7 @@ windower.register_event('prerender',function()
     if visible and ui.is_setup then
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open, action_binder:get_binding_preview_bank())
+        ui:show_slot_pulse()
     end
 
     ui_dirty = false

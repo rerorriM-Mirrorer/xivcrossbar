@@ -121,6 +121,8 @@ defaults.Color.TpCost.Green = 222
 defaults.Color.TpCost.Blue = 0
 defaults.Color.Feedback = {}
 defaults.Color.Feedback.Opacity = 150
+-- Experimental: show companion-style independent pulses over the legacy flash.
+defaults.SlotPulse = {Enabled=true}
 defaults.Color.Feedback.Speed = 30
 defaults.Color.Disabled = {}
 defaults.Color.Disabled.Opacity = 100

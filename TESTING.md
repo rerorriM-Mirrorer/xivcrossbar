@@ -1,3 +1,12 @@
+# Current Development Status — November 6, 2026 — Public Independent Slot Pulse Overlay 1
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, baseline `4dc91217e4f572da57155bd3aa67a391f44913af`. Re-reviewed original user request and current GitHub AGENTS/WORKFLOW/TESTING for both branches before modification. Experimental visual addition only; prior shared last-client shutdown source retained.
+- Added one eight-button pulse overlay module matching personal's `libs/banks/feedback.lua` state machine (60 ms minimum, settles 180→72 alpha, 140 ms release), rendered over rather than replacing public's existing single white flash. Eight reusable UI image surfaces are created per UI setup; simultaneous physical buttons animate independently. Dynamic per-bank positions, compact relocation, hide/reset, and last-visible-bar gating prevent stale off-bank pulses. `//xb slotpulse on|off|status` defaults ON for this comparison; saved OFF honored.
+- Added focused timing/source regression and retained existing UI resource churn checks. GitHub CI pending; this is *not* evidence an action executed successfully and not physical FFXI acceptance. Live compare ON vs OFF with Cross+Square, D-pad+face, bar switches, compact/full layout, menu input, rapid presses and four clients. If too bright, adjust alpha after user feedback instead of deleting the old flash.
+- Earlier ownership CI initially failed the old isolated `profile_lifecycle.lua` fixture (missing new registry mock) and was corrected in `4dc91217e4f572da57155bd3aa67a391f44913af`. Native 32-bit runner can transiently fail due to startup PID status race; retry status should be reported accurately. All preceding history preserved.
+
+---
+
 # Current Development Status — November 6, 2026 — Public Ownership Test-Harness Correction 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, starting source `cc7a595c315bd15214b095d723eb57b47a74cebd`. Previous native AHK32 and AHK64 workflow jobs passed for last-client ownership; Lua packaging failed in the prior attempt because the existing isolated `tests/profile_lifecycle.lua` fixture had no `windower.addon_path` or ownership backend mock. It was a test-harness failure, not an observed FFXI regression.

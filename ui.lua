@@ -62,6 +62,11 @@ ui.feedback.is_active = false
 ui.feedback.current_opacity = 0
 ui.feedback.max_opacity = 0
 ui.feedback.speed = 0
+ui.slot_pulse_enabled = false
+ui.pulse_views = {}
+ui.pulse_tracks = {}
+ui.pulse_visible_bars = {}
+ui.slot_pulse = nil
 
 ui.disabled_slots = {}
 ui.disabled_slots.actions = {}
@@ -612,6 +617,17 @@ function ui:load(theme_options)
     self.feedback.speed = theme_options.feedback_speed
     self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback_icon:hide()
+    -- Eight independently owned physical slot directions. Each may occupy a
+    -- different bar while the original single legacy flash stays untouched.
+    self.slot_pulse = require('slot_pulse').new(require('socket').gettime)
+    self.slot_pulse_enabled = theme_options.slot_pulse_enabled
+    self.pulse_views,self.pulse_tracks,self.pulse_visible_bars = {},{},{}
+    for slot=1,8 do
+        local view=new_image(images_setup)
+        setup_image(view,windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
+        view:hide()
+        self.pulse_views[slot]=view
+    end
     ui:update_offsets(settings.Style.OffsetX, settings.Style.OffsetY)
 end
 
@@ -674,6 +690,10 @@ function ui:set_compact(enabled)
     if self.feedback.is_active then
         self.feedback_icon:pos(self:get_slot_x(self.feedback.hotbar,self.feedback.slot),
             self:get_slot_y(self.feedback.hotbar,self.feedback.slot))
+    end
+    for slot,track in pairs(self.pulse_tracks or {}) do
+        local view=self.pulse_views[slot]
+        if view then view:pos(self:get_slot_x(track.hotbar,track.slot),self:get_slot_y(track.hotbar,track.slot)) end
     end
     local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/'
     self.bar_background:path(base .. (enabled and 'bar_bg_compact.png' or 'bar_bg.png'))
@@ -745,6 +765,9 @@ function ui:hide()
     end
     self.battle_notice:hide()
     self.feedback_icon:hide()
+    if self.slot_pulse then self.slot_pulse:cancel() end
+    self.pulse_tracks,self.pulse_visible_bars={},{}
+    for _,view in ipairs(self.pulse_views or {}) do view:hide() end
 
     self:hide_button_hints()
 
@@ -1616,6 +1639,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
             shouldDrawDefaultVisibleBars = active_bar < 3
         end
         local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
+        self.pulse_visible_bars[h]=shouldDrawThisBar
         if (shouldDrawThisBar) then
             for i=1,8,1 do
                 local slot = i
@@ -2244,6 +2268,41 @@ end
 -----------------------------
 -- Feedback UI
 -----------------------------
+
+-- Optional companion-bank pulse layered above the existing white flash.
+-- The pulse acknowledges a routed press, not a successful FFXI action.
+function ui:set_slot_pulse_enabled(enabled)
+    self.slot_pulse_enabled=enabled==true
+    if not self.slot_pulse_enabled then
+        if self.slot_pulse then self.slot_pulse:cancel() end
+        self.pulse_tracks={}
+        for _,view in ipairs(self.pulse_views or {}) do view:hide() end
+    end
+end
+function ui:press_slot_pulse(hotbar,slot)
+    if not self.slot_pulse_enabled or not self.slot_pulse or not self.pulse_views[slot] then return end
+    local view=self.pulse_views[slot]
+    self.slot_pulse:press(slot,hotbar,slot)
+    self.pulse_tracks[slot]={hotbar=hotbar,slot=slot}
+    view:pos(self:get_slot_x(hotbar,slot),self:get_slot_y(hotbar,slot))
+end
+function ui:release_slot_pulse(slot)
+    if self.slot_pulse then self.slot_pulse:release(slot) end
+end
+function ui:show_slot_pulse()
+    if not self.slot_pulse_enabled or not self.slot_pulse then return end
+    for slot,view in ipairs(self.pulse_views or {}) do
+        local track=self.pulse_tracks[slot]
+        local alpha=track and self.slot_pulse:alpha(track.hotbar,track.slot) or 0
+        if alpha>0 and self.pulse_visible_bars[track.hotbar] then
+            view:alpha(alpha)
+            view:show()
+        else
+            view:hide()
+            if alpha<=0 then self.pulse_tracks[slot]=nil end
+        end
+    end
+end
 
 -- trigger feedback visuals in given hotbar and slot
 function ui:trigger_feedback(hotbar, slot)

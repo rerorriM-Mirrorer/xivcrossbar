@@ -430,3 +430,8 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 
 - The shared AHK v2 controller reader now records each loaded XIVCrossbar Lua client through a unique held-owner file. Unloading one client never terminates a reader used by another. When the last owner closes with auto-stop ON, AHK waits two seconds for reload/restart recovery before exiting; uncertain/unreadable live owners prevent automatic termination. Explicit `//xb controller stop` remains immediate and installation-wide.
 - Fresh/default and previously forced-off public installations adopt auto-stop ON once. After migration, `//xb controller autostop on|off|status` persists an explicit user choice. Switching profiles, start/stop and actual controller input remain unchanged. AHK writes registry status counters into the status file for diagnostics. No broad killahk.bat behavior.
+
+### November 6, 2026 — Test-only independent slot pulse overlay
+
+- Added `//xb slotpulse on|off|status` (ON for this public development test) to layer personal companion-bank feedback over the existing main-bar flash. Eight lazily updated physical-button layers support simultaneous presses on different slots, a 60 ms minimum pulse, held settling and 140 ms release fade. The existing flash is unchanged and remains visible beneath the new layer.
+- It represents receipt of a physical slot event, not confirmation the command executed in FFXI. It doesn't change spell/TP/MP colors, action logic, controller transport or stored bindings. Compare `//xb slotpulse off` versus `on` with rapid Cross/Square, alternating triggers, and simultaneous presses; check for overly bright overlays, stale flashes and performance on four clients.

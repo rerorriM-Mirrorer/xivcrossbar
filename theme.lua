@@ -99,6 +99,7 @@ theme.apply = function (settings)
     options.double_press_offset_x = settings.HotbarOffsets.DoublePress.X
     options.double_press_offset_y = settings.HotbarOffsets.DoublePress.Y
 
+    options.slot_pulse_enabled = settings.SlotPulse and settings.SlotPulse.Enabled~=false
     options.feedback_max_opacity = settings.Color.Feedback.Opacity
     options.feedback_speed = settings.Color.Feedback.Speed
     options.disabled_slot_opacity = settings.Color.Disabled.Opacity
