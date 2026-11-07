@@ -9,6 +9,7 @@ struct State {
     std::ptrdiff_t value{};
     std::ptrdiff_t process_id{};
     LuaFunction function{};
+    LuaFunction tap_tab{};
     unsigned callbacks{};
     bool table{};
 };
@@ -21,14 +22,17 @@ __declspec(dllexport) void __cdecl lua_createtable(State* state, int, int) { sta
 __declspec(dllexport) void __cdecl lua_pushcclosure(State* state, LuaFunction fn, int) { state->function = fn; }
 __declspec(dllexport) void __cdecl lua_setfield(State* state, int, const char* name) {
     if (strcmp(name, "process_id") == 0) state->process_id = state->value;
-    else if (state->function) ++state->callbacks;
+    else if (state->function) {
+        if (strcmp(name, "tap_tab") == 0) state->tap_tab = state->function;
+        ++state->callbacks;
+    }
     state->function = nullptr;
 }
 __declspec(dllexport) void __cdecl lua_rawseti(State*, int, int) {}
 
 __declspec(dllexport) bool __cdecl verify_messages_module(LuaFunction open) {
     State state;
-    return open(&state) == 1 && state.table && state.callbacks == 4 &&
+    return open(&state) == 1 && state.table && state.callbacks == 5 && state.tap_tab &&
         state.process_id == GetCurrentProcessId();
 }
 }
