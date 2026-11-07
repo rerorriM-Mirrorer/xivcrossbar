@@ -1,3 +1,10 @@
+# Current Development Status — November 6, 2026 — Isolated Lifecycle Fixture Completeness 2
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, starting source `796f542eef288db4bbc41ef8d8a73bf862316be4`. GitHub native AHK32/64 passed earlier but package Lua fixture failed twice in succession: first lacked a mock path/registry (corrected), then lacked the new `settings.on_unload_killahk` field. This change supplies and asserts the preference in the already isolated callback fixture. Production Lua and AHK behavior unchanged; actual registry test and independent pulse overlay test remain intact.
+- Re-run full GitHub CI and verify result before acceptance. Multi-client FFXI acceptance remains pending. Preserve preceding testing history below.
+
+---
+
 # Current Development Status — November 6, 2026 — Public Independent Slot Pulse Overlay 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, baseline `4dc91217e4f572da57155bd3aa67a391f44913af`. Re-reviewed original user request and current GitHub AGENTS/WORKFLOW/TESTING for both branches before modification. Experimental visual addition only; prior shared last-client shutdown source retained.

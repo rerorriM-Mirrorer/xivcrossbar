@@ -16,6 +16,7 @@ function player:load_hotbar()loads=loads+1;return true end
 local ui={setup=function()end,load_player_hotbar=function()end,
     get_set_chooser_anchor=function()end,hide=function()hidden=hidden+1 end}
 local env=setmetatable({xivcrossbar=state,storage=storage,player=player,ui=ui,
+    settings={on_unload_killahk=true},
     chat_format={say=function()end},
     character_identity=require('character_identity'),profile_gate=require('profile_gate').new(function()return 0 end),
     resources={servers={[1]={en='Asura'},[2]={en='Fenrir'}}},
@@ -48,7 +49,7 @@ env.windower.addon_path='test/'
 local registrations=0
 package.loaded['libs/controller/clients']={new=function(options)
     assert(options.directory=='test/data/controller-clients/')
-    return {register=function(self,shutdown)registrations=registrations+1;return true end,
+    return {register=function(self,shutdown)assert(shutdown==true);registrations=registrations+1;return true end,
         close=function()return true end}
 end}
 env.windower.register_event=function(name,fn)handlers[name]=fn end
