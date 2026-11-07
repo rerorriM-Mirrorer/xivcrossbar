@@ -1,3 +1,43 @@
+# Current Development Status — November 7, 2026 — Job Abilities, Songs, Trust portrait/role sort experiment
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`, starting source checkpoint
+`9d070b9353ffc2af96263f7d55c48a108db4af12`. Last user-observed FFXI behavior: White Magic ascending IDs and
+weaponskills descending IDs both preferred over the former alphabetical lists.
+
+## Action binder order (test batch)
+
+- Job Abilities: ascending resource ID; available/eligible abilities and excluded
+  submenus remain unchanged.
+- Bard Songs: ascending spell ID; White Magic remains ascending ID; Weaponskills
+  remain descending ID. Other magic and ability categories retain prior ordering.
+- Trusts: custom name-specific portrait found in the ACTIVE icon pack first,
+  unportrayed Trusts second. Within both sections, role precedence is:
+  passive/non-interactive special, healer, tank, support, offensive caster,
+  physical ranged, then melee/unclassified, with ascending spell ID ties.
+  Roles are a curated and incomplete presentation taxonomy; unidentified Trusts
+  fall to the final bucket. 'Special' means untargetable passive aura, not every
+  alter ego whose wiki job is called Special. Portrait availability is checked
+  in the user's selected icon pack, with unchanged fallback to game spell icons.
+- No changes to custom icon files, icon_list.txt, generators, known spells,
+  action targets, bindings, saved settings, AHK, native blocker, or controller.
+- The existing `images/icons/iconpacks/default/GENERATE_ICON_LIST.bat`
+  refreshes `icon_list.txt` after manual PNG deletions. The batch script calls
+  `BatchSubstitute.bat` to strip the current absolute path; this test does
+  not run or alter either script.
+- Verified before publishing: Lua 5.4 syntax parse after source-preserving
+  Windower string normalization; comparator fixture on 11 sample Trusts
+  and prior JA/Songs/White/WS sort markers. In-game Trust and JA/Song
+  selection results still need live verification. Automated CI runs after push.
+- Install only `addons/xivcrossbar/action_binder.lua` from this commit and
+  `//xb restart`. Return to the selector and inspect order/icons.
+  Restore prior `action_binder.lua` to reverse.
+
+References for curated roles (not normative): FFXI official Trust role
+description and community Trust spell-icon role families. Curation is
+experimental, with no claim of an exhaustive live roster mapping.
+
+---
+
 # Current Development Status — November 7, 2026 — White Magic and weaponskill ordering experiment
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

@@ -383,3 +383,9 @@ The DLL's resident/pinned lifecycle remains a separate follow-up request.
 2026-11-07: Binder sorting experiment: preserve user-approved White Magic
 ascending spell-ID ordering and try descending weaponskill resource-ID ordering.
 All other action categories retain alphabetical sorting.
+
+2026-11-07: Binder order experiment: Job Abilities and Songs ascending ID.
+Trusts prefer existing portrait images in the selected icon pack, then sort
+each portrait/no-portrait group by passive, healer, tank, support, caster,
+ranged, attacker/unclassified and ascending ID. White Magic ascending and
+weaponskills descending remain unchanged. No icon files or binding data changed.

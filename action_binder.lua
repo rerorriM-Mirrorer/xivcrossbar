@@ -309,6 +309,55 @@ local SPELL_TYPE_LOOKUP = {
 	['Geomancy'] = 'geomancy',
 }
 
+-- Curation for the Trust binder only. Names use the same key normalization as
+-- custom portrait filenames. Role groups are presentation, not gameplay logic.
+-- 1 passive/non-interactive; 2 healer; 3 tank; 4 support;
+-- 5 offensive caster; 6 ranged attacker; 7 melee/fallback attacker.
+local TRUST_ROLE_PRIORITY = {
+    -- Passive auras: cannot be attacked or targeted.
+    ['brygid']=1, ['cornelia']=1, ['kupofried']=1,
+    ['kuyin-hathdenna']=1, ['moogle']=1, ['sakura']=1, ['star-sibyl']=1,
+    -- Healing is the defining role, including non-spell healers.
+    ['apururu-uc']=2, ['cherukiki']=2, ['ferreous-coffin']=2,
+    ['karaha-baruha']=2, ['kupipi']=2, ['mihli-aliapoh']=2,
+    ['monberaux']=2, ['nashmeira-ii']=2, ['pieuje-uc']=2,
+    ['ygnas']=2, ['yoran-oran-uc']=2,
+    -- Tanks, including ninja/rune tanking and the Ark Angel tanks.
+    ['aaev']=3, ['aahm']=3, ['amchuchu']=3, ['august']=3,
+    ['curilla']=3, ['gessho']=3, ['halver']=3,
+    ['invincible-shield-uc']=3, ['mnejing']=3, ['rahal']=3,
+    ['rughadjeen']=3, ['trion']=3, ['valaineral']=3,
+    -- Active enhancement, debuffs, songs, rolls, and party utility.
+    ['abquhbah']=4, ['arciela']=4, ['arciela-ii']=4,
+    ['joachim']=4, ['king-of-hearts']=4, ['koru-moru']=4,
+    ['luzaf']=4, ['nashmeira']=4, ['qultada']=4,
+    ['selhteus']=4, ['sylvie-uc']=4, ['uka-totlihn']=4,
+    ['ulmia']=4,
+    -- Primarily offensive spellcasters.
+    ['adelheid']=5, ['ajido-marujido']=5, ['aatt']=5,
+    ['d-shantotto']=5, ['gadalar']=5, ['ingrid']=5,
+    ['ingrid-ii']=5, ['kayeel-payeel']=5, ['kukki-chebukki']=5,
+    ['leonoyne']=5, ['mumor-ii']=5, ['ovjang']=5,
+    ['robel-akbel']=5, ['rosulatia']=5, ['shantotto']=5,
+    ['shantotto-ii']=5, ['teodor']=5, ['ullegore']=5,
+    -- Ranged physical attackers (not magic casters).
+    ['elivira']=6, ['makki-chebukki']=6, ['margret']=6,
+    ['najelith']=6, ['semih-lafihna']=6, ['tenzen-ii']=6,
+    -- Other Trusts fall into the final attacker/unclassified group.
+}
+
+local function sortTrusts(a, b)
+    -- Custom portrait availability is checked against the active icon pack.
+    -- This makes the user's remaining default-pack portraits appear first.
+    if a.custom_portrait ~= b.custom_portrait then
+        return a.custom_portrait == true
+    end
+    local a_role = TRUST_ROLE_PRIORITY[kebab_casify(a.name)] or 7
+    local b_role = TRUST_ROLE_PRIORITY[kebab_casify(b.name)] or 7
+    if a_role ~= b_role then return a_role < b_role end
+    return a.id < b.id
+end
+
 function action_binder:setup(buttonmapping, save_binding_func, delete_binding_func, theme_options, get_crossbar_sets_func, base_x, base_y, max_width, max_height,
 change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_custom_action_func, delete_custom_action_func, create_new_set_func)
     ui_resources.clear(self.images); ui_resources.clear(self.hints)
@@ -2321,7 +2370,8 @@ function action_binder:display_ability_selector()
         end
     end
 
-    ability_list:sort(sortByName)
+    -- Experimental: resource-ID order for the current job's abilities.
+    ability_list:sort(function(a, b) return a.id < b.id end)
 
     self.selector:display_options(ability_list)
     self:show_control_hints('Confirm', 'Go Back')
@@ -2440,13 +2490,17 @@ function action_binder:display_magic_selector_internal(magic_type)
                 icon_offset = 0
             end
 
-            spell_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
+            spell_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset,
+                custom_portrait = magic_type == 'Trust' and icon_overridden == true,
+                data = {target_type = target_type}})
         end
     end
 
-    -- Experimental FFXI spell-ID order for White Magic only.
-    if magic_type == 'WhiteMagic' then
+    -- ID order for White Magic and Bard songs; Trusts get portrait and role priority.
+    if magic_type == 'WhiteMagic' or magic_type == 'BardSong' then
         spell_list:sort(function(a, b) return a.id < b.id end)
+    elseif magic_type == 'Trust' then
+        spell_list:sort(sortTrusts)
     else
         spell_list:sort(sortByName)
     end
