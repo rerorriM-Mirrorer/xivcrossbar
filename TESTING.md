@@ -1,3 +1,10 @@
+# Current Development Status — November 6, 2026 — Public Ownership Test-Harness Correction 1
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, starting source `cc7a595c315bd15214b095d723eb57b47a74cebd`. Previous native AHK32 and AHK64 workflow jobs passed for last-client ownership; Lua packaging failed in the prior attempt because the existing isolated `tests/profile_lifecycle.lua` fixture had no `windower.addon_path` or ownership backend mock. It was a test-harness failure, not an observed FFXI regression.
+- This correction adds a strict per-test registration stub for the lifecycle callback and verifies registration, while the separate `tests/controller_clients_beta.lua` still executes the actual registry Lua module with fake held-owner handles. No production code changed. GitHub CI and physical multibox behavior pending check.
+
+---
+
 # Current Development Status — November 6, 2026 — Public Last-Client Controller Ownership 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, starting source `b9932a89c268d70e9f62db9ccc82b14f8f09df61`. Re-read GitHub AGENTS, WORKFLOW and TESTING for both development branches. Copied personal owner-file protocol and AHK lifecycle decision, without personal input-gesture or input-timing dependencies.

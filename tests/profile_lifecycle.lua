@@ -41,10 +41,21 @@ entity={name='Other',id=123};assert(env.initialize(2,'Cioara',123)==false and se
 entity.name='Cioara';assert(env.initialize(2,'Cioara',123)==true)
 assert(setups==1 and loads==1 and state.ready and storage.identity_valid)
 local handlers={}
+-- The real root now registers a Windows held-owner file on addon load.
+-- This fixture tests callback sequencing, so supply a stand-in while the
+-- separate controller_clients_beta.lua exercises the actual registry.
+env.windower.addon_path='test/'
+local registrations=0
+package.loaded['libs/controller/clients']={new=function(options)
+    assert(options.directory=='test/data/controller-clients/')
+    return {register=function(self,shutdown)registrations=registrations+1;return true end,
+        close=function()return true end}
+end}
 env.windower.register_event=function(name,fn)handlers[name]=fn end
 first=assert(source:find('-- ON LOAD',1,true));last=assert(source:find('-- ON UNLOAD',first,true))
 assert(load(source:sub(first,last-1),'real load/login/logout','t',env))()
 info.logged_in=false;handlers.load();assert(started==1,'wrapper startup depended on world identity')
+assert(registrations==1,'client owner not registered before wrapper launch')
 handlers.logout();assert(not state.ready and not state.initialized and not storage.identity_valid)
 assert(not player.identity_confirmed and released==1 and hidden==1)
 info.logged_in=true;handlers.login();assert(not state.ready and setups==1,'login opened storage before observation')
