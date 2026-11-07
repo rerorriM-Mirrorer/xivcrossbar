@@ -2,7 +2,7 @@
 -- A short minimum pulse keeps taps visible even between two rendered frames.
 local M={}
 local function held_alpha(p,now)
-    return 72+108*math.max(0,math.min(1,1-(now-p.started-.06)/.08))
+    return 96+84*math.max(0,math.min(1,1-(now-p.started-.06)/.08))
 end
 function M.new(clock)
     local self={presses={}}

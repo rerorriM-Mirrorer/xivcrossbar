@@ -31,6 +31,8 @@ local right_text_setup = {
     }
 }
 
+local slot_glow_padding = 4
+
 local images_setup = {
     draggable = false
 }
@@ -710,7 +712,9 @@ function ui:set_compact(enabled)
     for slot,track in pairs(self.pulse_tracks or {}) do
         local x,y=self:get_slot_x(track.hotbar,track.slot),self:get_slot_y(track.hotbar,track.slot)
         self.pulse_views[slot]:pos(x,y)
-        if self.glow_views[slot] then self.glow_views[slot]:pos(x,y) end
+        if self.glow_views[slot] then
+            self.glow_views[slot]:pos(x-slot_glow_padding,y-slot_glow_padding)
+        end
     end
     local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/'
     self.bar_background:path(base .. (enabled and 'bar_bg_compact.png' or 'bar_bg.png'))
@@ -2162,9 +2166,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     end
                 end
                 if glow then
-                    if not occupied then glow.brightness = .22
-                    elseif unavailable or self.hotbars[h].slot_icon[i]:alpha() < 255 then glow.brightness = .40
-                    else glow.brightness = .60 end
+                    if not occupied then glow.brightness = .33
+                    elseif unavailable or self.hotbars[h].slot_icon[i]:alpha() < 255 then glow.brightness = .61
+                    else glow.brightness = .85 end
                 end
             end
 
@@ -2369,8 +2373,9 @@ function ui:set_slot_glow_enabled(enabled)
     elseif self.pulse_views[1] and not self.glow_views[1] then
         for slot=1,8 do
             local view = new_image(images_setup)
-            setup_image(view, windower.addon_path .. '/themes/classic/frame.png')
-            view:color(255, 208, 102)
+            setup_image(view, windower.addon_path .. 'images/assets/slot-glow.png')
+            view:size(40+2*slot_glow_padding,40+2*slot_glow_padding)
+            view:color(255, 203, 92)
             view:hide()
             self.glow_views[slot] = view
         end
@@ -2388,7 +2393,7 @@ function ui:press_slot_pulse(hotbar,slot)
     local glow=self.glow_views[slot]
     if glow then
         geometry:assign_bank(glow, hotbar)
-        glow:pos(x,y)
+        glow:pos(x-slot_glow_padding,y-slot_glow_padding)
     end
 end
 

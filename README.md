@@ -421,3 +421,6 @@ small scale shared by the two regular banks.
 
 2026-11-07: Added opt-in gold slot borders with separate brightness for
 available, unavailable, and empty slots during controller holds.
+
+2026-11-07: Increased held slot-pulse opacity and added a feathered gold
+outline that follows the slot as it moves or scales.

@@ -1,3 +1,24 @@
+# Current Development Status — November 7, 2026 — Feathered slot glow
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `ce809fd18f9d178517e3ca029fb5e5ce9c79f730`.
+
+The user reported the held XI slot pulse was faint and the gold border
+was hard to see. The settled pulse now uses alpha 96 instead of 72, with
+the initial flash and timing retained. `//xb slotglow on` uses a dedicated
+feathered gold outline around the tile. The outline remains dimmer on
+unavailable actions and faintest on empty slots.
+
+Hold a slot with XI selected to compare the settled pulse. Enable slotglow
+and compare ready, unavailable and empty slots. Repeat with Legacy to see
+the gold frame without the XI pulse, then test compact layout and trigger
+scaling. Check both the feather and brightness at the normal play resolution.
+The texture and Lua fixture cover a transparent center, alpha falloff,
+brightness ordering, held opacity and alignment. Live appearance is pending.
+The native DLL is the same source baseline as the preceding package.
+
+---
+
 # Current Development Status — November 7, 2026 — Gold slot hold border
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
