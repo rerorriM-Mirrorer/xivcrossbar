@@ -48,3 +48,13 @@ now=1005;tracker:record_swing();assert(tracker.estimate==4)
 tracker:reset();assert(tracker.enabled and not tracker.engaged and tracker:elapsed()==nil)
 assert(not require('libs/autoattack').schedule,'estimator owns no scheduled callbacks')
 print('Autoattack disabled-work bypass, learning, rolling history, overlapping pauses, persistent buffs and fresh restart checks passed.')
+
+-- Fresh settings do not run an invisible estimator; an explicit user opt-in still works.
+local defaults=require('libs/defaults')
+local theme=require('ui/theme')
+assert(defaults.AutoAttackIndicator.Enabled==false,'Personal estimator must be disabled by default')
+assert(theme.apply(defaults).aa_enabled==false)
+defaults.AutoAttackIndicator.Enabled=true
+assert(theme.apply(defaults).aa_enabled==true)
+defaults.AutoAttackIndicator.Enabled=false
+print('Personal autoattack default OFF; user-enabled opt-in retained.')

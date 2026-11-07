@@ -1,3 +1,12 @@
+# Current Development Status — November 6, 2026 — Personal Autoattack Default 1
+
+- Repository `rerorriM-Mirrorer/xivcrossbar`, branch `development/ahk-v2-migration`, baseline `ad368145a2790a5d947bb132f75c17732545ac66`. Current AGENTS/WORKFLOW/TESTING read directly from GitHub.
+- Changed only factory `AutoAttackIndicator.Enabled` from true to false. Existing user-saved ON settings are never overwritten. `//xb autoattack off` is necessary for any current character whose settings have retained the old true value. Estimator on/off command and opacity behavior are unchanged.
+- Extended existing `tests/autoattack.lua` with default/theme propagation and opt-in assertions. Static/source checks only in this environment; Lua interpreter and live FFXI acceptance not available. Pending: clean fresh settings show OFF, saved ON can switch OFF, verify no hidden estimator work and normal gameplay unaffected.
+- Public beta and personal controller/Trust/bank implementations not changed.
+
+---
+
 # Current Development Status — November 4, 2026 — Bank Faces 1
 
 - Repo rerorriM-Mirrorer/xivcrossbar, development/ahk-v2-migration; baseline 8b2ef0483c142250249acc74bc71cbd4c20d96b5. Current GitHub AGENTS/WORKFLOW/TESTING read before edits. User approves requested default face changes, keeping other commands for now; no broad R1 clearing or suggested Follow/Stay/Mount bindings. Runtime 20261104.directlink1-ahkv2-bankfaces1.

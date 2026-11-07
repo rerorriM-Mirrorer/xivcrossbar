@@ -1692,3 +1692,7 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 
 - Factory/Cioara R1 Cross uses npc, Square npc target, Triangle trust menu; L1 Triangle is empty.
 - Other directions, Cancel, menu scrolling and saved overrides retained.
+
+### November 6, 2026 — Personal autoattack default OFF
+
+- Fresh personal settings no longer track invisible autoattack timing by default. Existing saved `AutoAttackIndicator.Enabled` values remain authoritative; use `//xb autoattack off` on an already-configured character to disable it. `//xb autoattack on` remains supported for deliberate testing. No display or controller behavior otherwise changes.

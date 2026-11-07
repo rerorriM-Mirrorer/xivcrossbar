@@ -75,8 +75,8 @@ defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Green = 205
 defaults.JobAbilityLockoutIndicator.PartialLockoutColor.Blue = 5
 
 defaults.AutoAttackIndicator = {}
--- A: independent processing switch; opacity zero only hides the estimate.
-defaults.AutoAttackIndicator.Enabled = true
+-- A: default OFF; opacity zero only hides an enabled estimate, not its processing.
+defaults.AutoAttackIndicator.Enabled = false
 defaults.AutoAttackIndicator.Opacity = 0
 defaults.AutoAttackIndicator.PausedOpacity = 110
 defaults.AutoAttackIndicator.BackgroundOpacity = 150
