@@ -1,0 +1,73 @@
+-- Run the addon lifecycle with two independent clients and a shared reader.
+local file = assert(io.open('xivcrossbar.lua'))
+local source = file:read('*a')
+file:close()
+local first = assert(source:find('-- Native filtering and DirectLink have one active profile per client.', 1, true))
+local last = assert(source:find('-- ON PRERENDER', first, true))
+local reader = {state='ready', pid=10}
+local clock = 0
+
+local function client()
+    local calls, notices = {}, {}
+    local function record(name)
+        return function() calls[#calls+1] = name; return true end
+    end
+    local dll = {begin=function() calls[#calls+1]='attach'; return 1 end,
+        stop=record('off'), detach=record('detach'), hook_status=function() return 'hooks attached' end,
+        poll=function(context) calls[#calls+1]=context; return 1 end, poll_count=function() return 1 end,
+        armed=function() return true end, status=function() return 'fixture' end}
+    local env = setmetatable({
+        require=function() return {open=function() return dll end} end,
+        controller_profiles={profiles={xinput={backend='xinput'}},matches=function() return true end},
+        controller_status=function() return reader end, settings={ControllerProfile='xinput',ControllerDevice=1},
+        profile_clock=function() return clock end,
+        clear_controller_input=record('clear'), message_bridge={},
+        config={save=function() end}, xivcrossbar={ready=true}, gamepad_mapper={},
+        crossbar_menu_open=function() return false end,
+        chat_format={say=function(_, text) notices[#notices+1]=text end},
+        windower={addon_path='',has_focus=function() return true end,ffxi={get_info=function() return {} end}},
+    }, {__index=_G})
+    assert(load(source:sub(first,last-1), 'native lifecycle', 't', env))()
+    return env, calls, notices
+end
+
+local a, calls, notices = client()
+local b = client()
+a.native_poll(); b.native_poll()
+assert(a.native_mode=='guard' and b.native_mode=='guard' and calls[2]==4)
+a.message_bridge.last_beat,a.message_bridge.last_seen=1,clock
+a.native_poll()
+assert(a.native_filtering and calls[#calls]==1)
+a.native_command('status')
+assert(notices[#notices]:find('filtering',1,true))
+a.native_stop(true)
+assert(table.concat(calls,','):find('off,clear,detach',1,true))
+assert(a.native_mode==nil and not a.native_filtering and b.native_mode=='guard')
+local reloaded, reload_calls = client()
+reloaded.native_poll()
+assert(reload_calls[1]=='attach' and reloaded.native_mode=='guard')
+
+reader.state='stopped'
+clock=1
+b.native_poll()
+assert(b.native_mode==nil and not b.native_receiving)
+reader={state='ready',pid=11}
+clock=2
+b.native_poll()
+assert(b.native_mode=='guard')
+b.native_stop(nil,true)
+clock=3
+b.native_poll()
+assert(b.native_mode=='guard','logout/login can reuse the same running reader')
+
+local loader = package.loadlib
+package.loadlib=function()
+    return function()
+        return {process_id=17, begin=function() return 1 end, detach=function() return 1 end}
+    end
+end
+local module = require('native_gamepad').open('fixture')
+package.loadlib=loader
+assert(module.begin()==1 and module.hook_status():find('attached',1,true))
+assert(module.detach() and module.hook_status():find('detached',1,true))
+print('Native lifecycle: reader lease, immediate cleanup, independent clients, reload and detach status passed.')

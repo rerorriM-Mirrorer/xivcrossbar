@@ -38,7 +38,7 @@ DIDEVICEOBJECTDATA buffered_hat{};
 bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
-unsigned backend;
+unsigned backend, last_context;
 bool menu, native_menu, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
@@ -373,7 +373,8 @@ __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, u
     for (auto& hook : xbox_hooks) hook.initialized = false;
     overflow = false;
     mode = experiment;
-    heartbeat = GetTickCount64();
+    heartbeat = 0; // Wait for the addon to publish the first input context.
+    last_context = 0;
     return 1;
 }
 __declspec(dllexport) void __cdecl xb_off() {
@@ -396,7 +397,13 @@ __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, un
         if (heartbeat && now - heartbeat > 500) heartbeat = 0;
     }
     if (context == 0) { if (heartbeat) reset(); heartbeat = 0; }
-    else { heartbeat = now; }
+    else {
+        // A lost reader lease gives ownership back to the game. Rearm
+        // from neutral while observing, before allowing capture again.
+        if (context == 4 && last_context != 4) reset();
+        heartbeat = now;
+    }
+    last_context = context;
     menu = context == 2;
     native_menu = context == 3 || context == 4;
     status[0] = generation; status[1] = calls; status[2] = raw; status[3] = suppressed;

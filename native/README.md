@@ -4,8 +4,10 @@ The messages build loads `native/xb_gamepad_messages.dll`. The x86 bridge operat
 matching reader is ready, and filters after the focused client's DirectLink
 lease receives a heartbeat. Filters expire when the reader or Lua stops.
 `//xb nativepad off` returns controls to FFXI. Use `//xb nativepad auto`
-to restore the guard. Addon unload detaches hooks by default. Restart FFXI
-to replace the pinned DLL or change between native input backends.
+to restore the guard. Wrapper stop suspends filtering. Addon unload releases
+that client's lease and detaches its hooks by default, even when another
+client keeps the reader running. The DLL and trampolines remain pinned for
+in-flight callbacks. Restart FFXI to replace the DLL or change input backends.
 
 - XInput auto hooks the loaded system variants of GetState, including ordinal
   100 where exported. It preserves sticks and unowned buttons. The standard
@@ -21,7 +23,7 @@ to replace the pinned DLL or change between native input backends.
 - The AHK reader is the only action publisher. Native hooks do not duplicate
   messages. The login/character select screens use native bindings.
 
-`//xb nativepad status` reports poll counts and raw/masked bits. No compatible
+`//xb nativepad status` reports filtering or pass-through, hook state, poll counts and raw/masked bits. No compatible
 polls means addon controller actions wait. An unloaded XInput DLL is not
 hooked by the current installation. Restart after changing the gamepad mode.
 See TESTING.md for the five-profile physical acceptance matrix.

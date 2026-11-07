@@ -11,11 +11,21 @@ function M.open(path)
         error('Native bridge loaded without a valid process ID. Install the complete matching test build.', 0)
     end
     local status = {0, 0, 0, 0, 0, 0, 0, 0}
+    local hooks = 'hook state unknown | DLL loaded'
     return {
-        begin = dll.begin,
+        begin = function(...)
+            local result = dll.begin(...)
+            if result == 1 then hooks = 'hooks attached | DLL resident' end
+            return result
+        end,
         process_id = dll.process_id,
         stop = dll.off,
-        detach = dll.detach,
+        detach = function()
+            local detached = dll.detach and dll.detach() == 1
+            hooks = detached and 'hooks detached | DLL resident' or 'detach failed | DLL resident'
+            return detached
+        end,
+        hook_status = function() return hooks end,
         poll = function(context, reset, deliver, previous)
             local edges
             edges, status = dll.poll(context)

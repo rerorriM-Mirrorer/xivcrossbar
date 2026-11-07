@@ -435,7 +435,7 @@ local diagnostic
 local controller_switcher
 local message_lease=require('controller_lease').new({clock=profile_clock})
 local message_bridge
-local native_gamepad, native_mode, native_command, native_poll, native_receiving, native_filtering
+local native_gamepad, native_mode, native_command, native_poll, native_receiving, native_filtering, native_stop
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
@@ -562,6 +562,7 @@ local function stop_controller_wrapper()
     local f = io.open(windower.addon_path .. 'data/input-stop.request', 'w')
     if not f then chat_format.say(123, '[XIVCrossbar] Could not write wrapper stop request.'); return false end
     f:write(tostring(os.time())); f:close()
+    if native_mode=='guard' then native_stop() end
     chat_format.say(207, '[XIVCrossbar] Shared wrapper stop requested for all clients.')
     return true
 end
@@ -1277,6 +1278,7 @@ local function graceful_restart(unload)
     xivcrossbar.ready = false
     crossbar_drag:finish()
     controller_switcher:cancel()
+    native_stop()
     if message_bridge then message_bridge:reset('restart') end
     message_lease:close()
     if env_chooser.is_setup then env_chooser:close() end
@@ -1332,6 +1334,7 @@ windower.register_event('logout', function()
     storage.identity_valid = false
     player.identity_confirmed = false
     transport:reset()
+    if native_mode then native_stop(nil, true) end
     if diagnostic then diagnostic:record('LIFECYCLE','logout') end
     if message_bridge then message_bridge:reset('logout') end
     message_lease:close()
@@ -1348,15 +1351,7 @@ end)
 -- ON UNLOAD
 windower.register_event('unload',function()
     launch_attempt = nil
-    if native_gamepad then
-        native_gamepad.stop()
-        if settings.NativeDetachOnUnload~=false then
-            if not native_gamepad.detach or native_gamepad.detach()~=1 then
-                chat_format.say(123, '[XIVCrossbar] Native hooks could not detach. Filtering is off.')
-            end
-        end
-        native_mode=nil
-    end
+    native_stop(settings.NativeDetachOnUnload~=false)
     if diagnostic then diagnostic:close() end
     controller_switcher:cancel()
     if message_bridge then message_bridge:reset('unload') end
@@ -2167,26 +2162,32 @@ windower.register_event('gain focus', function() clear_controller_input() end)
 do
     local generation, next_wrapper_check, last_polls, last_native_poll, guard_selection, attempted
     local function say(message) chat_format.say(207, '[XIVCrossbar] Native pad: '..message) end
-    local function stop()
-        if native_mode then
-            native_gamepad.stop()
-            native_mode=nil
-            native_receiving=false
-            native_filtering=false
-            clear_controller_input()
+    native_stop=function(detach, retry)
+        local active = native_mode~=nil
+        native_mode,native_receiving,native_filtering=nil,false,false
+        if retry then attempted=nil end
+        if not native_gamepad then return end
+        native_gamepad.stop()
+        if active then clear_controller_input() end
+        if detach and not native_gamepad.detach() then
+            chat_format.say(123, '[XIVCrossbar] Native hooks could not detach. Filtering is off.')
         end
     end
     native_command=function(command, dll_name, device)
         if command=='off' or command=='auto' then
-            stop()
+            native_stop()
             settings.NativeControllerGuard=command=='auto'
             config.save(settings)
             attempted=nil
             return say(command=='auto' and 'automatic guard enabled' or 'native pass-through enabled')
         end
         if command==nil or command=='status' then
-            return say(native_mode and (native_mode..' | messages='..(native_filtering and 'active' or 'waiting')
-                ..' | '..native_gamepad.status()) or 'off')
+            if not native_gamepad then return say('pass-through | bridge inactive') end
+            local phase = native_filtering and 'filtering'
+                or native_mode=='probe' and 'probe'
+                or native_mode=='guard' and 'waiting (pass-through)'
+                or 'pass-through'
+            return say(phase..' | '..native_gamepad.hook_status()..' | '..native_gamepad.status())
         end
         if command~='probe' and command~='guard' then
             return say('//xb nativepad [status|auto|off|probe [XInput DLL] [device]]')
@@ -2206,6 +2207,7 @@ do
             if not ok then return say(tostring(result)) end
             native_gamepad=result
         end
+        if native_mode then native_stop() end
         local result=native_gamepad.begin(xbox and 1 or 2,device-1,command=='probe' and 1 or 3,layout,module)
         if result~=1 then
             return say(result==2 and 'Another hook target is resident. Restart FFXI after changing controller backend or DirectInput device.'
@@ -2224,7 +2226,7 @@ do
             local ready = wrapper and wrapper.state=='ready'
                 and controller_profiles.matches(wrapper,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)
             local selection = ready and (settings.ControllerProfile..':'..settings.ControllerDevice..':'..wrapper.pid) or nil
-            if native_mode=='guard' and selection~=guard_selection then stop() end
+            if native_mode=='guard' and selection~=guard_selection then native_stop() end
             if not selection then attempted=nil end
             if not native_mode and selection and settings.NativeControllerGuard~=false and attempted~=selection
                 and windower.has_focus() and (xivcrossbar.ready or gamepad_mapper.is_showing) and not restart_pending then

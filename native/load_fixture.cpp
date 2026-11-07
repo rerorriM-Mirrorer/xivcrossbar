@@ -1,7 +1,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <xinput.h>
+#include <atomic>
 #include <cstdio>
+#include <thread>
 
 int main() {
     HMODULE dll = LoadLibraryW(L"xb_gamepad_messages.dll");
@@ -37,10 +39,29 @@ int main() {
     const auto disconnected = state(0, &gamepad) == ERROR_DEVICE_NOT_CONNECTED;
     if (begin(1, 0, 3, 0, "auto") != 1) return 8;
     if (disconnected && state(0, &gamepad) != ERROR_DEVICE_NOT_CONNECTED) return 9;
-    if (detach() != 1 || begin(1, 1, 3, 2, "auto") != 1 || detach() != 1) return 10;
-    // The bridge is pinned after installing hooks; these handles can close
-    // after both entry points have been restored.
-    FreeLibrary(xinput);
+    // Keep polling while the addon releases and reacquires the entry points.
+    std::atomic<bool> running{true};
+    std::atomic<unsigned> samples{0};
+    std::thread reader([&] {
+        XINPUT_STATE sample{};
+        while (running) {
+            state(0, &sample);
+            ++samples;
+        }
+    });
+    while (!samples) std::this_thread::yield();
+    bool detached = true;
+    for (unsigned i = 0; i < 8 && detached; ++i) {
+        detached = detach() == 1 && begin(1, i % 2, 3, i % 2 ? 2 : 0, "auto") == 1;
+        poll(4, edges, 8, status);
+    }
+    running = false;
+    reader.join();
+    if (!detached || detach() != 1 || detach() != 1) return 10;
+    // Drop the caller's reference. The pin retains executable code and
+    // trampolines until FFXI exits.
     FreeLibrary(dll);
+    if (GetModuleHandleW(L"xb_gamepad_messages.dll") != dll) return 13;
+    FreeLibrary(xinput);
     return 0;
 }

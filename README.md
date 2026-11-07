@@ -393,3 +393,7 @@ icon names remain unchanged. Personal curated icon pack not committed.
 2026-11-07: Restored physical LT/RT for standard XInput and removed the
 Xbox 360 diagnostic substitution. An unavailable DirectInput D-pad sample
 now cancels held input and rearms after neutral.
+
+2026-11-07: Centralized native hook cleanup under the addon lifecycle and
+added hook residency to native pad status. The DLL remains pinned so
+callbacks can safely finish after detachment.

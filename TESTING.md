@@ -1,3 +1,33 @@
+# Current Development Status — November 7, 2026 — Addon-owned native hooks
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `bccffc33e80a4248cdbf8cf9b06745a8b8deb003`.
+
+The user accepted the Xbox isolation result for community experimentation.
+Physical LT/RT are restored. No additional local Xbox hardware round is planned.
+
+The addon now suspends the native guard and releases controller ownership on
+wrapper stop, logout, or graceful restart. Unload also detaches this client's
+hooks by default. The shared wrapper follows the last-client policy. The
+native bridge starts in pass-through until it receives a Lua context and
+rearms from neutral after a lost message lease. Native pad status separates
+filtering from pass-through and reports the hook state. The DLL stays pinned
+because detachment does not establish that every callback has returned.
+
+The local Lua suite passed, including independent mocked clients, wrapper
+stop/restart, same-reader login recovery, reload, and detach reporting. The
+portable C++ fixture passed. Windows CI builds the DLL and exercises concurrent
+XInput polling across detach/reattach. This is a hook test, not DLL unloading.
+
+Live Windower check with two clients on the same profile: unload one addon
+with its trigger held and confirm native controls return immediately. Switch
+to the second client and confirm the wrapper is still running and its guard
+works. Reload the first addon, release to neutral, and verify a fresh chord.
+On wrapper stop/start, inspect `//xb nativepad status` and repeat the handoff.
+Close all clients before installing or replacing the matching x86 package.
+
+---
+
 # Current Development Status — November 7, 2026 — Standard XInput triggers
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
