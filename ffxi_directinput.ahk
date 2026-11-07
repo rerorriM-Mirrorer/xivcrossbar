@@ -4,6 +4,7 @@
 #SingleInstance Off
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
+#Include %A_ScriptDir%\controller_clients.ahk
 ; A: physical modifier checks must distinguish our injected key-down.
 InstallKeybdHook()
 SetWorkingDir(A_ScriptDir)
@@ -57,6 +58,7 @@ ready := false
 appsOwned := false
 ControllerMessageInit()
 DiagInit()
+WrapperClientsInit()
 WriteTransportStatus(true)
 OnExit(TransportExit)
 SetTimer(TransportPoll, 10)
@@ -65,6 +67,10 @@ TransportPoll() {
     global owner, ready, phase, connected, xinputFault, appsOwned, captureKey, keys, previous
     Critical("On")
     DiagTick()
+    if (WrapperClientsShouldExit()) {
+        DiagRecord("last Lua owner closed; exiting shared wrapper")
+        ExitApp()
+    }
     if FileExist(A_ScriptDir . "\data\input-stop.request") {
         try FileDelete(A_ScriptDir . "\data\input-stop.request")
         ExitApp()
@@ -263,7 +269,7 @@ WriteTransportStatus(force := false) {
     modifier := modifierArgument = "ctrl" ? "ctrl" : "apps"
     route := profile = "ps5-directinput" and CM.requested ? CM.phase : "apps"
     contents := "[Controller]`norigin=" . origin . "`nprofile=" . profile . "`ndevice=" . device . "`nmodifier=" . modifier
-        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`nroute=" . route . "`ntimestamp=" . timestamp . "`nahk=" . A_AhkVersion . "`nexecutable=" . A_AhkPath . "`n"
+        . "`npid=" . pid . "`nstate=" . phase . "`nconnected=" . connected . "`nready=" . ready . "`nroute=" . route . "`ntimestamp=" . timestamp . "`nahk=" . A_AhkVersion . "`nexecutable=" . A_AhkPath . "`n" . WrapperClientsStatus()
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"

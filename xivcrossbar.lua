@@ -48,8 +48,14 @@ if not selected_profile then
     selected_profile, selected_device = 'ps5-directinput', 1
 end
 settings.ControllerProfile, settings.ControllerDevice = selected_profile, selected_device
-settings.on_unload_killahk = false -- shared process; use //xb controller stop
+-- The old beta forcibly wrote false even over user settings. Adopt the safe
+-- last-client policy once, then honor subsequent user on/off choices.
+if settings.WrapperShutdownMigrated~=true then
+    settings.on_unload_killahk=true
+    settings.WrapperShutdownMigrated=true
+end
 config.save(settings)
+local client_registry
 
 -- A: immutable for this load; changing one client cannot safely reconfigure
 -- the wrapper shared by every client. Reload all clients after stopping it.
@@ -1180,7 +1186,7 @@ function display_help_menu()
     chat_help.command("ca [name]","Create or edit an action review.")
     chat_help.command("ca name|alias|command <value>","Edit active draft fields.")
     chat_help.heading('Controller')
-    chat_help.command("controller status|start|stop|profiles","Show/control the shared controller reader.")
+    chat_help.command("controller status|start|stop|profiles|autostop","Shared reader; autostop on|off|status affects last-client unload.")
     chat_help.command("controller profile <name> [device]","Select controller and device.")
     chat_help.command("dpad [arrows|ijkl]","Choose bare D-pad target keys.")
     chat_help.command("remap","Run controller setup.")
@@ -1245,6 +1251,19 @@ end
 
 -- ON LOAD
 windower.register_event('load',function()
+    -- The shared AHK wrapper must count every loaded Lua owner, including
+    -- minimized or pre-login clients, not only the currently focused one.
+    local ok,registry=pcall(require('libs/controller/clients').new,{
+        directory=windower.addon_path..'data/controller-clients/'})
+    if ok then
+        client_registry=registry
+        local registered,err=registry:register(settings.on_unload_killahk)
+        if not registered then
+            chat_format.say(123,'[XIVCrossbar] Client ownership registration failed: '..tostring(err))
+        end
+    else
+        chat_format.say(123,'[XIVCrossbar] Safe automatic wrapper shutdown unavailable: '..tostring(registry))
+    end
     if (buttonmapping.validate()) then
         start_controller_wrappers()
     end
@@ -1293,6 +1312,12 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    -- Close this specific client; AHK waits for *all* registered owners to
+    -- close and grants two seconds for a lua r/restart to re-register.
+    if client_registry then
+        local ok,err=client_registry:close(settings.on_unload_killahk)
+        if not ok then chat_format.say(123,'[XIVCrossbar] Client ownership close failed: '..tostring(err)) end
+    end
     launch_attempt = nil
     if diagnostic then diagnostic:close() end
     controller_switcher:cancel()
@@ -1324,7 +1349,22 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'controller' then
         local mode, name, device = ...
         mode = type(mode) == 'string' and mode:lower() or 'status'
-        if mode == 'stop' then controller_switcher:cancel(); stop_controller_wrapper()
+        if mode == 'autostop' then
+            local choice=type(name)=='string' and name:lower() or 'status'
+            if choice~='on' and choice~='off' and choice~='status' then
+                chat_format.say(123,'[XIVCrossbar] //xb controller autostop [on|off|status]')
+                return
+            end
+            if choice~='status' then
+                settings.on_unload_killahk=choice=='on'
+                config.save(settings)
+                if client_registry then
+                    local ok,err=client_registry:register(settings.on_unload_killahk)
+                    if not ok then chat_format.say(123,'[XIVCrossbar] Ownership preference not published: '..tostring(err)) end
+                end
+            end
+            chat_format.say(207,'[XIVCrossbar] Last-client wrapper shutdown: '..(settings.on_unload_killahk and 'ON' or 'OFF'))
+        elseif mode == 'stop' then controller_switcher:cancel(); stop_controller_wrapper()
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
         elseif mode == 'profile' then select_controller_profile(name, device)
@@ -1334,7 +1374,7 @@ windower.register_event('addon command', function(command, ...)
                 local profile = controller_profiles.profiles[id]
                 chat_format.say(207, '[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
             end
-        else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
+        else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|autostop [on|off|status]|profile <name> [device]') end
         return
     elseif command == 'inputtest' or command == 'inputtrace' then
         local mode = (...)

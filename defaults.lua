@@ -7,7 +7,9 @@ defaults.iconpack = 'default'
 defaults.ControllerProfile = 'ps5-directinput'
 defaults.ControllerDevice = 1
 defaults.on_logout_unload_addon = false
-defaults.on_unload_killahk = false
+defaults.on_unload_killahk = true
+-- One-time migration: earlier public builds forcibly saved false at every load.
+defaults.WrapperShutdownMigrated = false
 defaults.enable_superwarp_all = false
 
 defaults.FrameSkip = 0

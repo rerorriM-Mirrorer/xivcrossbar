@@ -1,3 +1,12 @@
+# Current Development Status — November 6, 2026 — Public Last-Client Controller Ownership 1
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, starting source `b9932a89c268d70e9f62db9ccc82b14f8f09df61`. Re-read GitHub AGENTS, WORKFLOW and TESTING for both development branches. Copied personal owner-file protocol and AHK lifecycle decision, without personal input-gesture or input-timing dependencies.
+- Register every loaded Lua client; the AHK wrapper checks held-owner files every 250 ms and exits only when the last configured owner closes and a two-second restart grace period passes. Missing/malformed owner records with live/uncertain file handles prevent unsafe exit. Other loaded clients prevent exit, including background/minimized clients. Explicit manual `//xb controller stop` still affects the shared reader.
+- Public's previous forced OFF setting was not user-selectable and persisted on every load; migrate it once to ON, then respect `//xb controller autostop on|off|status` and saved overrides. No source data/bindings destroyed.
+- Added Lua fake-backend registry checks and Windows-native AHK decision tests to the existing 32/64-bit CI. Only CI/simulated tests available in this environment. Pending live tests: two/four clients with mixed unload order, addon restart/reload, client crash, minimized client, late client registration and manual stop. Never treat CI as in-game proof.
+
+---
+
 # Current Development Status — November 6, 2026 — Public Editor Wrap 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, baseline `8b279105a7fbf12f05f7707a96ffda73ab207f69`. Current GitHub AGENTS/WORKFLOW/TESTING read. Port personal's narrow directional wrap in `ui/selectablelist.lua`, preserving explicit page navigation and current-page cursor state.

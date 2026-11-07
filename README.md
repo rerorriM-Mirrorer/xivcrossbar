@@ -425,3 +425,8 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 ### November 6, 2026 — Editor directional wrapping
 
 - The editor's menu selector now wraps within its current row or column and skips missing/disabled entries. Page-button cells remain selectable, but wrapping does not turn pages or introduce held-direction autorepeat. Existing mouse, trigger paging, selected states, and native FFXI menu controls remain separate.
+
+### November 6, 2026 — Public last-client controller ownership
+
+- The shared AHK v2 controller reader now records each loaded XIVCrossbar Lua client through a unique held-owner file. Unloading one client never terminates a reader used by another. When the last owner closes with auto-stop ON, AHK waits two seconds for reload/restart recovery before exiting; uncertain/unreadable live owners prevent automatic termination. Explicit `//xb controller stop` remains immediate and installation-wide.
+- Fresh/default and previously forced-off public installations adopt auto-stop ON once. After migration, `//xb controller autostop on|off|status` persists an explicit user choice. Switching profiles, start/stop and actual controller input remain unchanged. AHK writes registry status counters into the status file for diagnostics. No broad killahk.bat behavior.

@@ -1,5 +1,15 @@
 ; Load production functions below without entering the reader's auto-execute code.
 try {
+    WrapperClientsInit()
+    state := WC
+    state.seen := true
+    Check(!WrapperClientsDecision(state, 1, 0, true, 1000), "another loaded client prevents shutdown")
+    Check(!WrapperClientsDecision(state, 0, 40, true, 1500), "no owner starts grace period")
+    Check(!WrapperClientsDecision(state, 0, 40, true, 3300), "restart grace is retained")
+    Check(WrapperClientsDecision(state, 0, 40, true, 3500), "last client requests exit after grace")
+    Check(!WrapperClientsDecision(state, 1, 0, true, 3700), "new live owner rescues reader")
+    Check(!WrapperClientsDecision(state, 0, 80, false, 6500), "explicit opt-out preserves reader")
+    Check(!WrapperClientsDecision({seen:false,emptySince:0,lastClose:0}, 0, 0, true, 10000), "unknown clients cannot trigger shutdown")
     Check(Beta1PovCardinal(4500, 2) = 2, "retain adjacent cardinal")
     Check(Beta1PovCardinal(4500, 3) = 1, "diagonal fallback")
     Check(Beta1PovCardinal(-1, 2) = 0, "neutral POV")
