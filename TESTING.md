@@ -1,3 +1,32 @@
+# Current Development Status — November 7, 2026 — White Magic and weaponskill ordering experiment
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `7bec8ad2db74662feb42bc8d7425c62f5f4f8cb1`. User confirmed in FFXI that the standalone White Magic
+ascending-ID patch was substantially more natural to browse than alphabetical.
+This commit preserves that tested White Magic behavior and tries **descending
+resource ID** for the weaponskill selection list only.
+
+## Selection ordering test
+
+- `action_binder.lua`: White Magic `a.id < b.id` (prior standalone live
+  experiment), weaponskills `a.id > b.id` (new, awaiting in-game feedback).
+  All other magic and ability menus retain their existing alphabetical sort.
+- No changes to spell/WS eligibility, known actions, targets, icons, gamepad,
+  AHK, native DLL, saved data, action execution, or bindings.
+- User is independently curating the default icon pack; icon files were not changed.
+- Static verification: targeted source diff and comparator/order assertions.
+  No FFXI live test of descending WS order yet. Ascending IDs are not the same
+  as required combat skill or learned level; this is an exploratory sort.
+- Install: replace only `addons/xivcrossbar/action_binder.lua` while unloaded
+  or outside the binder, then `//xb restart`. Check White Magic retains ascending
+  IDs, weaponskills appear descending, and other lists remain alphabetical.
+- Reversal: restore the prior `action_binder.lua` from backup.
+
+Delivery: single-file standalone patch built from the user's previously tested
+White Magic patch, with one additional weaponskill comparator change.
+
+---
+
 # Current Development Status — November 7, 2026 — Xbox 360 LB/L2 isolation test
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch

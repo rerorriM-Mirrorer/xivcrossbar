@@ -2348,7 +2348,8 @@ function action_binder:display_weaponskill_selector()
         ability_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = {['Enemy'] = true}}})
     end
 
-    ability_list:sort(sortByName)
+    -- Experimental: show the highest resource-ID weaponskills first.
+    ability_list:sort(function(a, b) return a.id > b.id end)
 
     self.selector:display_options(ability_list)
     self:show_control_hints('Confirm', 'Go Back')
@@ -2443,7 +2444,12 @@ function action_binder:display_magic_selector_internal(magic_type)
         end
     end
 
-    spell_list:sort(sortByName)
+    -- Experimental FFXI spell-ID order for White Magic only.
+    if magic_type == 'WhiteMagic' then
+        spell_list:sort(function(a, b) return a.id < b.id end)
+    else
+        spell_list:sort(sortByName)
+    end
 
     self.selector:display_options(spell_list)
     self:show_control_hints('Confirm', 'Go Back')

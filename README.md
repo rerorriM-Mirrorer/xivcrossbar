@@ -379,3 +379,7 @@ trigger-held Auto bars to show during Event status.
 logical L2; noisy physical LT is discarded by the reader and masked by the
 active native guard. Other profiles and crossbar bindings stay unchanged.
 The DLL's resident/pinned lifecycle remains a separate follow-up request.
+
+2026-11-07: Binder sorting experiment: preserve user-approved White Magic
+ascending spell-ID ordering and try descending weaponskill resource-ID ordering.
+All other action categories retain alphabetical sorting.
