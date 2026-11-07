@@ -2058,7 +2058,7 @@ local function controller_keyboard(dik, pressed, flags, blocked, source)
         if native_mode=='guard' and native_receiving
             and (context=='gameplay' or context=='crossbar') and signal.logical~=67 and signal.logical~=68 then
             local info=windower.ffxi.get_info()
-            if info and (info.menu_open or info.chat_open) then context='native-menu' end
+            if info and info.chat_open then context='native-menu' end
         end
         local item, edge, owner = transport:edge(dik, pressed, context)
         if edge == 'repeat' then return true end
@@ -2291,7 +2291,9 @@ do
         last_polls,last_native_poll,native_receiving=0,nil,false
         next_wrapper_check=0
         if command=='on' then reset() end
-        say(command..' on '..chosen..', device '..device..'. Verify live polls with //xb nativepad status.')
+        if command~='guard' then
+            say(command..' on '..chosen..', device '..device..'. Verify live polls with //xb nativepad status.')
+        end
     end
     native_poll=function()
         if profile_clock()>=(next_wrapper_check or 0) then
@@ -2317,7 +2319,7 @@ do
         local info=windower.ffxi.get_info()
         local context=0
         if windower.has_focus() and info and info.logged_in and xivcrossbar.ready and not restart_pending then
-            context=crossbar_menu_open() and 2 or ((info.menu_open or info.chat_open) and 3 or 1)
+            context=crossbar_menu_open() and 2 or (info.chat_open and 3 or 1)
         end
         generation=native_gamepad.poll(context, function() if native_mode=='on' then reset() end end, function(index, pressed)
             if native_mode=='on' and logical[index] then

@@ -1,3 +1,10 @@
+# Native FFXI menus and crossbar chords
+
+- Native FFXI menu_open no longer gates the guard or Lua controller router. Bare controls retain native passthrough; L2/R2 chords work over ordinary and battle menus. Chat still yields to native input, and XIVCrossbar menus still own their inputs. Automatic guard startup no longer prints the poll reminder.
+- Live: test L2 and R2 with AutoHide over native main and battle menus, plus bare Up/Circle and addon-menu Cancel. Lua-only change; reload XIVCrossbar.
+
+---
+
 # Native hook detachment on addon unload
 
 - Enabled by default. `//xb diagnose native detach off|on` changes the persisted option. Wrapper stop still disables filtering without detaching. Addon unload restores native entry points while retaining the pinned DLL and trampolines for in-flight callbacks. Reload with a ready wrapper re-enables the hooks.
