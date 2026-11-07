@@ -1243,6 +1243,7 @@ function display_help_menu()
     chat_help.command("auto","Show bars on controller trigger.")
     chat_help.command("autohide [on|off]","Set trigger visibility.")
     chat_help.command("fade [on|off]","Enable/disable fades.")
+    chat_help.command("recastflash [on|off|status]","Flash a slot when its recast reaches zero.")
     chat_help.command("slotglow [on|off|status]","Show a gold slot border while a button is held.")
     chat_help.command("triggerscale [on|off|status|0.75-1]","Set trigger scale animation and its resting size. Requires fade off.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
@@ -1538,6 +1539,25 @@ windower.register_event('addon command', function(command, ...)
         end
         chat_format.say(207, '[XIVCrossbar] Text fade: ' ..
             (settings.Animation.TextFade and 'ON (with crossbar)' or 'OFF (endpoint visibility)'))
+        return
+    end
+
+    if command == 'recastflash' then
+        local mode = args[1] and args[1]:lower()
+        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb recastflash [on|off|status]')
+            return
+        end
+        if mode ~= 'status' then
+            local enabled = mode == 'on' or (not mode and not settings.Animation.RecastFlash)
+            settings.Animation.RecastFlash = enabled
+            theme_options.recast_flash_enabled = enabled
+            ui.recast_flash_enabled = enabled
+            ui:clear_recast_flashes()
+            ui_dirty = true
+            config.save(settings)
+        end
+        chat_format.say(207, '[XIVCrossbar] Recast flash: ' .. (settings.Animation.RecastFlash and 'ON' or 'OFF'))
         return
     end
 
@@ -2031,23 +2051,8 @@ local function handle_controller_key(dik, pressed, flags, blocked)
     if (gamepad_state.capturing and any_trigger_down and gamepad.is_face_button_or_dpad(dik)) then
         if crossbar_menu_open() then return true end
         if (pressed) then
-            if (gamepad.is_dpad_left(dik)) then
-                trigger_action(1)
-            elseif (gamepad.is_dpad_down(dik)) then
-                trigger_action(2)
-            elseif (gamepad.is_dpad_right(dik)) then
-                trigger_action(3)
-            elseif (gamepad.is_dpad_up(dik)) then
-                trigger_action(4)
-            elseif (gamepad.is_button_b(dik)) then
-                trigger_action(5)
-            elseif (gamepad.is_button_a(dik)) then
-                trigger_action(6)
-            elseif (gamepad.is_button_x(dik)) then
-                trigger_action(7)
-            elseif (gamepad.is_button_y(dik)) then
-                trigger_action(8)
-            end
+            local slot = gamepad.crossbar_slot(dik)
+            if slot then trigger_action(slot) end
 
             if (not (gamepad.is_plus(dik) or gamepad.is_minus(dik))) then
                 return true
@@ -2107,8 +2112,6 @@ local function controller_keyboard(dik, pressed, flags, blocked)
 end
 windower.register_event('keyboard', controller_keyboard)
 
-local pulse_slot_for_dik = {[62]=1, [61]=2, [60]=3, [59]=4, [65]=5, [63]=6, [64]=7, [66]=8}
-
 -- DirectLink routes addon input only. FFXI receives untouched native
 -- gameplay/navigation, including dialogue and the login screens.
 local function route_controller_message(dik, pressed)
@@ -2118,8 +2121,9 @@ local function route_controller_message(dik, pressed)
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return end
-    if not pressed and pulse_slot_for_dik[dik] then
-        ui:release_slot_pulse(pulse_slot_for_dik[dik])
+    local slot = not pressed and gamepad.crossbar_slot(dik)
+    if slot then
+        ui:release_slot_pulse(slot)
         if ui.slot_glow_enabled then ui_dirty = true end
     end
     local transition = item.logical >= 67
@@ -2329,6 +2333,7 @@ windower.register_event('prerender',function()
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.
     if ui.geometry then ui.geometry:tick() end
+    if ui.is_setup then ui:tick_recast_flashes() end
     -- allow settings to skip rendering frames
     frame = (frame + 1)  % (theme_options.frame_skip + 1)
     if (frame > 0 and not ui_dirty) then

@@ -1,3 +1,29 @@
+# Current Development Status — November 7, 2026 — Recast-ready flash and glow release fix
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `353d2776358a0bb12088b7b6dcde7fe0619d4bf7`.
+The user reported the rounded ribbons looked better and is continuing live checks.
+
+Myrr's 30-second capture showed accepted up edges for the affected inputs.
+For example, DirectLink sequence 17 lit glow object 274, while sequence 18,
+its matching release, hid 276. Both logs show button-up activity during
+song casts and refusals. The glow release lookup swapped Circle and Square
+relative to the action path. Press and release now use the same slot map.
+This fix concerns visual ownership and preserves action selection.
+
+Enable `//xb recastflash on` and keep the bank visible through a cooldown.
+At observed positive-to-zero recast, the slot flashes white at alpha 250
+and falls to zero over 100 ms. It works independently of slotglow. Initially
+ready, rebound, hidden and menu-covered slots do not replay a ready flash.
+Repeat Myrr's Circle and Square song holds, releasing one at a time, and
+check that only the released border clears.
+
+Lua tests cover mapped release, simultaneous recasts, decay, nil samples,
+rebind, hidden banks, menu and hide cleanup. Live visual testing is pending.
+The patch changes Lua only and can overlay the combat strips build.
+
+---
+
 # Current Development Status — November 7, 2026 — Combat ribbons and brighter slot glow
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

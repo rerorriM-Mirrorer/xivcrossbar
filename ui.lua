@@ -70,6 +70,7 @@ ui.glow_views = {}
 ui.pulse_tracks = {}
 ui.pulse_visible_bars = {}
 ui.slot_pulse = nil
+ui.recast_samples, ui.recast_flashes, ui.recast_flash_views = {}, {}, {}
 
 ui.disabled_slots = {}
 ui.disabled_slots.actions = {}
@@ -464,6 +465,9 @@ end
 function ui:load(theme_options)
     geometry:dispose_surfaces({[self.battle_notice]=true})
     geometry:setup_bank_scales()
+    self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
+    self.recast_flash_enabled = theme_options.recast_flash_enabled
+    self.recast_flash_clock = require('socket').gettime
     self.scale_visible = false
     -- load battle notice
     setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
@@ -800,6 +804,7 @@ end
 
 -- hide all ui components
 function ui:hide()
+    self:clear_recast_flashes()
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
         'gcd_indicator_bg','gcd_indicator','aa_indicator_bg','aa_indicator_red','aa_indicator_green'}) do
@@ -940,6 +945,7 @@ end
 
 -- load player hotbar
 function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepad_state)
+    self:clear_recast_flashes()
     -- A rebuilt bar must reapply the visibility policy on the next render.
     self.public_visible = nil
     if environment == 'battle' and self.theme.hide_battle_notice == false then
@@ -1172,6 +1178,7 @@ end
 
 -- reset slot
 function ui:clear_slot(hotbar, slot)
+    self:clear_recast_flash(hotbar, slot)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
     self.hotbars[hotbar].slot_frame[slot]:hide()
     self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
@@ -1647,6 +1654,72 @@ function ui:mark_default_set_action(h, i, environment)
     end
 end
 
+local recast_flash_duration = .10
+
+function ui:clear_recast_flash(hotbar, slot)
+    local key = (hotbar-1)*8+slot
+    self.recast_samples[key] = nil
+    if self.recast_flashes[key] then
+        self.recast_flash_views[key]:hide()
+        self.recast_flashes[key] = nil
+    end
+end
+
+function ui:clear_recast_flashes()
+    for key in pairs(self.recast_flashes) do self.recast_flash_views[key]:hide() end
+    self.recast_samples, self.recast_flashes = {}, {}
+end
+
+-- A newly visible or rebound slot must first be observed on cooldown.
+function ui:observe_recast(hotbar, slot, action, remaining)
+    if type(remaining) ~= 'number' then
+        self:clear_recast_flash(hotbar,slot)
+        return
+    end
+    local key = (hotbar-1)*8+slot
+    local previous = self.recast_samples[key]
+    if not previous or previous.action ~= action then
+        if self.recast_flashes[key] then self:clear_recast_flash(hotbar,slot) end
+        self.recast_samples[key] = {action=action, cooling=remaining > 0}
+        return
+    end
+    if remaining > 0 then
+        if self.recast_flashes[key] then
+            self:clear_recast_flash(hotbar,slot)
+            self.recast_samples[key] = previous
+        end
+        previous.cooling = true
+        return
+    end
+    if not previous.cooling then return end
+    previous.cooling = false
+    local view = self.recast_flash_views[key]
+    if not view then
+        view = new_image(images_setup)
+        view:path(windower.addon_path .. 'images/icons/iconpacks/default/ui/square.png')
+        geometry:assign_bank(view, hotbar)
+        self.recast_flash_views[key] = view
+    end
+    view:pos(self:get_slot_x(hotbar,slot),self:get_slot_y(hotbar,slot))
+    view:alpha(250)
+    view:show()
+    self.recast_flashes[key] = {hotbar=hotbar,slot=slot,started=self.recast_flash_clock()}
+end
+
+function ui:tick_recast_flashes()
+    for key,flash in pairs(self.recast_flashes) do
+        local view = self.recast_flash_views[key]
+        local left = 1 - (self.recast_flash_clock()-flash.started)/recast_flash_duration
+        if left <= 0 then
+            view:hide()
+            self.recast_flashes[key] = nil
+        else
+            view:pos(self:get_slot_x(flash.hotbar,flash.slot),self:get_slot_y(flash.hotbar,flash.slot))
+            view:alpha(math.floor(250*left*left+.5))
+        end
+    end
+end
+
 -- check action recasts
 function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank, tentative_slot)
     animation_frame_count = animation_frame_count + self.frame_skip + 1
@@ -1655,6 +1728,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     end
 
     dim_default_slots = dim_default_slots or false
+    local observe_recasts = self.recast_flash_enabled and not menu_open
+    if menu_open and next(self.recast_samples) then self:clear_recast_flashes() end
 
     local skillchain_delay, skillchain_window = skillchains.get_skillchain_window()
     self:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
@@ -1758,6 +1833,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 local effective_type = action and (action.linked_type or action.type) or nil
                 if action == nil or (effective_type ~= 'ma' and effective_type ~= 'ja' and effective_type ~= 'ws' and effective_type ~= 'pet' and effective_type ~= 'enchanteditem') then
                     self:clear_recast(h, i)
+                    if observe_recasts then self:clear_recast_flash(h,i) end
                     if (action ~= nil and action.type == 'item') then
                         local item_count = consumables:get_item_count_by_name(action.action)
                         if glow and (tonumber(item_count) or 0) <= 0 then unavailable = true end
@@ -1783,6 +1859,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 else
                     local crossbar_action = nil
                     local skill_recasts = nil
+                    local remaining
                     local in_cooldown = false
                     local in_warmup = false
                     local is_in_seconds = false
@@ -1986,6 +2063,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
 
                         local cooldown_fraction = self.enchanted_items:get_cooldown_fraction(action.action)
+                        remaining = cooldown_fraction
                         in_cooldown = cooldown_fraction > 0
 
                         if in_cooldown then
@@ -2006,7 +2084,10 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     end
 
                     -- check if skill is in cooldown
-                    if (has_spell and crossbar_action ~= nil and skill_recasts[crossbar_action.recast_id] ~= nil and skill_recasts[crossbar_action.recast_id] > 0) then
+                    if has_spell and crossbar_action and skill_recasts then
+                        remaining = skill_recasts[crossbar_action.recast_id]
+                    end
+                    if type(remaining)=='number' and remaining > 0 and crossbar_action then
                         -- register first cooldown to calculate percentage
                         if self.disabled_slots.on_cooldown[action.action] == nil then
                             self.disabled_slots.on_cooldown[action.action] = skill_recasts[crossbar_action.recast_id]
@@ -2016,6 +2097,10 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
 
                         in_cooldown = true
+                    end
+
+                    if observe_recasts then
+                        self:observe_recast(h,i,action,has_spell and not in_warmup and remaining or nil)
                     end
 
                     if glow and (in_cooldown or in_warmup or not has_spell or not crossbar_action) then
@@ -2191,6 +2276,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self.hotbars[h].slot_cost[i]:hide()
                 self.hotbars[h].slot_recast_text[i]:hide()
                 self:clear_recast(h, i)
+                if observe_recasts then self:clear_recast_flash(h,i) end
             end
 
             self:hide_controller_icons(h)

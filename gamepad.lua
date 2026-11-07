@@ -29,6 +29,16 @@ local plus = 68
 local left_trigger = 87
 local right_trigger = 88
 
+-- Slot order is shared by action dispatch and visual release.
+local crossbar_slots = {
+    [dpad_left]=1, [dpad_down]=2, [dpad_right]=3, [dpad_up]=4,
+    [button_b]=5, [button_a]=6, [button_x]=7, [button_y]=8,
+}
+
+function gamepad.crossbar_slot(dik)
+    return crossbar_slots[dik]
+end
+
 function gamepad.is_face_button_or_dpad(dik)
   return face_buttons[dik] ~= nil or dpad_button[dik] ~= nil
 end

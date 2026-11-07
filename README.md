@@ -48,6 +48,11 @@ not imported. No normal gameplay logging is active until you request it.
 
 ## Appearance and visibility
 
+Use `//xb recastflash on` to flash a visible slot white when its observed
+recast reaches zero. The flash fades out in 100 ms. Use
+`//xb recastflash off` or `//xb recastflash status` to control the saved option.
+
+
 The skillchain, lockout, and autoattack strips have thin rounded ends.
 `//xb skillchain 255`, `//xb lockout 255`, and `//xb autoattack 255` set
 their fill opacity independently. All three accept `on`, `off`, `status`,
@@ -440,3 +445,6 @@ outline that follows the slot as it moves or scales.
 2026-11-07: Rounded and thinned the combat strips, added individual opacity
 commands and XI ribbon colors, and brightened the gold slot frame with a
 white core and feathered halo.
+
+2026-11-07: Added an optional white recast-ready flash and fixed Circle
+and Square clearing each other’s slot glow.

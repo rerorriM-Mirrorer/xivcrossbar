@@ -152,6 +152,6 @@ defaults.CrossbarScale = 1
 -- Fade labels together with artwork by default; text settling protects widths.
 -- Previously live-tested in personal: settle centered native captions before reveal.
 defaults.TextSettling = true
-defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2, TextFade=true, TriggerScale=false, SmallScale=.95, SlotGlow=false}
+defaults.Animation = {Enabled=true, FadeIn=0.1, FadeOut=0.5, LoadFadeIn=2, TextFade=true, TriggerScale=false, SmallScale=.95, SlotGlow=false, RecastFlash=false}
 
 return defaults
