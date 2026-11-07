@@ -421,3 +421,7 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 ### November 6, 2026 — Skillchain tracker nil-property safety
 
 - Ported the narrow personal tracker guards for elemental-only avatar attacks such as Searing Light, missing/unknown skillchain property tables, and the Chainbound display conditional. An elemental-only attack no longer creates an invalid nil-property resonance or discards a valid preceding chain. No controller or pet-action automation is included.
+
+### November 6, 2026 — Editor directional wrapping
+
+- The editor's menu selector now wraps within its current row or column and skips missing/disabled entries. Page-button cells remain selectable, but wrapping does not turn pages or introduce held-direction autorepeat. Existing mouse, trigger paging, selected states, and native FFXI menu controls remain separate.

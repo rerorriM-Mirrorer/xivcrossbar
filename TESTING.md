@@ -1,3 +1,11 @@
+# Current Development Status — November 6, 2026 — Public Editor Wrap 1
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, baseline `8b279105a7fbf12f05f7707a96ffda73ab207f69`. Current GitHub AGENTS/WORKFLOW/TESTING read. Port personal's narrow directional wrap in `ui/selectablelist.lua`, preserving explicit page navigation and current-page cursor state.
+- Added `tests/menu_wrap_beta1.lua` exercising the actual source function with sparse row/column options, wrapping and page selection preservation. No held-key repeat or controller timing change; no data/settings edited.
+- GitHub CI and native FFXI physical-controller acceptance to be checked; test navigation on short/sparse selection pages, four-column pages, and L2/R2 page buttons.
+
+---
+
 # Current Development Status — November 6, 2026 — Public Skillchain Nil-Property Safety 1
 
 - Repository `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, baseline `e475e62d46a95527560799becede998ded61a534`; current GitHub development guidance and cumulative TESTING read.
