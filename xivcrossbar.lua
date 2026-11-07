@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.messages-native-test1'
+_addon.version = '0.4.0-beta1.20261107.messages-native-test2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2074,7 +2074,7 @@ local function poll_directlink()
         message_lease:close()
         return
     end
-    local pid = native_gamepad.pid()
+    local pid = native_gamepad.process_id
     local key = settings.ControllerProfile..':'..settings.ControllerDevice
     message_bridge:context(key, true)
     if message_bridge:watchdog() then message_bridge:context(key, true) end
@@ -2153,7 +2153,7 @@ do
         local layout = profile=='fightpadpro-directinput' and 1 or profile=='xinput-r1-chooser' and 2 or 0
         if not native_gamepad then
             local ok, result=pcall(function()
-                return require('native_gamepad').open(windower.addon_path..'native/xb_gamepad.dll')
+                return require('native_gamepad').open(windower.addon_path..'native/xb_gamepad_messages.dll')
             end)
             if not ok then return say(tostring(result)) end
             native_gamepad=result

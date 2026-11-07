@@ -4,10 +4,16 @@
 #include <cstdio>
 
 int main() {
-    HMODULE dll = LoadLibraryW(L"xb_gamepad.dll");
+    HMODULE dll = LoadLibraryW(L"xb_gamepad_messages.dll");
     if (!dll) { std::printf("LoadLibrary error %lu\n", GetLastError()); return 1; }
-    auto lua_open = reinterpret_cast<int (__cdecl*)(void*)>(GetProcAddress(dll, "luaopen_xb_gamepad"));
+    auto lua_open = reinterpret_cast<int (__cdecl*)(void*)>(GetProcAddress(dll, "luaopen_xb_gamepad_messages"));
     if (!lua_open || lua_open(nullptr) != 0) return 4; // no LuaCore in this test process
+    HMODULE host = LoadLibraryW(L"LuaCore.dll");
+    if (!host) return 11;
+    auto verify = reinterpret_cast<bool (__cdecl*)(int (__cdecl*)(void*))>(
+        GetProcAddress(host, "verify_messages_module"));
+    if (!verify || !verify(lua_open)) return 12;
+    FreeLibrary(host);
     auto begin = reinterpret_cast<unsigned (__cdecl*)(unsigned, unsigned, unsigned, unsigned, const char*)>(
         GetProcAddress(dll, "xb_begin"));
     auto off = reinterpret_cast<void (__cdecl*)()>(GetProcAddress(dll, "xb_off"));

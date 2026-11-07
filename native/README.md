@@ -1,6 +1,6 @@
 # Native blocking bridge
 
-The x86 bridge operates in each FFXI process. It starts monitoring when the
+The messages build loads `native/xb_gamepad_messages.dll`. The x86 bridge operates in each FFXI process. It starts monitoring when the
 matching reader is ready, and filters after the focused client's DirectLink
 lease receives a heartbeat. Filters expire when the reader or Lua stops.
 `//xb nativepad off` returns controls to FFXI. Use `//xb nativepad auto`

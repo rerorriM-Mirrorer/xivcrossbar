@@ -1,16 +1,19 @@
 -- Windower loads the bridge through its Lua C-module interface on opt-in.
 local M = {}
 function M.open(path)
-    local loader, err = package.loadlib(path:gsub('\\', '/'), 'luaopen_xb_gamepad')
-    if not loader then error(err) end
+    local loader, err = package.loadlib(path:gsub('\\', '/'), 'luaopen_xb_gamepad_messages')
+    if not loader then error('Cannot load xb_gamepad_messages.dll: ' .. tostring(err), 0) end
     local dll = loader()
-    if type(dll) ~= 'table' or type(dll.pid) ~= 'function' then
-        error('Install the matching x86 native bridge, then restart FFXI.')
+    if type(dll) ~= 'table' then
+        error('Native bridge loaded, but the Windower Lua 5.1 API could not be initialized.', 0)
+    end
+    if type(dll.process_id) ~= 'number' or dll.process_id <= 0 then
+        error('Native bridge loaded without a valid process ID. Install the complete matching test build.', 0)
     end
     local status = {0, 0, 0, 0, 0, 0, 0, 0}
     return {
         begin = dll.begin,
-        pid = dll.pid,
+        process_id = dll.process_id,
         stop = dll.off,
         detach = dll.detach,
         poll = function(context, reset, deliver, previous)

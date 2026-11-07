@@ -35,7 +35,6 @@ int begin(lua_State* L) {
     api.push(L, result);
     return 1;
 }
-int pid(lua_State* L) { api.push(L, GetCurrentProcessId()); return 1; }
 int off(lua_State*) { xb_off(); return 0; }
 int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
 int poll(lua_State* L) {
@@ -56,15 +55,22 @@ int poll(lua_State* L) {
 }
 }
 
-extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad(lua_State* L) {
-    const HMODULE host = GetModuleHandleW(L"LuaCore.dll");
-    if (!host || !resolve(host, api.integer, "lua_tointeger") ||
-        !resolve(host, api.string, "lua_tolstring") || !resolve(host, api.push, "lua_pushinteger") ||
-        !resolve(host, api.table, "lua_createtable") || !resolve(host, api.closure, "lua_pushcclosure") ||
-        !resolve(host, api.field, "lua_setfield") || !resolve(host, api.index, "lua_rawseti")) return 0;
+extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_State* L) {
+    bool resolved = false;
+    const wchar_t* hosts[] = {L"LuaCore.dll", L"lua51.dll", L"lua5.1.dll"};
+    for (auto name : hosts) {
+        const HMODULE host = GetModuleHandleW(name);
+        if (!host || !resolve(host, api.integer, "lua_tointeger") ||
+            !resolve(host, api.string, "lua_tolstring") || !resolve(host, api.push, "lua_pushinteger") ||
+            !resolve(host, api.table, "lua_createtable") || !resolve(host, api.closure, "lua_pushcclosure") ||
+            !resolve(host, api.field, "lua_setfield") || !resolve(host, api.index, "lua_rawseti")) continue;
+        resolved = true;
+        break;
+    }
+    if (!resolved) return 0;
     api.table(L, 0, 5);
     api.closure(L, begin, 0); api.field(L, -2, "begin");
-    api.closure(L, pid, 0); api.field(L, -2, "pid");
+    api.push(L, GetCurrentProcessId()); api.field(L, -2, "process_id");
     api.closure(L, off, 0); api.field(L, -2, "off");
     api.closure(L, detach, 0); api.field(L, -2, "detach");
     api.closure(L, poll, 0); api.field(L, -2, "poll");

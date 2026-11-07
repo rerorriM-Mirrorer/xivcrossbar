@@ -1334,10 +1334,10 @@ function action_binder:go_back()
         else self:display_edit_custom_action_review() end
         return
     end
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT then self:clear_button_entry_ui() end
     if self.binding_custom_action_review and self.state == states.SELECT_BUTTON_ASSIGNMENT then
         self.binding_custom_action_review=false
         self.state=states.EDIT_CUSTOM_ACTION_REVIEW
-        self:clear_button_entry_ui()
         self:display_edit_custom_action_review(); return
     end
     if self.custom_action_draft and (self.state == states.SELECT_LINKED_TYPE or
@@ -1440,7 +1440,6 @@ function action_binder:go_back()
                 self:display_icon_selector_sylvebits()
             end
         elseif self.action_type == action_types.CHANGE_ICON then
-            self:clear_button_entry_ui()
             self.state=states.SELECT_ICON
             self.icon_picker_path, self.icon_picker_stack = '', {}
             self:display_icon_selector('')

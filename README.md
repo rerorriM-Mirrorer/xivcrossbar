@@ -7,7 +7,7 @@ buttons in the focused client. FFXI handles ordinary gamepad input.
 
 Keep your native Gamepad Config assignments. Switch profiles with buttons
 released and use the same reader profile/device across clients. Install the
-complete test folder with its matching `native/xb_gamepad.dll`.
+complete test folder with its matching `native/xb_gamepad_messages.dll`.
 
 ## Unified diagnostics in this beta (new)
 
@@ -362,3 +362,5 @@ Added a session-only slot acceptance tap for testing with separate GripRumble.
 to the binder, a padded menu title backing, and space for the bouncing cursor.
 
 2026-11-07: Added PID-scoped DirectLink and selective native blocking for all five Windows profiles. Retired the injected keyboard transport.
+
+2026-11-07: Cleared the binding preview and combo panel when backing out.

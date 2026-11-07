@@ -33,7 +33,7 @@ jobs:
         run: |
           python packaging/beta1_make.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          Copy-Item "$env:RUNNER_TEMP/xb/Release/xb_gamepad.dll" dist/xivcrossbar/native/
+          Copy-Item "$env:RUNNER_TEMP/xb/Release/xb_gamepad_messages.dll" dist/xivcrossbar/native/
           Copy-Item "$env:RUNNER_TEMP/xb/_deps/minhook-src/LICENSE.txt" dist/xivcrossbar/native/MinHook-LICENSE.txt
       - uses: actions/upload-artifact@v4
         with:

@@ -2,7 +2,7 @@
 
 1. Stop the old reader and close all FFXI clients before replacing the addon.
    Back up the existing addon and its data. Use the complete x86 test artifact
-   with `native/xb_gamepad.dll`, and keep your existing settings and bindings.
+   with `native/xb_gamepad_messages.dll`, and keep your existing settings and bindings.
 2. Install AutoHotkey v2.0.19+ and keep native FFXI Gamepad Config assignments.
    Restore them if they were cleared for an older XIVCrossbar test.
 3. Select a profile with `//xb controller profile <name> [device]`.

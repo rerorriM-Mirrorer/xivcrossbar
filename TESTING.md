@@ -1,5 +1,30 @@
 # Current Development Status — November 7, 2026
 
+Hotfix for `experiment/messages-native-all-profiles` in `rerorriM-Mirrorer/xivcrossbar`,
+based on `7f8fd18`.
+
+## Binding preview cleanup
+
+Lionstag's diagnostic showed the Attack preview stayed visible when Back
+returned from Enter Button Combo to the target picker. The binder now
+clears the combo panel, glyphs, action icon and captions when leaving that
+page. Back from confirmation to the combo page still shows the preview.
+The menu-resource fixture verifies image disposal and panel visibility on Back.
+
+## Native module startup
+
+The user reported the generic DLL compatibility warning on the previous
+messages build. The archived DLL was PE32 and contained the PID callback.
+The exact reason the live process rejected it was not captured. This build
+uses a distinct DLL and entry point, separates file-load, Lua API and
+process-ID diagnostics, and tests the module's registration with a Windows
+Lua 5.1 API fixture. Close every FFXI process before installing the complete
+build. Check `//xb nativepad status` and keep any new error verbatim.
+
+---
+
+# Current Development Status — November 7, 2026
+
 Messages-only native guard test branch `experiment/messages-native-all-profiles`
 in `rerorriM-Mirrorer/xivcrossbar`, starting from native experiment
 `6c77a2602963be82fb5a8c0e67355adec350cd1a`. The prior public beta and
