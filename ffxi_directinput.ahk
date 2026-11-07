@@ -5,6 +5,7 @@
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
 #Include %A_ScriptDir%\controller_clients.ahk
+#Include %A_ScriptDir%\controller_mappings.ahk
 SetWorkingDir(A_ScriptDir)
 instanceMutex := AcquireWrapperMutex()
 if (!instanceMutex)
@@ -40,10 +41,7 @@ phase := "starting"
 lastStatusTick := -1000
 if (isXInput)
     xinputFault := !InitXInput()
-; Upstream PS5/F710 share assignments; FightPadPro rearranges face buttons.
-joys := profile = "fightpadpro-directinput"
-    ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
-    : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+joys := isXInput ? [] : ControllerDirectInputButtons(profile)
 owner := 0
 ready := false
 ControllerMessageInit()
@@ -144,10 +142,8 @@ ReadTransportStates(readKey := GetKeyState) {
             delta := Mod(pov - angle + 36000, 36000)
             states.Push(pov >= 0 && (delta = 0 || delta = 4500 || delta = 31500))
         }
-        Loop 8 {
-            i := A_Index + 4
-            states.Push(readKey(joystickPrefix . "Joy" . joys[i]) ? true : false)
-        }
+        for _, joy in joys
+            states.Push(readKey(joystickPrefix . "Joy" . joy) ? true : false)
         return states
     }
     if (!xinputGetState)
@@ -160,14 +156,11 @@ ReadTransportStates(readKey := GetKeyState) {
 
 DecodeXInputState(state, profile) {
     buttons := NumGet(state, 4, "UShort")
-    ; Logical order: Up, Right, Down, Left, bottom, left, right, top, Back, chooser.
-    flags := [0x0001, 0x0008, 0x0002, 0x0004, 0x1000, 0x4000, 0x2000, 0x8000, 0x0020]
-    flags.Push(profile = "xinput-r1-chooser" ? 0x0200 : 0x0010)
     states := []
-    for i, flag in flags
+    for i, flag in ControllerXInputButtons(profile)
         states.Push((buttons & flag) != 0)
-    ; Match upstream's threshold; neither trigger is derived from the other.
-    states.Push(NumGet(state, 6, "UChar") > 4, NumGet(state, 7, "UChar") > 4)
+    threshold := ControllerXInputTriggerThreshold()
+    states.Push(NumGet(state, 6, "UChar") > threshold, NumGet(state, 7, "UChar") > threshold)
     return states
 }
 

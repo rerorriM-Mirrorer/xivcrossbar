@@ -11,7 +11,7 @@ try {
     profile := "ps5-directinput"
     isXInput := false
     joystickPrefix := ""
-    joys := [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+    joys := ControllerDirectInputButtons(profile)
     states := ReadTransportStates(FakeJoystick.Bind(9000))
     Check(states.Length = 12 && states[2] && states[5] && !states[6] && states[12], "connected DirectInput maps all twelve states")
     Check(!ReadTransportStates(FakeJoystick.Bind("")), "missing POV invalidates the DirectInput sample")
@@ -21,9 +21,7 @@ try {
     states := ReadTransportStates(FakeJoystick.Bind(31500))
     Check(states[1] && !states[2] && !states[3] && states[4], "diagonal POV maps Up and Left")
     for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput"] {
-        joys := profile = "fightpadpro-directinput"
-            ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
-            : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+        joys := ControllerDirectInputButtons(profile)
         states := ReadTransportStates(FakeJoystick.Bind(9000))
         Check(states[2] && states[12] && states[profile = "fightpadpro-directinput" ? 6 : 5], "DirectInput profile mapping")
     }

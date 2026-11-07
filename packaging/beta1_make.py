@@ -4,11 +4,12 @@ GitHub Actions uploads dist/ as one artifact whose ZIP contains xivcrossbar/.
 Source and installed code match the checked-out commit exactly.
 """
 from pathlib import Path
-import hashlib, shutil, sys
+import hashlib, shutil, subprocess, sys
 ROOT=Path(__file__).resolve().parents[1]
 DEST=ROOT/'dist'/'xivcrossbar'
 EXCLUDE={'.git','.github','.gitignore','.gitattributes','dist','data','tests','packaging',
          '__pycache__','.pytest_cache','AGENTS.md'}
+subprocess.run([sys.executable, str(ROOT / 'packaging/generate_controller_mappings.py'), '--check'], check=True)
 if DEST.parent.exists(): shutil.rmtree(DEST.parent)
 DEST.mkdir(parents=True)
 count=0
@@ -22,7 +23,7 @@ for src in sorted(ROOT.rglob('*')):
     assert hashlib.sha256(src.read_bytes()).digest()==hashlib.sha256(dst.read_bytes()).digest()
     count+=1
 required=['xivcrossbar.lua','controller_messages.lua','controller_messages.ahk',
-          'controller_lease.lua','ffxi_directinput.ahk','launch-controller.cmd','launch-controller.ps1','README.md','LICENSE','NOTICE',
+          'controller_lease.lua','ffxi_directinput.ahk','controller_mappings.ahk','launch-controller.cmd','launch-controller.ps1','README.md','LICENSE','NOTICE',
           'WORKFLOW.md','TESTING.md','FFXI_Input.py','FFXI_Input.sh']
 assert all((DEST/p).exists() for p in required)
 assert (DEST/'images').is_dir() and (DEST/'themes').is_dir()

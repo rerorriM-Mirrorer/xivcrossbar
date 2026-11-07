@@ -397,3 +397,7 @@ now cancels held input and rearms after neutral.
 2026-11-07: Centralized native hook cleanup under the addon lifecycle and
 added hook residency to native pad status. The DLL remains pinned so
 callbacks can safely finish after detachment.
+
+2026-11-07: The Windows reader and native guard now generate their physical
+controller mappings from one definition. Existing logical bindings retain
+their profile behavior.

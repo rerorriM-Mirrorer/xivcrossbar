@@ -32,3 +32,8 @@ Build on Windows with `cmake -S native -B build -A Win32`, then
 `cmake --build build --config Release` and
 `ctest --test-dir build -C Release --output-on-failure`.
 The native CI workflow packages the DLL and MinHook license.
+
+For physical layout changes, edit `packaging/controller_mappings.json` and run
+`python packaging/generate_controller_mappings.py` from the repository root.
+Commit both generated tables. CI checks that the AHK and native tables match
+the source. DirectInput button numbers in the source use the AHK 1-based form.

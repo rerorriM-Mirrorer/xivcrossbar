@@ -1,3 +1,25 @@
+# Current Development Status — November 7, 2026 — Shared physical controller mappings
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint for this two-commit batch: `bccffc33e80a4248cdbf8cf9b06745a8b8deb003`.
+The most recent user-confirmed Xbox result was the earlier isolation run.
+
+The reader and DLL now consume generated physical tables from
+`packaging/controller_mappings.json`. PS5 and F710 share a layout,
+FightPadPro keeps its face-button order, and both XInput profiles use
+physical LT/RT. The alternate still uses RB for the chooser.
+Logical DirectLink codes and saved bindings stay compatible.
+
+Generation consistency, the portable C++ mapping fixture, the Lua suite
+and exact-source staging were checked locally. Windows CI verifies the
+generated files and runs the real x86 and AHK fixtures before packaging.
+Use the complete artifact, including `controller_mappings.ahk` and the
+matching DLL. Close all FFXI clients and stop the shared reader before
+installing. See the next section for the live two-client lifecycle check.
+Physical F710 and FightPadPro checks remain open. Animations are the next batch.
+
+---
+
 # Current Development Status — November 7, 2026 — Addon-owned native hooks
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
