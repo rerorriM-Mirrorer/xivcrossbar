@@ -1,3 +1,45 @@
+# Current Development Status — November 7, 2026 — Xbox 360 LB/L2 isolation test
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch
+`experiment/messages-native-all-profiles`. Source checkpoint:
+`75becceaa35599f942bc4bb5c7931e08e149b332`. Temporary input-only experiment; NOT live verified.
+
+## Wired Xbox 360 input substitution
+
+The standalone XInput probe observed unintended LT peaks of 80–146/255 when
+moving the analog sticks. Previous native/message diagnostics independently
+showed phantom logical button 11 edges under both sticks and no dropped
+messages. This build isolates the noisy sensor without changing Lua bindings:
+
+- Standard `xinput`: LB -> logical button 11 (L2), including double taps and
+  LB+RT chords. The AHK reader ignores analog LT even above its former 4/255
+  threshold. RT and other logical controls remain unchanged.
+- The native XInput guard captures LB according to logical L2 ownership and
+  sets physical LT to zero while its focused, live guard is active. If the
+  guard is unavailable/stopped, native behavior still fails open.
+- `xinput-r1-chooser` (`xinputalt`) and PS5/F710/FightPadPro remain unchanged.
+  No existing character bindings, display logic, DirectLink transport, or
+  timing machinery was modified.
+
+**Installation/test:** Stop the shared wrapper, close every FFXI process,
+back up the addon, and install the complete matching Windows x86 artifact,
+including its newly built `native/xb_gamepad_messages.dll`. Select
+`//xb controller profile xinput`, use `//xb controller status` and
+`//xb nativepad status`, and test LB hold/release, LB double tap, LB+RT,
+ordinary RT, analog-stick movement with no phantom L2, bare navigation,
+chat, native menu, and rearming after focus switch or addon stop. Run
+`//xb diagnose` on the analog-stick test and compare button-11 edges.
+
+**Verification:** C++ fixture additions cover LB substitution, LT ignored,
+LB+RT, and the unchanged alternate profile. Windows build/fixture and AHK
+startup tests are to be confirmed by workflow CI; live Windower/FFXI
+verification is pending. This batch does not implement automatic unloading
+of the native DLL. The bridge currently pins its module; the agreed request
+to load/unload it with addon or wrapper lifecycle remains outstanding and
+must be addressed separately, after this test.
+
+---
+
 # Current Development Status — November 7, 2026
 
 Lockout visibility fix for `experiment/messages-native-all-profiles` in
