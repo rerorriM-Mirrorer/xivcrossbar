@@ -49,7 +49,7 @@ not imported. No normal gameplay logging is active until you request it.
 ## Appearance and visibility
 
 Use `//xb recastflash on` to flash a visible slot white when its observed
-recast reaches zero. The flash fades out in 100 ms. Use
+recast reaches zero. The soft white fill and feathered edge fade together in 150 ms. Use
 `//xb recastflash off` or `//xb recastflash status` to control the saved option.
 
 
@@ -448,3 +448,6 @@ white core and feathered halo.
 
 2026-11-07: Added an optional white recast-ready flash and fixed Circle
 and Square clearing each other’s slot glow.
+
+2026-11-07: Softened the recast-ready flash with a translucent warm-white
+fill and brighter feathered edge, fading together over 150 ms.

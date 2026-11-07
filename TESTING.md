@@ -1,3 +1,22 @@
+# Current Development Status — November 7, 2026 — Softer recast-ready flash
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `a759b530f21e162a9e7a74ccd496af95a521501c`.
+
+The user found the nearly opaque white square looked like a graphical glitch.
+The new texture combines a translucent warm-white fill and a brighter
+feathered edge. Both fade together over 150 ms. The center peaks around
+34% opacity and the edge around 56% before any bar fade.
+The gold confirmed-action animation is deferred.
+
+Keep `//xb recastflash on` and compare the softer effect at the end of a
+visible cooldown. Check it in compact mode, during trigger scaling, and
+alongside the held gold border. Automated tests cover the view size,
+placement, initial opacity, decay, and existing trigger rules. Live
+appearance is pending. This patch overlays the recast-flash build.
+
+---
+
 # Current Development Status — November 7, 2026 — Recast-ready flash and glow release fix
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

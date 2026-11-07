@@ -1654,7 +1654,8 @@ function ui:mark_default_set_action(h, i, environment)
     end
 end
 
-local recast_flash_duration = .10
+local recast_flash_duration = .15
+local recast_flash_alpha = 156
 
 function ui:clear_recast_flash(hotbar, slot)
     local key = (hotbar-1)*8+slot
@@ -1696,12 +1697,14 @@ function ui:observe_recast(hotbar, slot, action, remaining)
     local view = self.recast_flash_views[key]
     if not view then
         view = new_image(images_setup)
-        view:path(windower.addon_path .. 'images/icons/iconpacks/default/ui/square.png')
+        view:path(windower.addon_path .. 'images/assets/recast-glow.png')
+        view:size(40+2*slot_glow_padding,40+2*slot_glow_padding)
         geometry:assign_bank(view, hotbar)
         self.recast_flash_views[key] = view
     end
-    view:pos(self:get_slot_x(hotbar,slot),self:get_slot_y(hotbar,slot))
-    view:alpha(250)
+    view:pos(self:get_slot_x(hotbar,slot)-slot_glow_padding,
+        self:get_slot_y(hotbar,slot)-slot_glow_padding)
+    view:alpha(recast_flash_alpha)
     view:show()
     self.recast_flashes[key] = {hotbar=hotbar,slot=slot,started=self.recast_flash_clock()}
 end
@@ -1714,8 +1717,9 @@ function ui:tick_recast_flashes()
             view:hide()
             self.recast_flashes[key] = nil
         else
-            view:pos(self:get_slot_x(flash.hotbar,flash.slot),self:get_slot_y(flash.hotbar,flash.slot))
-            view:alpha(math.floor(250*left*left+.5))
+            view:pos(self:get_slot_x(flash.hotbar,flash.slot)-slot_glow_padding,
+                self:get_slot_y(flash.hotbar,flash.slot)-slot_glow_padding)
+            view:alpha(math.floor(recast_flash_alpha*left*left+.5))
         end
     end
 end
