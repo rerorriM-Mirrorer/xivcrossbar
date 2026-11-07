@@ -95,7 +95,7 @@ function geometry:set_bank_scale(number, x, y, target, instant, initial)
     bank.x, bank.y = x, y
     if initial or instant then bank.active = false end
     if initial then bank:to(initial, 0) end
-    if initial or instant or target ~= bank.target then bank:to(target, instant and 0 or .12) end
+    if initial or instant or target ~= bank.target then bank:to(target, instant and 0 or .06) end
     if moved or bank.value ~= previous then redraw_bank(self, bank) end
 end
 

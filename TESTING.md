@@ -1,3 +1,16 @@
+# Current Development Status — November 7, 2026 — 60 ms TriggerScale
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `67060a6a3c846f095e391cd682ab8ab25c90258a`.
+
+The user requested a faster TriggerScale. The bank animation keeps the
+same easing curve and now takes 60 ms. The opacity fade still follows its
+own settings. The Lua fixture checks the midpoint at 30 ms and completion
+while a longer opacity fade is still in progress. Live feel is pending.
+This patch overlays the symmetric TriggerScale build.
+
+---
+
 # Current Development Status — November 7, 2026 — Symmetric trigger scale
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
