@@ -64,6 +64,7 @@ ui.feedback.max_opacity = 0
 ui.feedback.speed = 0
 ui.slot_pulse_enabled = false
 ui.pulse_views = {}
+ui.glow_views = {}
 ui.pulse_tracks = {}
 ui.pulse_visible_bars = {}
 ui.slot_pulse = nil
@@ -641,6 +642,8 @@ function ui:load(theme_options)
         view:hide()
         self.pulse_views[slot]=view
     end
+    self.glow_views = {}
+    self:set_slot_glow_enabled(theme_options.slot_glow_enabled)
     ui:update_offsets(settings.Style.OffsetX, settings.Style.OffsetY)
 end
 
@@ -705,8 +708,9 @@ function ui:set_compact(enabled)
             self:get_slot_y(self.feedback.hotbar,self.feedback.slot))
     end
     for slot,track in pairs(self.pulse_tracks or {}) do
-        local view=self.pulse_views[slot]
-        if view then view:pos(self:get_slot_x(track.hotbar,track.slot),self:get_slot_y(track.hotbar,track.slot)) end
+        local x,y=self:get_slot_x(track.hotbar,track.slot),self:get_slot_y(track.hotbar,track.slot)
+        self.pulse_views[slot]:pos(x,y)
+        if self.glow_views[slot] then self.glow_views[slot]:pos(x,y) end
     end
     local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/'
     self.bar_background:path(base .. (enabled and 'bar_bg_compact.png' or 'bar_bg.png'))
@@ -1733,6 +1737,12 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     self.hotbars[h].slot_icon[i]:pos(self:get_slot_x(h, i), self:get_slot_y(h, i))
                 end
 
+                local glow = self.slot_glow_enabled and self.pulse_tracks[i]
+                if glow and glow.hotbar ~= h then glow = nil end
+                local occupied = action and action.action and action.action ~= ''
+                local unavailable = glow and occupied and
+                    (not action.type or (action.type == 'pet' and not windower.ffxi.get_mob_by_target('pet')))
+
                 -- Honor linked_type so an action that LINKS to a spell/ability/WS
                 -- enters the recast-tracking branch below even though its own
                 -- type is e.g. 'ex' (gear-swap command). Without this the gate
@@ -1742,6 +1752,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     self:clear_recast(h, i)
                     if (action ~= nil and action.type == 'item') then
                         local item_count = consumables:get_item_count_by_name(action.action)
+                        if glow and (tonumber(item_count) or 0) <= 0 then unavailable = true end
                         if (item_count ~= nil) then
                             local display_count = item_count .. ''
                             self.hotbars[h].slot_cost[i]:text(display_count)
@@ -1812,6 +1823,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                                     self.hotbars[h].slot_cost[i]:show()
 
                                     if (total_tool_count == 0) then
+                                        if glow then unavailable = true end
                                         -- set up "Xed-out" element
                                         self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/red-x.png')
                                         self.hotbars[h].slot_recast[i]:alpha(150)
@@ -1898,6 +1910,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                                         self.hotbars[h].slot_cost[i]:show()
 
                                         if (total_tool_count == 0) then
+                                            if glow then unavailable = true end
                                             -- set up "Xed-out" element
                                             self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/red-x.png')
                                             self.hotbars[h].slot_recast[i]:alpha(150)
@@ -1995,6 +2008,10 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
 
                         in_cooldown = true
+                    end
+
+                    if glow and (in_cooldown or in_warmup or not has_spell or not crossbar_action) then
+                        unavailable = true
                     end
 
                     -- if skill is in cooldown
@@ -2143,6 +2160,11 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     if (action ~= nil and action.source_environment ~= environment and dim_default_slots) then
                         self:mark_default_set_action(h, i, action.source_environment)
                     end
+                end
+                if glow then
+                    if not occupied then glow.brightness = .22
+                    elseif unavailable or self.hotbars[h].slot_icon[i]:alpha() < 255 then glow.brightness = .40
+                    else glow.brightness = .60 end
                 end
             end
 
@@ -2322,36 +2344,81 @@ function ui:clear_slot_pulses()
     if self.slot_pulse then self.slot_pulse:cancel() end
     self.pulse_tracks,self.pulse_visible_bars={},{}
     for _,view in ipairs(self.pulse_views) do view:hide() end
+    for _,view in ipairs(self.glow_views) do view:hide() end
 end
 
 function ui:set_slot_pulse_enabled(enabled)
     self.slot_pulse_enabled = enabled == true
-    if not self.slot_pulse_enabled then self:clear_slot_pulses() end
+    if not self.slot_pulse_enabled then
+        if self.slot_glow_enabled then
+            for _,view in ipairs(self.pulse_views) do view:hide() end
+        else
+            self:clear_slot_pulses()
+        end
+    end
+end
+
+function ui:set_slot_glow_enabled(enabled)
+    self.slot_glow_enabled = enabled == true
+    if not self.slot_glow_enabled then
+        if self.slot_pulse_enabled then
+            for _,view in ipairs(self.glow_views) do view:hide() end
+        else
+            self:clear_slot_pulses()
+        end
+    elseif self.pulse_views[1] and not self.glow_views[1] then
+        for slot=1,8 do
+            local view = new_image(images_setup)
+            setup_image(view, windower.addon_path .. '/themes/classic/frame.png')
+            view:color(255, 208, 102)
+            view:hide()
+            self.glow_views[slot] = view
+        end
+    end
 end
 
 function ui:press_slot_pulse(hotbar,slot)
-    if not self.slot_pulse_enabled or not self.slot_pulse or not self.pulse_views[slot] then return end
-    local view=self.pulse_views[slot]
+    if not (self.slot_pulse_enabled or self.slot_glow_enabled) or not self.slot_pulse or not self.pulse_views[slot] then return end
     self.slot_pulse:press(slot,hotbar,slot)
     self.pulse_tracks[slot]={hotbar=hotbar,slot=slot}
+    local x,y=self:get_slot_x(hotbar,slot),self:get_slot_y(hotbar,slot)
+    local view=self.pulse_views[slot]
     geometry:assign_bank(view, hotbar)
-    view:pos(self:get_slot_x(hotbar,slot),self:get_slot_y(hotbar,slot))
+    view:pos(x,y)
+    local glow=self.glow_views[slot]
+    if glow then
+        geometry:assign_bank(glow, hotbar)
+        glow:pos(x,y)
+    end
 end
+
 function ui:release_slot_pulse(slot)
     if self.slot_pulse then self.slot_pulse:release(slot) end
 end
-function ui:show_slot_pulse()
-    if not self.slot_pulse_enabled or not self.slot_pulse then return end
-    for slot,view in ipairs(self.pulse_views or {}) do
+
+function ui:show_slot_pulse(menu_open)
+    if not (self.slot_pulse_enabled or self.slot_glow_enabled) or not self.slot_pulse then return end
+    for slot,view in ipairs(self.pulse_views) do
         local track=self.pulse_tracks[slot]
-        local alpha=track and self.slot_pulse:alpha(track.hotbar,track.slot) or 0
-        if alpha>0 and self.pulse_visible_bars[track.hotbar] then
+        local alpha,held = 0,false
+        if track then alpha,held = self.slot_pulse:alpha(track.hotbar,track.slot) end
+        local visible = alpha > 0 and self.pulse_visible_bars[track.hotbar]
+        if visible and self.slot_pulse_enabled then
             view:alpha(alpha)
             view:show()
         else
             view:hide()
-            if alpha<=0 then self.pulse_tracks[slot]=nil end
         end
+        local glow=self.glow_views[slot]
+        if glow then
+            if visible and held and track.brightness and self.slot_glow_enabled and not menu_open then
+                glow:alpha(math.floor(alpha * track.brightness + .5))
+                glow:show()
+            else
+                glow:hide()
+            end
+        end
+        if alpha <= 0 then self.pulse_tracks[slot]=nil end
     end
 end
 

@@ -19,9 +19,9 @@ function M.new(clock)
         for button,p in pairs(self.presses) do
             if p.layer==layer and p.slot==slot then
                 local pulse_end=p.started+.06
-                if now<pulse_end then return 180 end
+                if now<pulse_end then return 180,true end
                 if not p.released then
-                    return math.floor(held_alpha(p,now)+.5)
+                    return math.floor(held_alpha(p,now)+.5),true
                 end
                 local remaining=1-(now-math.max(p.released,pulse_end))/.14
                 if remaining<=0 then self.presses[button]=nil;return 0 end

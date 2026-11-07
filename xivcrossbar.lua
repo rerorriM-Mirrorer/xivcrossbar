@@ -719,6 +719,7 @@ end
 -- trigger hotbar action
 function trigger_action(slot)
     ui:press_slot_pulse(player.hotbar_settings.active_hotbar, slot)
+    if ui.slot_glow_enabled then ui_dirty = true end
     if settings.InputTest then
         chat_format.say(207, '[XIVCrossbar test] Crossbar ' .. tostring(gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
         ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
@@ -1242,6 +1243,7 @@ function display_help_menu()
     chat_help.command("auto","Show bars on controller trigger.")
     chat_help.command("autohide [on|off]","Set trigger visibility.")
     chat_help.command("fade [on|off]","Enable/disable fades.")
+    chat_help.command("slotglow [on|off|status]","Show a gold slot border while a button is held.")
     chat_help.command("triggerscale [on|off|status|0.75-1]","Set trigger scale animation and its resting size. Requires fade off.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
@@ -1526,6 +1528,24 @@ windower.register_event('addon command', function(command, ...)
         end
         chat_format.say(207, '[XIVCrossbar] Text fade: ' ..
             (settings.Animation.TextFade and 'ON (with crossbar)' or 'OFF (endpoint visibility)'))
+        return
+    end
+
+    if command == 'slotglow' then
+        local mode = args[1] and args[1]:lower()
+        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb slotglow [on|off|status]')
+            return
+        end
+        if mode ~= 'status' then
+            local enabled = mode == 'on' or (not mode and not settings.Animation.SlotGlow)
+            settings.Animation.SlotGlow = enabled
+            theme_options.slot_glow_enabled = enabled
+            ui:set_slot_glow_enabled(enabled)
+            config.save(settings)
+            ui_dirty = true
+        end
+        chat_format.say(207, '[XIVCrossbar] Slot glow: ' .. (settings.Animation.SlotGlow and 'ON' or 'OFF'))
         return
     end
 
@@ -2088,7 +2108,10 @@ local function route_controller_message(dik, pressed)
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return end
-    if not pressed and pulse_slot_for_dik[dik] then ui:release_slot_pulse(pulse_slot_for_dik[dik]) end
+    if not pressed and pulse_slot_for_dik[dik] then
+        ui:release_slot_pulse(pulse_slot_for_dik[dik])
+        if ui.slot_glow_enabled then ui_dirty = true end
+    end
     local transition = item.logical >= 67
     if settings.InputTrace then
         chat_format.say(207, '[XIVCrossbar test] '..item.name..' '..edge..' | '..tostring(owner or context))
@@ -2346,7 +2369,7 @@ windower.register_event('prerender',function()
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open,
             action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot())
-        ui:show_slot_pulse()
+        ui:show_slot_pulse(menu_open)
     end
 
     ui_dirty = false

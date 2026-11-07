@@ -48,6 +48,12 @@ not imported. No normal gameplay logging is active until you request it.
 
 ## Appearance and visibility
 
+Use `//xb slotglow on` to show a gold border on slot press and hold.
+The border is softer on unavailable actions and faintest on empty slots.
+Use `//xb slotglow off` or `//xb slotglow status` to control the saved
+option. It can run alongside either display preset and trigger scaling.
+
+
 Use `//xb fade off` and `//xb triggerscale on` for a centered pop on the
 single-trigger bars. `//xb triggerscale 0.90` sets the shared small scale
 (relative to HUD scale), from 0.75 to 1.00, with 0.95 by default.
@@ -412,3 +418,6 @@ their profile behavior.
 
 2026-11-07: Added opt-in trigger scaling for fade-off mode, with a saved
 small scale shared by the two regular banks.
+
+2026-11-07: Added opt-in gold slot borders with separate brightness for
+available, unavailable, and empty slots during controller holds.

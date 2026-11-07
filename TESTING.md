@@ -1,3 +1,23 @@
+# Current Development Status — November 7, 2026 — Gold slot hold border
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `d4ec6145d6d90c103d1b98647e8a1123fbca7eeb`.
+
+- `//xb slotglow on` enables the saved opt-in. Hold a slot button with a
+  trigger and check that a soft gold border brightens on press, settles
+  while held, and clears on release. Quick taps have a 60 ms minimum.
+- Compare a ready action, an action on cooldown or without MP/TP, and an
+  empty slot. The border should be progressively fainter. Try two buttons
+  at once, bank switches, menu opening, focus loss, and Autohide.
+- Test with Legacy and XI, including fade-off trigger scaling. The gold
+  border can run with the existing white flash and XI pulse. It indicates
+  input receipt, and does not predict server acceptance.
+- Lua regression fixtures cover brightness ordering, simultaneous holds,
+  layer compatibility, bank geometry, release, and cleanup. In-game
+  brightness and timing are pending.
+
+---
+
 # Current Development Status — November 7, 2026 — Trigger scale animation
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

@@ -16,6 +16,7 @@ theme.apply = function (settings)
     local options = {}
     options.display_palette = theme.display_palette(settings.DisplayPreset)
     options.slot_pulse_enabled = settings.DisplayPreset == 'xi'
+    options.slot_glow_enabled = settings.Animation.SlotGlow == true
     options.crossbar_scale = settings.CrossbarScale
     options.fade_enabled = settings.Animation.Enabled
     options.text_fade = settings.Animation.TextFade == true
