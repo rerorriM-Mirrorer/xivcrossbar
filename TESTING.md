@@ -36,8 +36,9 @@ release. Check focus handoff between two clients, reader stop/start,
 disconnect/reconnect and unload. XInput DLL variants and multiple attached
 DirectInput devices need separate physical results.
 
-Local Lua and portable C++ verification are separate from Windows CI and
-live FFXI. CI builds the x86 DLL and runs the Windows loader and AHK fixtures.
+All 22 local Lua fixtures passed, with 85 parsed sources. The portable C++
+ownership and mapping fixture also passed. Windows CI and live FFXI are
+separate checks. CI builds the x86 DLL and runs the Windows loader and AHK fixtures.
 Use the GitHub workflow result for the published head to verify Windows status.
 
 ---

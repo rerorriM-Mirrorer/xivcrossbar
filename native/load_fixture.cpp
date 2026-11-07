@@ -1,5 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <xinput.h>
 #include <cstdio>
 
 int main() {
@@ -20,6 +21,20 @@ int main() {
     int edges[8]{};
     unsigned status[8]{};
     const auto count = poll(0, edges, 8, status);
+    if (count || status[1]) return 3;
+    HMODULE xinput = LoadLibraryExW(L"xinput1_4.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!xinput) return 6;
+    auto state = reinterpret_cast<DWORD (WINAPI*)(DWORD, XINPUT_STATE*)>(
+        GetProcAddress(xinput, "XInputGetState"));
+    if (!state) return 7;
+    XINPUT_STATE gamepad{};
+    const auto disconnected = state(0, &gamepad) == ERROR_DEVICE_NOT_CONNECTED;
+    if (begin(1, 0, 3, 0, "auto") != 1) return 8;
+    if (disconnected && state(0, &gamepad) != ERROR_DEVICE_NOT_CONNECTED) return 9;
+    if (detach() != 1 || begin(1, 1, 3, 2, "auto") != 1 || detach() != 1) return 10;
+    // The bridge is pinned after installing hooks; these handles can close
+    // after both entry points have been restored.
+    FreeLibrary(xinput);
     FreeLibrary(dll);
-    return count || status[1] ? 3 : 0;
+    return 0;
 }

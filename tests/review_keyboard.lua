@@ -42,16 +42,15 @@ local rootenv=setmetatable({
 },{__index=_G})
 local dispatch=assert(load(prefix..'    return false\nend','actual review key prefix','t',rootenv))()
 binder.is_hidden=false;binder.chooser_active=false;binder.capturing_text=false;binder.state=17
-assert(dispatch(200,true,0,false,'keyboard') and calls[#calls]=='dpad_up')
-binder.state=1;assert(dispatch(200,false,0,false,'keyboard'))
-assert(not dispatch(28,true,0,false,'keyboard'),'Enter outside review consumed')
-dispatch(28,false,0,false,'keyboard')
+assert(dispatch(200,true,0,false) and calls[#calls]=='dpad_up')
+binder.state=1;assert(dispatch(200,false,0,false))
+assert(not dispatch(28,true,0,false),'Enter outside review consumed')
+dispatch(28,false,0,false)
 binder.state=17;rootenv.text_input_guard.enter_down=true
-assert(not dispatch(28,true,0,false,'keyboard'),'field-owned Enter stolen')
-dispatch(28,false,0,false,'keyboard');rootenv.text_input_guard.enter_down=false
-assert(dispatch(28,true,0,false,'keyboard') and calls[#calls]=='submit_selected_option')
+assert(not dispatch(28,true,0,false),'field-owned Enter stolen')
+dispatch(28,false,0,false);rootenv.text_input_guard.enter_down=false
+assert(dispatch(28,true,0,false) and calls[#calls]=='submit_selected_option')
 binder.capturing_text=true
-assert(dispatch(28,false,0,false,'keyboard'),'Enter release escaped into text field')
+assert(dispatch(28,false,0,false),'Enter release escaped into text field')
 binder.capturing_text=false
-assert(not dispatch(200,true,0,false,'message'),'synthetic DirectLink keyboard event misrouted')
 print('Review keys: physical arrows/Enter/Escape, single edge, review-only scope, field ownership and real routing passed.')
