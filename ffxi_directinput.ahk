@@ -4,6 +4,7 @@
 #SingleInstance Off
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
+#Include %A_ScriptDir%\controller_clients.ahk
 ; A: physical modifier checks must distinguish our injected key-down.
 InstallKeybdHook()
 SetWorkingDir(A_ScriptDir)
@@ -57,6 +58,7 @@ ready := false
 appsOwned := false
 ControllerMessageInit()
 DiagInit()
+WrapperClientsInit()
 WriteTransportStatus(true)
 OnExit(TransportExit)
 SetTimer(TransportPoll, 10)
@@ -64,6 +66,8 @@ SetTimer(TransportPoll, 10)
 TransportPoll() {
     global owner, ready, phase, connected, xinputFault, appsOwned, captureKey, keys, previous
     Critical("On")
+    if WrapperClientsShouldExit()
+        ExitApp()
     DiagTick()
     if FileExist(A_ScriptDir . "\data\input-stop.request") {
         try FileDelete(A_ScriptDir . "\data\input-stop.request")
@@ -267,6 +271,7 @@ WriteTransportStatus(force := false) {
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
+    contents .= WrapperClientsStatus()
     WriteControllerFile(temporary, destination, contents)
 }
 AcquireWrapperMutex() {

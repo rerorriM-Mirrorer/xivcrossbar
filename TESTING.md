@@ -1,3 +1,10 @@
+# Shared AHK last-client shutdown
+
+- Ported the personal branch owner-file registry. AHK keeps running while any registered client is loaded, including minimized clients. After the final unload it waits two seconds before exiting. StopWrapperAfterLastClient defaults on and can be set false in settings. The old forced-off field does not override this setting.
+- Live: update the Lua and AHK files as a set, restart the old wrapper, test one client and then two clients. Unload one client first, then the last. Confirm a quick reload within the grace period keeps the wrapper running.
+
+---
+
 # Held-trigger handoff
 
 - Closing the XIVCrossbar menu keeps the held trigger bank available immediately. In automatic guard mode, releasing the final owned trigger returns held D-pad directions to FFXI after 120 ms. Face-button ownership remains through release. Buffered DirectInput replays a held POV value when space is available.

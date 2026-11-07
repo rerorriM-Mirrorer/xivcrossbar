@@ -49,7 +49,7 @@ if not selected_profile then
     selected_profile, selected_device = 'ps5-directinput', 1
 end
 settings.ControllerProfile, settings.ControllerDevice = selected_profile, selected_device
-settings.on_unload_killahk = false -- shared process; use //xb controller stop
+local client_registry
 config.save(settings)
 
 -- A: immutable for this load; changing one client cannot safely reconfigure
@@ -1249,6 +1249,18 @@ end
 
 -- ON LOAD
 windower.register_event('load',function()
+    local ok, registry = pcall(function()
+        return require('libs/controller/clients').new({directory=windower.addon_path..'data/controller-clients/'})
+    end)
+    if ok then
+        client_registry = registry
+        local registered, err = registry:register(settings.StopWrapperAfterLastClient ~= false)
+        if not registered then
+            chat_format.say(123, '[XIVCrossbar] Controller client registration failed: '..tostring(err))
+        end
+    else
+        chat_format.say(123, '[XIVCrossbar] Last-client shutdown unavailable: '..tostring(registry))
+    end
     if (buttonmapping.validate()) then
         start_controller_wrappers()
     end
@@ -1322,6 +1334,7 @@ windower.register_event('unload',function()
     if release_gameplay_keys then release_gameplay_keys() end
     if ui.geometry then ui.geometry:shutdown() end
     require('ui/resources').destroy_all()
+    if client_registry then client_registry:close(settings.StopWrapperAfterLastClient ~= false) end
 end)
 
 -- ON COMMAND

@@ -9,6 +9,7 @@ defaults.NativeDetachOnUnload = true
 defaults.ControllerProfile = 'ps5-directinput'
 defaults.ControllerDevice = 1
 defaults.on_logout_unload_addon = false
+defaults.StopWrapperAfterLastClient = true
 defaults.on_unload_killahk = false
 defaults.enable_superwarp_all = false
 
