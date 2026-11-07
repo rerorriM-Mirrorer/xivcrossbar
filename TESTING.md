@@ -1,3 +1,11 @@
+# Current Development Status — November 6, 2026 — Personal Menu Preview 1
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/ahk-v2-migration`, baseline `c8b38b8d94b27ce3a74f0546508b32face812781`. Reviewed current AGENTS/WORKFLOW/TESTING from GitHub. Adapted public beta in-menu HUD reveal, icon dim and amber binding-bank field to personal's separate UI and combined five-bank policy, while preserving companion controls.
+- Gameplay actions are guarded when a menu has owned a held trigger, until neutral release. No AHK, pet, Trust, asset or saved-setting edits.
+- Added source-backed and executable binder-state `tests/personal_menu_preview.lua`. CI to be checked separately; native controller/FFXI acceptance pending. Check combo/double-trigger selection in both layouts, menu close with R2 held, Select Trust paging, no unintended action, no stale menu glow and normal native dialogue.
+
+---
+
 # Current Development Status — November 6, 2026 — Personal Autoattack Default 1
 
 - Repository `rerorriM-Mirrorer/xivcrossbar`, branch `development/ahk-v2-migration`, baseline `ad368145a2790a5d947bb132f75c17732545ac66`. Current AGENTS/WORKFLOW/TESTING read directly from GitHub.

@@ -734,6 +734,16 @@ function action_binder:button_y(pressed)
     end
 end
 
+-- The current binding target is a display preview only; no slot executes.
+function action_binder:get_binding_preview_bank()
+    if not self.is_hidden and not self.chooser_active
+        and (self.state==states.SELECT_BUTTON_ASSIGNMENT or self.state==states.CONFIRM_BUTTON_ASSIGNMENT) then
+        local bar=self.active_crossbar
+        if self.theme_options and self.theme_options.combined_trigger_bank and bar==4 then return 3 end
+        return bar
+    end
+end
+
 function action_binder:is_in_selector_state()
     return not self.capturing_text and self.selector and self.selector.is_showing and (self.state == states.SELECT_ACTION_TYPE
         or self.state == states.SELECT_ACTION

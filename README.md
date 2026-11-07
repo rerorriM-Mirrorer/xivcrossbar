@@ -1696,3 +1696,7 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 ### November 6, 2026 — Personal autoattack default OFF
 
 - Fresh personal settings no longer track invisible autoattack timing by default. Existing saved `AutoAttackIndicator.Enabled` values remain authoritative; use `//xb autoattack off` on an already-configured character to disable it. `//xb autoattack on` remains supported for deliberate testing. No display or controller behavior otherwise changes.
+
+### November 6, 2026 — Personal in-menu crossbar preview
+
+- Adopt Public Beta's dimmed in-menu HUD and amber selected-bank field while retaining personal trigger layers and five-bank combining. Triggers held while a menu owns input must be released fully before gameplay can activate; no user bindings or saved settings change. Physical controller verification remains pending.
