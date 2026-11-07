@@ -782,19 +782,20 @@ function ui:get_drag_bounds()
 end
 
 function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, menu_open)
-    enabled = enabled and not geometry.fade_enabled and not menu_open
+    enabled = enabled and not menu_open
     small = tonumber(small) or .95
     if small ~= small or small < .75 or small > 1 then small = .95 end
+    local single = enabled and (active_bar == 1 or active_bar == 2)
     for h=1,2 do
         local left, right = math.huge, -math.huge
         for slot=1,8 do
             local x = self:get_slot_x(h, slot)
             left, right = math.min(left, x), math.max(right, x+40)
         end
-        local selected = active_bar == h
-        local target = (not enabled or selected) and 1 or small
-        local instant = not enabled or not visible
-        local initial = enabled and autohide and visible and not self.scale_visible and small or nil
+        local target = single and (active_bar == h and 2-small or small) or 1
+        local instant = not enabled or (not visible and not geometry.fade_enabled)
+        local initial = enabled and autohide and visible and not self.scale_visible
+            and geometry.opacity == 0 and 1 or nil
         geometry:set_bank_scale(h, (left+right)/2,
             (self:get_slot_y(h, 2)+self:get_slot_y(h, 4)+40)/2, target, instant, initial)
     end

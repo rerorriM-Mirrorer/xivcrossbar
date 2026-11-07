@@ -102,7 +102,7 @@ end
 function geometry:setup_bank_scales()
     local clock = require('socket').gettime
     local fade = require('ui_fade')
-    self.banks = {fade.new(clock, 1), fade.new(clock, 1)}
+    self.banks = {fade.new(clock, 1, 1.25), fade.new(clock, 1, 1.25)}
 end
 
 local function draw_primitive(g, name, p)

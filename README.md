@@ -78,12 +78,13 @@ Use `//xb slotglow off` or `//xb slotglow status` to control the saved
 option. It can run alongside either display preset and trigger scaling.
 
 
-Use `//xb fade off` and `//xb triggerscale on` for a centered pop on the
-single-trigger bars. `//xb triggerscale 0.90` sets the shared small scale
-(relative to HUD scale), from 0.75 to 1.00, with 0.95 by default.
-`//xb triggerscale status` reports the saved option and size. Autohide
-reveals the selected single-trigger bar from small to full size and hides
-immediately. Combined and double-tap banks appear at full size.
+Use `//xb triggerscale on` to animate the single-trigger banks with fades
+on or off. `//xb triggerscale 1` means the held bank grows to 101% and
+the other shrinks to 99%, relative to HUD scale. Both rest at 100%.
+The command accepts a shift of 0–25%, and existing saved small scales
+carry over as the same distance from 100%. `//xb triggerscale status`
+reports the saved option and shift. Combined and double-tap banks
+appear at normal size.
 
 
 Drag a visible crossbar with the left mouse button; release saves its position.
@@ -461,3 +462,6 @@ fill and brighter feathered edge, fading together over 150 ms.
 
 2026-11-07: Added tighter XI compact spacing, recessed empty slots and
 warm trigger fields. Legacy restores original spacing and ribbon shapes.
+
+2026-11-07: TriggerScale now works with fades on, and single-trigger
+banks scale symmetrically around a full-size resting layout.

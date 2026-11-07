@@ -1244,7 +1244,7 @@ function display_help_menu()
     chat_help.command("fade [on|off]","Enable/disable fades.")
     chat_help.command("recastflash [on|off|status]","Flash a slot when its recast reaches zero.")
     chat_help.command("slotglow [on|off|status]","Show a gold slot border while a button is held.")
-    chat_help.command("triggerscale [on|off|status|0.75-1]","Set trigger scale animation and its resting size. Requires fade off.")
+    chat_help.command("triggerscale [on|off|status|0-25]","Set the percentage the held bank grows and the other shrinks.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
     chat_help.command("skillchain [on|off|status|0-255]","Set the skillchain strip opacity.")
@@ -1581,18 +1581,20 @@ windower.register_event('addon command', function(command, ...)
     if command == 'triggerscale' then
         local mode = args[1] and args[1]:lower()
         local animation = settings.Animation
-        local scale = tonumber(mode)
-        if scale and scale >= .75 and scale <= 1 then
-            animation.SmallScale = scale
+        local shift = mode and tonumber((mode:gsub('%%$', '')))
+        if shift and shift >= 0 and shift <= 25 then
+            -- Preserve the saved small factor so existing 0.99 values become a 1% shift.
+            animation.SmallScale = 1 - shift/100
         elseif not mode or mode == 'on' or mode == 'off' then
             animation.TriggerScale = mode == 'on' or (not mode and not animation.TriggerScale)
         elseif mode ~= 'status' then
-            chat_format.say(123, '[XIVCrossbar] //xb triggerscale [on|off|status|0.75-1]')
+            chat_format.say(123, '[XIVCrossbar] //xb triggerscale [on|off|status|0-25]')
             return
         end
         if mode ~= 'status' then config.save(settings); ui_dirty = true end
-        local state = animation.TriggerScale and (animation.Enabled and 'ON (waiting for fade off)' or 'ON') or 'OFF'
-        chat_format.say(207, ('[XIVCrossbar] Trigger scale: %s | Small size: %.0f%%'):format(state, tonumber(animation.SmallScale) or .95))
+        local state = animation.TriggerScale and 'ON' or 'OFF'
+        local percent = (1 - (tonumber(animation.SmallScale) or .95))*100
+        chat_format.say(207, ('[XIVCrossbar] Trigger scale: %s | Shift: ±%g%%'):format(state, percent))
         return
     end
 

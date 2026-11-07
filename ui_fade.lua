@@ -2,9 +2,9 @@
 local fade = {}
 fade.__index = fade
 
-function fade.new(clock, initial)
+function fade.new(clock, initial, maximum)
     return setmetatable({clock=clock, value=initial or 1, target=initial or 1,
-        active=false}, fade)
+        active=false, maximum=maximum or 1}, fade)
 end
 
 function fade:step()
@@ -19,7 +19,7 @@ end
 
 function fade:to(target, duration)
     self:step()
-    target = math.max(0, math.min(1, target))
+    target = math.max(0, math.min(self.maximum, target))
     if self.target == target and self.active then return end
     self.from, self.target = self.value, target
     self.started, self.duration = self.clock(), math.max(0, duration or 0)

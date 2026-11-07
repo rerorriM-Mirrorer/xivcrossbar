@@ -1,3 +1,23 @@
+# Current Development Status — November 7, 2026 — Symmetric trigger scale
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `206bbde2a35c6342a8f3eceb3ebc1b435d96a8d3`.
+The user liked Myrr's XI layout and requested symmetric scale with fades.
+
+- With `//xb triggerscale on` and `//xb triggerscale 1`, both banks rest at
+  100% of HUD scale. Hold R2 for 101% right and 99% left. Hold L2 for the
+  reverse. A saved 99% small scale becomes a 1% shift without editing XML.
+  The number in the command now denotes a percent shift.
+- Check `//xb fade on` with XI, then repeat with fade off. Check Always and
+  Autohide, rapid trigger reversals, combined and double-tap banks, and the
+  addon menu. The animation stays centered and uses the existing 120 ms
+  easing. Menus and special banks use normal scale.
+- Automated Lua tests check centered scale above/below 100%, saved 99%,
+  opacity running alongside scaling, and fade-off immediate hide. Live
+  feel remains to be checked. This Lua patch overlays the XI layout build.
+
+---
+
 # Current Development Status — November 7, 2026 — XI compact spacing and artwork
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
