@@ -95,6 +95,8 @@ ControllerMessagePoll(states, hwnd) {
     global CM
     if (hwnd)
         ControllerMessageContext(hwnd)
+    if (!CM.requested)
+        return false
     neutral := true
     Loop 12
         if (states[A_Index])
@@ -112,12 +114,10 @@ ControllerMessagePoll(states, hwnd) {
     }
     if (CM.phase = "neutral") {
         if (neutral)
-            CM.phase := CM.requested ? "messages" : "waiting-lease"
+            CM.phase := "messages"
         ControllerMessageFlush()
         return true
     }
-    if (!CM.requested)
-        return false
     if (CM.phase = "backpressure") {
         if (neutral and !CM.pending.Length)
             CM.phase := "messages"

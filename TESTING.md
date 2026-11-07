@@ -39,7 +39,11 @@ DirectInput devices need separate physical results.
 All 22 local Lua fixtures passed, with 85 parsed sources. The portable C++
 ownership and mapping fixture also passed. Windows CI and live FFXI are
 separate checks. CI builds the x86 DLL and runs the Windows loader and AHK fixtures.
-Use the GitHub workflow result for the published head to verify Windows status.
+The first Windows run (42347180849) compiled and passed the x86 native tests.
+The AHK fixture exposed that the detached lease still reported one neutral
+transition as consumed. The reader now reports inactivity immediately. The
+old review-key fixture was also updated for the separated callbacks. Use the
+GitHub workflow result for the published head to verify Windows status.
 
 ---
 
