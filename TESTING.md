@@ -1,3 +1,13 @@
+# Current Development Status — November 6, 2026 — Public Skillchain Nil-Property Safety 1
+
+- Repository `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, baseline `e475e62d46a95527560799becede998ded61a534`; current GitHub development guidance and cumulative TESTING read.
+- Ported targeted personal tracker guards: missing/unknown skillchain and burst-property tables, safe Chainbound label formatting, and guard against publishing empty/nil resonance properties from elemental-only actions. Prior normal physical SC/MB behavior remains intended.
+- Added `tests/pact_skillchain.lua`, the actual personal-module Searing Light/SC/MB/Chainbound regression, to the existing public CI glob. No public pet, summon, Trust, controller, menu, or asset changes.
+- Native Windows/FFXI live validation remains pending: trigger Searing Light after Astral Flow, check no repeated skillchains errors, then verify normal skillchain and MB hints. New GitHub CI status is to be checked separately.
+- Prior MP/feedback commit and cumulative history below preserved.
+
+---
+
 # Current Development Status — November 6, 2026 — Public MP Colors and Feedback 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, source baseline `3e0e98262cd0b012562af4d12e028c64f2bcb4e5`. Reviewed current AGENTS/WORKFLOW/TESTING directly from GitHub.

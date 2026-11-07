@@ -417,3 +417,7 @@ fade-in/fade-out/startup durations and text-settling behavior are unchanged.
 
 - Fresh-install MP costs are pale green (`#C2FDC3`); insufficient MP turns the number pink (`#FF9597`) and returns green as MP recovers, even while recast-dimmed. Saved user colors remain authoritative; TP costs and other indicators are unchanged.
 - Main slot flash now restarts at configured opacity on each accepted slot press and clamps its fade to zero. This remains a dispatch/press acknowledgement, **not** proof the game executed the action. Independent simultaneous-slot animations are a separate future change.
+
+### November 6, 2026 — Skillchain tracker nil-property safety
+
+- Ported the narrow personal tracker guards for elemental-only avatar attacks such as Searing Light, missing/unknown skillchain property tables, and the Chainbound display conditional. An elemental-only attack no longer creates an invalid nil-property resonance or discards a valid preceding chain. No controller or pet-action automation is included.
