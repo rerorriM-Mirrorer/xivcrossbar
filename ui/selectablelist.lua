@@ -136,13 +136,15 @@ function selectable_list:increment_page() self:turn_page(1) end
 function selectable_list:decrement_page() self:turn_page(-1) end
 
 function selectable_list:move_selection(dr, dc)
-    local row, col = self.selected_row + dr, self.selected_col + dc
-    while row >= 1 and row <= self.max_row+1 and col >= 1 and col <= self.max_col do
+    local rows, cols = self.max_row + 1, self.max_col
+    local row, col = self.selected_row, self.selected_col
+    for _ = 1, (dr ~= 0 and rows or cols) - 1 do
+        row = (row - 1 + dr) % rows + 1
+        col = (col - 1 + dc) % cols + 1
         if self:is_valid_row_col(row,col) then
             self.selected_row,self.selected_col=row,col
             self:highlight_selection(); return
         end
-        row,col=row+dr,col+dc
     end
 end
 

@@ -458,6 +458,7 @@ function action_binder:reset_gamepad_triggers()
 end
 
 function action_binder:clear_controller_input()
+    self.held_navigation = nil
     self:reset_gamepad()
     close_left_doublepress_window()
     close_right_doublepress_window()
@@ -752,8 +753,35 @@ function action_binder:is_in_selector_state()
         or self.state == states.EDIT_CUSTOM_ACTION_REVIEW)
 end
 
+local repeat_navigation = {
+    left='decrement_col', right='increment_col', down='increment_row', up='decrement_row',
+}
+
+function action_binder:tick_navigation(now, focused)
+    local held = self.held_navigation
+    if not held then return end
+    if not focused or self.is_hidden or self.chooser_active or not self:is_in_selector_state()
+        or held.state ~= self.state or held.options ~= self.selector.current_options then
+        self.held_navigation = nil
+        return
+    end
+    if not held.next then held.next = now + .35 end
+    if now >= held.next then
+        self[repeat_navigation[held.key]](self)
+        held.next = now + .09
+    end
+end
+
 -- A held trigger previews a page turn; another menu press consumes it.
 function action_binder:menu_input(key,pressed)
+    if pressed then
+        self.held_navigation = nil
+        if repeat_navigation[key] and self:is_in_selector_state() then
+            self.held_navigation = {key=key, state=self.state, options=self.selector.current_options}
+        end
+    elseif self.held_navigation and self.held_navigation.key == key then
+        self.held_navigation = nil
+    end
     if pressed and self.page_gesture then
         self.page_gesture.used=true
         self.selector:page_highlight(nil)
@@ -1595,6 +1623,7 @@ function action_binder:set_chooser_active(active, gamepad_state)
 end
 
 function action_binder:hide()
+    self.held_navigation = nil
     self.is_hidden = true
     require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg', false)
     windower.prim.set_visibility('button_entry_bg', false)
@@ -2804,39 +2833,21 @@ local icon_picker_excluded_dirs = {
 }
 
 local function list_iconpack_dir(rel_path)
-    local pathbase = get_icon_pathbase()
-    local addon_path = windower.addon_path
-    local sep = ''
-    if (rel_path ~= nil and rel_path ~= '') then
-        sep = '\\'
-    end
-    local full_path = addon_path .. 'images\\' .. pathbase:gsub('/', '\\') .. sep .. (rel_path or ''):gsub('/', '\\')
-
-    local dirs = L{}
-    local handle = io.popen('dir /b /a:d "' .. full_path .. '" 2>nul')
-    if (handle) then
-        for line in handle:lines() do
-            if (line ~= nil and line ~= '' and not icon_picker_excluded_dirs[line:lower()]) then
-                dirs:append(line)
+    local full_path = windower.addon_path .. 'images/' .. get_icon_pathbase()
+        .. (rel_path and rel_path ~= '' and '/' .. rel_path or '')
+    local dirs, files = L{}, L{}
+    for _, name in ipairs(windower.get_dir(full_path) or {}) do
+        if name ~= '.' and name ~= '..' then
+            if windower.dir_exists(full_path .. '/' .. name) then
+                if not icon_picker_excluded_dirs[name:lower()] then dirs:append(name) end
+            else
+                local stem = name:match('^(.*)%.[pP][nN][gG]$')
+                if stem and not icon_picker_excluded_files[stem:lower()] then files:append(stem) end
             end
         end
-        handle:close()
     end
-
-    local files = L{}
-    handle = io.popen('dir /b /a:-d "' .. full_path .. '\\*.png" 2>nul')
-    if (handle) then
-        for line in handle:lines() do
-            if (line ~= nil and line ~= '') then
-                local stem = line:gsub('%.png$', ''):gsub('%.PNG$', '')
-                if (not icon_picker_excluded_files[stem:lower()]) then
-                    files:append(stem)
-                end
-            end
-        end
-        handle:close()
-    end
-
+    dirs:sort()
+    files:sort()
     return dirs, files
 end
 
@@ -3532,61 +3543,36 @@ function action_binder:display_icon_selector_sylvebits()
 
     local icon_id = 1
 
-    -- Scan the icon pack directory recursively for all .png files
-    local command = 'dir /b /s "' .. base_dir .. '\\*.png" 2>nul'
-    local handle = io.popen(command)
-    if (handle) then
-        local all_icons = L{}
-        for full_path in handle:lines() do
-            -- Convert backslashes to forward slashes
-            full_path = full_path:gsub('\\', '/')
-
-            -- Extract the relative path after the iconpack base directory
-            local relative = full_path:match('.*/iconpacks/[^/]+/(.*)')
-            if (relative) then
-                -- Remove .png extension
-                local icon_key = relative:gsub('%.png$', '')
-
-                -- Get just the filename without extension
-                local filename = icon_key:match('.*/(.+)$') or icon_key
-
-                -- Get the subdirectory if any
-                local subdir = icon_key:match('(.*)/') or ''
-                local immediate_dir = subdir:match('.*/(.*)')  or subdir
-
-                -- Skip excluded files and directories
-                if (not excluded_files[filename] and not excluded_dirs[immediate_dir]) then
-                    -- Build display name: capitalize and clean up
-                    local display_name = filename:gsub('-', ' '):gsub('_', ' ')
-                    -- Capitalize first letter of each word
-                    display_name = display_name:gsub('(%a)([%w]*)', function(first, rest)
-                        return first:upper() .. rest
-                    end)
-
-                    -- Build category prefix for sorting
-                    local sort_key = subdir .. '/' .. filename
-
-                    all_icons:append({
-                        sort_key = sort_key,
-                        name = display_name,
-                        icon = 'images/' .. pathbase .. '/' .. icon_key .. '.png',
-                        icon_path = '/' .. icon_key,
-                        subdir = subdir
-                    })
+    local all_icons = L{}
+    local function scan(directory, prefix, depth)
+        if depth > 16 then return end
+        for _, name in ipairs(windower.get_dir(directory) or {}) do
+            if name ~= '.' and name ~= '..' then
+                local path = directory .. '/' .. name
+                if windower.dir_exists(path) then
+                    if not excluded_dirs[name:lower()] then scan(path, prefix .. name .. '/', depth + 1) end
+                else
+                    local stem = name:match('^(.*)%.[pP][nN][gG]$')
+                    if stem and not excluded_files[stem:lower()] then
+                        local key = prefix .. stem
+                        all_icons:append({
+                            sort_key = prefix .. '/' .. stem,
+                            name = stem:gsub('[-_]', ' '):gsub('(%a)([%w]*)', function(first, rest)
+                                return first:upper() .. rest
+                            end),
+                            icon = 'images/' .. pathbase .. '/' .. prefix .. name,
+                            icon_path = '/' .. key,
+                        })
+                    end
                 end
             end
         end
-        handle:close()
-
-        -- Sort alphabetically by category then name
-        all_icons:sort(function(a, b) return a.sort_key < b.sort_key end)
-
-        -- Build the final icon list
-        for i, entry in ipairs(all_icons) do
-            local data = { icon_path = entry.icon_path }
-            icon_list:append({id = icon_id, name = entry.name, icon = entry.icon, data = data})
-            icon_id = icon_id + 1
-        end
+    end
+    scan(base_dir, '', 0)
+    all_icons:sort(function(a, b) return a.sort_key < b.sort_key end)
+    for _, entry in ipairs(all_icons) do
+        icon_list:append({id=icon_id, name=entry.name, icon=entry.icon, data={icon_path=entry.icon_path}})
+        icon_id = icon_id + 1
     end
 
     self.selector:display_options(icon_list)

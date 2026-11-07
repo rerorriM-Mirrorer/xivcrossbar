@@ -1,3 +1,11 @@
+# Menu browsing and compact startup
+
+- User reported repeated successful Trust paging. Cold startup could render Full while saved Compact was true. UI setup now reads the current setting after character initialization.
+- Icon browsing and recursive icon selection use Windower directory APIs. Picker directions repeat after 350 ms and wrap along the current row or column, skipping unavailable cells. Release, page changes, focus loss, and closing the picker cancel repeat.
+- Live: cold-start Compact, enter nested icon folders without a console flash, and hold all four directions in a sparse picker. Cursor texture cleanup and inherited icon flicker remain open.
+
+---
+
 # Graceful XIVCrossbar unload command
 
 - User confirmed the shared AHK wrapper exited on unload and returned smoothly on load. Added `//xb unload` using the existing fade and cleanup path, followed by Windower unload.

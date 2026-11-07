@@ -615,6 +615,7 @@ function initialize(server_id, expected_name, expected_id)
         xivcrossbar.ready = false
         return
     end
+    theme_options.is_compact = settings.iscompact
     ui:setup(theme_options, enchanted_items)
     action_binder:set_ui_offset_callback(function(x, y)
         move_crossbars(x, y)
@@ -2379,6 +2380,7 @@ windower.register_event('prerender',function()
     end
     poll_directlink()
     native_poll()
+    action_binder:tick_navigation(profile_clock(), windower.has_focus())
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.
