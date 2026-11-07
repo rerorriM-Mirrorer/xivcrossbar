@@ -412,3 +412,8 @@ AutoHide currently has no post-release delay (visibility switches on release,
 then the existing 0.5s fade-out). A future delay of 3/9/15/30 seconds is only
 under discussion, NOT implemented or claimed in this build. Existing
 fade-in/fade-out/startup durations and text-settling behavior are unchanged.
+
+### November 6, 2026 — MP affordability and feedback polish
+
+- Fresh-install MP costs are pale green (`#C2FDC3`); insufficient MP turns the number pink (`#FF9597`) and returns green as MP recovers, even while recast-dimmed. Saved user colors remain authoritative; TP costs and other indicators are unchanged.
+- Main slot flash now restarts at configured opacity on each accepted slot press and clamps its fade to zero. This remains a dispatch/press acknowledgement, **not** proof the game executed the action. Independent simultaneous-slot animations are a separate future change.

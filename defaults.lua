@@ -108,9 +108,11 @@ defaults.HotbarOffsets.DoublePress.Y = 0
 
 defaults.Color = {}
 defaults.Color.MpCost = {}
-defaults.Color.MpCost.Red = 230
-defaults.Color.MpCost.Green = 91
-defaults.Color.MpCost.Blue = 151
+-- A: readable MP costs; pink is reserved for insufficient MP.
+defaults.Color.MpCost.Red = 194
+defaults.Color.MpCost.Green = 253
+defaults.Color.MpCost.Blue = 195
+defaults.Color.MpCostInsufficient = {Red=255, Green=149, Blue=151}
 defaults.Color.TpCost = {}
 defaults.Color.TpCost.Red = 254
 defaults.Color.TpCost.Green = 222

@@ -1,3 +1,13 @@
+# Current Development Status — November 6, 2026 — Public MP Colors and Feedback 1
+
+- Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/public-ahk-v2`, source baseline `3e0e98262cd0b012562af4d12e028c64f2bcb4e5`. Reviewed current AGENTS/WORKFLOW/TESTING directly from GitHub.
+- MP cost default becomes pale green (194,253,195) with insufficient MP pink (255,149,151). Initial slots and later MP recovery use one helper; recast dimming and TP color remain independent. Saved settings are not replaced.
+- Main feedback retriggers at full configured opacity and clamps the decay to 0..255. This fixes negative-alpha overshoot and rapid-press continuation; **it does not confirm FFXI action success**. Independent per-slot feedback remains future work.
+- Source-backed Lua regression added to the existing beta defaults test: actual cost helper and actual feedback methods, repeat press, overshoot, and theme transport. Static review only in this connector environment; neither Lua interpreter nor Windows/FFXI live tests were run here. Pending: public beta clean-install MP color, low→high MP with a recast active, rapid flash, and controller physical acceptance.
+- Public AHK v2 transport and other gameplay behavior unchanged. Complete install or coherent patch only; preserve user data and follow prior rollback instructions.
+
+---
+
 # AHK v2 shortcut startup
 
 - The bootstrap creates a validated interpreter shortcut. Subsequent starts use the shortcut and the current profile handoff, with one bootstrap retry if the reader does not start. Stop or unload cancels the pending retry.

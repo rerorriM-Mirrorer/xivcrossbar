@@ -429,6 +429,9 @@ function ui:setup(theme_options, enchanted_items)
     self.theme.mp_cost_color_red = theme_options.mp_cost_color_red
     self.theme.mp_cost_color_green = theme_options.mp_cost_color_green
     self.theme.mp_cost_color_blue = theme_options.mp_cost_color_blue
+    self.theme.mp_cost_insufficient_red = theme_options.mp_cost_insufficient_red
+    self.theme.mp_cost_insufficient_green = theme_options.mp_cost_insufficient_green
+    self.theme.mp_cost_insufficient_blue = theme_options.mp_cost_insufficient_blue
     self.theme.tp_cost_color_red = theme_options.tp_cost_color_red
     self.theme.tp_cost_color_green = theme_options.tp_cost_color_green
     self.theme.tp_cost_color_blue = theme_options.tp_cost_color_blue
@@ -975,7 +978,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
 
                 -- display mp cost
                 if crossbar_action.mp_cost ~= nil and crossbar_action.mp_cost ~= 0 then
-                    self.hotbars[hotbar].slot_cost[slot]:color(self.theme.mp_cost_color_red, self.theme.mp_cost_color_green, self.theme.mp_cost_color_blue)
+                    self:set_mp_cost_color(hotbar, slot, player_vitals.mp < crossbar_action.mp_cost)
                     
                     if(settings.Hotbar.HideActionCost == true) then
                         self.hotbars[hotbar].slot_cost[slot]:text("")
@@ -1136,6 +1139,13 @@ end
 -- Disabled Slots
 -----------------------------
 
+-- MP changes only when affordability changes; recast dimming is independent.
+function ui:set_mp_cost_color(hotbar, slot, insufficient)
+    local prefix = insufficient and 'mp_cost_insufficient_' or 'mp_cost_color_'
+    self.hotbars[hotbar].slot_cost[slot]:color(self.theme[prefix..'red'],
+        self.theme[prefix..'green'], self.theme[prefix..'blue'])
+end
+
 -- check player vitals
 function ui:check_vitals(player_hotbar, player_vitals, environment)
     local selected=player_hotbar and player_hotbar[environment]
@@ -1173,6 +1183,9 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                 if (crossbar_action ~= nil) then
                     local can_afford_mp = crossbar_action.mp_cost ~= nil and crossbar_action.mp_cost ~= '0' and player_vitals.mp < crossbar_action.mp_cost
                     local can_afford_tp = crossbar_action.tp_cost ~= nil and crossbar_action.tp_cost ~= '0' and player_vitals.tp < crossbar_action.tp_cost
+                    if crossbar_action.mp_cost and crossbar_action.mp_cost > 0 then
+                        self:set_mp_cost_color(h, i, can_afford_mp)
+                    end
                     if (can_afford_mp or can_afford_tp) then
                         self.disabled_slots.no_vitals[action.action] = true
                         is_disabled = true
@@ -2237,19 +2250,24 @@ function ui:trigger_feedback(hotbar, slot)
     if slot == 0 then slot = 10 end    
     self.feedback.hotbar, self.feedback.slot = hotbar, slot
     self.feedback_icon:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
+    -- A new accepted slot press restarts the flash even during a prior fade.
+    self.feedback.current_opacity = self.feedback.max_opacity
     self.feedback.is_active = true
 end
 
 -- show feedback
 function ui:show_feedback()
-    if self.feedback.current_opacity ~= 0 then
-        self.feedback.current_opacity = self.feedback.current_opacity - self.feedback.speed
-        self.feedback_icon:alpha(self.feedback.current_opacity)
+    if not self.feedback.is_active then return end
+    local step = math.max(1, tonumber(self.feedback.speed) or 1)
+    local opacity = math.max(0, math.min(255, self.feedback.current_opacity - step))
+    self.feedback.current_opacity = opacity
+    self.feedback_icon:alpha(opacity)
+    if opacity > 0 then
         self.feedback_icon:show()
-    elseif self.feedback.current_opacity < 1 then
+    else
         self.feedback_icon:hide()
         self.feedback.current_opacity = self.feedback.max_opacity
-        self.feedback.is_active= false
+        self.feedback.is_active = false
     end
 end
 
