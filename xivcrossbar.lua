@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.messages-native-display2'
+_addon.version = '0.4.0-beta1.20261107.shoulder-targeting1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -69,6 +69,7 @@ local action_manager = require('action_manager')
 local keyboard = require('keyboard_mapper')
 local gamepad = require('gamepad')
 local transport = require('controller_transport')
+local shoulder_banks = require('shoulder_banks')
 local text_input_guard = require('text_input_guard')
 local review_keyboard = require('libs/controller/review_keyboard').new()
 local visibility = require('visibility')
@@ -1255,6 +1256,8 @@ function display_help_menu()
     chat_help.command("restart","Fade out then reload the addon.")
     chat_help.command("unload","Fade out and unload the addon.")
     chat_help.command("regenerate","Regenerate cached resource files.")
+    chat_help.command("bank targeting [on|off]","Use R1 to acquire or cycle targets.")
+    chat_help.command("bank status","Show shoulder bank preferences.")
     chat_help.command("slotrumble [on|off]","Toggle the optional GripRumble test tap for this load.")
     chat_help.command("inputtest [on|off]","Replace real actions with dummy tests.")
     chat_help.command("inputtrace [on|off]","Enable keyboard/input trace logging.")
@@ -1404,6 +1407,11 @@ windower.register_event('addon command', function(command, ...)
             end
         else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
         return
+    elseif command == 'bank' then
+        local section, option, value = ...
+        return shoulder_banks.command(settings.ShoulderBanks, settings.ControllerProfile, section, option, value,
+            function() config.save(settings) end,
+            function(message) chat_format.say(207, '[XIVCrossbar] '..message) end)
     elseif command == 'slotrumble' then
         local mode = (...)
         if mode == 'on' then slot_rumble_enabled = true
@@ -2115,13 +2123,32 @@ windower.register_event('keyboard', controller_keyboard)
 
 -- DirectLink routes addon input only. FFXI receives untouched native
 -- gameplay/navigation, including dialogue and the login screens.
-local function route_controller_message(dik, pressed)
+local function route_controller_message(dik, pressed, chord)
     if restart_pending or native_mode ~= 'guard' or not native_filtering then return end
     local context = input_context()
     local info = windower.ffxi.get_info()
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return end
+    if dik == 89 or dik == 90 then
+        local eligible = context == 'gameplay' and info and not info.menu_open and windower.has_focus()
+        if gamepad_state.shoulder_targeting and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, eligible)
+            and dik == 90 and pressed then
+            local actor = windower.ffxi.get_player()
+            if actor and actor.status ~= 4 then
+                local action = shoulder_banks.target_action(dik, pressed, chord, transport.down,
+                    not not windower.ffxi.get_mob_by_target('t'))
+                if action == 'tab' then
+                    local sent = native_gamepad.tap_tab() == 1
+                    diagnostic:record('BANK', sent and 'R1 Tab sent' or 'R1 Tab unavailable')
+                elseif action == 'targetnpc' then
+                    windower.send_command('input /targetnpc')
+                    diagnostic:record('BANK', 'R1 /targetnpc')
+                end
+            end
+        end
+        return
+    end
     local slot = not pressed and gamepad.crossbar_slot(dik)
     if slot then
         ui:release_slot_pulse(slot)
@@ -2175,9 +2202,10 @@ local function poll_directlink()
         return
     end
     local pid = native_gamepad.process_id
-    local key = settings.ControllerProfile..':'..settings.ControllerDevice
-    message_bridge:context(key, true)
-    if message_bridge:watchdog() then message_bridge:context(key, true) end
+    local shoulders = shoulder_banks.requested(settings.ShoulderBanks, settings.ControllerProfile)
+    local key = settings.ControllerProfile..':'..settings.ControllerDevice..':'..tostring(shoulders)
+    message_bridge:context(key, true, shoulders)
+    if message_bridge:watchdog() then message_bridge:context(key, true, shoulders) end
     local directory=windower.addon_path..'data/directlink/'
     local now=profile_clock()
     if now>=next_message_poll then
@@ -2188,7 +2216,7 @@ local function poll_directlink()
             message_bridge:accept(contents)
         end
     end
-    message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,message_bridge.ack)
+    message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,message_bridge.ack,shoulders)
 end
 
 local frame = 0
@@ -2223,6 +2251,7 @@ do
     native_stop=function(detach, retry)
         local active = native_mode~=nil
         native_mode,native_receiving,native_filtering=nil,false,false
+        gamepad_state.shoulder_targeting=false
         if retry then attempted=nil end
         if not native_gamepad then return end
         native_gamepad.stop()
@@ -2305,9 +2334,15 @@ do
             end
         end
         if native_filtering and context==4 then clear_controller_input() end
-        generation=native_gamepad.poll(context, function()
+        local actor = context == 1 and message_bridge.extended and native_gamepad.tap_tab
+            and settings.ShoulderBanks.Targeting and not info.menu_open and windower.ffxi.get_player()
+        local targeting = actor and actor.status ~= 4
+            and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
+        -- The high bit enables native ownership for a fresh bare R1 edge.
+        generation=native_gamepad.poll(context + (targeting and 0x100 or 0), function()
             if generation and message_bridge.token then clear_controller_input() end
         end, function() end, generation)
+        gamepad_state.shoulder_targeting = targeting and message_bridge.extended
         local polls=native_gamepad.poll_count()
         if context~=0 and polls~=last_polls then last_native_poll=now end
         last_polls=polls
@@ -2329,6 +2364,17 @@ windower.register_event('prerender',function()
     end
     native_poll()
     poll_directlink()
+    local bank, bank_visible
+    if message_bridge.extended and native_filtering then
+        local info = windower.ffxi.get_info()
+        local eligible = info and not info.chat_open and not info.menu_open and input_context() == 'gameplay'
+        bank, bank_visible = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile,
+            transport.down, eligible)
+    end
+    if bank ~= gamepad_state.shoulder_bank or bank_visible ~= gamepad_state.shoulder_bank_visible then
+        gamepad_state.shoulder_bank, gamepad_state.shoulder_bank_visible = bank, bank_visible
+        diagnostic:record('BANK', ('selected=%s visible=%s'):format(tostring(bank), tostring(bank_visible)))
+    end
     action_binder:tick_navigation(profile_clock(), windower.has_focus())
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end

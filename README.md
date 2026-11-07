@@ -472,3 +472,11 @@ a 60 ms return bounce for the regular pair.
 
 2026-11-07: Compact layout keeps Options and Share hints hidden during
 interrupted fades. Fully hidden surfaces skip crossbar fade opacity updates.
+
+2026-11-07: The shoulder-bank integration adds optional R1 targeting.
+Use `//xb bank targeting on` to acquire an NPC when no target is selected
+or tap Tab when a target is selected. It defaults off and respects menu,
+trigger, and chord priority. The matching controller reader and native
+DLL are required. `//xb bank status` reports the saved shoulder-bank
+preferences. The bank selector is available to diagnostics while the
+binder, slot dispatch, and drawing are still under development.

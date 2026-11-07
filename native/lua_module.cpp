@@ -37,6 +37,27 @@ int begin(lua_State* L) {
 }
 int off(lua_State*) { xb_off(); return 0; }
 int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
+int tap_tab(lua_State* L) {
+    DWORD pid = 0;
+    GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+    // Never turn an unmodified controller tap into Alt+Tab or a modified key.
+    if (pid != GetCurrentProcessId() || (GetAsyncKeyState(VK_MENU) & 0x8000) ||
+        (GetAsyncKeyState(VK_CONTROL) & 0x8000) || (GetAsyncKeyState(VK_SHIFT) & 0x8000) ||
+        (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000) ||
+        (GetAsyncKeyState(VK_TAB) & 0x8000)) {
+        api.push(L, 0);
+        return 1;
+    }
+    INPUT keys[2]{};
+    keys[0].type = keys[1].type = INPUT_KEYBOARD;
+    keys[0].ki.wScan = keys[1].ki.wScan = static_cast<WORD>(MapVirtualKeyW(VK_TAB, MAPVK_VK_TO_VSC));
+    keys[0].ki.dwFlags = KEYEVENTF_SCANCODE;
+    keys[1].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+    const UINT sent = SendInput(2, keys, sizeof(INPUT));
+    if (sent == 1) SendInput(1, &keys[1], sizeof(INPUT));
+    api.push(L, sent == 2 ? 1 : 0);
+    return 1;
+}
 int poll(lua_State* L) {
     int edges[256]{};
     unsigned status[8]{};
@@ -68,11 +89,12 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
         break;
     }
     if (!resolved) return 0;
-    api.table(L, 0, 5);
+    api.table(L, 0, 6);
     api.closure(L, begin, 0); api.field(L, -2, "begin");
     api.push(L, GetCurrentProcessId()); api.field(L, -2, "process_id");
     api.closure(L, off, 0); api.field(L, -2, "off");
     api.closure(L, detach, 0); api.field(L, -2, "detach");
+    api.closure(L, tap_tab, 0); api.field(L, -2, "tap_tab");
     api.closure(L, poll, 0); api.field(L, -2, "poll");
     return 1;
 }

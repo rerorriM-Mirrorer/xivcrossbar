@@ -10,7 +10,6 @@ static void check(bool ok, const char* what) {
 int main() {
     using namespace xb;
     constexpr unsigned right = 2, face = 16, left_trigger = 1024, right_trigger = 2048;
-    constexpr unsigned l1 = 1u << 12, r1 = 1u << 13;
     Ownership owner;
     check(!owner.apply(up, 1, false, false).suppressed, "preheld Up remains native");
     owner.apply(0, 1, false, false);
@@ -86,6 +85,21 @@ int main() {
     owner.apply(0, 2, false, false);
     check(owner.apply(share | chooser | face, 2, false, true).suppressed == 0,
         "monitor or chat leaves auxiliary buttons native");
+    owner.reset();
+    owner.apply(r1, 2, false, false);
+    check(!owner.apply(r1, 2, false, false, 0, 0, true).down, "preheld R1 is not recaptured");
+    owner.apply(0, 2, false, false);
+    check(owner.apply(r1, 2, false, false, 0, 0, true).down == r1, "targeting owns fresh bare R1");
+    check(owner.apply(l1 | r1 | face, 2, false, false, 0, 0, true).suppressed == r1,
+        "R1 keeps ownership through a chord; scaffold leaves L1 and slots native");
+    check(owner.apply(0, 2, false, true, 0, 0, true).buffered_mask() == r1,
+        "buffered release preserves targeting ownership after a menu opens");
+    for (auto blocked : {l1, share, chooser, right_trigger, left_trigger}) {
+        check(!(owner.apply(r1 | blocked, 2, false, false, 0, 0, true).down & r1),
+            "modified R1 stays native");
+        owner.apply(0, 2, false, false);
+    }
+    check(!(owner.apply(r1, 2, true, false, 0, 0, true).down & r1), "addon menu does not acquire R1");
     std::uint8_t buttons[32]{};
     buttons[1] = buttons[6] = buttons[10] = 0x80;
     check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger), "DirectInput layout");

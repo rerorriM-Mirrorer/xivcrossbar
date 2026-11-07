@@ -10,9 +10,10 @@ function M.new(opts)
     function self:reset(reason)
         if self.token then cancel() end
         self.token=nil;self.key=nil;self.ack=0;self.last_beat=nil;self.last_seen=0
+        self.extended=false
         self.reason=reason or 'reset'
     end
-    function self:context(key,enabled)
+    function self:context(key,enabled,shoulders)
         if not enabled then
             if self.token then self:reset('inactive') end
             return
@@ -21,6 +22,7 @@ function M.new(opts)
             self:reset('new-context')
             self.epoch=self.epoch+1
             self.key=key
+            self.shoulders=shoulders==true
             self.token=opts.session..'-buttons-'..self.epoch
         end
     end
@@ -43,11 +45,18 @@ function M.new(opts)
             if opts.observe then opts.observe('rejected stale snapshot age='..tostring(age)) end
             return false
         end
+        local extended = self.shoulders and body:sub(1,11)=='buttons=14\n'
+        if extended then body=body:sub(12) end
         local events,next_seq,last_cancel={},self.ack+1,0
         for line in body:sub(1,-5):gmatch('[^\n]+') do
             local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
+            local chord
+            if not seq and extended then
+                seq,button=line:match('^(%d+),down,(1[34]),1$')
+                kind,chord='down',true
+            end
             seq,button=tonumber(seq),tonumber(button)
-            if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=(opts.shoulders and #M.diks or 12))
+            if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=(extended and #M.diks or 12))
                 or ((kind=='cancel' or kind=='stall') and button==0)) then
                 self.rejected=self.rejected+1;return false
             end
@@ -57,13 +66,14 @@ function M.new(opts)
                     if opts.observe then opts.observe('rejected seq-gap expected='..next_seq..' got='..seq) end
                     return false
                 end
-                events[#events+1]={seq,kind,button};next_seq=next_seq+1
+                events[#events+1]={seq,kind,button,chord};next_seq=next_seq+1
                 if kind=='cancel' or kind=='stall' then last_cancel=#events end
             end
         end
         beat=tonumber(beat)
         if self.last_beat and beat<self.last_beat then return false end
         if beat~=self.last_beat then self.last_seen=opts.clock();self.last_beat=beat end
+        self.extended=extended
         for index,event in ipairs(events) do
             -- Never replay an earlier action before a later cancel in one snapshot.
             self.ack=event[1];self.received=self.received+1
@@ -78,7 +88,7 @@ function M.new(opts)
                 elseif kind=='down' and not self.held[button] then
                     if not self.captured then self.captured=true;opts.capture(true) end
                     self.held[button]=true
-                    opts.event(M.diks[button],true)
+                    opts.event(M.diks[button],true,event[4])
                 elseif kind=='up' and self.held[button] then
                     self.held[button]=nil
                     opts.event(M.diks[button],false)

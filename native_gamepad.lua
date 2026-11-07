@@ -20,6 +20,7 @@ function M.open(path)
         end,
         process_id = dll.process_id,
         stop = dll.off,
+        tap_tab = dll.tap_tab,
         detach = function()
             local detached = dll.detach and dll.detach() == 1
             hooks = detached and 'hooks detached | DLL resident' or 'detach failed | DLL resident'

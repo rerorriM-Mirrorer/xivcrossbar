@@ -13,6 +13,8 @@ M.signals = {
     [68] = {name='Options', logical=68},
     [87] = {name='L2', logical=87},
     [88] = {name='R2', logical=88},
+    [89] = {name='L1', logical=89},
+    [90] = {name='R1', logical=90},
 }
 function M:edge(dik, pressed, context)
     local signal = self.signals[dik]

@@ -60,10 +60,10 @@ ControllerMessageSelect(requested, token, ack, path, count := 12) {
         CM.pending := retained
     }
 }
-ControllerMessageAdd(kind, button) {
+ControllerMessageAdd(kind, button, chord := false) {
     global CM
     CM.seq += 1
-    CM.pending.Push({seq:CM.seq, kind:kind, button:button, tick:A_TickCount})
+    CM.pending.Push({seq:CM.seq, kind:kind, button:button, chord:chord, tick:A_TickCount})
     DiagRecord("DirectLink seq=" . CM.seq . " " . kind . " button=" . button . " ack=" . CM.ack)
 }
 ControllerMessageCancel() {
@@ -85,8 +85,10 @@ ControllerMessageFlush(force := false) {
     CM.nextWrite := A_TickCount + 100
     stamp := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     contents := "token=" . CM.token . "`nstamp=" . stamp . "`nbeat=" . A_TickCount . "`n"
+    if (CM.count = 14)
+        contents .= "buttons=14`n"
     for _, event in CM.pending
-        contents .= event.seq . "," . event.kind . "," . event.button . "`n"
+        contents .= event.seq . "," . event.kind . "," . event.button . (event.chord ? ",1" : "") . "`n"
     contents .= "END`n"
     temporary := CM.path . ".tmp"
     CM.error := !WriteControllerFile(temporary, CM.path, contents)
@@ -139,9 +141,10 @@ ControllerMessagePoll(states, hwnd) {
             CM.previous[i] := false, changed := true
         }
     }
-    for _, i in [11, 12, 13, 14, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8] {
+    for _, i in [11, 12, 9, 10, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8] {
         if (i <= CM.count and states[i] and !CM.previous[i]) {
-            ControllerMessageAdd("down", i)
+            chord := i >= 13 && states[13] && states[14]
+            ControllerMessageAdd("down", i, chord)
             CM.previous[i] := true, changed := true
         }
     }

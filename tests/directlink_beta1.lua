@@ -40,13 +40,16 @@ m:context('base-profile',true)
 assert(not m:accept(snap(m.token,17,'1,down,13\n')),'ordinary lease rejects shoulder edges')
 local shoulder_edges={}
 local extended=messages.new({session='shoulders',clock=function()return now end,wallclock=function()return wall end,
-    shoulders=true,capture=function()end,cancel=function()end,
-    event=function(dik,pressed) shoulder_edges[#shoulder_edges+1]={dik,pressed} end})
-extended:context('focused-client',true)
-assert(extended:accept(snap(extended.token,18,'1,down,13\n2,down,14\n3,up,13\n4,up,14\n')))
+    capture=function()end,cancel=function()end,
+    event=function(dik,pressed,chord) shoulder_edges[#shoulder_edges+1]={dik,pressed,chord} end})
+extended:context('focused-client',true,true)
+assert(not extended:accept(snap(extended.token,18,'1,down,13\n')),
+    'extended lease needs a matching reader header')
+assert(extended:accept(snap(extended.token,18,'buttons=14\n1,down,13,1\n2,down,14,1\n3,up,13\n4,up,14\n')))
+assert(extended.extended and shoulder_edges[1][3] and shoulder_edges[2][3], 'same-sample chord survives the spool')
 assert(#shoulder_edges==4 and shoulder_edges[1][1]==89 and shoulder_edges[2][1]==90
     and shoulder_edges[3][2]==false and shoulder_edges[4][2]==false)
-assert(not extended:accept(snap(extended.token,19,'5,down,15\n')),'unknown inputs must be rejected')
+assert(not extended:accept(snap(extended.token,19,'buttons=14\n5,down,15\n')),'unknown inputs must be rejected')
 print('Beta1 ordered trigger/face edges, capture, ack, no duplicate, cancellation, stale/gap/watchdog passed.')
 
 -- Source integration guards: no companion bank or personal profile is required.

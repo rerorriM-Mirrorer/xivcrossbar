@@ -66,15 +66,18 @@ try {
         Check(InStr(FileRead(spool), "4,up,5" . Chr(10) . "5,up,11"), "publish both releases")
         ControllerMessageCancel()
         Check(InStr(FileRead(spool), "6,cancel,0"), "publish cancellation")
-        held[13] := true
+        held[13] := true, held[14] := true
         for count in [12, 14] {
             ControllerMessageSelect(true, "shoulder-test-" . count, 0, spool, count)
             ControllerMessagePoll(NeutralButtons(), 0)
             ControllerMessagePoll(held, 0)
-            Check((InStr(FileRead(spool), ",down,13") != 0) = (count = 14),
-                "shoulder edges require an explicit extended lease")
+            contents := FileRead(spool)
+            Check((InStr(contents, "buttons=14") != 0) = (count = 14)
+                && (InStr(contents, ",down,13,1") != 0) = (count = 14)
+                && (InStr(contents, ",down,14,1") != 0) = (count = 14),
+                "only extended leases carry both shoulders and same-sample chord marks")
         }
-        held[13] := false
+        held[13] := false, held[14] := false
         for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput", "xinput", "xinput-r1-chooser"] {
             ControllerMessageSelect(false, "", 0, "")
             Check(!ControllerMessagePoll(held, 0) && !CM.pending.Length, "no lease stays silent")

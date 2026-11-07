@@ -5,6 +5,7 @@ namespace xb {
 constexpr unsigned up = 1, circle = 0x40, slots = 0xff, triggers = 0xc00;
 constexpr unsigned directions = 0xf, direction_resume_ms = 120;
 constexpr unsigned share = 0x100, chooser = 0x200;
+constexpr unsigned l1 = 0x1000, r1 = 0x2000;
 constexpr unsigned controls = slots | triggers | share | chooser;
 constexpr unsigned default_passthrough = up | circle;
 
@@ -27,9 +28,10 @@ public:
 
     // mode 1 is the isolated Up and Circle probe. Mode 2 routes the normal crossbar.
     Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu, unsigned passthrough = 0,
-        std::uint64_t now = 0) {
+        std::uint64_t now = 0, bool targeting = false) {
         if (!armed_) {
             armed_ = !(raw & controls);
+            previous_ = raw;
             return {};
         }
         const unsigned down = raw & ~previous_;
@@ -39,6 +41,8 @@ public:
         unsigned capture = mode == 1 ? (up | circle) : 0;
         if (mode == 2 && !native_menu) {
             capture = triggers | share | chooser;
+            if (targeting && !menu && !(raw & (l1 | triggers | share | chooser)))
+                capture |= r1;
             if (menu || ((owned_ | down) & (triggers | share | chooser)))
                 capture |= slots & ~passthrough;
         }

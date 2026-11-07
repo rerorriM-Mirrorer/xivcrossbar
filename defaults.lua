@@ -8,6 +8,12 @@ defaults.NativeControllerGuard = true
 defaults.NativeDetachOnUnload = true
 defaults.ControllerProfile = 'ps5-directinput'
 defaults.ControllerDevice = 1
+defaults.ShoulderBanks = {
+    Targeting = false,
+    L1 = {Enabled = false, Visible = true},
+    R1 = {Enabled = false, Visible = true},
+    Both = {Enabled = false, Visible = true},
+}
 defaults.on_logout_unload_addon = false
 defaults.StopWrapperAfterLastClient = true
 defaults.on_unload_killahk = false

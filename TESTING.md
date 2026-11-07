@@ -1,3 +1,53 @@
+# Current Development Status — November 7, 2026 — R1 targeting and bank selection
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint: `9450d8c71806f44100d542d9e0e6f6f5beefa76d`.
+Test build: `0.4.0-beta1.20261107.shoulder-targeting1`.
+
+R1 targeting is opt-in and uses the acknowledged controller stream.
+It takes ownership of fresh, unmodified R1 only in gameplay. The Lua
+router chooses `/targetnpc` or a Tab tap on the press edge. The receiver
+waits for a matching extended reader and native bridge before enabling
+targeting. The alternate RB chooser profile keeps its existing role.
+The first transport checkpoint passed Windows x86 and Lua CI. Local
+checks for this batch cover real routing with simulated inputs, parsed
+shoulder chords, portable native ownership, and source packaging.
+Actual FFXI targeting and Tab delivery remain to be checked.
+
+## Live test
+
+Install the x86 CI artifact with the matching DLL, Lua and AHK files.
+Stop the shared reader before swapping files and preserve the existing
+`data/` directory. Restart the FFXI client if it still has the previous
+DLL loaded, then start the updated reader. To roll back, disable
+targeting with `//xb bank targeting off`, stop the reader, and restore
+the prior addon folder and DLL with the clients closed.
+
+1. With targeting off, confirm native R1 behaves as before.
+2. Run `//xb bank targeting on`. Clear your target and tap R1 near an NPC.
+   Expect the same selection as `/targetnpc`. Tap R1 with a target and
+   compare with physical Tab. Hold R1 for a moment and release it.
+   Expect one action per press.
+3. Try L1 then R1, both shoulders in the same sample, and R1 then L1.
+   The first two send no shortcut. R1 first can send once before the
+   later L1 edge. R1 while L2/R2 is down should pass through normally.
+4. Repeat during a native menu, addon menu, dialogue, or chat entry, and
+   switch focused clients while holding R1. No targeting shortcut should
+   fire there or replay on focus return.
+5. The alternate Xbox chooser must still open on RB. On standard
+   XInput and DualSense, compare native passthrough when disabled.
+
+## Bank scaffold
+
+`//xb bank <l1|r1|both> <on|off|show|hide>` saves separate enabled and
+visible preferences. All three banks start disabled. Selection is traced
+under BANK when diagnostics are active. Check that L2/R2 preempt the
+selected shoulder bank, and releasing the trigger restores the selection
+if the shoulder remains held. Action storage, binder destinations, slot
+dispatch, and centered rendering are the next milestones.
+
+---
+
 # Current Development Status — November 7, 2026 — Shoulder input transport
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

@@ -39,7 +39,7 @@ bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend, last_context;
-bool menu, native_menu, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
+bool menu, native_menu, targeting, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
 
@@ -79,7 +79,7 @@ unsigned observe(unsigned buttons) {
         probe_ready = true;
         buffered_ownership.apply(0, 2, menu, native_menu);
     }
-    const auto result = ownership.apply(buttons, mode == 3 ? 2 : mode, menu, native_menu, 0, mode == 3 ? now : 0);
+    const auto result = ownership.apply(buttons, mode == 3 ? 2 : mode, menu, native_menu, 0, mode == 3 ? now : 0, mode == 3 && targeting);
     suppressed = result.suppressed;
     if (mode == 3) return suppressed;
     // Releases precede presses; simultaneous triggers precede face/D-pad.
@@ -110,6 +110,7 @@ DWORD WINAPI xbox_read(DWORD index, XINPUT_STATE* state) {
     const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger, r1_chooser));
     for (unsigned i = 0; i < 10; ++i)
         if (mask & (1u << i)) pad.wButtons &= static_cast<WORD>(~xb::xbox_button(i, r1_chooser));
+    if (mask & xb::r1) pad.wButtons &= static_cast<WORD>(~xb::xbox_button(13, r1_chooser));
     if (mask & 0x400) pad.bLeftTrigger = 0;
     if (mask & 0x800) pad.bRightTrigger = 0;
     if (!mode && !hook.initialized) return result;
@@ -214,7 +215,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             if ((type & DIDFT_POV) && instance == 0) {
                 const std::uint8_t neutral[32]{};
                 state = (state & ~0xfu) | xb::read_joystick(value, neutral, fightpad);
-                const auto mask = mode == 1 ? xb::up : stream.apply(state, 2, menu, native_menu, 0, now).suppressed;
+                const auto mask = mode == 1 ? xb::up : stream.apply(state, 2, menu, native_menu, 0, now, targeting).suppressed;
                 if (mode == 3) memcpy(&hat, record, size);
                 const auto filtered = xb::filter_hat(value, mask);
                 hat_pending = mode == 3 && filtered != value;
@@ -226,13 +227,13 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
-                const auto mask = mode == 1 ? xb::circle : stream.apply(state, 2, menu, native_menu, 0, now).buffered_mask();
+                const auto mask = mode == 1 ? xb::circle : stream.apply(state, 2, menu, native_menu, 0, now, targeting).buffered_mask();
                 if (mask & bit) value &= ~0x80u;
             } else continue;
             memcpy(record + sizeof offset, &value, sizeof value);
         }
         if (mode == 3 && hat_pending && *entries < capacity && result == DI_OK) {
-            const auto mask = stream.apply(state, 2, menu, native_menu, 0, now).suppressed;
+            const auto mask = stream.apply(state, 2, menu, native_menu, 0, now, targeting).suppressed;
             if (!(mask & state & xb::directions)) {
                 hat.dwTimeStamp = GetTickCount();
                 memcpy(bytes + (*entries)++ * size, &hat, size);
@@ -396,6 +397,8 @@ __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, un
         last_sample = 0;
         if (heartbeat && now - heartbeat > 500) heartbeat = 0;
     }
+    targeting = (context & 0x100) && !r1_chooser;
+    context &= 0xff;
     if (context == 0) { if (heartbeat) reset(); heartbeat = 0; }
     else {
         // A lost reader lease gives ownership back to the game. Rearm
