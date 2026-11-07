@@ -1242,6 +1242,7 @@ function display_help_menu()
     chat_help.command("auto","Show bars on controller trigger.")
     chat_help.command("autohide [on|off]","Set trigger visibility.")
     chat_help.command("fade [on|off]","Enable/disable fades.")
+    chat_help.command("triggerscale [on|off|status|0.75-1]","Set trigger scale animation and its resting size. Requires fade off.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
     chat_help.command("skillchain [on|off|status]","Show or hide the skillchain indicator.")
@@ -1528,6 +1529,24 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
+    if command == 'triggerscale' then
+        local mode = args[1] and args[1]:lower()
+        local animation = settings.Animation
+        local scale = tonumber(mode)
+        if scale and scale >= .75 and scale <= 1 then
+            animation.SmallScale = scale
+        elseif not mode or mode == 'on' or mode == 'off' then
+            animation.TriggerScale = mode == 'on' or (not mode and not animation.TriggerScale)
+        elseif mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb triggerscale [on|off|status|0.75-1]')
+            return
+        end
+        if mode ~= 'status' then config.save(settings); ui_dirty = true end
+        local state = animation.TriggerScale and (animation.Enabled and 'ON (waiting for fade off)' or 'ON') or 'OFF'
+        chat_format.say(207, ('[XIVCrossbar] Trigger scale: %s | Small size: %.0f%%'):format(state, tonumber(animation.SmallScale) or .95))
+        return
+    end
+
     if command == 'ui' and args[1] == 'fade' then
         local mode = args[2] and args[2]:lower()
         if mode and mode ~= 'on' and mode ~= 'off' then
@@ -1539,6 +1558,7 @@ windower.register_event('addon command', function(command, ...)
         ui.geometry.deferring_hide = false
         ui.geometry:configure_fade(enabled, settings.Animation.FadeIn, settings.Animation.FadeOut)
         ui.public_visible = nil
+        ui_dirty = true
         config.save(settings)
         chat_format.say(207, '[XIVCrossbar] Fades: ' .. (enabled and 'ON' or 'OFF'))
         return
@@ -2292,11 +2312,20 @@ windower.register_event('prerender',function()
         ui.geometry:interrupt_startup_reveal()
     end
     local menu_open = crossbar_menu_open()
+    local trigger_scale = settings.Animation.TriggerScale and not settings.Animation.Enabled
+    if trigger_scale and ui.is_setup and ui.geometry.load_fade_state then
+        if ui.geometry.startup_reveal then ui.geometry:interrupt_startup_reveal() end
+        ui.geometry.load_fade_state.claimed = true
+    end
     local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(settings.VisibilityMode,
         gamepad_state.left_trigger or gamepad_state.right_trigger, xivcrossbar.hide_hotbars,
         ui.is_setup and ui.geometry:is_startup_reveal_pending())
         or action_binder:is_moving_crossbars() or env_chooser:is_showing()
     if not visible then crossbar_drag:finish() end
+    if ui.is_setup then
+        ui:update_trigger_scale(settings.Animation.TriggerScale, settings.Animation.SmallScale,
+            gamepad_state.active_bar, visible, settings.VisibilityMode=='oninput', menu_open)
+    end
     if ui.is_setup and ui.public_visible ~= visible then
         if visible then
             ui.public_visible = ui:show(player.hotbar, player.hotbar_settings.active_environment) == true

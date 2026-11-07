@@ -1,3 +1,26 @@
+# Current Development Status — November 7, 2026 — Trigger scale animation
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `2850a526ad3d378d6225a837792f6648bc7c33b4`.
+The two-client native handoff and physical F710/FightPadPro checks remain open.
+
+- `//xb fade off` then `//xb triggerscale on` opts in. The shared idle
+  size defaults to 95% of HUD scale. `//xb triggerscale 0.90` sets it to
+  90%, with 75–100% accepted. `//xb triggerscale status` reports the option.
+- With Always visibility, hold L2 or R2 and check the selected side reaches
+  normal size while the other stays small. On release both settle at the
+  saved small size. Each bank keeps its center through the 120 ms transition.
+- With Autohide, the selected single bank opens small and pops to full size.
+  Releasing the last trigger hides immediately. Combined and double-tap banks
+  draw at full size. Fade-on mode and menus use normal scale.
+- The Lua fixtures exercise positions, scale endpoints, fields, special
+  banks, menu behavior and immediate hiding with mocked Windower drawings.
+  In-game timing, readability and alignment still need live review.
+- Deferred design notes: larger centered italic white timers, possible
+  upper-right MP/TP costs, and centered action labels.
+
+---
+
 # Current Development Status — November 7, 2026 — Shared physical controller mappings
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

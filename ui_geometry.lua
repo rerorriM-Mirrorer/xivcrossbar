@@ -8,23 +8,29 @@ local trace=require('ui/render_trace')
 
 function geometry.new()
     return setmetatable({scale = 1, x = 0, y = 0, screen_x = 0, screen_y = 0,
-        opacity=1, retired={}, surfaces = setmetatable({}, {__mode = 'k'}), primitives = {}}, geometry)
+        opacity=1, retired={}, surfaces = setmetatable({}, {__mode = 'k'}), primitives = {}, banks = {}}, geometry)
 end
 
-function geometry:point(x, y, right)
+function geometry:point(x, y, right, bank)
     local width = right and windower.get_windower_settings().ui_x_res or 0
-    return self.screen_x + (x + width - self.x) * self.scale - width,
+    x = x + width
+    if bank and bank.value ~= 1 then
+        x = bank.x + (x - bank.x) * bank.value
+        y = bank.y + (y - bank.y) * bank.value
+    end
+    return self.screen_x + (x - self.x) * self.scale - width,
         self.screen_y + (y - self.y) * self.scale
 end
 
-function geometry:rect(x, y, width, height)
-    local sx, sy = self:point(x, y)
-    return {x = sx, y = sy, width = width * self.scale, height = height * self.scale}
+function geometry:rect(x, y, width, height, bank)
+    local sx, sy = self:point(x, y, false, bank)
+    local scale = self.scale * (bank and bank.value or 1)
+    return {x = sx, y = sy, width = width * scale, height = height * scale}
 end
 
 local draw_opacity
 local function draw_position(g, object, m, x, y)
-    local sx, sy = g:point(x, y, m.right)
+    local sx, sy = g:point(x, y, m.right, m.bank)
     if sx ~= m.draw_x or sy ~= m.draw_y then
         object:pos(sx, sy)
         m.draw_x, m.draw_y = sx, sy
@@ -33,35 +39,69 @@ local function draw_position(g, object, m, x, y)
 end
 
 local function draw_surface(g, object, m)
+    local scale = g.scale * (m.bank and m.bank.value or 1)
     if m.width then
-        local width, height = m.width*g.scale, m.height*g.scale
+        local width, height = m.width*scale, m.height*scale
         if width ~= m.draw_width or height ~= m.draw_height then
             object:size(width,height);m.draw_width,m.draw_height=width,height;m.draw_alpha=nil
         end
     elseif m.font_size then
-        local size=math.max(1,math.floor(m.font_size*g.scale+.5))
+        local size=math.max(1,math.floor(m.font_size*scale+.5))
         if size ~= m.draw_font_size then object:size(size);m.draw_font_size=size;m.draw_alpha=nil end
     end
     if m.stroke then
-        local stroke=m.stroke*g.scale
+        local stroke=m.stroke*scale
         if stroke ~= m.draw_stroke then object:stroke_width(stroke);m.draw_stroke=stroke end
     end
     if m.padding then
-        local padding=m.padding*g.scale
+        local padding=m.padding*scale
         if padding ~= m.draw_padding then object:pad(padding);m.draw_padding=padding end
     end
     if m.center_x then
         -- Width can be stale for one or more native draw frames. Keep the
         -- previous position/opacity gated until a verified width is ready.
         local width=object:measure_width()
-        if trace.enabled then trace.call(object,'center-measure',m.center_x,m.center_y,width,g.scale) end
+        if trace.enabled then trace.call(object,'center-measure',m.center_x,m.center_y,width,scale) end
         if width~=nil then
-            m.x,m.y=m.center_x-width/g.scale/2,m.center_y
+            m.x,m.y=m.center_x-width/scale/2,m.center_y
             draw_position(g,object,m,m.x,m.y)
             object:commit_measurement()
         end
     elseif m.x then draw_position(g,object,m,m.x,m.y) end
     draw_opacity(g,m)
+end
+
+-- A: apply scale in layout coordinates so both centers survive HUD scaling and dragging.
+function geometry:assign_bank(surface, number)
+    local m = self.surfaces[surface]
+    if not m then return end
+    local bank = self.banks[number]
+    if m.bank == bank then return end
+    m.bank = bank
+    draw_surface(self, m.object, m)
+end
+
+local function redraw_bank(g, bank)
+    for _, m in pairs(g.surfaces) do
+        if m.bank == bank then draw_surface(g, m.object, m) end
+    end
+end
+
+function geometry:set_bank_scale(number, x, y, target, instant, initial)
+    local bank = self.banks[number]
+    local previous = bank.value
+    local moved = x ~= bank.x or y ~= bank.y
+    bank.x, bank.y = x, y
+    if initial or instant then bank.active = false end
+    if initial then bank:to(initial, 0) end
+    if initial or instant or target ~= bank.target then bank:to(target, instant and 0 or .12) end
+    if moved or bank.value ~= previous then redraw_bank(self, bank) end
+end
+
+function geometry:setup_bank_scales()
+    local clock = require('socket').gettime
+    local fade = require('ui_fade')
+    self.banks = {fade.new(clock, 1), fade.new(clock, 1)}
 end
 
 function geometry:refresh()
@@ -220,6 +260,12 @@ function geometry:transition(show)
 end
 
 function geometry:tick()
+    for _, bank in ipairs(self.banks) do
+        if bank.active then
+            local previous = bank.value
+            if bank:step() ~= previous then redraw_bank(self, bank) end
+        end
+    end
     for _,m in pairs(self.surfaces) do
         if m.center_x and m.visible then draw_surface(self,m.object,m) end
     end
@@ -229,6 +275,9 @@ end
 function geometry:set_origin(x, y, screen_x, screen_y, move_contents)
     if move_contents then
         local dx, dy = x - self.x, y - self.y
+        for _, bank in ipairs(self.banks) do
+            if bank.x then bank.x, bank.y = bank.x + dx, bank.y + dy end
+        end
         for _, m in pairs(self.surfaces) do
             if m.x then m.x, m.y = m.x + dx, m.y + dy end
             if m.center_x then m.center_x, m.center_y = m.center_x + dx, m.center_y + dy end
@@ -334,7 +383,8 @@ function geometry:surface(object, kind, options)
     end
     function methods:extents()
         local width, height = object:extents()
-        return width / g.scale, height / g.scale
+        local scale = g.scale * (m.bank and m.bank.value or 1)
+        return width / scale, height / scale
     end
     function methods:destroy()
         if m.disposed then return end

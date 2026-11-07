@@ -48,6 +48,14 @@ not imported. No normal gameplay logging is active until you request it.
 
 ## Appearance and visibility
 
+Use `//xb fade off` and `//xb triggerscale on` for a centered pop on the
+single-trigger bars. `//xb triggerscale 0.90` sets the shared small scale
+(relative to HUD scale), from 0.75 to 1.00, with 0.95 by default.
+`//xb triggerscale status` reports the saved option and size. Autohide
+reveals the selected single-trigger bar from small to full size and hides
+immediately. Combined and double-tap banks appear at full size.
+
+
 Drag a visible crossbar with the left mouse button; release saves its position.
 Dragging also works while addon menus are open.
 
@@ -401,3 +409,6 @@ callbacks can safely finish after detachment.
 2026-11-07: The Windows reader and native guard now generate their physical
 controller mappings from one definition. Existing logical bindings retain
 their profile behavior.
+
+2026-11-07: Added opt-in trigger scaling for fade-off mode, with a saved
+small scale shared by the two regular banks.
