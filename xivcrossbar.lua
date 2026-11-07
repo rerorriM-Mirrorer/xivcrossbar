@@ -675,6 +675,18 @@ local function check_profile_ready()
     if not ok and reason == 'identity' then profile_gate.loaded = nil end
 end
 
+-- Test-only, reset on reload. GripRumble's helper owns the event stream.
+local slot_rumble_enabled = false
+local function emit_slotpress()
+    if not slot_rumble_enabled then return end
+    local path = windower.addon_path .. '../GripRumble/events.txt'
+    if not windower.file_exists(path) then return end
+    local file = io.open(path, 'a')
+    if not file then return end
+    file:write('slotpress\n')
+    file:close()
+end
+
 -- trigger hotbar action
 function trigger_action(slot)
     if settings.InputTest then
@@ -682,7 +694,7 @@ function trigger_action(slot)
         ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
         return
     end
-    player:execute_action(slot)
+    local accepted = player:execute_action(slot)
 
     if (player.pending_env_switch ~= nil) then
         local target = player.pending_env_switch
@@ -691,6 +703,7 @@ function trigger_action(slot)
     end
 
     ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
+    if accepted then emit_slotpress() end
 end
 
 -- set battle environment
@@ -1208,6 +1221,7 @@ function display_help_menu()
     chat_help.command("restart","Fade out then reload the addon.")
     chat_help.command("unload","Fade out and unload the addon.")
     chat_help.command("regenerate","Regenerate cached resource files.")
+    chat_help.command("slotrumble [on|off]","Toggle the optional GripRumble test tap for this load.")
     chat_help.command("inputtest [on|off]","Replace real actions with dummy tests.")
     chat_help.command("inputtrace [on|off]","Enable keyboard/input trace logging.")
     chat_help.command("inputstatus","Report controller input configuration.")
@@ -1377,6 +1391,16 @@ windower.register_event('addon command', function(command, ...)
                 chat_format.say(207, '[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
             end
         else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
+        return
+    elseif command == 'slotrumble' then
+        local mode = (...)
+        if mode == 'on' then slot_rumble_enabled = true
+        elseif mode == 'off' then slot_rumble_enabled = false
+        elseif mode ~= nil then
+            chat_format.say(123, '[XIVCrossbar] //xb slotrumble [on|off]')
+            return
+        end
+        chat_format.say(207, '[XIVCrossbar] Slot rumble ' .. (slot_rumble_enabled and 'ON' or 'OFF'))
         return
     elseif command == 'inputtest' or command == 'inputtrace' then
         local mode = (...)

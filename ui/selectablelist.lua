@@ -214,15 +214,32 @@ function selectable_list:highlight_selection()
     end
     if self.cursor then
         if selected and not selected.disabled then
-            -- Windower draws text over image primitives. Keep the full bounce
-            -- above the caption line, clear of long labels from the left.
-            self.cursor:pos(x-30,y-7)
+            self:position_cursor()
             self.cursor:show()
         else
             self.cursor:hide()
         end
     end
     self:update_page_colors()
+end
+
+function selectable_list:position_cursor()
+    local x, y = self:get_pos(self.selected_row, self.selected_col)
+    local cursor_x, cursor_y = x - 30, y + 13
+    -- Windower draws text over images. Raise the cursor only when a
+    -- neighboring caption actually extends into its normal position.
+    local stroke = self.theme_options.font_stroke_width or 0
+    for _, entry in ipairs(self.option_objects or {}) do
+        if entry.row == self.selected_row and entry.col < self.selected_col and entry.caption then
+            local width = entry.caption:extents()
+            local label_x = self:get_pos(entry.row, entry.col) + 50
+            if width and label_x + width + stroke > cursor_x then
+                cursor_y = y - 7
+                break
+            end
+        end
+    end
+    self.cursor:pos(cursor_x, cursor_y)
 end
 
 function selectable_list:page_highlight(direction)
@@ -451,7 +468,10 @@ end)
 
 windower.register_event('prerender',function()
     if selectable_list.is_showing then
-        if selectable_list.cursor then selectable_list.cursor:update() end
+        if selectable_list.cursor and selectable_list.cursor.shown then
+            selectable_list:position_cursor()
+            selectable_list.cursor:update()
+        end
         if selectable_list.page_pressed_direction~=nil and (selectable_list.page_color_frame or 0)<1 then
             selectable_list.page_color_frame=1;selectable_list:update_page_colors()
         end

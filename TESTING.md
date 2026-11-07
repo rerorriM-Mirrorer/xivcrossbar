@@ -1,9 +1,38 @@
 # Current Development Status
 
-The cursor bounce patch targets `experiment/native-gamepad-bridge` in
-`rerorriM-Mirrorer/xivcrossbar`, based on GitHub checkpoint `1156565`.
-The user liked the corrected crops in-game and reported occlusion from long
-neighboring menu labels.
+Public-beta live-test build on `experiment/native-gamepad-bridge` in
+`rerorriM-Mirrorer/xivcrossbar`, based on `d21d631`. The public AHK v2
+branch at `3e0e982` was checked for equivalent slot dispatch paths. The
+user liked the cursor bounce and reported that its raised position sat too
+high in the Select Action Type menu. GripRumble 0.1.17 is a separate test
+companion.
+
+## 2026-11-07 — Slot acceptance tap and cursor alignment
+
+Overlay the XIVCrossbar patch and run `//xb restart`. The cursor keeps the
+bounce and returns to its original height except where a left-hand label
+extends into its space. Check Select Action Type and a neighboring long label.
+
+To try rumble, install GripRumble 0.1.17 separately and restart its Windows
+helper. Load GripRumble and use `//grip slotpress` to feel the reference tap.
+Enable the cue for the current XIVCrossbar load with `//xb slotrumble on`.
+Run the following checks with the existing flash behavior.
+
+- Valid bound action, regular switch, and quick switch: one tap per press.
+- Empty slot, missing destination, and pet command without a pet: no tap.
+- `//xb inputtest on`: dummy press still flashes and sends no tap. Turn
+  Input Test off afterward.
+- `//xb slotrumble off`: disable the tap. Reloading also turns it off.
+  With GripRumble absent, action dispatch and flash still work.
+
+The tap reports local acceptance. Combat cues still report the game result.
+Lua simulation passed accepted and rejected actions, both switch types,
+Input Test, cue opt-in and absence, and cursor positioning. Existing
+crossbar-destination and menu resource regressions passed. The companion's
+cue table and Lua command passed static checks. Live controller testing is
+pending. The release build can remove the single emit call and test command.
+
+---
 
 ## 2026-11-07 — Golden cursor bounce and caption clearance
 

@@ -655,8 +655,9 @@ function player:execute_action(slot)
     local h = self.hotbar_settings.active_hotbar
     local env = self.hotbar_settings.active_environment
 
-    local action = self.hotbar[env]['hotbar_' .. h]['slot_' .. slot]
-    local is_missing = action == nil or action.action == nil
+    local bank = self.hotbar[env] and self.hotbar[env]['hotbar_' .. h]
+    local action = bank and bank['slot_' .. slot]
+    local is_missing = action == nil or action.action == nil or action.action == ''
 
     if (is_missing and env ~= 'default' and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['default'] and self.hotbar['default']['hotbar_' .. h] and
         self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]) then
@@ -669,31 +670,37 @@ function player:execute_action(slot)
         action = self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]
     end
 
-    local is_still_missing = action == nil or action.action == nil
-    if (is_still_missing) then return end
+    local is_still_missing = action == nil or action.action == nil or action.action == ''
+    if (is_still_missing) then return false end
 
     if action.type == 'switch' then
         local target_env = kebab_casify(action.action or '')
         if (not self:is_valid_environment(target_env)) then
             chat_format.say(123, '[XIVCrossbar] Cannot switch - set "' .. tostring(action.action) .. '" not found in current job.')
-            return
+            return false
         end
         if (self.temp_switch_previous_env == nil) then
             self.temp_switch_previous_env = env
         end
         self.pending_env_switch = target_env
-        return
+        return true
     end
 
-    self:dispatch_action(action)
+    if not self:dispatch_action(action) then return false end
 
     if (self.temp_switch_previous_env ~= nil) then
         self.pending_env_switch = self.temp_switch_previous_env
         self.temp_switch_previous_env = nil
     end
+    return true
 end
 
 function player:dispatch_action(action)
+    if not action.type then return false end
+    if action.type == 'pet' and not windower.ffxi.get_mob_by_target('pet') then
+        chat_format.say(123, '[XIVCrossbar] No active pet.')
+        return false
+    end
     if action.type == 'ct' then
         local command = '/' .. action.action
 
@@ -702,7 +709,7 @@ function player:dispatch_action(action)
         end
 
         windower.send_command('input ' .. command)
-        return
+        return true
     end
 
     if action.type == 'gs' then
@@ -712,18 +719,25 @@ function player:dispatch_action(action)
             command = command .. action.action
         end
         windower.send_command(command)
-        return
+        return true
     end
     if action.type == 'gsc' then
         local command = 'gs c cycle '
         command = command .. action.action
         windower.send_command(command)
-        return
+        return true
     end
 
     if action.type == 'ex' then
+        -- The regular set binder stores a Windower command; validate its
+        -- destination before counting the press as accepted.
+        local target_env = action.action:match('^xb%s+bar%s+(%S+)%s*$')
+        if target_env and not self:is_valid_environment(target_env:lower()) then
+            chat_format.say(123, '[XIVCrossbar] Cannot switch - set "' .. target_env .. '" not found in current job.')
+            return false
+        end
         windower.send_command(action.action)
-        return
+        return true
     end
 
     if action.type == 'enchanteditem' then
@@ -750,7 +764,7 @@ function player:dispatch_action(action)
             local reactivate_equip_slot = create_send_command_coroutine('gs enable ' .. equip_slot)
             coroutine.schedule(reactivate_equip_slot, delay + 2)
         end
-        return
+        return true
     end
 
     local target_string = ''
@@ -761,13 +775,12 @@ function player:dispatch_action(action)
     if action.type == 'mount' then
         if is_player_mounted() then
             windower.send_command('input /dismount')
-            return
+            return true
         elseif action.action == 'Mount Roulette' then
-            mount_roulette:ride_random_mount()
-            return
+            return mount_roulette:ride_random_mount()
         elseif action.action ~= 'Mount Roulette' then
             windower.send_command('input /' .. action.type .. ' "' .. action.action .. '"' .. target_string)
-            return
+            return true
         end
     elseif (action.type == 'ta' and action.action == 'Switch Target' and action.alias == 'Switch Target') then
         if (self.in_battle) then
@@ -775,7 +788,7 @@ function player:dispatch_action(action)
         else
             windower.send_command('input /ta ' .. target_string)
         end
-        return
+        return true
     end
 
     -- run all other actions
@@ -822,6 +835,7 @@ function player:dispatch_action(action)
 			set_active_environment(env)
 		end
 	end
+    return true
 end
 
 -- remove action from slot

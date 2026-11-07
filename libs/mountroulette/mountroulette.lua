@@ -80,15 +80,16 @@ function mount_roulette:ride_random_mount()
     for _, buff in pairs(player.buffs) do
         if buff == 252 then --mounted buff
             windower.send_command('input /dismount')
-            return
+            return true
         end
     end
 
-    if #allowed_mounts == 0 then return end
+    if #allowed_mounts == 0 then return false end
 
     -- Generate random number and use it to choose a mount
     local mount_index = math.ceil(math.random() * #allowed_mounts)
     windower.send_command('input /mount "' .. allowed_mounts[mount_index] .. '"')
+    return true
 end
 
 return mount_roulette

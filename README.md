@@ -421,3 +421,6 @@ in the atlas to preserve both arrow tips through all six frames.
 
 2026-11-07: Restored the golden cursor’s downward bounce and moved it above
 the menu caption line to avoid overlap from long neighboring labels.
+
+2026-11-07: Restored the menu cursor’s normal height with an overlap fallback.
+Added a session-only slot acceptance tap for testing with separate GripRumble.
