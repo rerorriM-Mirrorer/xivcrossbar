@@ -206,7 +206,9 @@ function geometry:set_opacity(opacity)
     if self.fade and not self.fade.active then
         self.fade.value, self.fade.target = self.opacity, self.opacity
     end
-    for _, m in pairs(self.surfaces) do draw_opacity(self, m) end
+    for _, m in pairs(self.surfaces) do
+        if m.visible or m.defer_visible or m.draw_visible then draw_opacity(self, m) end
+    end
     for _, m in ipairs(self.retired) do draw_opacity(self, m) end
     for name, p in pairs(self.primitives) do
         if p.color and not p.independent then
@@ -341,10 +343,10 @@ function geometry:surface(object, kind, options)
         if not m.draw_visible then object:show();m.draw_visible=true;m.draw_alpha=nil end
         draw_opacity(g, m)
     end
-    function methods:hide()
+    function methods:hide(immediate)
         local was_visible = m.visible or m.defer_visible
         m.visible = false
-        if g.deferring_hide and was_visible then m.defer_visible = true
+        if not immediate and g.deferring_hide and was_visible then m.defer_visible = true
         else m.defer_visible = nil; if m.draw_visible then object:hide();m.draw_visible=false end end
     end
     function methods:visible(value)

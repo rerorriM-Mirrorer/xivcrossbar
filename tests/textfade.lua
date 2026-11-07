@@ -64,6 +64,12 @@ image:alpha(200)
 g:set_opacity(.5)
 image:show()
 assert(icon.alpha_value==100 and icon.visible,'Image fades must remain unchanged')
+image:hide(true)
+local hidden_writes=icon.calls.alpha
+g:set_opacity(.75)
+assert(icon.calls.alpha==hidden_writes,'Hidden image should skip fade alpha writes')
+image:show()
+assert(icon.alpha_value==150 and icon.visible,'Showing restores current opacity')
 -- Command is a standalone toggle with persisted state, not a renderer reload.
 local f=assert(io.open('xivcrossbar.lua','rb'))
 local source=f:read('*a');f:close()

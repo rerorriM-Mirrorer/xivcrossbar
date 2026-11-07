@@ -469,3 +469,6 @@ banks scale symmetrically around a full-size resting layout.
 
 2026-11-07: Extended TriggerScale to combined and double-tap banks, with
 a 60 ms return bounce for the regular pair.
+
+2026-11-07: Compact layout keeps Options and Share hints hidden during
+interrupted fades. Fully hidden surfaces skip crossbar fade opacity updates.

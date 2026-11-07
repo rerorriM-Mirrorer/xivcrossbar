@@ -211,7 +211,7 @@ function setup_image(image, path)
 end
 
 -- setup text
-function setup_text(text, theme_options)
+local function setup_text(text, theme_options, hidden)
     text:bg_alpha(0)
     text:bg_visible(false)
     text:font(theme_options.font)
@@ -220,7 +220,7 @@ function setup_text(text, theme_options)
     text:stroke_alpha(theme_options.font_stroke_alpha)
     text:stroke_color(theme_options.font_stroke_color_red, theme_options.font_stroke_color_green, theme_options.font_stroke_color_blue)
     text:stroke_width(theme_options.font_stroke_width)
-    text:show()
+    if not hidden then text:show() end
 end
 
 local icon_pack = nil
@@ -544,7 +544,7 @@ function ui:load(theme_options)
     self.action_binder_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/minus_'..self.theme.button_layout..'.png')
     self.action_binder_icon:alpha(255)
     self.action_binder_text = new_text(text_setup)
-    setup_text(self.action_binder_text, theme_options)
+    setup_text(self.action_binder_text, theme_options, self.is_compact)
     self.action_binder_text:pos(self:get_slot_x(1, 1) + 35, self:get_slot_y(1, 4) - 15)
     self.action_binder_text:text('Bind an action')
     self.environment_selector_icon = new_image(images_setup)
@@ -553,14 +553,10 @@ function ui:load(theme_options)
     self.environment_selector_icon:pos(self:get_slot_x(2, 5) - 5, self:get_slot_y(1, 4) - 27)
     self.environment_selector_icon:alpha(255)
     self.environment_selector_text = new_text(text_setup)
-    setup_text(self.environment_selector_text, theme_options)
+    setup_text(self.environment_selector_text, theme_options, self.is_compact)
     self.environment_selector_text:pos(self:get_slot_x(2, 5) + 40, self:get_slot_y(1, 4) - 15)
     self.environment_selector_text:text('Change crossbar sets')
-    if (not self.is_compact) then
-        self:show_button_hints()
-    else
-        self:hide_button_hints()
-    end
+    self:show_button_hints()
 
     -- create ui elements for hotbars
     for h=1,theme_options.hotbar_number,1 do
@@ -843,10 +839,11 @@ end
 
 function ui:hide_button_hints()
     self.button_hints_visible=false
-    self.action_binder_icon:hide()
-    self.action_binder_text:hide()
-    self.environment_selector_icon:hide()
-    self.environment_selector_text:hide()
+    -- Compact hints must leave the draw list even during a crossbar fade.
+    self.action_binder_icon:hide(self.is_compact)
+    self.action_binder_text:hide(self.is_compact)
+    self.environment_selector_icon:hide(self.is_compact)
+    self.environment_selector_text:hide(self.is_compact)
 end
 
 -- show ui components
@@ -856,7 +853,7 @@ function ui:show(player_hotbar, environment)
     geometry:transition(true)
     if self.theme.hide_battle_notice == false and environment == 'battle' then self.battle_notice:show() end
 
-    self:maybe_show_button_hints()
+    self:show_button_hints()
 
     for h=1,self.theme.hotbar_number,1 do
         for i=1,8,1 do
@@ -884,12 +881,6 @@ function ui:show(player_hotbar, environment)
     return true
 end
 
-function ui:maybe_show_button_hints()
-    if (not self.is_compact) then
-        self:show_button_hints()
-    end
-end
-
 function ui:show_button_hints()
     -- Compact is a strict hide policy: menu/fade callbacks must not revive
     -- the Options/Share hint for a single frame.
@@ -898,14 +889,14 @@ function ui:show_button_hints()
     self.action_binder_icon:show()
     self.action_binder_text:show()
     self.environment_selector_icon:show()
-    self.environment_selector_text:show()
-    if self.chooser_open then self.environment_selector_text:hide() end
+    if self.chooser_open then self.environment_selector_text:hide(true)
+    else self.environment_selector_text:show() end
 end
 
 function ui:set_chooser_open(open)
     if self.chooser_open==open then return end
     self.chooser_open=open
-    if open then self.environment_selector_text:hide()
+    if open then self.environment_selector_text:hide(true)
     elseif self.button_hints_visible then self.environment_selector_text:show() end
 end
 

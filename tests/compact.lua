@@ -53,6 +53,7 @@ for _,res in ipairs(resolutions) do
     defaults.CrossbarScale=scale;defaults.Style.OffsetX=37;defaults.Style.OffsetY=-23
     package.loaded.ui=nil
     local ui=require('ui')
+    _G.setup_text=function() error('crossbar must use its local setup helper') end
     local options=theme.apply(defaults)
     options.button_layout='playstation'
     ui:setup(options,{})
@@ -76,6 +77,8 @@ for _,res in ipairs(resolutions) do
     end
     ui:trigger_feedback(1,3)
     local before=created
+    ui:show_button_hints()
+    ui.geometry.deferring_hide=true
     equal(ui:set_compact(true),true,'switch on')
     equal(created,before,'no new drawing objects')
     equal(ui.geometry.scale,scale,'scale')
@@ -102,6 +105,18 @@ for _,res in ipairs(resolutions) do
     local rect=ui.geometry:rect(hint.x,hint.y,40,40)
     equal(anchorX,rect.x,'chooser X');equal(anchorBottom,rect.y+rect.height,'chooser Y')
     equal(ui:set_compact(true),false,'idempotent on')
+    for _=1,4 do
+     ui:show_button_hints()
+     ui:set_chooser_open(false);ui:set_chooser_open(true)
+     ui.geometry:set_opacity(.66);ui.geometry:set_opacity(.43)
+     for _,key in ipairs({'action_binder_icon','action_binder_text',
+         'environment_selector_icon','environment_selector_text'}) do
+      local surface=ui.geometry.surfaces[ui[key]]
+      assert(not surface.visible and not surface.defer_visible and not surface.draw_visible,
+          'compact hint survived an interrupted fade: '..key)
+     end
+    end
+    ui.geometry.deferring_hide=false
     equal(ui:set_compact(false),true,'switch off')
     equal(created,before,'repeated toggle allocation')
     for h,bar in ipairs(ui.hotbars) do

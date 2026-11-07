@@ -1784,7 +1784,7 @@ local function close_addon_menus()
         action_binder:reset_state()
     end
     text_input_guard:release(windower.send_command)
-    if ui.is_setup then ui:maybe_show_button_hints() end
+    if ui.is_setup then ui:show_button_hints() end
     if env_chooser.is_setup then env_chooser:maybe_unhide_default_sets_tooltip() end
     ui_dirty = true
 end
@@ -2035,7 +2035,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
                     action_binder:button_y(pressed)
                 end
                 if (action_binder_was_showing and action_binder.is_hidden) then
-                    ui:maybe_show_button_hints()
+                    ui:show_button_hints()
                 end
                 return true
             end

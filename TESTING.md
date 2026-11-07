@@ -1,3 +1,32 @@
+# Current Development Status — November 7, 2026 — Compact Options hint
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `616293cca78745eb01cd622127956a40281e0798`.
+
+Myrr reported an Options icon flash while rapidly tapping R2.
+`Myrr-20261107-185138-475080-1-Myrr.log` shows repeated idle/trigger
+transitions with the addon menu closed. The render buffer overwrote older
+events and retained 2,065 alpha, 1,415 position, and 1,289 size calls.
+These are Lua drawing calls. The capture does not identify the flashed
+icon or measure GPU cost.
+
+Ported the compact visibility policy from personal commit `a572fca`.
+Compact hints start hidden and leave the draw list immediately, even
+during a fade. Full-layout hints still follow the normal crossbar fade.
+The chooser hides its overlapping caption directly. The opacity pass
+skips fully hidden surfaces and applies the current opacity on reveal.
+
+Overlay this Lua patch on the special-bank TriggerScale build. Reload
+XIVCrossbar. In XI compact with fades and TriggerScale on, rapidly tap R2
+with Autohide and then Always visibility. Repeat after closing the binder
+and chooser. Options and Share hints should stay hidden in compact.
+Check that switching to full layout restores the hints and Options still
+opens the chooser. The compact fixture covers 108 layouts and interrupted
+fades. The text-fade fixture checks zero fade alpha writes for a hidden
+image and correct opacity on reveal. In-game confirmation is pending.
+
+---
+
 # Current Development Status — November 7, 2026 — Special-bank TriggerScale
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
