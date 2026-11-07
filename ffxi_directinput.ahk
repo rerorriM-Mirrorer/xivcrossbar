@@ -71,6 +71,8 @@ TransportPoll() {
     DiagTick()
     if FileExist(A_ScriptDir . "\data\input-stop.request") {
         try FileDelete(A_ScriptDir . "\data\input-stop.request")
+        catch Error
+            return  ; The writer may still hold the request open. Retry next poll.
         ExitApp()
     }
     active := WinActive("ahk_class FFXiClass")
