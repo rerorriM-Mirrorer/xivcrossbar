@@ -146,7 +146,7 @@ function geometry:set_opacity(opacity)
     for _, m in pairs(self.surfaces) do draw_opacity(self, m) end
     for _, m in ipairs(self.retired) do draw_opacity(self, m) end
     for name, p in pairs(self.primitives) do
-        if p.color then
+        if p.color and not p.independent then
             windower.prim.set_color(name, rounded_alpha(p.color[1], self.opacity),
                 p.color[2], p.color[3], p.color[4])
         end
@@ -388,16 +388,21 @@ end
 function geometry:prim()
     local g = self
     return setmetatable({
+        create = function(name, independent)
+            local p = g.primitives[name] or {}; g.primitives[name] = p
+            p.independent = independent == true
+            windower.prim.create(name)
+        end,
         set_color = function(name, alpha, red, green, blue)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             p.color = {alpha, red, green, blue}
-            windower.prim.set_color(name, rounded_alpha(alpha, g.opacity), red, green, blue)
+            windower.prim.set_color(name, p.independent and alpha or rounded_alpha(alpha, g.opacity), red, green, blue)
         end,
         set_visibility = function(name, visible)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             local was_visible = p.visible or p.defer_visible
             p.visible = visible
-            if not visible and g.deferring_hide and was_visible then p.defer_visible = true
+            if not visible and not p.independent and g.deferring_hide and was_visible then p.defer_visible = true
             else p.defer_visible = nil; windower.prim.set_visibility(name, visible) end
         end,
         set_position = function(name, x, y)

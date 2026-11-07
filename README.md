@@ -367,3 +367,5 @@ to the binder, a padded menu title backing, and space for the bouncing cursor.
 
 2026-11-07: Added saved `//xb display legacy|xi` presets and allowed
 trigger-held Auto bars to show during Event status.
+
+2026-11-07: Lockout strips stay visible during Auto while the slots are hidden.

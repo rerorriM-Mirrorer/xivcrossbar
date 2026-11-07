@@ -1,5 +1,31 @@
 # Current Development Status — November 7, 2026
 
+Lockout visibility fix for `experiment/messages-native-all-profiles` in
+`rerorriM-Mirrorer/xivcrossbar`, based on `9f5b3ef`.
+
+## Lockout strip with Auto
+
+Lionstag reported the lockout bars were hard to see. Previously the strip
+only updated while the crossbar was visible and inherited its opacity.
+The strip can now show at its configured opacity after the slots fade out
+in Auto. It still respects explicit Hide, per-action opacity, and Event
+visibility. The skillchain indicator remains independently configurable.
+
+Unload XIVCrossbar and overlay this cumulative Lua patch on the `cbbad60`
+native test install or its first display-preset patch. Load the addon and
+select `//xb display xi`. Cast a short spell, release the trigger before
+completion, and check that only the lockout strip appears afterward.
+Repeat with a weaponskill and a job ability. Keep `//xb skillchain off`
+during the check to verify the controls are independent.
+
+The local Lua suite passed, including triggerless Auto visibility,
+independent opacity, expiry, explicit Hide and status-4 cases. Live
+FFXI visibility is pending.
+
+---
+
+# Current Development Status — November 7, 2026
+
 Display preset patch for `experiment/messages-native-all-profiles` in
 `rerorriM-Mirrorer/xivcrossbar`, based on `cbbad60`. Lionstag confirmed
 PS5 startup, binding icon cleanup, and Up/Down blocking with both triggers

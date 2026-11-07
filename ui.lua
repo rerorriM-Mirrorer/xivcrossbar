@@ -477,13 +477,14 @@ function ui:load(theme_options)
     prim.set_size('skillchain_indicator', 600, 10)
     prim.set_visibility('skillchain_indicator', false)
 
-    prim.create('gcd_indicator_bg')
+    -- The lockout strip has its own visibility, while retaining HUD scaling.
+    prim.create('gcd_indicator_bg', true)
     prim.set_color('gcd_indicator_bg', 150, 0, 0, 0)
     prim.set_position('gcd_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) + 10)
     prim.set_size('gcd_indicator_bg', 604, 10)
     prim.set_visibility('gcd_indicator_bg', false)
 
-    prim.create('gcd_indicator')
+    prim.create('gcd_indicator', true)
     prim.set_color('gcd_indicator', 220, 200, 200, 255) -- bluish/white
     prim.set_position('gcd_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) + 12)
     prim.set_size('gcd_indicator', 600, 6)
@@ -1384,8 +1385,8 @@ local function lockout_tint(palette, kind, fraction)
         math.round(start[3] * remaining + finish[3] * (1 - remaining))
 end
 
-function ui:display_gcd_indicator()
-    if gcd_active then
+function ui:display_gcd_indicator(visible)
+    if visible and gcd_active then
         local elapsed = os.clock() - gcd_start_time
         local remaining = gcd_duration - elapsed
 
@@ -1615,7 +1616,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
     local skillchain_delay, skillchain_window = skillchains.get_skillchain_window()
     self:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
-    self:display_gcd_indicator()
     self:display_aa_indicator()
 
     local active_bar = menu_open and (preview_bank or 0)

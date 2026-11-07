@@ -39,6 +39,27 @@ assert(load(section('function ui:set_autoattack_enabled(enabled)','-- Hide all t
     'actual estimator toggle','t',env))()
 assert(load(section('function ui:display_skillchain_indicator','function ui:display_gcd_indicator'),
     'actual skillchain bar','t',env))()
+assert(load(section('local function lockout_tint', '-- Separate tracking from opacity'),
+    'actual lockout renderer','t',env))()
+ui.theme.spell_lockout_opacity=220
+ui.theme.spell_lockout_primary_red=200
+ui.theme.spell_lockout_primary_green=200
+ui.theme.spell_lockout_primary_blue=255
+ui.gcd_offset_x,ui.gcd_offset_y,ui.hotbar_spacing=0,0,0
+env.gcd_active,env.gcd_start_time,env.gcd_duration,env.gcd_kind=true,clock,3,'spell'
+ui:display_gcd_indicator(true)
+assert(surface.gcd_indicator and surface.gcd_indicator_bg,'active spell lockout must show')
+ui:display_gcd_indicator(false)
+assert(not surface.gcd_indicator and not surface.gcd_indicator_bg and env.gcd_active)
+ui.theme.spell_lockout_opacity=0
+ui:display_gcd_indicator(true)
+assert(not surface.gcd_indicator and not surface.gcd_indicator_bg,'zero lockout opacity must hide both')
+ui.theme.spell_lockout_opacity=220
+clock=clock+3
+ui:display_gcd_indicator(true)
+assert(not surface.gcd_indicator and not env.gcd_active,'lockout must expire after suppression')
+clock=10
+
 ui.is_setup=false
 ui:set_autoattack_enabled(false)
 assert(surface.aa_indicator_red==nil,'Fresh disabled install must not touch uncreated prims')
@@ -77,6 +98,35 @@ assert(env.aa_is_paused(),'Old pending callback must not affect restarted estima
 -- Actual source should gate all three event sources without changing GCD.
 local root=assert(io.open('xivcrossbar.lua','rb'))
 local code=root:read('*a');root:close()
+-- Run the actual root visibility branch with the crossbar slots hidden.
+local draw_start=assert(code:find('    if ui.is_setup then\n        local lockout_visible',1,true))
+local draw_end=assert(code:find('    if visible and ui.is_setup then',draw_start,true))
+local allowed
+local display_env={ui={is_setup=true,display_gcd_indicator=function(_,value) allowed=value end},
+    settings={VisibilityMode='oninput'},visible=false,xivcrossbar={hide_hotbars=false}}
+local draw=assert(load(code:sub(draw_start,draw_end-1),'actual lockout visibility','t',display_env))
+draw();assert(allowed,'autohide must allow the lockout strip with no trigger held')
+display_env.xivcrossbar.hide_hotbars=true
+draw();assert(not allowed,'no ambient strip during status 4')
+display_env.visible=true
+draw();assert(allowed,'a visible trigger-held bar can show the strip')
+display_env.settings.VisibilityMode='hidden'
+draw();assert(not allowed,'explicit hide suppresses the strip')
+local old_windower=windower
+local colors={}
+windower={prim={create=function()end,set_color=function(name,alpha) colors[name]=alpha end}}
+local geometry=require('ui_geometry').new()
+local draw_prim=geometry:prim()
+draw_prim.create('normal')
+draw_prim.create('lockout',true)
+draw_prim.set_color('normal',220,1,2,3)
+draw_prim.set_color('lockout',220,1,2,3)
+geometry:set_opacity(0)
+assert(colors.normal==0 and colors.lockout==220,'only the lockout strip bypasses crossbar opacity')
+draw_prim.set_color('lockout',150,1,2,3)
+assert(colors.lockout==150,'the strip must still accept explicit opacity')
+windower=old_windower
+
 assert(code:find("if command == 'autoattack' then",1,true))
 assert(code:find("settings.AutoAttackIndicator.Enabled=enabled",1,true))
 assert(code:find("if ui.aa_enabled and (act.category == CATEGORY_MELEE",1,true))

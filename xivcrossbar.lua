@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.messages-native-display1'
+_addon.version = '0.4.0-beta1.20261107.messages-native-display2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -2303,6 +2303,12 @@ windower.register_event('prerender',function()
 
     if visible and ui.feedback.is_active then
         ui:show_feedback()
+    end
+
+    if ui.is_setup then
+        local lockout_visible = settings.VisibilityMode ~= 'hidden' and
+            (visible or (settings.VisibilityMode == 'oninput' and not xivcrossbar.hide_hotbars))
+        ui:display_gcd_indicator(lockout_visible)
     end
 
     if visible and ui.is_setup then
