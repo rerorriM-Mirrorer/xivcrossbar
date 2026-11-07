@@ -10,13 +10,13 @@ PersonalInit(selected, prefix) {
         , l1:{token:"", mode:"keyboard", seq:0, ack:0, pending:[], available:false, showing:false}
         , clients:[], lastClient:0, lastOther:0, contextSeen:0, contextPaused:false, contextPauses:0
         , contextObservations:0, contextReuses:0, contextScans:0, contextFileReads:0
-        , targetR2:false, targetR3:false, realDpad:false, r1Menus:false, banks:false
+        , guard:false, targetR2:false, targetR3:false, realDpad:false, r1Menus:false, banks:false
         , native:{token:"", ack:0, requests:[], active:Map(), keys:Map()}}
     ; Old PSHoldAction/DoubleTapMs preferences remain untouched but are dormant.
 }
 
 PersonalPoll(states, active, observation := false) {
-    global PC, appsOwned, previous
+    global PC, CM, appsOwned, previous
     if (!PC.enabled)
         return states
     foreground := WinExist("A")
@@ -73,6 +73,11 @@ PersonalPoll(states, active, observation := false) {
                 if (raw[i])
                     PC.blocked[i] := ""
         return PersonalFilter(states, raw)
+    }
+    if (!CM.requested or !PC.guard or !PC.banks) {
+        PersonalRelease()
+        PC.previous := raw
+        return states
     }
     if (PC.contextPaused)
         InputTraceRecord("context resume=" . mode)
@@ -339,41 +344,37 @@ PersonalReadContext(hwnd) {
     global PC
     if (!hwnd)
         return "unfocused"
-    title := ""
-    try title := WinGetTitle("ahk_id " . hwnd)
-    now := A_NowUTC
-    now := DateDiff(now, "19700101000000", "Seconds")
-    ; Retry the directory read once without sleeping: Lua's remove/rename
-    ; publication may complete between scans. Never reuse cached permission.
+    global profile, device
+    try pid := WinGetPID("ahk_id " . hwnd)
+    catch
+        return InputTraceContextMiss("no-pid")
+    path := A_ScriptDir . "\data\personal-controls\" . pid . ".ini"
+    now := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     Loop 2 {
         PC.contextScans += 1
-        Loop Files A_ScriptDir . "\data\personal-controls\*.ini"
-        {
-            timingReadStart := DllCall("GetTickCount64", "UInt64")
-            PC.contextFileReads += 1
-            try lease := FileRead(A_LoopFileFullPath, "CP0")
-            catch
-                continue
-            InputTimingOperation("context-file-read", timingReadStart)
-            if (!RegExMatch(lease, "m)^name=([A-Za-z]+)\r?$", &name))
-                continue
-            if (!RegExMatch(title, "i)(^|[^a-z])" . name[1] . "([^a-z]|$)"))
-                continue
-            if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
-                or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", &mode)
-                or !RegExMatch(lease, "m)^END\r?$"))
-                return InputTraceContextMiss("malformed")
-            age := now - stamp[1]
-            if (age >= -1 and age <= 2) {
-                ControllerMessageLease(lease, A_LoopFileFullPath)
-                PersonalBankLease(lease)
-                PersonalRealKeyLease(lease)
-                PersonalR1MenuLease(lease)
-                PersonalL1Lease(lease, A_LoopFileFullPath)
-                return mode[1]
-            }
-            return InputTraceContextMiss("stale")
+        timingReadStart := DllCall("GetTickCount64", "UInt64")
+        PC.contextFileReads += 1
+        try lease := FileRead(path, "CP0")
+        catch
+            continue
+        InputTimingOperation("context-file-read", timingReadStart)
+        if (!RegExMatch(lease, "m)^profile=([a-z0-9-]+)\r?$", &selected) or selected[1] != profile
+            or !RegExMatch(lease, "m)^device=(\d+)\r?$", &number) or number[1] + 0 != device
+            or !RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
+            or !RegExMatch(lease, "m)^mode=([^\r\n]+)\r?$", &mode)
+            or !RegExMatch(lease, "m)^END\r?$"))
+            return InputTraceContextMiss("malformed")
+        age := now - stamp[1]
+        if (age >= -1 and age <= 2) {
+            PC.guard := RegExMatch(lease, "m)^native_guard=1\r?$") != 0
+            ControllerMessageLease(lease, path)
+            PersonalBankLease(lease)
+            PersonalRealKeyLease(lease)
+            PersonalR1MenuLease(lease)
+            PersonalL1Lease(lease, path)
+            return mode[1]
         }
+        return InputTraceContextMiss("stale")
     }
     return InputTraceContextMiss("no-matching-lease")
 }

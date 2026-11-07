@@ -124,7 +124,7 @@ NativeContextObservationTests() {
     first := Gui(, "Cioara context test"), second := Gui(, "Myrr context test")
     folder := A_ScriptDir . "\data\personal-controls"
     DirCreate(folder)
-    path := folder . "\context-test.ini"
+    path := folder . "\" . WinGetPID("ahk_id " . first.Hwnd) . ".ini"
     try {
         NativeWriteContext(path, "Cioara", "gameplay", "session-one")
         observation := {}
@@ -179,10 +179,11 @@ NativeContextObservationTests() {
 }
 
 NativeWriteContext(path, name, mode, token, stamp := -1) {
+    global profile, device
     if (stamp = -1)
         stamp := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     if FileExist(path)
         FileDelete(path)
-    FileAppend("name=" . name . "`ntimestamp=" . stamp . "`nmode=" . mode
+    FileAppend("profile=" . profile . "`ndevice=" . device . "`nnative_guard=1`nname=" . name . "`ntimestamp=" . stamp . "`nmode=" . mode
         . "`nbutton_mode=messages`nbutton_token=" . token . "`nbutton_ack=0`nEND`n", path, "CP0")
 }

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-a.20261104.directlink1-ahkv2-bankfaces1'
+_addon.version = '0.4.0-a.20261104.personal-native1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -83,7 +83,6 @@ if controller_modifier ~= 'apps' and controller_modifier ~= 'ctrl' then
     windower.add_to_chat(0,require('libs/chat_status').legacy(123,'[XIVCrossbar] Invalid ControllerModifier; using apps.'))
 end
 local controller_capture_dik = controller_modifier == 'ctrl' and 29 or 221
-local controller_bind_prefix = controller_modifier == 'ctrl' and '^' or '#'
 
 -- Load theme options according to settings
 local character_identity = require('libs/character_identity')
@@ -115,7 +114,7 @@ local publish_personal_context
 local controller_message_bridge
 local message_capture, message_button, message_cancel, message_menu
 local companion_banks,companion_context
-local trust_menu
+local trust_menu, native_guard
 local message_epoch=0
 local visibility = require('libs/visibility')
 local storage = require('libs/storage')
@@ -180,15 +179,22 @@ local r1_view=require('ui/bank_view').new({bank=companion_right,resources=requir
 controller_message_bridge=require('libs/controller/messages').new({session=require('libs/windows_file').new().session_id,
     clock=l1_clock,wallclock=os.time,
     trace=function(message) input_timing:record(message) end,
-    capture=function(pressed) if message_capture then message_capture(pressed) end end,
+    capture=function(pressed) if (not pressed or native_guard.filtering) and message_capture then message_capture(pressed) end end,
     event=function(dik,pressed) if message_button then message_button(dik,pressed,0,false) end end,
-    menu=function(button) if message_menu then message_menu(button) end end,
+    menu=function(button) if native_guard.filtering and message_menu then message_menu(button) end end,
     physical=function(button,pressed)
+        if not native_guard.filtering then return end
         if trust_menu and trust_menu:edge(button,pressed,buttonmapping,companion_banks.down[14]) then return end
-        companion_banks:edge(button,pressed)
+        if require('libs/controller/profiles').is_extended(settings.ControllerProfile) then
+            companion_banks:edge(button,pressed)
+        elseif message_button then
+            local dik=require('libs/controller/messages').diks[button]
+            if dik then message_button(dik,pressed,0,false) end
+        end
     end,
     can_recover=function() return companion_context and companion_context() end,
     resume=function(button)
+        if not native_guard.filtering then return end
         if companion_context and companion_context() then companion_banks:resume(button) end
     end,
     ready=function() companion_banks.active=true end,
@@ -516,6 +522,13 @@ local function save_diagnostics()
         ('Could not save diagnostics: '..tostring(err)),ok and 207 or 167))
     return ok
 end
+native_guard=require('libs/controller/native_guard').new({
+    clock=l1_clock, modifier=controller_modifier, status=controller_status,
+    open=function()
+        return require('libs/controller/native_gamepad').open(windower.addon_path..'native/xb_gamepad_messages.dll')
+    end,
+    notice=function(message) windower.add_to_chat(0,require('libs/chat_status').notice(message,123)) end,
+})
 local function report_controller_status(details,embedded)
     if details then return save_diagnostics() end
     local status=controller_status()
@@ -1302,7 +1315,8 @@ function display_help_menu()
     help.command('controller menuswap on|off|status','Swap Share/Options roles for all characters in this installation.')
     help.command('controller trace on|off','Alias for the unified diagnostics capture.')
     help.command('dpad [arrows|ijkl]','Choose gameplay D-pad output; bare toggles.')
-    help.command('realkeys [on|off|status]','Test AHK keyboard IJKL in ordinary gameplay; default OFF, bare toggles.')
+    help.command('nativepad','Show native guard and hook status.')
+    help.command('realkeys [on|off|status]','Use AHK for translated IJKL in extended gameplay; bare toggles.')
     help.command('scale <0.25-2>','Scale crossbars independently of menus.')
     help.command('center [on|off]','Center main bars and companion banks above them; bare enables.')
     help.command('pos [<offset x> <offset y>]','Report copyable main-bar coordinates, or set them.')
@@ -1429,11 +1443,6 @@ windower.register_event('load',function()
     end
     skillchains.load()
 
-    -- A: Windower bindings stop native F-key targeting; Lua still routes
-    -- the keyboard event. Reserve only Apps+F1-F12 for this experiment.
-    for index = 1, 12 do
-        windower.send_command('bind ' .. controller_bind_prefix .. 'f' .. index .. ' xivcrossbar inputconsume')
-    end
 
 end)
 
@@ -1473,6 +1482,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    native_guard:stop()
     if player.summon_swap then player.summon_swap:cancel() end
     if client_registry then client_registry:close(settings.on_unload_killahk) end
     ui.autoattack:set_enabled(false)
@@ -1484,10 +1494,6 @@ windower.register_event('unload',function()
     crossbar_drag:finish()
     text_input_guard:reset_confirmation()
     text_input_guard:release(windower.send_command)
-    -- Release the twelve combinations reserved by this test build.
-    for index = 1, 12 do
-        windower.send_command('unbind ' .. controller_bind_prefix .. 'f' .. index)
-    end
     -- No broad killahk.bat: the wrapper is shared across FFXI clients.
     if release_gameplay_keys then release_gameplay_keys() end
     if ui.geometry then ui.geometry:shutdown() end
@@ -1523,6 +1529,11 @@ windower.register_event('addon command', function(command, ...)
         require('ui/text_measure').command(settings,(...),
             function() config.save(settings) end,
             function(message) windower.add_to_chat(0,require('libs/chat_status').legacy(0,'[XIVCrossbar] '..message)) end)
+        return
+    elseif command == 'nativepad' then
+        local state=native_guard.filtering and 'filtering' or native_guard.receiving and 'waiting for reader' or 'native pass-through'
+        local status=native_guard.dll and (' | '..native_guard.dll.hook_status()..' | '..native_guard.dll.status()) or ''
+        windower.add_to_chat(0,require('libs/chat_status').notice('Native controller '..state..status))
         return
     elseif command == 'realkeys' then
         local changed=require('libs/controller/realkeys').command(settings,(...),
@@ -2200,7 +2211,7 @@ local function trace_controller_state(context)
         ' messages_setting='..tostring(settings.ControllerMessages)..' ready='..tostring(xivcrossbar.ready)..
         ' restarting='..tostring(restart_pending==true)..' focus='..tostring(windower.has_focus())..
         ' logged_in='..tostring(info.logged_in)..' character_status='..tostring(character and character.status)..
-        ' lua_route='..(controller_message_bridge.token and 'messages' or 'keys')..
+        ' lua_route='..(controller_message_bridge.token and 'messages' or 'native')..
         ' gameplay_owned='..(#owned>0 and table.concat(owned,',') or 'none'))
 end
 release_gameplay_keys = function()
@@ -2225,7 +2236,7 @@ end
 companion_context=function()
     local info=windower.ffxi.get_info();local character=windower.ffxi.get_player();local context=input_context()
     local cutscene=character~=nil and character.status==4
-    return not restart_pending and xivcrossbar.ready and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
+    return native_guard.filtering and not restart_pending and xivcrossbar.ready and require('libs/controller/profiles').is_extended(settings.ControllerProfile)
         and settings.ControllerMessages and not settings.InputTest and windower.has_focus() and info.logged_in
         and character~=nil and (context=='gameplay' or context=='crossbar' or context=='chat'),
         info.menu_open==true,cutscene,info.chat_open==true
@@ -2253,6 +2264,10 @@ message_button = function(dik,pressed,flags,blocked)
         return true
     end
     local context = input_context()
+    if pressed and not require('libs/controller/profiles').is_extended(settings.ControllerProfile) then
+        if context=='chat' or context=='login' then return true end
+        if context=='gameplay' and signal.logical<=66 and not settings.InputTest then return true end
+    end
     local character=windower.ffxi.get_player()
     if context=='gameplay' and character and character.status==4 then context='dialogue' end
     input_timing:record('router dik='..dik..' pressed='..tostring(pressed)..' context='..context)
@@ -2335,13 +2350,13 @@ message_cancel = function()
     ui_dirty=true
 end
 
-publish_personal_context = function()
+local function refresh_trust_controller()
     -- Trust's lease is read only for this character in this focused client.
     -- The receiver validates freshness again when the queued action arrives.
     if trust_menu then
         local character=windower.ffxi.get_player()
         local eligible=character and windower.has_focus() and xivcrossbar.ready and not restart_pending
-            and require('libs/controller/profiles').is_extended(settings.ControllerProfile) and settings.ControllerMessages and not settings.InputTest
+            and settings.ControllerMessages and not settings.InputTest
             and action_binder.is_hidden and not env_chooser:is_showing() and not env_chooser.capturing
             and not gamepad_mapper.is_showing
         local contents
@@ -2351,10 +2366,13 @@ publish_personal_context = function()
         end
         trust_menu:update(contents,eligible and character.id or -1)
     end
+end
+
+publish_personal_context = function()
     input_timing:tick(input_context())
     if input_timing.active then trace_controller_state(input_context()) end
     if companion_banks then companion_banks:refresh() end
-    if not require('libs/controller/profiles').is_extended(settings.ControllerProfile) or not windower.ffxi.get_info().logged_in then
+    if not native_guard.receiving or not windower.has_focus() or not windower.ffxi.get_info().logged_in then
         l1_bridge:reset();controller_message_bridge:reset();personal_controls:close();return
     end
     local context = (restart_pending or not xivcrossbar.ready) and 'setup' or input_context()
@@ -2366,11 +2384,13 @@ publish_personal_context = function()
     end
     if character and character.status==4 and (context=='gameplay' or context=='crossbar') then context='cutscene' end
     local now=l1_clock()
+    local owner=tostring(native_guard.dll.process_id)
+    local extended=require('libs/controller/profiles').is_extended(settings.ControllerProfile)
     if l1_last_tick>0 and now-l1_last_tick>.5 then
         l1_epoch=l1_epoch+1;controller_message_bridge:reset('stall')
     end
     l1_last_tick=now
-    local eligible=(context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not info.menu_open
+    local eligible=extended and (context=='gameplay' or context=='crossbar') and windower.has_focus() and not info.chat_open and not info.menu_open
         and character and character.status~=4
     -- Ordinary trigger transitions share one play session: releasing L2 while
     -- holding L1 can reveal the companion without a forced neutral rearm.
@@ -2378,12 +2398,12 @@ publish_personal_context = function()
     l1_bridge:context(key,eligible)
     if l1_bridge.token and not (companion_banks and companion_banks.active) and now>=l1_next_read then
         l1_next_read=now+.02
-        local f=io.open(windower.addon_path..'data/personal-controls/'..player.name..'.l1','rb')
+        local f=io.open(windower.addon_path..'data/personal-controls/'..owner..'.l1','rb')
         if f then
             local contents=f:read(4097);f:close();l1_bridge:accept(contents)
         end
     end
-    local message_enabled=settings.ControllerMessages==true and xivcrossbar.ready and not restart_pending
+    local message_enabled=settings.ControllerMessages~=false and (xivcrossbar.ready or gamepad_mapper.is_showing) and not restart_pending
         and windower.has_focus() and info.logged_in and character
     local message_key=table.concat({player.server or '',player.name or '',settings.ControllerProfile,
         tostring(settings.ControllerDevice or 1),tostring(message_epoch)},':')
@@ -2396,7 +2416,7 @@ publish_personal_context = function()
             -- keyboard route would destroy the writer's held-control snapshot.
             controller_message_bridge:context(message_key,message_enabled)
         else
-            local f=io.open(windower.addon_path..'data/personal-controls/'..player.name..'.buttons','rb')
+            local f=io.open(windower.addon_path..'data/personal-controls/'..owner..'.buttons','rb')
             if f then local contents=f:read(8193);f:close();controller_message_bridge:accept(contents) end
             if not controller_message_bridge.token and controller_message_bridge.recover_key then
                 controller_message_bridge:context(message_key,message_enabled)
@@ -2419,15 +2439,15 @@ publish_personal_context = function()
         end
         native_token,native,native_base=companion_banks.output:payload(controller_message_bridge.token)
     end
-    personal_controls:update(windower.addon_path..'data/personal-controls/',player.name,
-        settings.ControllerProfile,context,{token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
+    personal_controls:update(windower.addon_path..'data/personal-controls/',character and character.name or player.name,
+        settings.ControllerProfile,context,{device=settings.ControllerDevice,guard=native_guard.filtering,token=l1_bridge.token,mode=l1_bank:mode(),ack=l1_bridge.ack,
             target_r2=settings.ControllerTargetR2==true,target_r3=settings.ControllerTargetR3==true,
             realkeys=not info.chat_open and character and character.status~=4 and not (trust_menu and trust_menu.token)
                 and require('libs/controller/realkeys').enabled(settings,controller_message_bridge.token),
-            r1_menus=controller_message_bridge.token~=nil and not settings.InputTest,
-            banks=controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
+            r1_menus=extended and controller_message_bridge.token~=nil and not settings.InputTest,
+            banks=extended and controller_message_bridge.token~=nil and not settings.InputTest,native_token=native_token,native=native,native_base=native_base,
             messages=controller_message_bridge.token~=nil,button_token=controller_message_bridge.token,button_ack=controller_message_bridge.ack,
-            button_recover=controller_message_bridge.recovering,button_reason=controller_message_bridge.last_reason})
+            button_recover=controller_message_bridge.recovering,button_reason=controller_message_bridge.last_reason},owner)
 end
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     -- Review alone owns these physical keys. Field confirmation keeps its own
@@ -2464,33 +2484,8 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
             return true
         end
     end
-    -- Setup tracing must precede capture/readiness filters, otherwise a lost
-    -- marker or incomplete initialization produces no diagnostic at all.
-    if settings.InputTrace and gamepad_mapper.is_showing then
-        input_timing:record('RAW DIK=' .. tostring(dik) ..
-            (pressed and ' down' or ' up') .. ' capture=' .. tostring(gamepad_state.capturing == true) ..
-            ' ready=' .. tostring(xivcrossbar.ready == true) .. ' setup=' .. tostring(gamepad_mapper.state) ..
-            ' blocked=' .. tostring(blocked == true))
-    end
-    if dik == controller_capture_dik then
-        if controller_message_bridge.token then return false end
-        message_capture(pressed)
-        publish_personal_context()
-        return true
-    end
-    local signal = transport.signals[dik]
-    -- Consume owned releases even if capture was lost; no orphan game key-ups.
-    if not controller_message_bridge.token and signal and (gamepad_state.capturing or transport.down[dik]) then
-        message_button(dik,pressed,flags,blocked)
-        publish_personal_context()
-        return true
-    end
-    -- A: plain F1-F12 pass through; Apps-gated signals were consumed above.
-    if (dik >= 59 and dik <= 68) or dik == 87 or dik == 88 then return false end
-    if gamepad_state.capturing and not signal and settings.InputTrace then
-        input_timing:record('UNMAPPED ' .. (pressed and 'DOWN' or 'UP') .. ' DIK=' .. tostring(dik))
-        if settings.InputTest then return true end
-    end
+    -- Controller slots arrive only through DirectLink; physical F-keys remain native.
+    if transport.signals[dik] or dik == controller_capture_dik then return false end
     local consumed=handle_controller_key(dik, pressed, flags, blocked)
     publish_personal_context()
     return consumed
@@ -2532,7 +2527,12 @@ local function clear_controller_input(regained)
     if env_chooser:is_showing() and not env_chooser.capturing then env_chooser:close() end
     ui_dirty = true
 end
-windower.register_event('lose focus', function() clear_controller_input(false) end)
+windower.register_event('lose focus', function()
+    if native_guard.dll then native_guard.dll.poll(0,function() end,function() end,native_guard.generation) end
+    native_guard.filtering=false
+    personal_controls:close()
+    clear_controller_input(false)
+end)
 windower.register_event('gain focus', function() clear_controller_input(true) end)
 
 local catalog_clock=require('socket').gettime
@@ -2544,6 +2544,21 @@ windower.register_event('prerender',function()
     if not restart_pending and catalog_clock()>=next_identity_retry then
         next_identity_retry=catalog_clock()+.25
         check_profile_ready()
+    end
+    local info=windower.ffxi.get_info()
+    refresh_trust_controller()
+    local context=input_context()
+    local owned_menu=context=='trust' or context=='setup' or context=='text' or context=='sets'
+        or context:sub(1,5)=='menu:' or settings.InputTest
+    local extended=require('libs/controller/profiles').is_extended(settings.ControllerProfile)
+    local route=extended and 5 or (owned_menu and 2 or (info.chat_open and 3 or 1))
+    local eligible=windower.has_focus() and info.logged_in and not restart_pending
+        and (xivcrossbar.ready or gamepad_mapper.is_showing)
+    local was_filtering=native_guard.filtering
+    native_guard:poll(settings,eligible,route,
+        controller_message_bridge.last_beat~=nil and l1_clock()-controller_message_bridge.last_seen<.35)
+    if was_filtering and (not native_guard.filtering or native_guard.reset_input) then
+        clear_controller_input(false)
     end
     publish_personal_context()
     local l1_info=windower.ffxi.get_info()

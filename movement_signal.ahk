@@ -30,7 +30,7 @@ MovementPoll(states, active, observation := false) {
     ready := MovementReceiverReady(active)
     ; Send consumes the first movement even in a blocked context. Trust makes
     ; the immediate accept/ignore decision; there is no delayed retry.
-    if (TM.policy = "Ready" and PC.enabled) {
+    if (TM.policy = "Ready") {
         context := PersonalContext(active, observation)
         if (context != "gameplay" and context != "crossbar") {
             TM.reason := "personal-" . context

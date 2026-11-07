@@ -1,3 +1,16 @@
+# Current Development Status — Personal native controller port
+
+- Repository `rerorriM-Mirrorer/xivcrossbar`, working branch `development/personal-native-controller`, personal base `74724f1`, public native-input reference `d4ec614`. Runtime `0.4.0-a.20261104.personal-native1`. The public branch and Trust repository have separate release lifecycles.
+- Native XInput and DirectInput button filtering now guards the personal acknowledged message stream. All seven Windows controller profiles use PID-scoped button messages. Extended profiles retain personal banks and translated controls. Standard profiles pass ordinary unowned input through to FFXI.
+- Trust receives its existing lease-scoped menu commands and first-stick-motion signal. Use the integrated Trust receiver from the WHM test line. The actual analog axes remain native. The movement notification retains Trust's established dedicated scan code.
+- This is a matched-file patch for the personal menu-preview baseline. Unload XIVCrossbar on all clients and stop the old shared wrapper before copying files. Use the matching Win32 DLL from this branch. Preserve installed `data`. If restoring the older build, restore both its Lua files and wrapper.
+- In-game checks: use `//xb nativepad` to confirm filtering. Open Trust → WHM → Buffs → Add and check a single step/confirm/back per press with the native menu open. Switch between two FFXI clients, then move once and inspect Trust → Movement → Status in both Send and Ready modes. Check native sticks/camera throughout.
+- Check L1, R1, combined and sequential shoulder banks, both trigger orders, double-taps, native item scrolling, NPC/dialogue, chat Cancel, touchpad, stick clicks, PS/client switching, and real keyboard keys. Test an extended profile and a standard profile. On unload check native controls resume and shared-wrapper last-client behavior remains correct.
+- Local checks covered 191 normalized Lua source parses, the controller and Trust fixtures, the portable C++ ownership fixture, generated mapping parity and AHK source checks. The broader Lua run passed except for the status-storage fixture, which fails at the same missing mock on the personal baseline.
+- The Win32 build, AHK startup and actual FFXI input ownership are distinct checks. See GitHub Actions for Windows fixture results and record live acceptance separately.
+
+---
+
 # Current Development Status — November 6, 2026 — Personal Menu Preview 1
 
 - Repo `rerorriM-Mirrorer/xivcrossbar`, branch `development/ahk-v2-migration`, baseline `c8b38b8d94b27ce3a74f0546508b32face812781`. Reviewed current AGENTS/WORKFLOW/TESTING from GitHub. Adapted public beta in-menu HUD reveal, icon dim and amber binding-bank field to personal's separate UI and combined five-bank policy, while preserving companion controls.

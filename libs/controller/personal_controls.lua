@@ -1,4 +1,4 @@
--- A: private per-character context lease for the optional PS5 extended wrapper.
+-- A: process-scoped context lease for the Windows controller wrapper.
 -- AHK reads hardware; Lua publishes context and the selected button transport.
 local M={}
 function M.new(options)
@@ -16,15 +16,15 @@ function M.new(options)
         end
         self.path,self.mode,self.next_write,self.payload=nil,nil,nil,nil
     end
-    function self:update(directory,name,profile,mode,l1)
-        if not require('libs/controller/profiles').is_extended(profile) or type(name)~='string' or not name:match('^%a+$') then
+    function self:update(directory,name,profile,mode,l1,owner)
+        if (not owner and not require('libs/controller/profiles').is_extended(profile)) or type(name)~='string' or not name:match('^%a+$') then
             self:close();return false
         end
-        local path=directory..name..'.ini'
+        local path=directory..(owner or name)..'.ini'
         if self.path~=path then self:close();self.create_dir(directory);self.path=path end
         local now=self.clock()
         l1=l1 or {}
-        local payload='\nbank_protocol='..(l1.banks and '1' or '0')..'\nbank_native_token='..(l1.native_token or '')..'\nbank_native_base='..(l1.native_base or 0)..'\nbank_native='..(l1.native or '')..
+        local payload='\nprofile='..profile..'\ndevice='..(l1.device or 1)..'\nnative_guard='..(l1.guard and '1' or '0')..'\nbank_protocol='..(l1.banks and '1' or '0')..'\nbank_native_token='..(l1.native_token or '')..'\nbank_native_base='..(l1.native_base or 0)..'\nbank_native='..(l1.native or '')..
             '\nr1_menus='..(l1.r1_menus and '1' or '0')..'\ndpad_output='..(l1.realkeys and 'ahk' or 'lua')..'\nl1token='..(l1.token or '')..'\nl1mode='..(l1.mode or 'keyboard')..'\nl1ack='..(l1.ack or 0)..
             '\ntarget_r2='..(l1.target_r2 and '1' or '0')..'\ntarget_r3='..(l1.target_r3 and '1' or '0')..'\nbutton_mode='..(l1.messages and 'messages' or 'keys')..'\nbutton_token='..(l1.button_token or '')..
             '\nbutton_ack='..(l1.button_ack or 0)..'\nbutton_recover='..(l1.button_recover and '1' or '0')..

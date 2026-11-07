@@ -1,7 +1,7 @@
 -- Feed the real root router/bar logic through the real message receiver. Only
 -- native game/UI services are doubles; no copy of trigger selection is tested.
 local file=assert(io.open('xivcrossbar.lua'));local source=file:read('*a');file:close()
-local start=assert(source:find('local function handle_controller_key(',1,true))
+local start=assert(source:find('local function crossbar_menu_open(',1,true))
 local finish=assert(source:find('publish_personal_context = function()',start,true))
 local now=10;local tasks={};local commands,actions,menus={},{},{}
 local state={left_trigger=false,right_trigger=false,active_bar=0}
@@ -15,9 +15,10 @@ local chooser={capturing=false,shown=false}
 function chooser:is_showing()return self.shown end
 function chooser:close()self.shown=false end
 local env=setmetatable({input_timing={record=function()end},gamepad=require('libs/controller/gamepad'),keyboard=require('libs/controller/keyboard_mapper'),gamepad_state=state,
-    controller_capture_dik=221,transport=require('libs/controller/transport'),settings={GameplayDPad='ijkl'},
+    controller_capture_dik=221,transport=require('libs/controller/transport'),settings={GameplayDPad='ijkl',ControllerProfile='ps5-extended'},
     buttonmapping={confirm_button='cross',cancel_button='circle',mainmenu_button='triangle',activewindow_button='square'},
     action_binder=binder,env_chooser=chooser,gamepad_mapper={is_showing=false},xivcrossbar={ready=true},
+    native_guard={filtering=true},personal_controls={close=function()end},
     theme_options={hotbar_number=6},shift_keys_down={},keys={},shifted_keys={},
     windower={has_focus=function()return true end,ffxi={get_info=function()return {} end,get_player=function()return {status=0}end},send_command=function(s)commands[#commands+1]=s end},
     coroutine={schedule=function(fn,delay)tasks[#tasks+1]={fn=fn,at=now+delay}end},
@@ -29,11 +30,11 @@ function env.close_right_doublepress_window()env.is_right_doublepress_window_ope
 env.l1_epoch=0;env.message_epoch=0
 env.l1_bridge={reset=function()end};env.l1_bank={cancel=function()end}
 env.l1_drag={finish=function()end};env.r1_drag={finish=function()end}
-env.text_input_guard={reset_confirmation=function()end}
+env.text_input_guard={reset_confirmation=function()end,release=function()end}
 env.focus_events={};env.windower.register_event=function(name,fn)env.focus_events[name]=fn end
 local focus_start=assert(source:find('local focus_release_keys = {}',1,true))
 local focus_end=assert(source:find('local catalog_clock=',focus_start,true))
-assert(load(source:sub(start,finish-1)..source:sub(focus_start,focus_end-1)..'\ntrace_snapshot=trace_controller_state','actual controller routing and focus','t',env))()
+assert(load((source:sub(start,finish-1):gsub('local function close_addon_menus%(', 'function close_addon_menus('))..source:sub(focus_start,focus_end-1)..'\ntrace_snapshot=trace_controller_state','actual controller routing and focus','t',env))()
 local receiver=require('libs/controller/messages').new({session='routing',clock=function()return now end,wallclock=function()return 100 end,
     capture=env.message_capture,event=env.message_button,cancel=env.message_cancel})
 local seq=0
@@ -101,13 +102,14 @@ send('down,11');local count=#actions
 assert(events.keyboard(88,true,0,false)==false and #actions==count and state.left_trigger and not state.right_trigger)
 assert(events.keyboard(221,false,0,false)==false and state.left_trigger,'real Apps release cancelled message hold')
 receiver:reset();empty()
--- Apps/F-key transport still reaches the exact same router when disabled.
+-- With no reader lease, physical Apps/F-keys still do not execute slots.
 env.publish_personal_context=function()end
 commands={};actions={}
-events.keyboard(221,true,0,false);events.keyboard(88,true,0,false)
-events.keyboard(65,true,0,false);events.keyboard(65,false,0,false)
-events.keyboard(88,false,0,false);events.keyboard(221,false,0,false)
-assert(#actions==1 and actions[1].bar==2 and actions[1].slot==7 and #commands==0);empty()
+for _, key in ipairs({221,88,65}) do
+    assert(events.keyboard(key,true,0,false)==false)
+    assert(events.keyboard(key,false,0,false)==false)
+end
+assert(#actions==0 and #commands==0);empty()
 -- Exercise the real chooser handler with the real binder helper, not a fake
 -- is_cancel_button method that would hide its absence from the installed file.
 local f=assert(io.open('ui/action_binder.lua'));local binder_source=f:read('*a');f:close()
@@ -173,13 +175,8 @@ for button,key in ipairs({'i','l','k','j','enter'}) do
     assert(#commands==1 and commands[1]=='setkey '..key..' up','DirectLink lost focus retry for '..key)
     commands={};env.focus_events['gain focus']();assert(#commands==0,'retry was not retired')
 end
-new_session();receiver:reset()
-events.keyboard(221,true,0,false);events.keyboard(59,true,0,false)
-assert(commands[#commands]=='setkey i down')
-env.focus_events['lose focus']();commands={};env.focus_events['gain focus']()
-assert(#commands==1 and commands[1]=='setkey i up','keyboard fallback lost focus retry')
-commands={};env.focus_events['gain focus']();assert(#commands==0)
-print('Actual focus callbacks: DirectLink and keyboard fallback preserve owned key-ups before cancellation, retry on regain, retain across repeated loss and retire retries once.')
+
+print('Actual focus callbacks: DirectLink preserves owned key-ups before cancellation, retry on regain, retain across repeated loss and retire retries once.')
 
 -- A capture begun during a hold needs its initial ownership and route snapshot.
 local snapshots={}
@@ -191,12 +188,13 @@ assert(snapshots[#snapshots]:find('messages_setting=true',1,true))
 assert(snapshots[#snapshots]:find('lua_route=messages',1,true))
 assert(snapshots[#snapshots]:find('gameplay_owned=i',1,true))
 receiver:reset();env.trace_snapshot('gameplay')
-assert(snapshots[#snapshots]:find('lua_route=keys',1,true))
+assert(snapshots[#snapshots]:find('lua_route=native',1,true))
 assert(snapshots[#snapshots]:find('gameplay_owned=none',1,true))
 env.input_timing.active=false;local count=#snapshots;env.trace_snapshot('gameplay');assert(#snapshots==count)
 print('Actual trace snapshot: initial owned key, route permission/selection, cleanup state and inactive silence passed.')
 
 -- Real root context plus real bank/router: bare dialogue navigation and banks.
+env.native_guard.filtering=true
 new_session();character.status=4
 local allowed,_,cutscene=env.companion_context();assert(allowed and cutscene)
 for button,key in pairs({[1]='up',[2]='right',[3]='down',[4]='left',[5]='enter',[7]='escape'}) do

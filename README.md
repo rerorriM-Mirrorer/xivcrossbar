@@ -1700,3 +1700,10 @@ and saved settings remain unchanged. See docs/AHK-V2-FASTSTART2.md.
 ### November 6, 2026 — Personal in-menu crossbar preview
 
 - Adopt Public Beta's dimmed in-menu HUD and amber selected-bank field while retaining personal trigger layers and five-bank combining. Triggers held while a menu owns input must be released fully before gameplay can activate; no user bindings or saved settings change. Physical controller verification remains pending.
+
+
+### Personal native controller test
+
+Use the matching Windows x86 bridge and wrapper from the personal test patch.
+`//xb nativepad` reports the guard state. See `TESTING.md` for Trust menu,
+stick takeover, bank routing and rollback checks.

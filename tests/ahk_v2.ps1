@@ -10,7 +10,7 @@ try {
     $Interpreter = (Resolve-Path -LiteralPath $Interpreter).Path
     $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($Interpreter)
     if ($version.FileMajorPart -ne 2) { throw 'Native tests require an actual v2 executable' }
-    foreach ($file in @('ffxi_directinput.ahk','controller_messages.ahk','personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk','launch-controller.cmd','launch-controller.ps1')) {
+    foreach ($file in @('ffxi_directinput.ahk','controller_messages.ahk','controller_mappings.ahk','personal_controls.ahk','personal_gestures.ahk','controller_clients.ahk','movement_signal.ahk','launch-controller.cmd','launch-controller.ps1')) {
         Copy-Item -LiteralPath (Join-Path $root $file) -Destination $fixture
     }
     Copy-Item (Join-Path $PSScriptRoot 'ahk_v2.ahk') (Join-Path $fixture 'native-tests.ahk')

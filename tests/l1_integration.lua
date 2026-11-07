@@ -1,7 +1,7 @@
 -- Execute the actual root context/receive/publish function with mocked I/O.
 local now=10
 local files={}
-local settings={ControllerProfile='ps5-extended',L1=require('libs/banks/legacy').defaults()}
+local settings={ControllerDevice=1,ControllerProfile='ps5-extended',L1=require('libs/banks/legacy').defaults()}
 local sent={}
 local bank=require('libs/banks/legacy').new({settings=settings,clock=function()return now end,
     save=function()end,say=function()end,execute=function(s)sent[#sent+1]=s end})
@@ -10,23 +10,24 @@ local bridge=require('libs/banks/legacy_transport').new({session='integration',w
 local context,focused='gameplay',true
 local info={logged_in=true};local character={status=0}
 local env=setmetatable({input_timing={tick=function()end},settings=settings,l1_clock=function()return now end,l1_bank=bank,l1_bridge=bridge,
+    native_guard={receiving=true,filtering=true,dll={process_id=442}},
     message_epoch=0,controller_message_bridge=require('libs/controller/messages').new({session='buttons-test',
         clock=function()return now end,wallclock=function()return 100 end,
         cancel=function()end,capture=function()end,event=function()end}),
     l1_epoch=0,l1_last_tick=0,l1_next_read=0,restart_pending=false,xivcrossbar={ready=true},
     player={server='Fenrir',name='Test'},input_context=function()return context end,
-    personal_controls={close=function()end,update=function(_,directory,name,profile,mode,l1)env_lease=l1;env_context=mode end},
+    personal_controls={close=function()env_lease={} end,update=function(_,directory,name,profile,mode,l1)env_lease=l1;env_context=mode end},
     windower={addon_path='addon/',has_focus=function()return focused end,
         ffxi={get_info=function()return info end,get_player=function()return character end}},
     io={open=function(path)
         if files[path] then return {read=function()return files[path]end,close=function()end} end
     end}}, {__index=_G})
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
-local a=assert(source:find('publish_personal_context = function()',1,true))
+local a=assert(source:find('local function refresh_trust_controller()',1,true))
 local b=assert(source:find("windower.register_event('keyboard'",a,true))
-assert(load(source:sub(a,b-1),'actual root L1 bridge','t',env))()
-local path='addon/data/personal-controls/Test.l1'
-local function step()now=now+.03;env.publish_personal_context()end
+assert(load(source:sub(a,b-1)..'\nrefresh_trust_controller_fixture=refresh_trust_controller','actual root L1 bridge','t',env))()
+local path='addon/data/personal-controls/442.l1'
+local function step()now=now+.03;env.refresh_trust_controller_fixture();env.publish_personal_context()end
 local function packet(body,token)
     files[path]='token='..(token or bridge.token)..'\nstamp=100\n'..body..'END\n'
 end
@@ -61,7 +62,7 @@ step();local messages=env.controller_message_bridge;local message_token=messages
 assert(env_lease.messages and env_lease.button_token==message_token)
 info.menu_open=true;step();assert(bridge.token==nil and messages.token==message_token)
 assert(env_lease.r1_menus,'native menu revoked direct R1 permission')
-files['addon/data/personal-controls/Test.buttons']='token='..message_token..'\nstamp=100\nbeat=10\n1,down,11\nEND\n'
+files['addon/data/personal-controls/442.buttons']='token='..message_token..'\nstamp=100\nbeat=10\n1,down,11\nEND\n'
 step();assert(messages.captured and env_lease.button_ack==1)
 focused=false;step();assert(messages.token==nil and not messages.captured)
 focused=true;step();assert(messages.token~=message_token and not messages.captured)
@@ -91,7 +92,7 @@ env.controller_message_bridge=require('libs/controller/messages').new({session='
     physical=function(b,p)banks:edge(b,p)end,ready=function()banks.active=true end,key_ack=function(a)banks.output:accept(a)end})
 step();messages=env.controller_message_bridge;message_token=messages.token
 local function buttons(body,beat)
-    files['addon/data/personal-controls/Test.buttons']='token='..messages.token..'\nstamp=100\nbeat='..beat..'\n'..body..'END\n'
+    files['addon/data/personal-controls/442.buttons']='token='..messages.token..'\nstamp=100\nbeat='..beat..'\n'..body..'END\n'
     step()
 end
 buttons('1,banks,0\n2,down,13\n3,down,1\n4,up,1\n5,up,13\n',20)
@@ -131,7 +132,8 @@ assert(sent[#sent]=='trust menu open','Xbox Extended bank failed through actual 
 previous_token=messages.token;settings.ControllerDevice=2;step()
 assert(messages.token~=previous_token,'device change reused old hardware session')
 settings.ControllerProfile='xinput';step()
-assert(messages.token==nil,'ordinary XInput retained message receiver')
+assert(messages.token and messages.token~=previous_token and env_lease.messages and not env_lease.banks,
+    'ordinary XInput did not negotiate messages without companion banks')
 
 -- Actual root Trust lease reader, wrapper-context publication and physical
 -- callback. The old native output queue must remain empty for menu navigation.
@@ -162,5 +164,12 @@ assert(#direct==3 and direct[3]:find(' close$'))
 info.chat_open=true
 files[leasepath]=string.format('trust-menu1\n42\ntrust-root-2\npaused\n%.6f\nEND\n',now)
 step();assert(env_context=='text');callback(1,true);callback(1,false);assert(#direct==3)
+settings.ControllerProfile='xinput'
+env.buttonmapping={button_layout='xbox',confirm_button='a',cancel_button='b'}
+info.chat_open=false
+files[leasepath]=string.format('trust-menu1\n42\ntrust-root-3\nnavigation\n%.6f\nEND\n',now)
+step();assert(env_lease.messages and not env_lease.banks and env_context=='trust')
+callback(3,true);callback(3,false);callback(5,true);callback(5,false);callback(7,true);callback(7,false)
+assert(#direct==6 and direct[4]:find(' down$') and direct[5]:find(' confirm$') and direct[6]:find(' back$'))
 focused=false;step();assert(not env.trust_menu.token and not env_lease.messages)
 print('Actual root Trust integration: character/server lease path, direct physical dispatch, wrapper context, no native output, R1 close and chat/focus guards passed.')

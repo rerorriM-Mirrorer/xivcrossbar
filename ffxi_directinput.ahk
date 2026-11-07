@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0.19+
 ; A: shared controller transport; physical readers are selected at startup.
-; Ordinary profiles use Apps/F1-F12; extended PS5/Xbox profiles can use messages.
+; Every profile uses the acknowledged message stream.
 #SingleInstance ignore
 Persistent(true)
 ; A: physical modifier checks must distinguish our injected key-down.
@@ -57,10 +57,7 @@ captureKey := (modifierArgument = "ctrl") ? "LControl" : "AppsKey"
 CM := 0, PC := 0, WC := 0, TM := 0, IT := 0
 keys := ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
 labels := ["D-pad Up/F1", "D-pad Right/F2", "D-pad Down/F3", "D-pad Left/F4", "Cross/F5", "Square/F6", "Circle/F7", "Triangle/F8", "Share/F9", "Options/F10", "L2/F11", "R2/F12"]
-; Upstream PS5/F710 share assignments; FightPadPro rearranges face buttons.
-joys := profile = "fightpadpro-directinput"
-    ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
-    : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
+joys := isXInput ? [] : [0, 0, 0, 0, ControllerDirectInputButtons(profile = "ps5-extended" ? "ps5-directinput" : profile)*]
 previous := InputState()
 povDirection := 0
 owner := 0
@@ -92,6 +89,10 @@ if FileExist(A_ScriptDir . "\data\input-stop.request") {
 }
 InputTimingStage("housekeeping")
 active := WinActive("ahk_class FFXiClass")
+if (owner and owner != active) {
+    ReleaseTransport()
+    ready := false
+}
 ; The PS button can restore a client while another application is focused.
 readStart := DllCall("GetTickCount64", "UInt64")
 states := ReadTransportStates()
@@ -101,7 +102,9 @@ InputTimingStage("hardware")
 personalStart := DllCall("GetTickCount64", "UInt64")
 ; One short-lived context record for personal controls and Ready movement.
 ; Never retain this across timer invocations or pre-read it before input cleanup.
-local contextObservation := PC.enabled ? {} : false
+local contextObservation := {}
+if (!PC.enabled and active)
+    PersonalContext(active, contextObservation)
 states := PersonalPoll(states, active, contextObservation)
 personalMs := DllCall("GetTickCount64", "UInt64") - personalStart
 InputTimingStage("personal-context-and-output")
@@ -154,35 +157,7 @@ if (!ready) {
     InputTraceFinish(pollStart)
     return
 }
-; A: the experiment bypasses Apps and F-keys completely. Lua uses the same
-; controller router; this branch also owns uncertain/neutral handoff intervals.
-if (ControllerMessagePoll(states)) {
-    InputTraceFinish(pollStart)
-    return
-}
-if (anyDown and !appsOwned) {
-    appsOwned := true
-    InputTraceRecord("emit " . captureKey . " down")
-    SendEvent("{Blind}{" . captureKey . " down}")
-}
-Loop 12 {
-    i := A_Index
-    if (states[i] != previous[i]) {
-        key := keys[i]
-        edge := states[i] ? "down" : "up"
-        InputTraceRecord("emit " . key . " " . edge)
-        SendEvent("{Blind}{" . key . " " . edge . "}")
-        previous[i] := states[i]
-    }
-}
-if (!anyDown and appsOwned) {
-    physicallyHeld := GetKeyState(captureKey, "P")
-    if (!physicallyHeld) {
-        InputTraceRecord("emit " . captureKey . " up")
-        SendEvent("{Blind}{" . captureKey . " up}")
-    }
-    appsOwned := false
-}
+ControllerMessagePoll(states)
 InputTraceFinish(pollStart)
 return
 
@@ -227,32 +202,16 @@ ReleaseTransport(preservePersonal := false) {
     InputTraceRecord("transport release owner=" . owner . " preserve_personal=" . preservePersonal)
     MovementRelease()
     ControllerMessageCancel()
-    if (!preservePersonal)
+    if (!preservePersonal) {
         PersonalRelease()
-    Loop 12 {
-        i := A_Index
-        if (previous[i]) {
-            key := keys[i]
-            if (owner == WinActive("ahk_class FFXiClass")) {
-                SendEvent("{Blind}{" . key . " up}")
-            } else if (owner) {
-                try ControlSend("{" . key . " up}", , "ahk_id " . owner)
-            }
-            previous[i] := false
-        }
+        global CM
+        CM.requested := false, CM.token := "", CM.path := ""
     }
-    if (appsOwned) {
-        if (owner == WinActive("ahk_class FFXiClass")) {
-            if (!GetKeyState(captureKey, "P"))
-                SendEvent("{Blind}{" . captureKey . " up}")
-        } else if (owner) {
-            try ControlSend("{" . captureKey . " up}", , "ahk_id " . owner)
-        }
-        appsOwned := false
-    }
+    previous := InputState()
+    appsOwned := false
+    owner := 0
 }
 
-; A: read hardware only. Output, focus cleanup and rearming remain shared.
 ReadTransportStates() {
     global isXInput, profile, device, joystickPrefix, joys, xinputGetState, xinputGuide, povDirection
     if (!isXInput) {
@@ -298,14 +257,13 @@ ReadTransportStates() {
 XInputStates(buttons, leftTrigger, rightTrigger, moveX, moveY, extended, guide) {
     global profile, povDirection
     ; Logical order: Up, Right, Down, Left, bottom, left, right, top, Back, chooser.
-    flags := [0x0001, 0x0008, 0x0002, 0x0004, 0x1000, 0x4000, 0x2000, 0x8000, 0x0020]
-    flags.Push(profile = "xinput-r1-chooser" ? 0x0200 : 0x0010)
+    flags := ControllerXInputButtons(profile)
     states := InputState()
     for i, flag in flags
         states[i] := (buttons & flag) ? true : false
     ; Match upstream's threshold; neither trigger is derived from the other.
-    states[11] := leftTrigger > 4
-    states[12] := rightTrigger > 4
+    states[11] := leftTrigger > ControllerXInputTriggerThreshold()
+    states[12] := rightTrigger > ControllerXInputTriggerThreshold()
     states.moveX := moveX
     states.moveY := moveY
     if (extended) {
@@ -511,6 +469,7 @@ InputTraceContextMiss(reason) {
     return reason = "stale" ? "stale" : "unknown"
 }
 
+#Include %A_ScriptDir%\controller_mappings.ahk
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\personal_controls.ahk
 #Include %A_ScriptDir%\personal_gestures.ahk
