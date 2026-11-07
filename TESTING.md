@@ -1,3 +1,40 @@
+# Current Development Status — November 7, 2026 — Friendly icon-picker folder labels
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`, starting
+source checkpoint `7cad8004dc6b98a830a9663d39d9340d700c7a58`. Most recent user live feedback: White Magic
+ascending ID and weaponskills descending ID preferred. Job Ability, Song and
+Trust role/portrait sorting remain awaiting live acceptance.
+
+## Icon-picker labels only
+
+The navigable icon picker presents folder names in friendly title case,
+including Blue Magic, Rune Enchantments, Phantom Rolls, Weapon Skills,
+Pet Commands and the acronym UI. Breadcrumbs use the same visual labels.
+The underlying folder names, selection IDs, relative icon paths, casing,
+stored icon fields, artwork fallback and icon pack contents are unchanged.
+The separate legacy flat picker is not changed because it has no folder rows.
+
+The user-provided `test.zip` contains a curated default icon pack:
+553 PNG icons versus 900 PNG icons in the original repository default
+iconpack; 41 Trust portraits, all 91 UI assets, 24 Job-folder files and
+selected other categories remain. Its `icon_list.txt` listed 464 entries,
+all present, with no unlisted non-UI PNGs. The user's archive remains a
+personal test asset and was not uploaded to the public GitHub repository.
+
+Verification: `tests/icon_picker_folder_labels.lua` asserts visual
+labels and breadcrumbs while checking that navigation and saved paths
+continue using actual names. The existing Lua tests and Windows CI
+are run on the published commit. No Windower/FFXI in-game test of the
+new labels has been performed yet.
+
+Installation: replace only `addons/xivcrossbar/action_binder.lua` on
+the current Public Beta branch, run `//xb restart`, and open the
+Change Slot Icon / Change Action Icon folder picker. Inspect folder rows
+and nested folder title, select an existing icon, and verify it saves
+and displays after reload. No icon files are included or changed.
+
+---
+
 # Current Development Status — November 7, 2026 — Job Abilities, Songs, Trust portrait/role sort experiment
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`, starting source checkpoint

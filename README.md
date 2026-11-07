@@ -389,3 +389,7 @@ Trusts prefer existing portrait images in the selected icon pack, then sort
 each portrait/no-portrait group by passive, healer, tank, support, caster,
 ranged, attacker/unclassified and ascending ID. White Magic ascending and
 weaponskills descending remain unchanged. No icon files or binding data changed.
+
+2026-11-07: Icon picker folder entries and breadcrumb paths now show friendly
+names (Blue Magic, Weapon Skills, UI, etc.). Physical folder paths and saved
+icon names remain unchanged. Personal curated icon pack not committed.

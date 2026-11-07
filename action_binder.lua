@@ -2919,6 +2919,28 @@ local icon_picker_excluded_dirs = {
     ['binding_icons'] = true,
 }
 
+-- Presentation-only: folder labels may be pretty, but all icon paths,
+-- selection IDs and saved icon names must use the original directory spelling.
+local icon_picker_folder_titles = {
+    ['ui'] = 'UI',
+    ['weaponskills'] = 'Weapon Skills',
+    ['petcommands'] = 'Pet Commands',
+}
+
+local function icon_picker_folder_label(name)
+    local alias = icon_picker_folder_titles[name:lower()]
+    if alias then return alias end
+    local spaced = name:gsub('[-_]', ' ')
+    return (spaced:gsub('(%a)([%w]*)', function(first, rest)
+        return first:upper() .. rest:lower()
+    end))
+end
+
+local function icon_picker_breadcrumb(rel_path)
+    local titled = rel_path:gsub('[^/]+', icon_picker_folder_label)
+    return (titled:gsub('/', ' / '))
+end
+
 local function list_iconpack_dir(rel_path)
     local full_path = windower.addon_path .. 'images/' .. get_icon_pathbase()
         .. (rel_path and rel_path ~= '' and '/' .. rel_path or '')
@@ -2950,7 +2972,7 @@ function action_binder:display_icon_selector(rel_path)
         title_text = 'Pick an Icon'
     end
     if (rel_path ~= nil and rel_path ~= '') then
-        title_text = title_text .. ' — ' .. rel_path
+        title_text = title_text .. ' — ' .. icon_picker_breadcrumb(rel_path)
     end
     self.title:text(title_text)
     self.title:show()
@@ -2968,7 +2990,7 @@ function action_binder:display_icon_selector(rel_path)
         local child_path = (rel_path == '' and dirname) or (rel_path .. '/' .. dirname)
         list:append({
             id = 'DIR_' .. child_path,
-            name = dirname .. ' >',
+            name = icon_picker_folder_label(dirname) .. ' >',
             icon = 'images/' .. pathbase .. '/icon-set.png',
             data = {
                 is_dir = true,
