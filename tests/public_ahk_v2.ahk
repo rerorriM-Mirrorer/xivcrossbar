@@ -26,8 +26,16 @@ try {
     NumPut("UChar", 5, "UChar", 4, packet, 6)
     for profile in ["xinput", "xinput-r1-chooser"] {
         states := DecodeXInputState(packet, profile)
-        Check(states[1] && states[5] && states[9] && states[10] && states[11] && !states[12], "XInput state and trigger threshold")
+        expectedLt := profile = "xinput-r1-chooser"
+        Check(states[1] && states[5] && states[9] && states[10] && (states[11] = expectedLt) && !states[12],
+            "XInput standard LB substitution / alternate LT threshold")
     }
+    ; No physical LT level may activate the standard substituted profile.
+    NumPut("UChar", 255, packet, 6)
+    Check(!DecodeXInputState(packet, "xinput")[11] && DecodeXInputState(packet, "xinput-r1-chooser")[11],
+        "LT spikes ignored only in standard XInput")
+    NumPut("UShort", 0x1331, packet, 4)
+    Check(DecodeXInputState(packet, "xinput")[11], "standard XInput LB activates logical L2")
     NumPut("UShort", 0x0200, packet, 4)
     Check(!DecodeXInputState(packet, "xinput")[10] && DecodeXInputState(packet, "xinput-r1-chooser")[10], "alternate RB chooser")
     owner := 0

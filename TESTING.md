@@ -30,10 +30,12 @@ ordinary RT, analog-stick movement with no phantom L2, bare navigation,
 chat, native menu, and rearming after focus switch or addon stop. Run
 `//xb diagnose` on the analog-stick test and compare button-11 edges.
 
-**Verification:** C++ fixture additions cover LB substitution, LT ignored,
-LB+RT, and the unchanged alternate profile. Windows build/fixture and AHK
-startup tests are to be confirmed by workflow CI; live Windower/FFXI
-verification is pending. This batch does not implement automatic unloading
+**Verification:** Initial Windows CI run 42356792441 compiled the x86 DLL,
+passed both C++ native fixtures and the Lua suite, but stopped before packaging
+because the AHK fixture still expected LT >4 to activate standard XInput.
+The fixture was updated to exercise standard LB, ignore even LT=255, and
+preserve the alternate physical-LT behavior. The replacement CI result and
+live Windower/FFXI verification remain pending. This batch does not implement automatic unloading
 of the native DLL. The bridge currently pins its module; the agreed request
 to load/unload it with addon or wrapper lifecycle remains outstanding and
 must be addressed separately, after this test.
