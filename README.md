@@ -83,8 +83,9 @@ on or off. `//xb triggerscale 1` means the held bank grows to 101% and
 the other shrinks to 99%, relative to HUD scale. Both rest at 100%.
 The command accepts a shift of 0–25%, and existing saved small scales
 carry over as the same distance from 100%. `//xb triggerscale status`
-reports the saved option and shift. Combined and double-tap banks
-appear at normal size.
+reports the saved option and shift. Combined and double-tap banks also
+grow while selected. When they close and the regular pair is visible,
+it bounces from the smaller size back to rest.
 
 
 Drag a visible crossbar with the left mouse button; release saves its position.
@@ -465,3 +466,6 @@ warm trigger fields. Legacy restores original spacing and ribbon shapes.
 
 2026-11-07: TriggerScale now works with fades on, and single-trigger
 banks scale symmetrically around a full-size resting layout.
+
+2026-11-07: Extended TriggerScale to combined and double-tap banks, with
+a 60 ms return bounce for the regular pair.

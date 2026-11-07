@@ -1,3 +1,21 @@
+# Current Development Status — November 7, 2026 — Special-bank TriggerScale
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `0071f3078b1f120b664ae94a674627da2463a32c`.
+
+With TriggerScale enabled, combined and double-tap banks grow by the saved
+shift. When a special bank closes and the regular pair is visible, both
+return from the smaller scale. With no trigger held they settle at 100%;
+a remaining single trigger uses its regular scale targets. The bounce uses
+the 60 ms easing. Autohide still decides when banks are visible.
+
+Check with `//xb show`, both combined orders, both double taps, and rapid
+release/repress. Repeat with fades and Autohide. The Lua fixture covers
+special-bank scaling, field alignment, the return midpoint, and the
+hidden case. Live feel is pending. Overlay the 60 ms TriggerScale build.
+
+---
+
 # Current Development Status — November 7, 2026 — 60 ms TriggerScale
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

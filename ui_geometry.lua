@@ -99,10 +99,11 @@ function geometry:set_bank_scale(number, x, y, target, instant, initial)
     if moved or bank.value ~= previous then redraw_bank(self, bank) end
 end
 
-function geometry:setup_bank_scales()
+function geometry:setup_bank_scales(count)
     local clock = require('socket').gettime
     local fade = require('ui_fade')
-    self.banks = {fade.new(clock, 1, 1.25), fade.new(clock, 1, 1.25)}
+    self.banks = {}
+    for bank=1,count do self.banks[bank] = fade.new(clock, 1, 1.25) end
 end
 
 local function draw_primitive(g, name, p)

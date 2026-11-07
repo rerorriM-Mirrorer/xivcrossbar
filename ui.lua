@@ -477,11 +477,11 @@ end
 -- load the images and text
 function ui:load(theme_options)
     geometry:dispose_surfaces({[self.battle_notice]=true})
-    geometry:setup_bank_scales()
+    geometry:setup_bank_scales(theme_options.hotbar_number)
     self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
-    self.scale_visible = false
+    self.scale_visible, self.scale_active_bar = false, 0
     -- load battle notice
     setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
@@ -617,10 +617,8 @@ function ui:load(theme_options)
         -- special stuff for dpad and face buttons icons
         self.hotbars[h].slot_recast[9] = new_image(images_setup)
         self.hotbars[h].slot_recast[10] = new_image(images_setup)
-        if h <= 2 then
-            for _, slots in pairs(self.hotbars[h]) do
-                for _, surface in ipairs(slots) do geometry:assign_bank(surface, h) end
-            end
+        for _, slots in pairs(self.hotbars[h]) do
+            for _, surface in ipairs(slots) do geometry:assign_bank(surface, h) end
         end
     end
 
@@ -785,21 +783,23 @@ function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, 
     enabled = enabled and not menu_open
     small = tonumber(small) or .95
     if small ~= small or small < .75 or small > 1 then small = .95 end
-    local single = enabled and (active_bar == 1 or active_bar == 2)
-    for h=1,2 do
+    local selected = enabled and visible and active_bar or 0
+    local single = selected == 1 or selected == 2
+    local returning = enabled and visible and self.scale_active_bar >= 3 and selected < 3
+    local revealing = enabled and autohide and visible and not self.scale_visible and geometry.opacity == 0
+    local instant = not enabled or (not visible and not geometry.fade_enabled)
+    for h=1,self.theme.hotbar_number do
         local left, right = math.huge, -math.huge
         for slot=1,8 do
             local x = self:get_slot_x(h, slot)
             left, right = math.min(left, x), math.max(right, x+40)
         end
-        local target = single and (active_bar == h and 2-small or small) or 1
-        local instant = not enabled or (not visible and not geometry.fade_enabled)
-        local initial = enabled and autohide and visible and not self.scale_visible
-            and geometry.opacity == 0 and 1 or nil
+        local target = selected == h and 2-small or (single and h <= 2 and small or 1)
+        local initial = returning and h <= 2 and small or revealing and 1 or nil
         geometry:set_bank_scale(h, (left+right)/2,
             (self:get_slot_y(h, 2)+self:get_slot_y(h, 4)+40)/2, target, instant, initial)
     end
-    self.scale_visible = visible
+    self.scale_visible, self.scale_active_bar = visible, selected
 end
 
 -- hide all ui components
