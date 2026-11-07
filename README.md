@@ -41,11 +41,7 @@ not imported. No normal gameplay logging is active until you request it.
 - Keep movement, camera, D-pad, and native face assignments in FFXI Gamepad Config.
 - L2/R2 select the addon crossbar. View/Share opens the binder. Menu/Options opens
   the set chooser. The XInput alternate profile uses RB for the chooser.
-- **November 7 temporary Xbox 360 test (standard `xinput` only):** hold LB to select
-  the existing L2 crossbar; LB double-tap selects L2×2, and LB+RT selects L2+R2.
-  The reader ignores analog LT completely, and the focused native guard masks
-  physical LT from FFXI. The `xinputalt` and DirectInput profiles are unchanged.
-  This is a diagnostic substitution, not the intended public control layout.
+- Both XInput profiles use physical LT and RT. LB remains available to FFXI.
 - Ordinary targeting, NPC dialogue, and login navigation use native controls.
 - If the reader or hook is unavailable, native controls remain available.
   Use `//xb controller status` and `//xb nativepad status` to inspect the two sides.
@@ -393,3 +389,7 @@ weaponskills descending remain unchanged. No icon files or binding data changed.
 2026-11-07: Icon picker folder entries and breadcrumb paths now show friendly
 names (Blue Magic, Weapon Skills, UI, etc.). Physical folder paths and saved
 icon names remain unchanged. Personal curated icon pack not committed.
+
+2026-11-07: Restored physical LT/RT for standard XInput and removed the
+Xbox 360 diagnostic substitution. An unavailable DirectInput D-pad sample
+now cancels held input and rearms after neutral.

@@ -1,13 +1,5 @@
 # XIVCrossbar — Native Blocking and DirectLink
 
-**Temporary Xbox 360 diagnostic build (2026-11-07):** on the standard
-`//xb controller profile xinput` profile, LB substitutes for L2, including
-L2 double-tap and L2+R2. Physical LT is ignored by the reader and filtered
-from native FFXI while the guard is active. `xinputalt` and all DirectInput
-profiles are unchanged. This is not the intended public button layout.
-Close all FFXI clients before installing the matching native DLL.
-
-
 1. Stop the old reader and close all FFXI clients before replacing the addon.
    Back up the existing addon and its data. Use the complete x86 test artifact
    with `native/xb_gamepad_messages.dll`, and keep your existing settings and bindings.

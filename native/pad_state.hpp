@@ -10,11 +10,8 @@ constexpr unsigned dualsense[] = {1, 0, 2, 3, 8, 9, 6, 7};
 constexpr unsigned fightpad[] = {2, 1, 3, 0, 8, 9, 6, 7};
 constexpr unsigned logical_buttons[] = {4, 5, 6, 7, 8, 9, 10, 11};
 
-inline unsigned read_xbox(unsigned buttons, unsigned left, unsigned right, bool r1_chooser = false,
-    bool lb_substitute = false) {
-    // Test-only Xbox 360 substitution: LB supplies logical L2 instead of analog LT.
-    const bool logical_left = lb_substitute ? (buttons & 0x0100) != 0 : left > 4;
-    unsigned raw = (logical_left ? 0x400 : 0) | (right > 4 ? 0x800 : 0);
+inline unsigned read_xbox(unsigned buttons, unsigned left, unsigned right, bool r1_chooser = false) {
+    unsigned raw = (left > 4 ? 0x400 : 0) | (right > 4 ? 0x800 : 0);
     for (unsigned i = 0; i < 10; ++i)
         if (buttons & xbox_button(i, r1_chooser)) raw |= 1u << i;
     return raw;

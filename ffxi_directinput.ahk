@@ -134,6 +134,9 @@ ReadTransportStates(readKey := GetKeyState) {
         if (readKey(joystickPrefix . "JoyName") = "")
             return false
         pov := readKey(joystickPrefix . "JoyPOV")
+        ; A controller can disappear between the name and POV reads.
+        if (!IsNumber(pov))
+            return false
         ; Match the native hook: diagonals carry both adjacent directions.
         states := []
         Loop 4 {
@@ -163,10 +166,8 @@ DecodeXInputState(state, profile) {
     states := []
     for i, flag in flags
         states.Push((buttons & flag) != 0)
-    ; Temporary Xbox 360 test: LB is logical L2; ignore the noisy physical LT.
-    ; The alternate XInput profile retains its existing independent LT reading.
-    leftTrigger := profile = "xinput" ? (buttons & 0x0100) != 0 : NumGet(state, 6, "UChar") > 4
-    states.Push(leftTrigger, NumGet(state, 7, "UChar") > 4)
+    ; Match upstream's threshold; neither trigger is derived from the other.
+    states.Push(NumGet(state, 6, "UChar") > 4, NumGet(state, 7, "UChar") > 4)
     return states
 }
 

@@ -39,7 +39,7 @@ bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend;
-bool menu, native_menu, fightpad, r1_chooser, overflow, buffered_seen, probe_ready, live_filter;
+bool menu, native_menu, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
 
@@ -49,7 +49,6 @@ void reset() {
     buffered_raw = 0;
     buffered_hat_pending = false;
     probe_ready = false;
-    live_filter = false;
     head = count = raw = suppressed = 0;
     ++generation;
 }
@@ -58,7 +57,6 @@ void enqueue(int edge) {
     events[(head + count++) % events.size()] = edge;
 }
 unsigned observe(unsigned buttons) {
-    live_filter = false;
     ++calls;
     raw = buttons;
     const auto now = GetTickCount64();
@@ -77,7 +75,6 @@ unsigned observe(unsigned buttons) {
         suppressed = 0;
         return 0;
     }
-    live_filter = true;
     if ((mode == 1 || mode == 3) && !probe_ready && !(buttons & xb::controls)) {
         probe_ready = true;
         buffered_ownership.apply(0, 2, menu, native_menu);
@@ -110,19 +107,10 @@ DWORD WINAPI xbox_read(DWORD index, XINPUT_STATE* state) {
         return result;
     }
     auto& pad = state->Gamepad;
-    // Standard XInput beta only: LB represents L2. The alternate profile is unchanged.
-    const bool lb_test = !r1_chooser;
-    const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger,
-        pad.bRightTrigger, r1_chooser, lb_test));
+    const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger, r1_chooser));
     for (unsigned i = 0; i < 10; ++i)
         if (mask & (1u << i)) pad.wButtons &= static_cast<WORD>(~xb::xbox_button(i, r1_chooser));
-    if (mask & 0x400) {
-        if (lb_test) pad.wButtons &= static_cast<WORD>(~XINPUT_GAMEPAD_LEFT_SHOULDER);
-        else pad.bLeftTrigger = 0;
-    }
-    // Ignore noisy physical LT whenever the focused native guard is active.
-    // When the guard stops, fail open and restore unmodified native input.
-    if (lb_test && live_filter) pad.bLeftTrigger = 0;
+    if (mask & 0x400) pad.bLeftTrigger = 0;
     if (mask & 0x800) pad.bRightTrigger = 0;
     if (!mode && !hook.initialized) return result;
     // A context change or D-pad handoff can change the filtered state without

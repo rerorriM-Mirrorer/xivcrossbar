@@ -1,3 +1,29 @@
+# Current Development Status — November 7, 2026 — Standard XInput triggers
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `959414d8432ee4c22e03429a754212d4ab1095d8`.
+
+- The user reported the Xbox isolation run worked well enough to leave further
+  physical XInput experimentation to the community. The earlier wired Xbox
+  360 LT spikes remain recorded below. There is no additional local Xbox
+  hardware run planned.
+- Standard XInput uses physical LT and RT again. The temporary LB substitution
+  and unconditional LT masking were removed from the reader and native
+  bridge. Both XInput profiles use the original trigger threshold, and the
+  alternate profile still uses RB for the chooser.
+- A nonnumeric DirectInput POV sample now follows the existing disconnect
+  path, releasing held input and waiting for neutral before rearming. The
+  AHK regression covers unavailable POV, a centered hat, and a diagonal.
+- The portable C++ ownership and mapping fixture and local Lua suite passed.
+  Windows x86 CI runs the native and AHK fixtures and packages the complete
+  addon on the published commit. These checks do not exercise live FFXI.
+- Close all FFXI clients and stop the shared reader before installing the
+  complete matching x86 artifact. Preserve existing settings and bindings.
+  The next controller milestone is addon-owned hook lifecycle and shared
+  Windows mapping definitions.
+
+---
+
 # Current Development Status — November 7, 2026 — Friendly icon-picker folder labels
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`, starting
@@ -111,6 +137,9 @@ Repository: `rerorriM-Mirrorer/xivcrossbar`, branch
 `75becceaa35599f942bc4bb5c7931e08e149b332`. Temporary input-only experiment; NOT live verified.
 
 ## Wired Xbox 360 input substitution
+
+**Superseded November 7:** The branch restored standard LT/RT. This section
+records the isolation build and is retained as test history.
 
 The standalone XInput probe observed unintended LT peaks of 80–146/255 when
 moving the analog sticks. Previous native/message diagnostics independently

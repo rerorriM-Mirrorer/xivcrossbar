@@ -65,17 +65,12 @@ int main() {
 
     check(read_xbox(0x1009 | 0x0200, 5, 4) == (up | right | face | left_trigger),
         "Xbox layout ignores unrelated shoulder and preserves trigger threshold");
+    check(read_xbox(0x0100, 4, 5) == right_trigger, "LB stays native and RT works independently");
+    check(read_xbox(0x0100, 5, 5) == (left_trigger | right_trigger),
+        "physical LT and RT register together");
     check(read_xbox(0x0230, 0, 0) == (share | chooser), "standard Xbox uses View and Menu");
     check(read_xbox(0x0010, 0, 0, true) == 0 &&
         read_xbox(0x0220, 0, 0, true) == (share | chooser), "Xbox alternate preserves Menu and captures RB");
-    check(read_xbox(0x0100, 0, 0, false, true) == left_trigger,
-        "standard Xbox LB replaces LT as the logical L2 trigger");
-    check(read_xbox(0x0000, 255, 0, false, true) == 0,
-        "physical LT spikes must not activate the substituted L2");
-    check(read_xbox(0x1109, 255, 8, false, true) == (up | right | face | left_trigger | right_trigger),
-        "LB plus RT and normal buttons remain available in the standard XInput test");
-    check(read_xbox(0, 255, 0, true, false) == left_trigger,
-        "alternate XInput retains physical LT behavior");
     owner.reset();
     owner.apply(0, 2, false, false);
     check(owner.apply(chooser | up, 2, false, false).suppressed == (chooser | up),

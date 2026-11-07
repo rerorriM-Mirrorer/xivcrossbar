@@ -12,13 +12,19 @@ try {
     isXInput := false
     joystickPrefix := ""
     joys := [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
-    states := ReadTransportStates(FakeJoystick)
+    states := ReadTransportStates(FakeJoystick.Bind(9000))
     Check(states.Length = 12 && states[2] && states[5] && !states[6] && states[12], "connected DirectInput maps all twelve states")
+    Check(!ReadTransportStates(FakeJoystick.Bind("")), "missing POV invalidates the DirectInput sample")
+    states := ReadTransportStates(FakeJoystick.Bind(-1))
+    Check(states.Length = 12 && !states[1] && !states[2] && !states[3] && !states[4] && states[5],
+        "centered POV preserves face input")
+    states := ReadTransportStates(FakeJoystick.Bind(31500))
+    Check(states[1] && !states[2] && !states[3] && states[4], "diagonal POV maps Up and Left")
     for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput"] {
         joys := profile = "fightpadpro-directinput"
             ? [0, 0, 0, 0, 3, 2, 4, 1, 9, 10, 7, 8]
             : [0, 0, 0, 0, 2, 1, 3, 4, 9, 10, 7, 8]
-        states := ReadTransportStates(FakeJoystick)
+        states := ReadTransportStates(FakeJoystick.Bind(9000))
         Check(states[2] && states[12] && states[profile = "fightpadpro-directinput" ? 6 : 5], "DirectInput profile mapping")
     }
     packet := Buffer(16, 0)
@@ -26,16 +32,15 @@ try {
     NumPut("UChar", 5, "UChar", 4, packet, 6)
     for profile in ["xinput", "xinput-r1-chooser"] {
         states := DecodeXInputState(packet, profile)
-        expectedLt := profile = "xinput-r1-chooser"
-        Check(states[1] && states[5] && states[9] && states[10] && (states[11] = expectedLt) && !states[12],
-            "XInput standard LB substitution / alternate LT threshold")
+        Check(states[1] && states[5] && states[9] && states[10] && states[11] && !states[12], "XInput state and trigger threshold")
     }
-    ; No physical LT level may activate the standard substituted profile.
-    NumPut("UChar", 255, packet, 6)
-    Check(!DecodeXInputState(packet, "xinput")[11] && DecodeXInputState(packet, "xinput-r1-chooser")[11],
-        "LT spikes ignored only in standard XInput")
-    NumPut("UShort", 0x1331, packet, 4)
-    Check(DecodeXInputState(packet, "xinput")[11], "standard XInput LB activates logical L2")
+    NumPut("UShort", 0x0100, packet, 4)
+    NumPut("UChar", 4, "UChar", 5, packet, 6)
+    states := DecodeXInputState(packet, "xinput")
+    Check(!states[11] && states[12], "LB stays native and physical RT works independently")
+    NumPut("UChar", 5, packet, 6)
+    states := DecodeXInputState(packet, "xinput")
+    Check(states[11] && states[12], "both physical triggers register together")
     NumPut("UShort", 0x0200, packet, 4)
     Check(!DecodeXInputState(packet, "xinput")[10] && DecodeXInputState(packet, "xinput-r1-chooser")[10], "alternate RB chooser")
     owner := 0
@@ -80,11 +85,11 @@ try {
     ExitApp(1)
 }
 
-FakeJoystick(key) {
+FakeJoystick(pov, key) {
     if (key = "JoyName")
         return "Test controller"
     if (key = "JoyPOV")
-        return 9000
+        return pov
     return key = "Joy2" or key = "Joy8"
 }
 
