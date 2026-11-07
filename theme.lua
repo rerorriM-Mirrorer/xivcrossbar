@@ -6,6 +6,7 @@ local xi_palette = {
     insufficient = {255, 149, 151},
     lockout_start = {116, 137, 161},
     ws = {255, 149, 151},
+    skillchain_waiting = {255, 255, 255},
 }
 
 function theme.display_palette(preset)
@@ -49,6 +50,7 @@ theme.apply = function (settings)
 	options.enable_superwarp_all = settings.enable_superwarp_all
 
     -- Spell lockout (post-cast; default 3.0s, configurable)
+    options.lockout_opacity = settings.LockoutOpacity
     options.spell_lockout_duration = settings.SpellLockoutIndicator.Duration
     options.spell_lockout_opacity = settings.SpellLockoutIndicator.Opacity
     options.spell_lockout_primary_red = settings.SpellLockoutIndicator.PrimaryColor.Red

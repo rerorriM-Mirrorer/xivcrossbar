@@ -1,3 +1,29 @@
+# Current Development Status — November 7, 2026 — Combat ribbons and brighter slot glow
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.
+Source checkpoint: `bd18fb813165fe9bfbaefdcd886245d3b084bf58`.
+The user reported the feathered frame was too dim at all three levels.
+
+- In XI, check the translucent white pre-skillchain ribbon and black edge,
+  then the more opaque TP-blue/white flash during the open window. In Legacy,
+  check the configured waiting/open colors. Switch presets during a window
+  and verify the color changes without waiting for the next chain.
+- Spell, weaponskill, and job ability lockouts retain their XI tint ramps
+  and Legacy colors. XI autoattack uses pale pink before the estimate and
+  pale green past it, while Legacy keeps its configured red/green colors.
+  All three strips use thinner rounded fills and backings.
+- Test `//xb skillchain 255`, `//xb lockout 255`, and `//xb autoattack 255`
+  independently. Check off, on, and status. Lockout on restores the saved
+  per-action values. Autoattack off or zero hides it and stops swing tracking.
+- Gold frame alphas are now 250 ready, 190 unavailable, and 145 empty.
+  The core of the stroke is white, its feather is gold, and the tile
+  center is transparent. Check the held border alongside the XI pulse.
+- Automated Lua checks cover ribbon phase colors, commands, and held glow.
+  In-game colors, brightness and strip positioning are pending. This
+  delivery changes Lua and artwork, with no native DLL source changes.
+
+---
+
 # Current Development Status — November 7, 2026 — Feathered slot glow
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `experiment/messages-native-all-profiles`.

@@ -1247,8 +1247,9 @@ function display_help_menu()
     chat_help.command("triggerscale [on|off|status|0.75-1]","Set trigger scale animation and its resting size. Requires fade off.")
     chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
     chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
-    chat_help.command("skillchain [on|off|status]","Show or hide the skillchain indicator.")
-    chat_help.command("autoattack [on|off|status]","Enable/stop swing estimation separately from opacity.")
+    chat_help.command("skillchain [on|off|status|0-255]","Set the skillchain strip opacity.")
+    chat_help.command("lockout [on|off|status|0-255]","Set all lockout strip opacities; on restores per-action values.")
+    chat_help.command("autoattack [on|off|status|0-255]","Set the swing strip opacity; off also stops swing estimation.")
     chat_help.heading('Other')
     chat_help.command("reload","Reload saved crossbar bindings.")
     chat_help.command("restart","Fade out then reload the addon.")
@@ -1466,45 +1467,54 @@ windower.register_event('addon command', function(command, ...)
         return set_compact_mode(command == 'compact' and args[1] or args[2])
     end
 
-    if command == 'skillchain' then
+    if command == 'skillchain' or command == 'lockout' or command == 'autoattack' then
         local mode = args[1] and args[1]:lower()
-        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
-            chat_format.say(123, '[XIVCrossbar] //xb skillchain [on|off|status]')
+        local amount = tonumber(mode)
+        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status'
+            and (not amount or amount < 0 or amount > 255 or amount % 1 ~= 0) then
+            chat_format.say(123, '[XIVCrossbar] //xb '..command..' [on|off|status|0-255]')
             return
         end
+
         if mode ~= 'status' then
-            local enabled = mode == 'on' or (not mode and settings.SkillchainIndicator.Opacity == 0)
-            local opacity = enabled and default_skillchain_opacity or 0
-            settings.SkillchainIndicator.Opacity = opacity
-            theme_options.skillchain_window_opacity = opacity
-            if ui.is_setup then ui.theme.skillchain_window_opacity = opacity end
+            if command == 'skillchain' then
+                local enabled = mode == 'on' or (not mode and settings.SkillchainIndicator.Opacity == 0)
+                local opacity = amount or (enabled and default_skillchain_opacity or 0)
+                settings.SkillchainIndicator.Opacity = opacity
+                theme_options.skillchain_window_opacity = opacity
+                ui.theme.skillchain_window_opacity = opacity
+            elseif command == 'autoattack' then
+                local aa = settings.AutoAttackIndicator
+                local enabled = mode == 'on' or (amount and amount > 0)
+                    or (not mode and aa.Enabled == false)
+                aa.Opacity = amount or (enabled and aa.Opacity == 0 and 220 or aa.Opacity)
+                aa.Enabled = enabled == true
+                theme_options.aa_enabled, theme_options.aa_opacity = aa.Enabled, aa.Opacity
+                ui.theme.aa_opacity = aa.Opacity
+                ui:set_autoattack_enabled(aa.Enabled)
+                if aa.Enabled and ui.is_setup then
+                    local current = windower.ffxi.get_player()
+                    if current then aa_set_engaged(current.status == 1 or current.status == 3) end
+                end
+            else
+                local enabled = mode == 'on' or (not mode and settings.LockoutOpacity == 0)
+                local opacity = amount or (enabled and -1 or 0)
+                settings.LockoutOpacity = opacity
+                theme_options.lockout_opacity = opacity
+                ui.theme.lockout_opacity = opacity
+            end
             ui_dirty = true
             config.save(settings)
         end
-        chat_format.say(207, '[XIVCrossbar] Skillchain indicator opacity: ' ..
-            tostring(settings.SkillchainIndicator.Opacity))
-        return
-    end
 
-    if command == 'autoattack' then
-        local mode=args[1] and args[1]:lower()
-        if mode and mode~='on' and mode~='off' and mode~='status' then
-            chat_format.say(123,'[XIVCrossbar] //xb autoattack [on|off|status]')
-            return
-        end
-        if mode~='status' then
-            local enabled=mode=='on' or (not mode and settings.AutoAttackIndicator.Enabled==false)
-            settings.AutoAttackIndicator.Enabled=enabled
-            theme_options.aa_enabled=enabled
-            ui:set_autoattack_enabled(enabled)
-            if enabled and ui.is_setup then
-                local current=windower.ffxi.get_player()
-                if current then aa_set_engaged(current.status==1 or current.status==3) end
-            end
-            config.save(settings)
-        end
-        chat_format.say(207,'[XIVCrossbar] Autoattack estimate: '..
-            ((settings.AutoAttackIndicator.Enabled~=false) and 'ON' or 'OFF'))
+        local opacity
+        if command == 'skillchain' then opacity = settings.SkillchainIndicator.Opacity
+        elseif command == 'autoattack' then
+            opacity = settings.AutoAttackIndicator.Enabled ~= false and settings.AutoAttackIndicator.Opacity or 0
+        else opacity = settings.LockoutOpacity end
+        local label = ({skillchain='Skillchain', lockout='Lockout', autoattack='Autoattack'})[command]
+        local status = opacity == -1 and 'per-action settings' or tostring(opacity)
+        chat_format.say(207, '[XIVCrossbar] '..label..' strip opacity: '..status)
         return
     end
     if command == 'textsettle' then

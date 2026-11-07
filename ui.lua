@@ -394,6 +394,7 @@ function ui:setup(theme_options, enchanted_items)
     self.theme.skillchain_open_color_blue = theme_options.skillchain_open_color_blue
 
     self.theme.spell_lockout_duration = theme_options.spell_lockout_duration
+    self.theme.lockout_opacity = theme_options.lockout_opacity
     self.theme.spell_lockout_opacity = theme_options.spell_lockout_opacity
     self.theme.spell_lockout_primary_red = theme_options.spell_lockout_primary_red
     self.theme.spell_lockout_primary_green = theme_options.spell_lockout_primary_green
@@ -470,42 +471,42 @@ function ui:load(theme_options)
     self.battle_notice:hide()
     self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
 
-    prim.create('skillchain_indicator_bg')
+    prim.create_rounded('skillchain_indicator_bg')
     prim.set_color('skillchain_indicator_bg', 150, 0, 0, 0)
     prim.set_position('skillchain_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 32)
     prim.set_size('skillchain_indicator_bg', 604, 14)
     prim.set_visibility('skillchain_indicator_bg', false)
 
-    prim.create('skillchain_indicator')
+    prim.create_rounded('skillchain_indicator')
     prim.set_color('skillchain_indicator', 220, 15, 205, 5)
     prim.set_position('skillchain_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 30)
     prim.set_size('skillchain_indicator', 600, 10)
     prim.set_visibility('skillchain_indicator', false)
 
     -- The lockout strip has its own visibility, while retaining HUD scaling.
-    prim.create('gcd_indicator_bg', true)
+    prim.create_rounded('gcd_indicator_bg', true)
     prim.set_color('gcd_indicator_bg', 150, 0, 0, 0)
     prim.set_position('gcd_indicator_bg', self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) + 10)
     prim.set_size('gcd_indicator_bg', 604, 10)
     prim.set_visibility('gcd_indicator_bg', false)
 
-    prim.create('gcd_indicator', true)
+    prim.create_rounded('gcd_indicator', true)
     prim.set_color('gcd_indicator', 220, 200, 200, 255) -- bluish/white
     prim.set_position('gcd_indicator', self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) + 12)
     prim.set_size('gcd_indicator', 600, 6)
     prim.set_visibility('gcd_indicator', false)
 
-    prim.create('aa_indicator_bg')
+    prim.create_rounded('aa_indicator_bg')
     prim.set_color('aa_indicator_bg', 150, 0, 0, 0)
     prim.set_size('aa_indicator_bg', 604, 10)
     prim.set_visibility('aa_indicator_bg', false)
 
-    prim.create('aa_indicator_red')
+    prim.create_rounded('aa_indicator_red')
     prim.set_color('aa_indicator_red', 220, 220, 30, 30)
     prim.set_size('aa_indicator_red', 300, 6)
     prim.set_visibility('aa_indicator_red', false)
 
-    prim.create('aa_indicator_green')
+    prim.create_rounded('aa_indicator_green')
     prim.set_color('aa_indicator_green', 220, 15, 205, 5)
     prim.set_size('aa_indicator_green', 300, 6)
     prim.set_visibility('aa_indicator_green', false)
@@ -1269,7 +1270,6 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
     end
 end
 
-local skillchain_indicator_state = ''
 gcd_start_time = 0
 gcd_duration = 2.8
 gcd_active = false
@@ -1356,62 +1356,54 @@ function aa_clear_pause_after(src, delay_seconds)
 end
 
 function ui:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
-    -- Opacity zero disables the complete indicator, including its backing.
-    if self.theme.skillchain_window_opacity == 0 then
+    local opacity = self.theme.skillchain_window_opacity
+    local target = opacity > 0 and windower.ffxi.get_mob_by_target('t', 'bt')
+    if not target or target.hpp <= 0 or (skillchain_delay <= 0 and skillchain_window <= 0) then
         prim.set_visibility('skillchain_indicator', false)
         prim.set_visibility('skillchain_indicator_bg', false)
         return
     end
-    local target = windower.ffxi.get_mob_by_target('t', 'bt')
-    if (target and target.hpp > 0) then
-        if (skillchain_delay > 0) then
-            local fraction = skillchain_delay / 3.0
-            local base_width = math.round(600 * (1 - fraction))
-            local left_spacer = math.round(300 * fraction)
 
-            if (skillchain_indicator_state ~= 'waiting') then
-                skillchain_indicator_state = 'waiting'
-                prim.set_color('skillchain_indicator',
-                    self.theme.skillchain_window_opacity,
-                    self.theme.skillchain_waiting_color_red,
-                    self.theme.skillchain_waiting_color_green,
-                    self.theme.skillchain_waiting_color_blue)
-            end
-            prim.set_size('skillchain_indicator', base_width, 4)
-            prim.set_position('skillchain_indicator', left_spacer + self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 27)
-            prim.set_visibility('skillchain_indicator', true)
+    local waiting = skillchain_delay > 0
+    local fraction = waiting and (1 - skillchain_delay / 3) or skillchain_window / 7
+    local width = math.round(600 * math.max(0, math.min(1, fraction)))
+    local x = self:get_slot_x(1, 1) - 10 + math.round((600-width)/2)
+    local y = self:get_slot_y(1, 4) - 27
+    local height = waiting and 3 or 5
+    local palette = self.display_palette
+    local alpha, red, green, blue = opacity
+    local border = math.min(150, opacity)
 
-            prim.set_size('skillchain_indicator_bg', base_width + 4, 8)
-            prim.set_position('skillchain_indicator_bg', left_spacer + self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 29)
-            prim.set_visibility('skillchain_indicator_bg', true)
-        elseif (skillchain_window > 0) then
-            local fraction = skillchain_window / 7.0
-            local base_width = math.round(600 * fraction)
-            local left_spacer = math.round(300 * (1 - fraction))
-
-            if (skillchain_indicator_state ~= 'open') then
-                skillchain_indicator_state = 'open'
-                prim.set_color('skillchain_indicator',
-                    self.theme.skillchain_window_opacity,
-                    self.theme.skillchain_open_color_red,
-                    self.theme.skillchain_open_color_green,
-                    self.theme.skillchain_open_color_blue)
-            end
-            prim.set_size('skillchain_indicator', base_width, 10)
-            prim.set_position('skillchain_indicator', left_spacer + self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 30)
-            prim.set_visibility('skillchain_indicator', true)
-
-            prim.set_size('skillchain_indicator_bg', base_width + 4, 14)
-            prim.set_position('skillchain_indicator_bg', left_spacer + self:get_slot_x(1, 1) - 12, self:get_slot_y(1, 4) - 32)
-            prim.set_visibility('skillchain_indicator_bg', true)
+    if palette then
+        border = math.min(230, opacity)
+        if waiting then
+            alpha = math.round(opacity * .57)
+            local color = palette.skillchain_waiting
+            red, green, blue = color[1], color[2], color[3]
         else
-            prim.set_visibility('skillchain_indicator', false)
-            prim.set_visibility('skillchain_indicator_bg', false)
+            -- Use the remaining window for a stable flash phase across render frames.
+            local white = (1 + math.cos(skillchain_window * 2 * math.pi / .55)) / 2
+            local tp = palette.tp
+            red = math.round(tp[1] + (255-tp[1])*white)
+            green = math.round(tp[2] + (255-tp[2])*white)
+            blue = 255
         end
+    elseif waiting then
+        red, green, blue = self.theme.skillchain_waiting_color_red,
+            self.theme.skillchain_waiting_color_green, self.theme.skillchain_waiting_color_blue
     else
-        prim.set_visibility('skillchain_indicator', false)
-        prim.set_visibility('skillchain_indicator_bg', false)
+        red, green, blue = self.theme.skillchain_open_color_red,
+            self.theme.skillchain_open_color_green, self.theme.skillchain_open_color_blue
     end
+
+    prim.set_color('skillchain_indicator_bg', border, 0, 0, 0)
+    prim.set_size('skillchain_indicator_bg', width+4, height+4)
+    prim.set_position('skillchain_indicator_bg', x-2, y-2)
+    prim.set_visibility('skillchain_indicator_bg', width > 0)
+    prim.set_color('skillchain_indicator', alpha, red, green, blue)
+    prim.set_size('skillchain_indicator', width, height)
+    prim.set_position('skillchain_indicator', x, y)
+    prim.set_visibility('skillchain_indicator', width > 0)
 end
 
 local function lockout_tint(palette, kind, fraction)
@@ -1463,6 +1455,8 @@ function ui:display_gcd_indicator(visible)
                 end
             end
 
+            local override = self.theme.lockout_opacity
+            if override and override >= 0 then alpha = override end
             if alpha == 0 then
                 -- Per-mode opacity 0 = hide this mode's bar entirely.
                 prim.set_visibility('gcd_indicator', false)
@@ -1475,13 +1469,14 @@ function ui:display_gcd_indicator(visible)
             end
 
             prim.set_color('gcd_indicator', alpha, cr, cg, cb)
+            prim.set_color('gcd_indicator_bg', math.min(150,alpha), 0, 0, 0)
 
             local effective_y_offset = self.gcd_offset_y
             if not self.is_compact then
                 effective_y_offset = effective_y_offset + self.hotbar_spacing
             end
 
-            prim.set_size('gcd_indicator', base_width, 6)
+            prim.set_size('gcd_indicator', base_width, 4)
             prim.set_position(
                 'gcd_indicator',
                 left_spacer + self:get_slot_x(1, 1) - 10 + self.gcd_offset_x,
@@ -1489,7 +1484,7 @@ function ui:display_gcd_indicator(visible)
             )
             prim.set_visibility('gcd_indicator', true)
 
-            prim.set_size('gcd_indicator_bg', base_width + 4, 10)
+            prim.set_size('gcd_indicator_bg', base_width + 4, 8)
             prim.set_position(
                 'gcd_indicator_bg',
                 left_spacer + self:get_slot_x(1, 1) - 12 + self.gcd_offset_x,
@@ -1600,16 +1595,25 @@ function ui:display_aa_indicator()
     -- Alpha and color come from settings. PausedOpacity / PausedBackgroundOpacity
     -- apply when WS/JA/debuff freezes the timer (gives a dimmed look so the
     -- user can tell at a glance that the bar is frozen).
-    local alpha = aa_is_paused() and self.theme.aa_paused_opacity or self.theme.aa_opacity
+    local alpha = aa_is_paused() and math.min(self.theme.aa_paused_opacity,self.theme.aa_opacity) or self.theme.aa_opacity
     local bg_alpha = aa_is_paused() and self.theme.aa_paused_background_opacity or self.theme.aa_background_opacity
+    local palette = self.display_palette
+    local before = palette and palette.ws
+    local past = palette and palette.mp
     prim.set_color('aa_indicator_red', alpha,
-        self.theme.aa_before_red, self.theme.aa_before_green, self.theme.aa_before_blue)
+        before and before[1] or self.theme.aa_before_red,
+        before and before[2] or self.theme.aa_before_green,
+        before and before[3] or self.theme.aa_before_blue)
     prim.set_color('aa_indicator_green', alpha,
-        self.theme.aa_past_red, self.theme.aa_past_green, self.theme.aa_past_blue)
-    prim.set_color('aa_indicator_bg', bg_alpha, 0, 0, 0)
+        past and past[1] or self.theme.aa_past_red,
+        past and past[2] or self.theme.aa_past_green,
+        past and past[3] or self.theme.aa_past_blue)
+    prim.set_color('aa_indicator_bg', math.min(bg_alpha,alpha), 0, 0, 0)
+    prim.set_rounding('aa_indicator_red', true, green_px == 0)
+    prim.set_rounding('aa_indicator_green', red_px == 0, true)
 
     if (red_px > 0) then
-        prim.set_size('aa_indicator_red', red_px, 6)
+        prim.set_size('aa_indicator_red', red_px, 4)
         prim.set_position('aa_indicator_red', red_x, base_y)
         prim.set_visibility('aa_indicator_red', true)
     else
@@ -1617,14 +1621,14 @@ function ui:display_aa_indicator()
     end
 
     if (green_px > 0) then
-        prim.set_size('aa_indicator_green', green_px, 6)
+        prim.set_size('aa_indicator_green', green_px, 4)
         prim.set_position('aa_indicator_green', green_x, base_y)
         prim.set_visibility('aa_indicator_green', true)
     else
         prim.set_visibility('aa_indicator_green', false)
     end
 
-    prim.set_size('aa_indicator_bg', visible_px + 4, 10)
+    prim.set_size('aa_indicator_bg', visible_px + 4, 8)
     prim.set_position('aa_indicator_bg', red_x - 2, base_y - 2)
     prim.set_visibility('aa_indicator_bg', true)
 end
@@ -2166,9 +2170,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     end
                 end
                 if glow then
-                    if not occupied then glow.brightness = .33
-                    elseif unavailable or self.hotbars[h].slot_icon[i]:alpha() < 255 then glow.brightness = .61
-                    else glow.brightness = .85 end
+                    if not occupied then glow.brightness = 145
+                    elseif unavailable or self.hotbars[h].slot_icon[i]:alpha() < 255 then glow.brightness = 190
+                    else glow.brightness = 250 end
                 end
             end
 
@@ -2375,7 +2379,6 @@ function ui:set_slot_glow_enabled(enabled)
             local view = new_image(images_setup)
             setup_image(view, windower.addon_path .. 'images/assets/slot-glow.png')
             view:size(40+2*slot_glow_padding,40+2*slot_glow_padding)
-            view:color(255, 203, 92)
             view:hide()
             self.glow_views[slot] = view
         end
@@ -2417,7 +2420,7 @@ function ui:show_slot_pulse(menu_open)
         local glow=self.glow_views[slot]
         if glow then
             if visible and held and track.brightness and self.slot_glow_enabled and not menu_open then
-                glow:alpha(math.floor(alpha * track.brightness + .5))
+                glow:alpha(track.brightness)
                 glow:show()
             else
                 glow:hide()

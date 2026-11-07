@@ -48,6 +48,18 @@ not imported. No normal gameplay logging is active until you request it.
 
 ## Appearance and visibility
 
+The skillchain, lockout, and autoattack strips have thin rounded ends.
+`//xb skillchain 255`, `//xb lockout 255`, and `//xb autoattack 255` set
+their fill opacity independently. All three accept `on`, `off`, `status`,
+and values from `0` to `255`. Lockout `on` restores the per-action opacity
+settings. Autoattack `off` or `0` also stops swing estimation.
+
+XI uses translucent white with a black edge before a skillchain opens, then
+a stronger TP-blue-to-white flash while the window is open. XI lockouts keep
+their action-specific tints, and XI autoattack uses soft pink and pale green.
+Legacy uses the configured colors.
+
+
 Use `//xb slotglow on` to show a gold border on slot press and hold.
 The border is softer on unavailable actions and faintest on empty slots.
 Use `//xb slotglow off` or `//xb slotglow status` to control the saved
@@ -424,3 +436,7 @@ available, unavailable, and empty slots during controller holds.
 
 2026-11-07: Increased held slot-pulse opacity and added a feathered gold
 outline that follows the slot as it moves or scales.
+
+2026-11-07: Rounded and thinned the combat strips, added individual opacity
+commands and XI ribbon colors, and brightened the gold slot frame with a
+white core and feathered halo.

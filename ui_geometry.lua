@@ -5,6 +5,7 @@
 local geometry = {}
 geometry.__index = geometry
 local trace=require('ui/render_trace')
+local rounded_bar=require('ui/rounded_bar')
 
 function geometry.new()
     return setmetatable({scale = 1, x = 0, y = 0, screen_x = 0, screen_y = 0,
@@ -104,12 +105,26 @@ function geometry:setup_bank_scales()
     self.banks = {fade.new(clock, 1), fade.new(clock, 1)}
 end
 
+local function draw_primitive(g, name, p)
+    if p.rounded then
+        if p.x and p.width then
+            local x,y = g:point(p.x,p.y)
+            p.rounded:layout(x,y,p.width*g.scale,p.height*g.scale,g.scale,p.round_left,p.round_right)
+        end
+    else
+        if p.x then windower.prim.set_position(name,g:point(p.x,p.y)) end
+        if p.width then windower.prim.set_size(name,p.width*g.scale,p.height*g.scale) end
+    end
+end
+
+local function primitive_visibility(name, p, visible)
+    if p.rounded then p.rounded:show(visible)
+    else windower.prim.set_visibility(name,visible) end
+end
+
 function geometry:refresh()
     for proxy, m in pairs(self.surfaces) do draw_surface(self, m.object, m) end
-    for name, p in pairs(self.primitives) do
-        if p.x then windower.prim.set_position(name, self:point(p.x, p.y)) end
-        if p.width then windower.prim.set_size(name, p.width * self.scale, p.height * self.scale) end
-    end
+    for name, p in pairs(self.primitives) do draw_primitive(self,name,p) end
 end
 
 -- A: relayout a single existing surface without changing its texture, crop,
@@ -129,6 +144,13 @@ end
 
 local function rounded_alpha(alpha, opacity)
     return math.floor((alpha or 255)*opacity + .5)
+end
+
+local function primitive_color(g, name, p)
+    local c = p.color
+    local alpha = p.independent and c[1] or rounded_alpha(c[1],g.opacity)
+    if p.rounded then p.rounded:color(alpha,c[2],c[3],c[4])
+    else windower.prim.set_color(name,alpha,c[2],c[3],c[4]) end
 end
 
 draw_opacity = function(g, m)
@@ -187,11 +209,10 @@ function geometry:set_opacity(opacity)
     for _, m in ipairs(self.retired) do draw_opacity(self, m) end
     for name, p in pairs(self.primitives) do
         if p.color and not p.independent then
-            windower.prim.set_color(name, rounded_alpha(p.color[1], self.opacity),
-                p.color[2], p.color[3], p.color[4])
+            primitive_color(self,name,p)
         end
         if self.opacity == 0 and p.defer_visible then
-            windower.prim.set_visibility(name, false); p.defer_visible = nil
+            primitive_visibility(name,p,false); p.defer_visible = nil
         end
     end
     if self.opacity == 0 then
@@ -253,7 +274,7 @@ function geometry:transition(show)
             if m.defer_visible then m.object:hide();m.draw_visible=false; m.defer_visible = nil end
         end
         for name, p in pairs(self.primitives) do
-            if p.defer_visible then windower.prim.set_visibility(name, false); p.defer_visible = nil end
+            if p.defer_visible then primitive_visibility(name,p,false); p.defer_visible = nil end
         end
     end
     self:set_opacity(self.fade.value)
@@ -443,27 +464,40 @@ function geometry:prim()
             p.independent = independent == true
             windower.prim.create(name)
         end,
+        create_rounded = function(name, independent)
+            local previous = g.primitives[name]
+            if previous and previous.rounded then previous.rounded:destroy() end
+            g.primitives[name] = {rounded=rounded_bar.new(name,windower.prim), independent=independent == true}
+        end,
+        set_rounding = function(name, left, right)
+            local p = g.primitives[name]
+            if p.round_left == left and p.round_right == right then return end
+            p.round_left,p.round_right = left,right
+            draw_primitive(g,name,p)
+        end,
         set_color = function(name, alpha, red, green, blue)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             p.color = {alpha, red, green, blue}
-            windower.prim.set_color(name, p.independent and alpha or rounded_alpha(alpha, g.opacity), red, green, blue)
+            primitive_color(g,name,p)
         end,
         set_visibility = function(name, visible)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             local was_visible = p.visible or p.defer_visible
             p.visible = visible
             if not visible and not p.independent and g.deferring_hide and was_visible then p.defer_visible = true
-            else p.defer_visible = nil; windower.prim.set_visibility(name, visible) end
+            else p.defer_visible = nil; primitive_visibility(name,p,visible) end
         end,
         set_position = function(name, x, y)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             p.x, p.y = x, y
-            windower.prim.set_position(name, g:point(x, y))
+            if p.rounded then draw_primitive(g,name,p)
+            else windower.prim.set_position(name,g:point(x,y)) end
         end,
         set_size = function(name, width, height)
             local p = g.primitives[name] or {}; g.primitives[name] = p
             p.width, p.height = width, height
-            windower.prim.set_size(name, width * g.scale, height * g.scale)
+            if p.rounded then draw_primitive(g,name,p)
+            else windower.prim.set_size(name,width*g.scale,height*g.scale) end
         end,
     }, {__index = windower.prim})
 end

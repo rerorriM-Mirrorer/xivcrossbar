@@ -71,6 +71,27 @@ ui.theme.skillchain_window_opacity=220
 ui:display_skillchain_indicator({},2,0)
 assert(surface.skillchain_indicator==true and surface.skillchain_indicator_bg==true,
     'Enabled indicator must retain normal window display')
+local function ribbon_color(name)
+    for i=#calls,1,-1 do
+        local c=calls[i]
+        if c[1]=='set_color' and c[2]==name then return table.unpack(c,3,6) end
+    end
+end
+local a,r,g,b=ribbon_color('skillchain_indicator')
+assert(a==220 and r==237 and g==28 and b==36, 'Legacy waiting color')
+ui.display_palette=require('theme').display_palette('xi')
+ui:display_skillchain_indicator({},2,0)
+a,r,g,b=ribbon_color('skillchain_indicator')
+assert(a==125 and r==255 and g==255 and b==255, 'XI waiting white')
+local _,br,bg,bb=ribbon_color('skillchain_indicator_bg')
+assert(br==0 and bg==0 and bb==0, 'black waiting border')
+ui:display_skillchain_indicator({},0,.275)
+a,r,g,b=ribbon_color('skillchain_indicator')
+assert(a==220 and r==151 and g==211 and b==255, 'XI open TP blue')
+ui:display_skillchain_indicator({},0,.55)
+a,r,g,b=ribbon_color('skillchain_indicator')
+assert(a==220 and r==255 and g==255 and b==255, 'XI open white')
+ui.display_palette=nil
 ui.theme.skillchain_window_opacity=0
 ui:display_skillchain_indicator({},2,0)
 assert(surface.skillchain_indicator==false and surface.skillchain_indicator_bg==false,
@@ -125,12 +146,55 @@ geometry:set_opacity(0)
 assert(colors.normal==0 and colors.lockout==220,'only the lockout strip bypasses crossbar opacity')
 draw_prim.set_color('lockout',150,1,2,3)
 assert(colors.lockout==150,'the strip must still accept explicit opacity')
+local sizes, caps, deleted = {}, {}, {}
+windower.prim.create=function() end
+windower.prim.set_visibility=function(name,visible) caps[name]=visible end
+windower.prim.set_size=function(name,w,h) sizes[name]={w,h} end
+windower.prim.set_position=function() end
+windower.prim.delete=function(name) deleted[name]=(deleted[name] or 0)+1 end
+draw_prim.create_rounded('ribbon',true)
+draw_prim.set_position('ribbon',0,0)
+draw_prim.set_size('ribbon',40,4)
+draw_prim.set_color('ribbon',255,255,255,255)
+draw_prim.set_visibility('ribbon',true)
+assert(caps.ribbon_left_cap and caps.ribbon_right_cap and sizes.ribbon[1]==38)
+assert(colors.ribbon_left_cap==255 and colors.ribbon==255)
+draw_prim.set_rounding('ribbon',true,false)
+assert(not caps.ribbon_right_cap and sizes.ribbon[1]==39)
+geometry:set_scale(1.5)
+assert(sizes.ribbon[1]==58.5 and sizes.ribbon[2]==6)
+geometry:shutdown()
+assert(deleted.ribbon==1 and deleted.ribbon_left_cap==1 and deleted.ribbon_right_cap==1)
 windower=old_windower
 
 assert(code:find("if command == 'autoattack' then",1,true))
-assert(code:find("settings.AutoAttackIndicator.Enabled=enabled",1,true))
+
 assert(code:find("if ui.aa_enabled and (act.category == CATEGORY_MELEE",1,true))
 assert(code:find("if not ui.aa_enabled then return end",1,true))
+local command_start=assert(code:find("    if command == 'skillchain' or command == 'lockout'",1,true))
+local command_end=assert(code:find("    if command == 'textsettle'",command_start,true))
+local command_settings=require('defaults')
+local changes=0
+local command_env=setmetatable({
+    settings=command_settings, theme_options={}, default_skillchain_opacity=220,
+    ui={theme={},set_autoattack_enabled=function(_,enabled) command_settings.tracking=enabled end},
+    chat_format={say=function() end}, config={save=function() changes=changes+1 end},
+},{__index=_G})
+local command=assert(load(code:sub(command_start,command_end-1),'strip commands','t',command_env))
+local function issue(name,mode)
+    command_env.command,command_env.args=name,{mode}
+    command()
+end
+issue('skillchain','255'); assert(command_env.ui.theme.skillchain_window_opacity==255)
+issue('lockout','off'); assert(command_settings.LockoutOpacity==0)
+issue('lockout','255'); assert(command_env.ui.theme.lockout_opacity==255)
+issue('lockout','on'); assert(command_settings.LockoutOpacity==-1)
+issue('autoattack','255'); assert(command_settings.tracking and command_env.ui.theme.aa_opacity==255)
+issue('autoattack','off'); assert(not command_settings.tracking)
+issue('autoattack','on'); assert(command_settings.tracking and command_settings.AutoAttackIndicator.Opacity==255)
+issue('autoattack','0'); assert(not command_settings.tracking and command_settings.AutoAttackIndicator.Opacity==0)
+issue('autoattack','status'); issue('autoattack','256')
+assert(changes==8)
 local d=require('defaults')
 local theme=require('theme')
 assert(d.AutoAttackIndicator.Enabled==false,'New installs must not track swings')

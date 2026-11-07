@@ -32,6 +32,7 @@ defaults.SkillchainIndicator.WindowOpenColor.Red = 15
 defaults.SkillchainIndicator.WindowOpenColor.Green = 205
 defaults.SkillchainIndicator.WindowOpenColor.Blue = 5
 
+defaults.LockoutOpacity = -1 -- Use each action type’s configured opacity.
 defaults.SpellLockoutIndicator = {}
 defaults.SpellLockoutIndicator.Duration = 3.0
 defaults.SpellLockoutIndicator.Opacity = 220

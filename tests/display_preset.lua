@@ -51,7 +51,7 @@ ui.toggle_slot=function() end
 env.maybe_get_default_action=function() end
 env.crossbar_abilities={['test-ws']={tp_cost=1000}}
 env.kebab_casify=function(name) return name end
-extract(code,'function ui:check_vitals','local skillchain_indicator_state','ui',env)
+extract(code,'function ui:check_vitals','gcd_start_time = 0','ui',env)
 local bars={basic={hotbar_1={slot_1={type='ws',action='test-ws'}}}}
 ui:check_vitals(bars,{mp=0,tp=999},'basic');assert(captured[1]==255 and captured[2]==149)
 ui:check_vitals(bars,{mp=0,tp=1000},'basic');assert(captured[1]==151 and captured[2]==211)
