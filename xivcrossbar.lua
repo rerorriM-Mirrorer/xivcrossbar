@@ -32,7 +32,7 @@ tables = require('tables')
 resources = require('resources')
 xml = require('libs/xml2')   -- TODO: REMOVE
 local chat_format = require('libs/chat_status')
-local chat_help = require('libs/chat_help')
+local command_help = require('libs/command_help')
 
 -- User settings
 local defaults = require('defaults')
@@ -1216,100 +1216,6 @@ function regenerate_resources()
     resource_generator.generate_all_resources()
 end
 
--- command to display help for the user
-function display_help_menu()
-    local layout = theme_options.button_layout:lower()
-    local minus_button = 'Minus'
-    if (layout == 'playstation') then
-        minus_button = 'Share'
-    elseif (layout == 'xbox') then
-        minus_button = 'Back'
-    end
-    local plus_button = 'Plus'
-    if (layout == 'playstation') then
-        plus_button = 'Options'
-    elseif (layout == 'xbox') then
-        plus_button = 'Start'
-    end
-    local left_trigger = 'L'
-    if (layout == 'playstation') then
-        left_trigger = 'L2'
-    end
-    local right_trigger = 'R'
-    if (layout == 'playstation') then
-        right_trigger = 'R2'
-    end
-    local buttons = 'A/B/X/Y'
-    if (layout == 'playstation') then
-        buttons = 'Face'
-    end
-
-    chat_help.heading('XIVcrossbar | Commands')
-    chat_help.heading('Crossbar Sets')
-    chat_help.command("new <name>","Create a crossbar set.")
-    chat_help.command("rename <old> <new>","Rename a set (rn).")
-    chat_help.command("deleteset <name>","Delete a set and its bindings.")
-    chat_help.heading('Slot Bindings')
-    chat_help.command("set <env> <hb> <slot> <type> <action> [target] [alias] [icon]","Bind an action.")
-    chat_help.command("clear <env> <hb> <slot>","Remove a binding.")
-    chat_help.command("copy <env> <hb> <slot> <dest hb> <dest slot>","Copy a binding (cp).")
-    chat_help.command("move <env> <hb> <slot> <dest hb> <dest slot>","Move a binding (mv).")
-    chat_help.command("icon <env> <hb> <slot> <icon>","Change slot icon (ic).")
-    chat_help.command("alias <env> <hb> <slot> <text>","Change slot label (al/caption).")
-    chat_help.heading('Custom Actions')
-    chat_help.command("ca [name]","Create or edit an action review.")
-    chat_help.command("ca name|alias|command <value>","Edit active draft fields.")
-    chat_help.heading('Controller')
-    chat_help.command("controller status|start|stop|profiles","Show/control the shared controller reader.")
-    chat_help.command("controller profile <name> [device]","Select controller and device.")
-    chat_help.command("remap","Run controller setup.")
-    chat_help.command("diagnose start [input|render|full]","Record 30 seconds of diagnostics. Bare diagnose records input.")
-    chat_help.command("diagnose [stop|mark|status|snapshot]","Finish, mark, inspect, or snapshot a diagnostic.")
-    chat_help.heading('Display')
-    chat_help.command("status","Show current state and settings.")
-    chat_help.command("resources","Report live drawing objects.")
-    chat_help.command("scale <0.25-2>","Scale crossbar independently of menus.")
-    chat_help.command("display [legacy|xi|status]","Toggle or apply a saved crossbar appearance preset.")
-    chat_help.command("compact [on|off]","Switch layout immediately.")
-    chat_help.command("hide","Hide bars without disabling actions.")
-    chat_help.command("show","Show bars.")
-    chat_help.command("auto","Show bars on controller trigger.")
-    chat_help.command("autohide [on|off]","Set trigger visibility.")
-    chat_help.command("fade [on|off]","Enable/disable fades.")
-    chat_help.command("recastflash [on|off|status]","Flash a slot when its recast reaches zero.")
-    chat_help.command("slotglow [on|off|status]","Show a gold slot border while a button is held.")
-    chat_help.command("triggerscale [on|off|status|0-25]","Set the percentage the held bank grows and the other shrinks.")
-    chat_help.command("textfade [on|off|status]","Fade labels with bars; default OFF.")
-    chat_help.command("textsettle [on|off|status]","Prevent stale-width caption flicker; default ON.")
-    chat_help.command("skillchain [on|off|status|0-255]","Set the skillchain strip opacity.")
-    chat_help.command("lockout [on|off|status|0-255]","Set all lockout strip opacities; on restores per-action values.")
-    chat_help.command("autoattack [on|off|status|0-255]","Set the swing strip opacity; off also stops swing estimation.")
-    chat_help.heading('Other')
-    chat_help.command("reload","Reload saved crossbar bindings.")
-    chat_help.command("restart","Fade out then reload the addon.")
-    chat_help.command("unload","Fade out and unload the addon.")
-    chat_help.command("regenerate","Regenerate cached resource files.")
-    chat_help.command("bank targeting [on|off]","Use R1 to acquire or cycle targets.")
-    chat_help.command("triggerbanks [3|4|5|6]","Set the trigger layout and reload. Five shares the combined bank.")
-    chat_help.command("jobsets","Create missing category sets for the current job combination.")
-    chat_help.command("bridge <movement|menu|ps|all> <off|test|on>","Control optional Trust and PS bridges.")
-    chat_help.command("bridge status","Show bridge modes and last decisions.")
-    chat_help.command("bank status","Show shoulder bank preferences.")
-    chat_help.command("slotrumble [on|off]","Toggle the optional GripRumble test tap for this load.")
-    chat_help.command("inputtest [on|off]","Replace real actions with dummy tests.")
-    chat_help.command("inputtrace [on|off]","Enable keyboard/input trace logging.")
-    chat_help.command("inputstatus","Report controller input configuration.")
-    chat_help.command("help","Show commands (?).")
-    chat_help.heading('Identifiers')
-    chat_help.row('Hotbars','l / r / rl / lr / ll / rr (1-6)')
-    chat_help.row('Slots','ll / ld / lr / lu / rl / rd / rr / ru (1-8)')
-    chat_help.heading('Gamepad | '..theme_options.button_layout)
-    chat_help.row('Set Switching',plus_button..' + Up/Down')
-    chat_help.row('Action Binder',minus_button..' to open/close')
-    chat_help.row('Navigate Binder',left_trigger..'/'..right_trigger..' + D-pad')
-    chat_help.row('Use Action',left_trigger..'/'..right_trigger..' + D-pad/Face button')
-end
-
 -----------------------------
 -- Bind Events
 -----------------------------
@@ -1503,12 +1409,18 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(207, '[XIVCrossbar] Slot rumble ' .. (slot_rumble_enabled and 'ON' or 'OFF'))
         return
     elseif command == 'inputtest' or command == 'inputtrace' then
-        local mode = (...)
+        local mode, extra = ...
+        mode = mode and mode:lower()
+        if extra or (mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status') then
+            chat_format.fail('Use //xb '..command..' [on|off|status].')
+            return command_help.show(nil, theme_options.button_layout, settings.ControllerProfile)
+        end
         local key = command == 'inputtest' and 'InputTest' or 'InputTrace'
-        if mode == 'on' then settings[key] = true
-        elseif mode == 'off' then settings[key] = false
-        else settings[key] = not settings[key] end
-        config.save(settings)
+        if mode ~= 'status' then
+            if mode then settings[key] = mode == 'on'
+            else settings[key] = not settings[key] end
+            config.save(settings)
+        end
         chat_format.say(207, '[XIVCrossbar] ' .. key .. ' ' .. (settings[key] and 'ON' or 'OFF'))
         return
     elseif command == 'inputstatus' then
@@ -1780,7 +1692,10 @@ windower.register_event('addon command', function(command, ...)
     elseif command == 'regenerate' then
         regenerate_resources()
     elseif command == '?' or command == 'help' then
-        display_help_menu()
+        command_help.show(table.concat(args, ' '), theme_options.button_layout, settings.ControllerProfile)
+    else
+        chat_format.fail('Unknown command "'..command..'".')
+        command_help.show(nil, theme_options.button_layout, settings.ControllerProfile)
     end
 end)
 

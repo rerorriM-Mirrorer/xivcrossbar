@@ -1,3 +1,23 @@
+# November 8, 2026 — Getting started and command help
+
+Branch `integration/shoulder-banks`. Overlay this Lua patch on the
+input diagnostics build at `2c7e8a2` and run `//xb restart`.
+
+- Run bare `//xb`, `//xb help`, and `//xb ?`. Each should print the same
+  six-line guide. Check Share and Options on PlayStation, View and Menu
+  on standard Xbox, and RB on the Xbox R1-chooser profile.
+- Run `//xb typo` and `//xb help typo`. Each should name the invalid
+  command or topic and print the same short guide.
+- Try `//xb help sets`, `//xb help bindings`, `//xb help display`,
+  `//xb help controller`, `//xb help diagnostics`, and `//xb help all`.
+  Each topic should open on its own and `all` should print all five.
+- Check `//xb inputtest status` and `//xb inputtrace status`. Try each
+  with a misspelled option and confirm status stays the same. Test the
+  explicit on and off options, then restore the original settings.
+
+Lua fixture checks cover the command dispatch and chat output. Windower
+chat wrapping and physical controller labels await in-game confirmation.
+
 # Current Development Status — November 8, 2026 — Input-first diagnostics
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

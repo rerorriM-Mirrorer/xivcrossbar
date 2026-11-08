@@ -142,8 +142,11 @@ be read as field commands.
 
 ## Help
 
-`//xb help` lists commands, including the retained set/copy/move/icon/alias commands.
-`//xb status` reports the version and configuration.
+Bare `//xb`, `//xb help`, and `//xb ?` show a short guide to using slots, binding
+actions, and changing sets. A mistyped command shows the same guide below its error.
+Use `//xb help sets`, `bindings`, `display`, `controller`, or `diagnostics` to
+open a topic. `//xb help all` prints the full reference. `//xb status` reports
+the version and configuration.
 `//xb reload` refreshes crossbar data.
 `//xb restart` closes menus and fades out before reloading the entire addon.
 `//lua r xivcrossbar` performs the same full reload immediately.
