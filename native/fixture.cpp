@@ -118,6 +118,14 @@ int main() {
     owner.apply(0, 2, false, false);
     check(owner.apply(l1, 2, true, false, 0, 1, false, 0, true).down == l1,
         "binding captures a disabled shoulder");
+    owner.reset();
+    owner.apply(0, 2, false, false);
+    constexpr unsigned trust_mask = directions | circle;
+    edge = owner.apply(up | circle | face | right_trigger, 2, false, false, 0, 1, false, 0, false, trust_mask);
+    check(edge.down == (up | circle), "Trust owns only configured nav and face buttons");
+    edge = owner.apply(up | circle, 2, false, false, 0, 200);
+    check(edge.suppressed == (up | circle), "Trust-owned buttons stay captured after menu closes");
+    check(owner.apply(0, 2, false, false).up == (up | circle), "Trust release clears ownership");
     std::uint8_t buttons[32]{};
     buttons[1] = buttons[6] = buttons[10] = 0x80;
     check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger), "DirectInput layout");

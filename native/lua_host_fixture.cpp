@@ -8,7 +8,7 @@ using LuaFunction = int (__cdecl*)(void*);
 struct State {
     std::ptrdiff_t value{};
     std::ptrdiff_t process_id{};
-    std::ptrdiff_t shoulder_slots{};
+    std::ptrdiff_t shoulder_slots{}, trust_menu{};
     LuaFunction function{};
     LuaFunction tap_tab{};
     unsigned callbacks{};
@@ -24,6 +24,7 @@ __declspec(dllexport) void __cdecl lua_pushcclosure(State* state, LuaFunction fn
 __declspec(dllexport) void __cdecl lua_setfield(State* state, int, const char* name) {
     if (strcmp(name, "process_id") == 0) state->process_id = state->value;
     else if (strcmp(name, "shoulder_slots") == 0) state->shoulder_slots = state->value;
+    else if (strcmp(name, "trust_menu") == 0) state->trust_menu = state->value;
     else if (state->function) {
         if (strcmp(name, "tap_tab") == 0) state->tap_tab = state->function;
         ++state->callbacks;
@@ -34,7 +35,7 @@ __declspec(dllexport) void __cdecl lua_rawseti(State*, int, int) {}
 
 __declspec(dllexport) bool __cdecl verify_messages_module(LuaFunction open) {
     State state;
-    return open(&state) == 1 && state.table && state.callbacks == 5 && state.tap_tab && state.shoulder_slots == 1 &&
+    return open(&state) == 1 && state.table && state.callbacks == 5 && state.tap_tab && state.shoulder_slots == 1 && state.trust_menu == 1 &&
         state.process_id == GetCurrentProcessId();
 }
 }

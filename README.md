@@ -494,3 +494,8 @@ the side pair and centered bank slide and crossfade when swapping.
 2026-11-08: Typed Trust, avatar and spirit slots now follow party/pet state.
 Pet attacks can pair with standard Attack or Disengage. Use `//xb jobsets`
 to add missing editable category sets for the current job combination.
+
+2026-11-08: Optional Trust movement, Trust menu navigation and DualSense
+PS focus switching use `//xb bridge <movement|menu|ps|all> <off|test|on>`.
+They default off. Test mode reports decisions with native input intact.
+Use `//xb bridge status` to check the menu lease and reader decisions.

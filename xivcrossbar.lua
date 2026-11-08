@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.personal-parity1'
+_addon.version = '0.4.0-beta1.20261107.bridge-test1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -440,6 +440,10 @@ local controller_switcher
 local message_lease=require('controller_lease').new({clock=profile_clock})
 local message_bridge
 local native_gamepad, native_mode, native_command, native_poll, native_receiving, native_filtering, native_stop
+local controller_bridge = require('controller_bridge')
+controller_bridge.menu = controller_bridge.new(profile_clock, windower.send_command, function(message)
+    chat_format.say(207, '[XIVCrossbar bridge test] '..message)
+end)
 local function controller_status()
     return controller_profiles.read_status(windower.addon_path .. 'data/controller-status.ini')
 end
@@ -1264,6 +1268,8 @@ function display_help_menu()
     chat_help.command("bank targeting [on|off]","Use R1 to acquire or cycle targets.")
     chat_help.command("triggerbanks [3|4|5|6]","Set the trigger layout and reload. Five shares the combined bank.")
     chat_help.command("jobsets","Create missing category sets for the current job combination.")
+    chat_help.command("bridge <movement|menu|ps|all> <off|test|on>","Control optional Trust and PS bridges.")
+    chat_help.command("bridge status","Show bridge modes and last decisions.")
     chat_help.command("bank status","Show shoulder bank preferences.")
     chat_help.command("slotrumble [on|off]","Toggle the optional GripRumble test tap for this load.")
     chat_help.command("inputtest [on|off]","Replace real actions with dummy tests.")
@@ -1415,6 +1421,19 @@ windower.register_event('addon command', function(command, ...)
                 chat_format.say(207, '[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
             end
         else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
+        return
+    elseif command == 'bridge' then
+        local feature, mode = ...
+        local function say(message) chat_format.say(207, '[XIVCrossbar bridge] '..message) end
+        controller_bridge.command(settings, feature, mode, function() config.save(settings) end, say)
+        if not feature or feature == 'status' then
+            local wrapper = controller_status()
+            local menu = controller_bridge.menu
+            say('Trust menu '..(menu.token and menu.state or 'no active lease')..' | last '..(menu.last or 'idle'))
+            if wrapper and wrapper.running and controller_profiles.matches(wrapper,settings.ControllerProfile,settings.ControllerDevice,controller_modifier) then
+                say('Reader movement '..(wrapper.bridge_movement or 'unavailable')..' | PS '..(wrapper.bridge_ps or 'unavailable'))
+            else say('Matching reader unavailable') end
+        end
         return
     elseif command == 'triggerbanks' then
         local value = tonumber((...))
@@ -2163,6 +2182,9 @@ local function route_controller_message(dik, pressed, chord)
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return end
+    if controller_bridge and controller_bridge.menu:edge(dik, pressed, buttonmapping,
+        gamepad_state.trust_menu_live) then return end
+    if gamepad_state.trust_menu_live and pressed then return end
     if dik == 89 or dik == 90 then
         if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
             local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
@@ -2226,6 +2248,7 @@ message_bridge=require('controller_messages').new({
     cancel=function()
         ui:clear_slot_pulses()
         transport:reset()
+        controller_bridge.menu.held={}
         gamepad_state.capturing=false
         gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
         gamepad_state.left_trigger_doublepress=false;gamepad_state.right_trigger_doublepress=false
@@ -2263,7 +2286,13 @@ local function poll_directlink()
             message_bridge:accept(contents)
         end
     end
-    message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,message_bridge.ack,shoulders)
+    local info = windower.ffxi.get_info()
+    local actor = windower.ffxi.get_player()
+    local gameplay = xivcrossbar.ready and not crossbar_menu_open() and info and not info.chat_open
+        and not info.menu_open and actor and actor.status ~= 4 and not controller_bridge.menu.token
+    message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,
+        message_bridge.ack,shoulders,{movement=controller_bridge.mode(settings,'movement'),
+            ps=controller_bridge.mode(settings,'ps'),gameplay=gameplay})
 end
 
 local frame = 0
@@ -2298,6 +2327,7 @@ do
     native_stop=function(detach, retry)
         local active = native_mode~=nil
         native_mode,native_receiving,native_filtering=nil,false,false
+        gamepad_state.trust_menu_live=false
         gamepad_state.shoulder_targeting=false
         gamepad_state.shoulder_slots=false
         if retry then attempted=nil end
@@ -2382,7 +2412,9 @@ do
             end
         end
         if native_filtering and context==4 then clear_controller_input() end
-        local actor = context == 1 and message_bridge.extended and not info.menu_open
+        local trust_slots = context == 1 and native_mode == 'guard' and native_gamepad.trust_menu
+            and controller_bridge and controller_bridge.menu:mask(buttonmapping) or 0
+        local actor = context == 1 and trust_slots == 0 and message_bridge.extended and not info.menu_open
             and (native_gamepad.shoulder_slots or settings.ShoulderBanks.Targeting) and windower.ffxi.get_player()
         local targeting = native_gamepad.tap_tab and actor and actor.status ~= 4
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
@@ -2391,7 +2423,7 @@ do
         local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
             and action_binder:is_binding_combo()
         generation=native_gamepad.poll(context + (targeting and 0x100 or 0) + banks*0x200
-            + (binding and 0x1000 or 0), function()
+            + (binding and 0x1000 or 0) + trust_slots*0x10000, function()
             if generation and message_bridge.token then clear_controller_input() end
         end, function() end, generation)
         gamepad_state.shoulder_targeting = targeting and message_bridge.extended
@@ -2401,6 +2433,7 @@ do
         last_polls=polls
         native_receiving=context~=0 and native_gamepad.armed() and last_native_poll and now-last_native_poll<.5
         native_filtering=native_receiving and context~=4 and message_bridge.last_beat~=nil
+        gamepad_state.trust_menu_live = native_filtering and trust_slots ~= 0
     end
 end
 
@@ -2415,8 +2448,20 @@ windower.register_event('prerender',function()
         next_identity_retry = profile_clock() + .25
         check_profile_ready()
     end
+    local menu_mode = controller_bridge.mode(settings,'menu')
+    local path, id
+    if menu_mode ~= 'off' and xivcrossbar.ready and not restart_pending and windower.has_focus()
+        and not crossbar_menu_open() then
+        local info, actor = windower.ffxi.get_info(), windower.ffxi.get_player()
+        if actor and actor.id and info and info.server and not info.chat_open then
+            id = actor.id
+            path = windower.windower_path..'addons/trust/data/controller-menu-'..info.server..'-'..id..'.txt'
+        end
+    end
+    controller_bridge.menu:update(menu_mode,path,id)
     native_poll()
     poll_directlink()
+    controller_bridge.menu:tick(gamepad_state.trust_menu_live)
     local bank, bank_visible
     if gamepad_state.shoulder_slots and native_filtering then
         local info = windower.ffxi.get_info()

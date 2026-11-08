@@ -1,3 +1,46 @@
+# Current Development Status — November 8, 2026 — Optional controller bridges
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint: `514e03240b5b5bdbd07aeae00da33c8a86bbbf43`.
+Build: `0.4.0-beta1.20261107.bridge-test1`.
+
+Install the complete matching x86 artifact with FFXI closed and the
+shared AutoHotkey reader stopped. Keep `data/`. Restore the previous
+program files with the clients and reader stopped to roll back.
+
+All features default off. Run `//xb bridge all test`, then
+`//xb bridge status`. Test mode reports decisions and adds no native
+suppression, Trust output, or focus switch. `//xb inputtest on` also
+forces any saved live bridge into test mode.
+
+1. Use the matching Trust build that publishes controller-menu leases
+   and integrated movement leases. Open Trust over a native menu. In
+   test mode check the “Would route” line. In live mode run
+   `//xb bridge menu on` and test a single press, direction repeat,
+   Confirm, Back, and a text field. Hold a direction when closing the
+   Trust lease and verify native input resumes only after release.
+2. With `//xb bridge movement test`, focus an FFXI client with the stick
+   centered and move it. Check the reader decision in status. Switch
+   clients and check Send and Ready separately. With `on`, verify Trust
+   receives its dedicated signal once and native analog movement stays
+   intact. Ready waits for a ready receiver and gameplay. The current
+   Trust receiver identifies movement leases by character window title,
+   as on the personal build.
+3. On PS5 DirectInput, focus a named non-FFXI window, return manually to
+   FFXI, then tap PS. Test mode reports the remembered destination.
+   Live mode switches once. Release and press again within 30 seconds
+   to return to the originating FFXI client. A hold, another pressed
+   controller button, or a menu blocks a fresh switch. Verify both
+   clients and make sure an expired return does not steal focus.
+4. With `//xb bridge all off`, check the ordinary beta controls and
+   verify the reader reports no new bridge actions.
+
+Portable Lua/native fixtures cover mode and ownership boundaries.
+Windows x86/AHK CI and actual FFXI/Trust observations are separate
+checks. Live input and focus-switch acceptance remain pending.
+
+---
+
 # Current Development Status — November 8, 2026 — Trigger and job parity
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

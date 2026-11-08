@@ -45,6 +45,12 @@ try {
         "alternate RB chooser never emits a second RB edge")
     owner := 0
     ControllerMessageInit()
+    BridgeInit()
+    BridgeLease("bridge_movement=test`nbridge_ps=on`nbridge_gameplay=1`n")
+    Check(CB.movement = "test" && CB.ps = "on" && CB.gameplay && CB.psDown,
+        "bridge modes parse and arm from neutral")
+    BridgeLease("bridge_movement=invalid`n")
+    Check(CB.movement = "off" && CB.ps = "off" && !CB.gameplay, "old or invalid lease defaults off")
     spool := A_Temp . "\xb-public-native-" . DllCall("GetCurrentProcessId", "UInt") . ".buttons"
     try {
         ControllerMessageSelect(true, "native-test", 0, spool)

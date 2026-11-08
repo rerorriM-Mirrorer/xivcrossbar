@@ -11,13 +11,17 @@ function M.new(opts)
         end
         self.path=nil;self.next_write=nil;self.payload=nil
     end
-    function self:update(directory,pid,profile,device,token,ack,shoulders)
+    function self:update(directory,pid,profile,device,token,ack,shoulders,bridge)
         if type(pid)~='number' or pid<1 or pid%1~=0 or not token then self:close();return false end
         local path=directory..pid..'.ini'
         if self.path~=path then self:close();self.create_dir(directory);self.path=path end
         local now=self.clock()
         local payload='profile='..profile..'\ndevice='..device..'\nbutton_mode=messages'..
             '\nbutton_token='..(token or '')..'\nbutton_ack='..tostring(ack or 0)..'\n'
+        if bridge then
+            payload=payload..'bridge_movement='..bridge.movement..'\nbridge_ps='..bridge.ps
+                ..'\nbridge_gameplay='..(bridge.gameplay and '1' or '0')..'\n'
+        end
         if shoulders then payload=payload..'button_count=14\n' end
         if self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.10

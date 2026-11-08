@@ -27,6 +27,7 @@ ControllerMessageContext(hwnd) {
     age := now - stamp[1]
     if (age < -1 or age > 2)
         return
+    BridgeLease(lease)
     count := RegExMatch(lease, "m)^button_count=14\r?$") ? 14 : 12
     ControllerMessageSelect(true, token[1], ack[1] + 0, RegExReplace(path, "\.ini$", ".buttons"), count)
 }

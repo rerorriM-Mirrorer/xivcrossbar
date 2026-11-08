@@ -3,6 +3,7 @@
 ; All profiles share one DirectLink message stream.
 #SingleInstance Off
 #Include %A_ScriptDir%\controller_messages.ahk
+#Include %A_ScriptDir%\controller_bridge.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
 #Include %A_ScriptDir%\controller_clients.ahk
 #Include %A_ScriptDir%\controller_mappings.ahk
@@ -45,6 +46,7 @@ joys := isXInput ? [] : ControllerDirectInputButtons(profile)
 owner := 0
 ready := false
 ControllerMessageInit()
+BridgeInit()
 DiagInit()
 WrapperClientsInit()
 WriteTransportStatus(true)
@@ -52,7 +54,7 @@ OnExit(TransportExit)
 SetTimer(TransportPoll, 10)
 
 TransportPoll() {
-    global owner, ready, phase, connected, xinputFault
+    global owner, ready, phase, connected, xinputFault, CB
     Critical("On")
     if WrapperClientsShouldExit()
         ExitApp()
@@ -65,6 +67,7 @@ TransportPoll() {
     }
     active := WinActive("ahk_class FFXiClass")
     if (!active) {
+        BridgeOutside()
         ReleaseTransport()
         ready := false
         phase := "unfocused"
@@ -73,14 +76,17 @@ TransportPoll() {
         return
     }
     if (owner and owner != active) {
+        BridgeRelease()
         ReleaseTransport()
         ControllerMessageSelect(false, "", 0, "")
         ready := false
     }
     owner := active
-    states := ReadTransportStates()
+    states := ReadTransportStates(GetKeyState, CB.movement != "off" or CB.ps != "off")
     connected := IsObject(states)
     if (!connected) {
+        CB.psDown := true, CB.neutral := false
+        BridgeRelease()
         ReleaseTransport()
         ready := false
         phase := xinputFault ? "xinput-unavailable" : "disconnected"
@@ -102,6 +108,7 @@ TransportPoll() {
         return
     }
     ControllerMessagePoll(states, active)
+    BridgePoll(states, active)
 }
 
 ; Explicit local stop; it exits only this script, even outside FFXI.
@@ -110,6 +117,7 @@ TransportPoll() {
 TransportExit(*) {
     global phase, xinputLibrary
     SetTimer(TransportPoll, 0)
+    BridgeRelease()
     ReleaseTransport()
     DiagClose("wrapper exit")
     phase := "stopped"
@@ -126,7 +134,7 @@ ReleaseTransport() {
 }
 
 ; A: read hardware only. Output, focus cleanup and rearming remain shared.
-ReadTransportStates(readKey := GetKeyState) {
+ReadTransportStates(readKey := GetKeyState, observeBridge := false) {
     global isXInput, profile, device, joystickPrefix, joys, xinputGetState
     if (!isXInput) {
         if (readKey(joystickPrefix . "JoyName") = "")
@@ -144,6 +152,12 @@ ReadTransportStates(readKey := GetKeyState) {
         }
         for _, joy in joys
             states.Push(readKey(joystickPrefix . "Joy" . joy) ? true : false)
+        if (observeBridge) {
+            x := readKey(joystickPrefix . "JoyX"), y := readKey(joystickPrefix . "JoyY")
+            if (IsNumber(x) and IsNumber(y))
+                states.moveX := (x - 50) / 50, states.moveY := (y - 50) / 50
+            states.ps := profile = "ps5-directinput" and readKey(joystickPrefix . "Joy13") ? true : false
+        }
         return states
     }
     if (!xinputGetState)
@@ -163,6 +177,8 @@ DecodeXInputState(state, profile) {
     states.Push(NumGet(state, 6, "UChar") > threshold, NumGet(state, 7, "UChar") > threshold)
     for _, flag in ControllerXInputShoulders(profile)
         states.Push((buttons & flag) != 0)
+    states.moveX := NumGet(state, 8, "Short") / 32768
+    states.moveY := NumGet(state, 10, "Short") / 32768
     return states
 }
 
@@ -184,7 +200,7 @@ InitXInput() {
 }
 
 WriteTransportStatus(force := false) {
-    global profile, device, phase, connected, ready, lastStatusTick, origin, CM
+    global profile, device, phase, connected, ready, lastStatusTick, origin, CM, CB
     if (!force and A_TickCount - lastStatusTick < 1000)
         return
     lastStatusTick := A_TickCount
@@ -196,6 +212,7 @@ WriteTransportStatus(force := false) {
     ; Replace the status as one file so Lua never treats a partial write as live.
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
+    contents .= "bridge_movement=" . CB.lastMovement . "`nbridge_ps=" . CB.lastPS . "`n"
     contents .= WrapperClientsStatus()
     WriteControllerFile(temporary, destination, contents)
 }

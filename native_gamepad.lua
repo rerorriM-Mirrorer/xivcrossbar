@@ -22,6 +22,7 @@ function M.open(path)
         stop = dll.off,
         tap_tab = dll.tap_tab,
         shoulder_slots = dll.shoulder_slots == 1,
+        trust_menu = dll.trust_menu == 1,
         detach = function()
             local detached = dll.detach and dll.detach() == 1
             hooks = detached and 'hooks detached | DLL resident' or 'detach failed | DLL resident'
