@@ -480,3 +480,9 @@ trigger, and chord priority. The matching controller reader and native
 DLL are required. `//xb bank status` reports the saved shoulder-bank
 preferences. The bank selector is available to diagnostics while the
 binder, slot dispatch, and drawing are still under development.
+
+2026-11-07: Added playable L1, R1 and L1+R1 banks. Choose an action in
+the regular binder, then hold the shoulder combo and select a slot.
+Use `//xb bank <l1|r1|both> on` to enable the bank. `show` and `hide`
+control visibility separately. Shoulder bindings are shared across the
+character's jobs and sets. The alternate RB chooser profile supports L1.

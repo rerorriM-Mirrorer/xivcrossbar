@@ -11,15 +11,11 @@ local binder=require('action_binder')
 local player=package.loaded.player
 player.hotbar=bars;player.hotbar_settings={active_environment='basic',active_hotbar=2}
 local builds,saves=0,0
-local env=setmetatable({player=player,theme_options={},action_manager={build=function(_,kind,action,target,alias,icon)
+local env=setmetatable({player=player,shoulder_banks=require('shoulder_banks'),shoulders=require('shoulder_banks'),theme_options={},action_manager={build=function(_,kind,action,target,alias,icon)
     builds=builds+1;return{type=kind,action=action,target=target,alias=alias,icon=icon}
 end},windower={add_to_chat=function()end},chat_format={say=function()end},reload_hotbar=function()return true end,
     set_active_environment=function(key)assert(bars[key]);player.hotbar_settings.active_environment=key end,
     is_valid_environment=function(key)return bars[key]~=nil end}, {__index=_G})
-function player:add_action(action,key,bar,slot)
-    bars[key]['hotbar_'..bar]=bars[key]['hotbar_'..bar] or {}
-    bars[key]['hotbar_'..bar]['slot_'..slot]=action
-end
 function player:save_hotbar()saves=saves+1 end
 local f=assert(io.open('xivcrossbar.lua'));local root=f:read('*a');f:close()
 local a=assert(root:find('function set_hotkey(',1,true));local b=assert(root:find('function delete_hotkey(',a,true))
@@ -31,6 +27,11 @@ env.windower.send_command=function(command)
     if key then env.switch_crossbars_command({key}) else assert(command=='input /echo one') end
 end
 f=assert(io.open('player.lua'));local source=f:read('*a');f:close()
+a=assert(source:find('function player:add_action(',1,true))
+b=assert(source:find('function create_send_command_coroutine',a,true))
+assert(load(source:sub(a,b-1),'actual action storage','t',env))()
+player.hotbar_settings.max=6
+for _,set in pairs(bars) do set.hotbar_2={} end
 a=assert(source:find('function player:execute_action(',1,true))
 -- dispatch_action is followed by next code; the ex branch returns early.
 b=source:find('\nfunction player:',source:find('function player:dispatch_action(',a,true)+10,true) or (#source+1)
@@ -78,6 +79,27 @@ for _,key in ipairs({'default','job-default','all-warps'}) do
     assert(bars.basic.hotbar_2.slot_7.action=='xb bar '..key)
 end
 assert(builds==6 and saves==6)
+binder.is_hidden=false; binder.state=5 -- SELECT_BUTTON_ASSIGNMENT
+binder.action_type,binder.action_name,binder.action_command=24,'Echo','input /echo one'
+binder:set_shoulder_combo(7)
+binder:clear_controller_input()
+assert(not binder:get_binding_preview_bank())
+binder:set_shoulder_combo(7)
+assert(binder:get_binding_preview_bank()==7)
+binder:dpad_left(true)
+assert(binder:get_tentative_binding_slot()==1 and binder:get_binding_preview_bank()==7)
+env.set_hotkey(7,1,'ex','Echo',nil,'input /echo one')
+assert(bars.shared['hotbar_shoulder-l1'].slot_1.action=='input /echo one')
+require('storage')
+local job, _, _, shared = split_hotbar({hotbar=bars})
+assert(not job.hotbar.shared and shared.hotbar.shared['hotbar_shoulder-l1'].slot_ll.action=='input /echo one')
+assert(player.hotbar_settings.active_environment=='basic')
+for _,key in ipairs({'basic','all-jobs-default','shared'}) do
+    player.hotbar_settings.active_environment=key
+    assert(player:execute_action(1,7))
+end
+player.hotbar_settings.active_environment='basic'
+assert(not player:execute_action(1,8))
 -- Selecting another action after Back replaces previous destination metadata.
 binder.state,binder.action_type=2,4
 binder.action_alias,binder.action_command,binder.action_icon='Old label','xb bar default','old-icon'

@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.shoulder-targeting1'
+_addon.version = '0.4.0-beta1.20261107.shoulder-slots1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -60,6 +60,7 @@ local profile_clock = require('socket').gettime
 local profile_gate = require('profile_gate').new(profile_clock)
 local theme = require('theme')
 local theme_options = theme.apply(settings)
+theme_options.shoulder_banks = true
 local buttonmapping = require('buttonmapping')
 local resource_generator = require('resource_generator')
 resource_generator.generate_outdated_resources()
@@ -199,7 +200,8 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
         chat_format.say(123, '[XIVCrossbar] Reload successfully before binding. Existing files were not changed.')
         return false
     end
-    local environment = player.hotbar_settings.active_environment
+    local active_environment = player.hotbar_settings.active_environment
+    local environment = shoulder_banks.destination(active_environment, hotbar)
 
     -- Custom-action bindings provide their own alias/linked metadata from the
     -- CustomActions.xml catalog, so the legacy name-based special cases below
@@ -259,7 +261,7 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     player:add_action(new_action, environment, hotbar, slot)
     player:save_hotbar()
     reload_hotbar()
-    set_active_environment(environment)
+    set_active_environment(active_environment)
     local feedback=require('binding_feedback')
     chat_format.say(207, feedback.bound(alias or action, feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
@@ -270,12 +272,13 @@ function delete_hotkey(hotbar, slot)
         chat_format.say(123, '[XIVCrossbar] Reload successfully before clearing a binding. Existing files were not changed.')
         return false
     end
-    local environment = player.hotbar_settings.active_environment
+    local active_environment = player.hotbar_settings.active_environment
+    local environment = shoulder_banks.destination(active_environment, hotbar)
 
     player:remove_action(environment, hotbar, slot)
     player:save_hotbar()
     reload_hotbar()
-    set_active_environment(environment)
+    set_active_environment(active_environment)
     local feedback=require('binding_feedback')
     chat_format.say(207, feedback.cleared(feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
@@ -301,7 +304,8 @@ end
 function change_slot_icon(hotbar_num, slot_num, icon)
     if (hotbar_num == nil or slot_num == nil) then return end
 
-    local environment = player.hotbar_settings.active_environment
+    local active_environment = player.hotbar_settings.active_environment
+    local environment = shoulder_banks.destination(active_environment, hotbar_num)
     local updated = player:set_slot_icon(environment, hotbar_num, slot_num, icon)
     if (not updated) then
         chat_format.say(123, '[XIVCrossbar] Change Icon: no action bound at the selected slot.')
@@ -717,15 +721,16 @@ local function emit_slotpress()
 end
 
 -- trigger hotbar action
-function trigger_action(slot)
-    ui:press_slot_pulse(player.hotbar_settings.active_hotbar, slot)
+function trigger_action(slot, bank)
+    local bar = bank or player.hotbar_settings.active_hotbar
+    ui:press_slot_pulse(bar, slot)
     if ui.slot_glow_enabled then ui_dirty = true end
     if settings.InputTest then
-        chat_format.say(207, '[XIVCrossbar test] Crossbar ' .. tostring(gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
-        ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
+        chat_format.say(207, '[XIVCrossbar test] Crossbar ' .. tostring(bank or gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
+        ui:trigger_feedback(bar, slot)
         return
     end
-    local accepted = player:execute_action(slot)
+    local accepted = player:execute_action(slot, bank)
 
     if (player.pending_env_switch ~= nil) then
         local target = player.pending_env_switch
@@ -733,7 +738,7 @@ function trigger_action(slot)
         set_active_environment(target)
     end
 
-    ui:trigger_feedback(player.hotbar_settings.active_hotbar, slot)
+    ui:trigger_feedback(bar, slot)
     if accepted then emit_slotpress() end
 end
 
@@ -2131,6 +2136,11 @@ local function route_controller_message(dik, pressed, chord)
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return end
     if dik == 89 or dik == 90 then
+        if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
+            local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
+            action_binder:set_shoulder_combo(shoulder_banks.ids[bank])
+            ui_dirty = true
+        end
         local eligible = context == 'gameplay' and info and not info.menu_open and windower.has_focus()
         if gamepad_state.shoulder_targeting and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, eligible)
             and dik == 90 and pressed then
@@ -2160,6 +2170,15 @@ local function route_controller_message(dik, pressed, chord)
     end
     if context == 'login' or (pressed and context == 'native-chat') then return end
     if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return end
+    if item.logical <= 66 and context == 'gameplay' and pressed and gamepad_state.shoulder_slots
+        and info and not info.menu_open and windower.has_focus() then
+        local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true)
+        local slot = gamepad.crossbar_slot(dik)
+        if bank and slot then
+            trigger_action(slot, shoulder_banks.ids[bank])
+            return
+        end
+    end
     if item.logical <= 66 and (context == 'gameplay' or context == 'native-chat') then return end
     if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return end
     local captured = gamepad_state.capturing
@@ -2202,7 +2221,7 @@ local function poll_directlink()
         return
     end
     local pid = native_gamepad.process_id
-    local shoulders = shoulder_banks.requested(settings.ShoulderBanks, settings.ControllerProfile)
+    local shoulders = native_gamepad.shoulder_slots or shoulder_banks.requested(settings.ShoulderBanks, settings.ControllerProfile)
     local key = settings.ControllerProfile..':'..settings.ControllerDevice..':'..tostring(shoulders)
     message_bridge:context(key, true, shoulders)
     if message_bridge:watchdog() then message_bridge:context(key, true, shoulders) end
@@ -2252,6 +2271,7 @@ do
         local active = native_mode~=nil
         native_mode,native_receiving,native_filtering=nil,false,false
         gamepad_state.shoulder_targeting=false
+        gamepad_state.shoulder_slots=false
         if retry then attempted=nil end
         if not native_gamepad then return end
         native_gamepad.stop()
@@ -2334,15 +2354,20 @@ do
             end
         end
         if native_filtering and context==4 then clear_controller_input() end
-        local actor = context == 1 and message_bridge.extended and native_gamepad.tap_tab
-            and settings.ShoulderBanks.Targeting and not info.menu_open and windower.ffxi.get_player()
-        local targeting = actor and actor.status ~= 4
+        local actor = context == 1 and message_bridge.extended and not info.menu_open
+            and (native_gamepad.shoulder_slots or settings.ShoulderBanks.Targeting) and windower.ffxi.get_player()
+        local targeting = native_gamepad.tap_tab and actor and actor.status ~= 4
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
-        -- The high bit enables native ownership for a fresh bare R1 edge.
-        generation=native_gamepad.poll(context + (targeting and 0x100 or 0), function()
+        local banks = actor and actor.status ~= 4 and native_gamepad.shoulder_slots
+            and shoulder_banks.capture_mask(settings.ShoulderBanks, settings.ControllerProfile) or 0
+        local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
+            and action_binder:is_binding_combo()
+        generation=native_gamepad.poll(context + (targeting and 0x100 or 0) + banks*0x200
+            + (binding and 0x1000 or 0), function()
             if generation and message_bridge.token then clear_controller_input() end
         end, function() end, generation)
         gamepad_state.shoulder_targeting = targeting and message_bridge.extended
+        gamepad_state.shoulder_slots = banks ~= 0 and message_bridge.extended
         local polls=native_gamepad.poll_count()
         if context~=0 and polls~=last_polls then last_native_poll=now end
         last_polls=polls
@@ -2365,7 +2390,7 @@ windower.register_event('prerender',function()
     native_poll()
     poll_directlink()
     local bank, bank_visible
-    if message_bridge.extended and native_filtering then
+    if gamepad_state.shoulder_slots and native_filtering then
         local info = windower.ffxi.get_info()
         local eligible = info and not info.chat_open and not info.menu_open and input_context() == 'gameplay'
         bank, bank_visible = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile,
@@ -2373,8 +2398,10 @@ windower.register_event('prerender',function()
     end
     if bank ~= gamepad_state.shoulder_bank or bank_visible ~= gamepad_state.shoulder_bank_visible then
         gamepad_state.shoulder_bank, gamepad_state.shoulder_bank_visible = bank, bank_visible
+        ui_dirty = true
         diagnostic:record('BANK', ('selected=%s visible=%s'):format(tostring(bank), tostring(bank_visible)))
     end
+    gamepad_state.shoulder_display = bank_visible and shoulder_banks.ids[bank] or nil
     action_binder:tick_navigation(profile_clock(), windower.has_focus())
     text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
@@ -2403,13 +2430,13 @@ windower.register_event('prerender',function()
         ui.geometry.load_fade_state.claimed = true
     end
     local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(settings.VisibilityMode,
-        gamepad_state.left_trigger or gamepad_state.right_trigger, xivcrossbar.hide_hotbars,
+        gamepad_state.left_trigger or gamepad_state.right_trigger or gamepad_state.shoulder_display ~= nil, xivcrossbar.hide_hotbars,
         ui.is_setup and ui.geometry:is_startup_reveal_pending())
         or action_binder:is_moving_crossbars() or env_chooser:is_showing()
     if not visible then crossbar_drag:finish() end
     if ui.is_setup then
         ui:update_trigger_scale(settings.Animation.TriggerScale, settings.Animation.SmallScale,
-            gamepad_state.active_bar, visible, settings.VisibilityMode=='oninput', menu_open)
+            gamepad_state.shoulder_display or gamepad_state.active_bar, visible, settings.VisibilityMode=='oninput', menu_open)
     end
     if ui.is_setup and ui.public_visible ~= visible then
         if visible then

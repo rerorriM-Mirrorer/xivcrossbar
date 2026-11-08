@@ -74,5 +74,16 @@ message(90,true);message(90,false)
 env.settings.ControllerProfile='ps5-directinput'
 message(87,true);message(90,true);message(90,false);message(87,false)
 assert(#outputs==2,'chords, menus, focus loss, RB chooser and triggers suppress targeting')
+local fired = {}
+env.trigger_action=function(slot,bank) fired[#fired+1]={slot,bank} end
+env.settings.ShoulderBanks.L1.Enabled=true
+env.gamepad_state.shoulder_slots=true
+message(89,true)
+message(59,true);message(59,true)
+message(89,false);message(59,false)
+assert(#fired==1 and fired[1][1]==4 and fired[1][2]==7,'L1 + Up dispatches once')
+message(59,true);message(89,true);message(59,true)
+assert(#fired==1,'holding a native direction before L1 must not dispatch it')
+message(59,false);message(89,false)
 print('Actual routing callback: R1 acquire/cycle, repeats, release, focus, menus and chord priority passed.')
 print('Native login and bare gameplay, guard gate, chord routing, chat release and setup passed.')

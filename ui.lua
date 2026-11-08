@@ -1,3 +1,4 @@
+local shoulders = require('shoulder_banks')
 local ui_resources = require('ui/resources')
 local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
@@ -242,6 +243,7 @@ end
 
 -- get x position for a given hotbar and slot
 function ui:get_slot_x(h, i)
+    if shoulders.labels[h] then h = 3 end
     if not self.UseAltLayout then
         local base = self.pos_x - 50
         if (h == 2) then
@@ -344,6 +346,7 @@ end
 
 -- get y position for a given hotbar and slot
 function ui:get_slot_y(h, i)
+    if shoulders.labels[h] then h = 3 end
     local base = self.pos_y
     local spacing = self.hotbar_spacing
     if (self.is_compact) then
@@ -477,7 +480,13 @@ end
 -- load the images and text
 function ui:load(theme_options)
     geometry:dispose_surfaces({[self.battle_notice]=true})
-    geometry:setup_bank_scales(theme_options.hotbar_number)
+    self.hotbars = {}
+    self.render_banks = {}
+    for h=1,theme_options.hotbar_number do self.render_banks[h] = h end
+    if theme_options.shoulder_banks then
+        for h=7,9 do self.render_banks[#self.render_banks+1] = h end
+    end
+    geometry:setup_bank_scales(theme_options.shoulder_banks and 9 or theme_options.hotbar_number)
     self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
@@ -559,7 +568,7 @@ function ui:load(theme_options)
     self:show_button_hints()
 
     -- create ui elements for hotbars
-    for h=1,theme_options.hotbar_number,1 do
+    for _, h in ipairs(self.render_banks) do
         self.hotbars[h] = {}
         self.hotbars[h].slot_background = {}
         self.hotbars[h].slot_icon = {}
@@ -690,13 +699,13 @@ function ui:set_display_layout(palette, enabled)
         return true
     end
     local old = {}
-    for h, bar in ipairs(self.hotbars) do
+    for h, bar in pairs(self.hotbars) do
         old[h] = {}
         for i = 1, 8 do old[h][i] = {self:get_slot_x(h,i), self:get_slot_y(h,i)} end
     end
     local old_x, old_y = self:get_slot_x(1,1), self:get_slot_y(1,4)
     self.display_palette, self.is_compact = palette, enabled
-    for h, bar in ipairs(self.hotbars) do
+    for h, bar in pairs(self.hotbars) do
         for i = 1, 8 do
             local dx,dy = self:get_slot_x(h,i)-old[h][i][1], self:get_slot_y(h,i)-old[h][i][2]
             for _, objects in pairs(bar) do
@@ -759,7 +768,7 @@ end
 
 function ui:get_drag_bounds()
     local left,top,right,bottom=math.huge,math.huge,-math.huge,-math.huge
-    for _,bar in ipairs(self.hotbars) do
+    for _,bar in pairs(self.hotbars) do
         for slot=1,8 do
             local object=bar.slot_background[slot]
             local m=geometry.surfaces[object]
@@ -784,7 +793,7 @@ function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, 
     local returning = enabled and visible and self.scale_active_bar >= 3 and selected < 3
     local revealing = enabled and autohide and visible and not self.scale_visible and geometry.opacity == 0
     local instant = not enabled or (not visible and not geometry.fade_enabled)
-    for h=1,self.theme.hotbar_number do
+    for _, h in ipairs(self.render_banks) do
         local left, right = math.huge, -math.huge
         for slot=1,8 do
             local x = self:get_slot_x(h, slot)
@@ -813,7 +822,7 @@ function ui:hide()
 
     self:hide_button_hints()
 
-    for h=1,self.theme.hotbar_number,1 do
+    for _, h in ipairs(self.render_banks) do
         for i=1,8,1 do
             self.hotbars[h].slot_background[i]:hide()
             self.hotbars[h].slot_warmup[i]:hide()
@@ -855,12 +864,12 @@ function ui:show(player_hotbar, environment)
 
     self:show_button_hints()
 
-    for h=1,self.theme.hotbar_number,1 do
+    for h=1,self.theme.hotbar_number do
         for i=1,8,1 do
             local slot = i
             if slot == 10 then slot = 0 end
 
-            local bar = player_hotbar[environment]['hotbar_' .. h]
+            local bar = shoulders.bar(player_hotbar, environment, h)
             local action = bar and bar['slot_' .. slot]
 
             if (action == nil or action.action == nil) then
@@ -932,7 +941,7 @@ function ui:show_bar_background(hotbar_number)
     geometry:assign_bank(self.bar_background_right, hotbar_number)
 
     if self.display_palette then
-        if self.UseAltLayout and hotbar_number ~= 3 and hotbar_number ~= 4 then
+        if self.UseAltLayout and hotbar_number ~= 3 and hotbar_number ~= 4 and not shoulders.labels[hotbar_number] then
             self.bar_background:hide()
             fit_trigger_field(self,self.bar_background_left,hotbar_number,1,4)
             fit_trigger_field(self,self.bar_background_right,hotbar_number,5,8)
@@ -948,7 +957,7 @@ function ui:show_bar_background(hotbar_number)
     self.bar_background_left:pos(self:get_slot_x(hotbar_number, 1) - 30, self:get_slot_y(hotbar_number, 4) - 35)
 
     if self.UseAltLayout then
-        if hotbar_number == 3 or hotbar_number == 4 then
+        if hotbar_number == 3 or hotbar_number == 4 or shoulders.labels[hotbar_number] then
             self.bar_background:show()
             self.bar_background_left:hide()
             self.bar_background_right:hide()
@@ -989,19 +998,14 @@ function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepa
     self.disabled_slots.on_cooldown = {}
     self.disabled_slots.on_warmup = {}
 
-    for h=1,self.theme.hotbar_number,1 do
+    for _, h in ipairs(self.render_banks) do
         local isThisBarActive = gamepad_state.active_bar == h
         local isThisBarVisibleByDefault = h < 3 
         local shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3
         local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
         for slot=1,8,1 do
-            local action = nil
-
-            if (player_hotbar[environment] and player_hotbar[environment]['hotbar_' .. h] and
-                player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]) then
-                action = player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]
-            end
-
+            local bar = shoulders.bar(player_hotbar, environment, h)
+            local action = bar and bar['slot_' .. slot]
             self:load_action(player_hotbar, environment, h, slot, action, player_vitals, shouldDrawThisBar)
         end
     end
@@ -1242,12 +1246,12 @@ end
 function ui:check_vitals(player_hotbar, player_vitals, environment)
     local selected=player_hotbar and player_hotbar[environment]
     if not selected then return end
-    for h=1,self.theme.hotbar_number,1 do
+    for _, h in ipairs(self.render_banks) do
         for i=1,8,1 do
             local slot = i
             if slot == 10 then slot = 0 end
 
-            local bar=selected['hotbar_' .. h]
+            local bar=shoulders.bar(player_hotbar, environment, h)
             local action=bar and bar['slot_' .. slot]
 
             -- use the default action if this slot is otherwise empty
@@ -1785,8 +1789,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     self:display_aa_indicator()
 
     local active_bar = menu_open and (preview_bank or 0)
-        or gamepad_state.active_bar
-    if menu_open and preview_bank and preview_bank >= 1 and preview_bank <= self.theme.hotbar_number
+        or (gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0)
+    if menu_open and preview_bank and preview_bank >= 1 and self.hotbars[preview_bank] ~= nil
         and tentative_slot and tentative_slot >= 1 and tentative_slot <= 8 then
         self.binding_tint:pos(self:get_slot_x(preview_bank, tentative_slot), self:get_slot_y(preview_bank, tentative_slot))
         self.binding_tint:show()
@@ -1810,13 +1814,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         self.bar_background_right:hide()
     end
 
-    for h=1,self.theme.hotbar_number,1 do
+    for _, h in ipairs(self.render_banks) do
         local isThisBarActive = active_bar == h
         local isThisBarVisibleByDefault
         local shouldDrawDefaultVisibleBars
         if not self.AutoHideExtraBars then
-            isThisBarVisibleByDefault = h < 3 or h > 4
-            shouldDrawDefaultVisibleBars = active_bar < 3 or active_bar > 4
+            isThisBarVisibleByDefault = h < 3 or h > 4 and h < 7
+            shouldDrawDefaultVisibleBars = active_bar < 3 or active_bar > 4 and active_bar < 7
         else
             isThisBarVisibleByDefault = h < 3
             shouldDrawDefaultVisibleBars = active_bar < 3
@@ -1837,10 +1841,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self.hotbars[h].slot_text[i]:show()
                 self.hotbars[h].slot_cost[i]:show()
 
-                local action = nil
-                if (player_hotbar[environment] and player_hotbar[environment]['hotbar_' .. h]) then
-                    action = player_hotbar[environment]['hotbar_' .. h]['slot_' .. slot]
-                end
+                local bar = shoulders.bar(player_hotbar, environment, h)
+                local action = bar and bar['slot_' .. slot]
 
                 if (action == nil or action.action == nil or (self.display_palette and action.action == '')) then
                     action = maybe_get_default_action(player_hotbar, environment, h, slot)
@@ -2382,7 +2384,7 @@ function ui:show_controller_icons(h)
             self.hotbars[h].slot_recast[dpadSlot]:show()
             self.hotbars[h].slot_recast[faceSlot]:pos(self:get_slot_x(h, faceSlot - 2.5), self:get_slot_y(h, 2) + 20)
             self.hotbars[h].slot_recast[faceSlot]:show()
-        elseif h == 3 or h == 4 then
+        elseif h == 3 or h == 4 or shoulders.labels[h] then
             self.hotbars[h].slot_recast[dpadSlot]:pos(self:get_slot_x(h, dpadSlot - 8.5), self:get_slot_y(h, 2) + 20)
             self.hotbars[h].slot_recast[dpadSlot]:show()
             self.hotbars[h].slot_recast[faceSlot]:pos(self:get_slot_x(h, faceSlot - 2.5), self:get_slot_y(h, 2) + 20)
@@ -2470,6 +2472,7 @@ function ui:maybe_use_enchanted_item(hotbar, slot)
 end
 
 function maybe_get_default_action(hotbar, environment, hb, slot)
+    if shoulders.labels[hb] then return nil end
     if (environment == 'shared') then return nil end
 
     local h = 'hotbar_' .. hb

@@ -100,6 +100,24 @@ int main() {
         owner.apply(0, 2, false, false);
     }
     check(!(owner.apply(r1, 2, true, false, 0, 0, true).down & r1), "addon menu does not acquire R1");
+    owner.reset();
+    owner.apply(0, 2, false, false);
+    check(owner.apply(l1 | up | face, 2, false, false, 0, 1, false, 1).down == (l1 | up | face),
+        "enabled L1 captures its new slots");
+    check(owner.apply(right_trigger | up | face, 2, false, false, 0, 2, false, 1).down == right_trigger,
+        "trigger takeover does not acquire held slots again");
+    owner.apply(up | face, 2, false, false, 0, 3, false, 1);
+    check(owner.apply(up | face, 2, false, false, 0, 200, false, 1).suppressed == (up | face),
+        "shoulder slots stay owned through release, even after trigger handoff");
+    check(owner.apply(0, 2, false, false).up == (up | face), "shoulder slot release clears ownership");
+    owner.reset();
+    owner.apply(0, 2, false, false);
+    check(owner.apply(l1 | r1 | face, 2, false, false, 0, 1, false, 4).down == (l1 | r1 | face),
+        "combined bank captures both shoulders and its slot");
+    owner.reset();
+    owner.apply(0, 2, false, false);
+    check(owner.apply(l1, 2, true, false, 0, 1, false, 0, true).down == l1,
+        "binding captures a disabled shoulder");
     std::uint8_t buttons[32]{};
     buttons[1] = buttons[6] = buttons[10] = 0x80;
     check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger), "DirectInput layout");

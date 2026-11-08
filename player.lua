@@ -2,6 +2,7 @@ local chat_format = require('libs/chat_status')
 local res = require('resources')
 -- Windower's logger exports a non-raising error(). Guards need Lua's exception.
 local error = (_raw and _raw.error) or error
+local shoulders = require('shoulder_banks')
 local storage = require('storage')
 local action_manager = require('action_manager')
 local mount_roulette = require('libs/mountroulette/mountroulette')
@@ -615,27 +616,29 @@ function player:add_action(action, environment, hotbar, slot)
     if environment == 'b' then environment = 'battle' elseif environment == 'f' then environment = 'field' end
     if slot == 10 then slot = 0 end
 
-    local env_key = kebab_casify(environment)
+    local bank_environment, bar_key = shoulders.destination(environment, hotbar)
+    local env_key = kebab_casify(bank_environment)
     if (env_key == nil) then
         return
     end
 
     if self.hotbar[env_key] == nil then
         self.hotbar[env_key] = {}
-        self.hotbar[env_key]['name'] = environment
+        self.hotbar[env_key]['name'] = bank_environment
         self:setup_environment_hotbars(env_key)
     end
 
-    if self.hotbar[env_key]['hotbar_' .. hotbar] == nil then
+    if shoulders.labels[hotbar] then self.hotbar[env_key][bar_key] = self.hotbar[env_key][bar_key] or {} end
+    if self.hotbar[env_key][bar_key] == nil then
         windower.console.write('XIVCROSSBAR: invalid hotbar (hotbar number)')
         return
     end
 
-    if self.hotbar[env_key]['hotbar_' .. hotbar]['slot_' .. slot] == nil then
-        self.hotbar[env_key]['hotbar_' .. hotbar]['slot_' .. slot] = {}
+    if self.hotbar[env_key][bar_key]['slot_' .. slot] == nil then
+        self.hotbar[env_key][bar_key]['slot_' .. slot] = {}
     end
 
-    self.hotbar[env_key]['hotbar_' .. hotbar]['slot_' .. slot] = action
+    self.hotbar[env_key][bar_key]['slot_' .. slot] = action
 end
 
 function create_send_command_coroutine(command)
@@ -651,23 +654,25 @@ function player:create_use_item_coroutine(item_name)
     end
 end
 
-function player:execute_action(slot)
-    local h = self.hotbar_settings.active_hotbar
+function player:execute_action(slot, bank_override)
+    local h = bank_override or self.hotbar_settings.active_hotbar
     local env = self.hotbar_settings.active_environment
 
-    local bank = self.hotbar[env] and self.hotbar[env]['hotbar_' .. h]
+    local bank = shoulders.bar(self.hotbar, env, h)
     local action = bank and bank['slot_' .. slot]
     local is_missing = action == nil or action.action == nil or action.action == ''
 
-    if (is_missing and env ~= 'default' and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['default'] and self.hotbar['default']['hotbar_' .. h] and
-        self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]
-    elseif (is_missing and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['job-default'] and self.hotbar['job-default']['hotbar_' .. h] and
-        self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]
-    elseif (is_missing and env ~= 'all-jobs-default' and self.hotbar['all-jobs-default'] and self.hotbar['all-jobs-default']['hotbar_' .. h] and
-        self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]) then
-        action = self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]
+    if not shoulders.labels[h] then
+        if (is_missing and env ~= 'default' and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['default'] and self.hotbar['default']['hotbar_' .. h] and
+            self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]) then
+            action = self.hotbar['default']['hotbar_' .. h]['slot_' .. slot]
+        elseif (is_missing and env ~= 'job-default' and env ~= 'all-jobs-default' and self.hotbar['job-default'] and self.hotbar['job-default']['hotbar_' .. h] and
+            self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]) then
+            action = self.hotbar['job-default']['hotbar_' .. h]['slot_' .. slot]
+        elseif (is_missing and env ~= 'all-jobs-default' and self.hotbar['all-jobs-default'] and self.hotbar['all-jobs-default']['hotbar_' .. h] and
+            self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]) then
+            action = self.hotbar['all-jobs-default']['hotbar_' .. h]['slot_' .. slot]
+        end
     end
 
     local is_still_missing = action == nil or action.action == nil or action.action == ''
@@ -844,16 +849,15 @@ function player:remove_action(environment, hotbar, slot)
     if slot == 10 then slot = 0 end
 
     if self.hotbar[environment] == nil then return end
-    if self.hotbar[environment]['hotbar_' .. hotbar] == nil then return end
-
-    self.hotbar[environment]['hotbar_' .. hotbar]['slot_' .. slot] = nil
+    local bank = shoulders.bar(self.hotbar, environment, hotbar)
+    if bank then bank['slot_' .. slot] = nil end
 end
 
 -- update a slot's icon
 function player:set_slot_icon(environment, hotbar, slot, icon)
     if (environment == nil) then return false end
     if (self.hotbar[environment] == nil) then return false end
-    local hb = self.hotbar[environment]['hotbar_' .. hotbar]
+    local hb = shoulders.bar(self.hotbar, environment, hotbar)
     if (hb == nil) then return false end
     local action = hb['slot_' .. slot]
     if (action == nil or action.action == nil) then return false end

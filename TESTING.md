@@ -1,3 +1,42 @@
+# Current Development Status — November 7, 2026 — Playable shoulder banks
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint: `eb63165f56a34a256216547f3c699124c4a7a5f2`.
+Test build: `0.4.0-beta1.20261107.shoulder-slots1`.
+
+L1, R1 and L1+R1 now have eight playable slots each. The normal binder
+previews and edits them, even while disabled. Named bank records in
+the character's Shared.xml keep bindings separate from job/subjob files
+and numbered crossbars. The slot executor and centered combined-trigger
+layout are shared with existing bars. Targeting keeps its separate toggle.
+
+Install the full matching Windows x86 artifact with FFXI closed and the
+shared reader stopped. Keep the existing data directory. Roll back by
+closing FFXI, stopping the reader, and restoring the prior program files.
+
+1. In the ordinary binder choose a Console Command, e.g. `input /echo L1 slot`.
+   On Enter Button Combo hold L1 and press a direction or face button.
+   Release it, then confirm the tentative binding.
+2. Run `//xb bank l1 on`. Hold L1 and press that same slot. Expect the
+   centered bank, one command and no native slot action. Release L1 first
+   with a direction still held. The direction must stay owned until release.
+3. Hold L1, hold L2 or R2, and confirm the trigger bar wins. Release the
+   trigger with L1 still held. The L1 bank returns. A slot held across
+   either change must not fire twice. Test both shoulder chord orders.
+4. Use `//xb bank l1 hide` to test dispatch without drawing and
+   `//xb bank l1 off` to restore native input. Re-enable, switch jobs,
+   and reload to verify the same slot remains bound. Check binder delete
+   and icon changes. On the RB chooser profile, test L1 only.
+5. Check menus, focus, chat and older installations with all banks off.
+   The earlier R1 targeting live checks still apply.
+
+Simulated coverage includes the real binder confirmation path, shared
+storage routing, action execution across sets, centered layout and
+trigger priority, and native ownership through release. Physical
+controller and in-game behavior remain to be checked.
+
+---
+
 # Current Development Status — November 7, 2026 — R1 targeting and bank selection
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

@@ -1,3 +1,4 @@
+local shoulders = require('shoulder_banks')
 local chat_format = require('libs/chat_status')
 local ui_resources = require('ui/resources')
 require("lists")
@@ -506,6 +507,7 @@ function action_binder:reset_gamepad_face_buttons()
 end
 
 function action_binder:reset_gamepad_triggers()
+    self.shoulder_crossbar = nil
     self.trigger_left_pressed = false
     self.trigger_left_doublepressed = false
     self.trigger_right_pressed = false
@@ -515,6 +517,7 @@ end
 function action_binder:clear_controller_input()
     self.held_navigation = nil
     self:reset_gamepad()
+    if self:is_binding_combo() then self.active_crossbar = nil end
     close_left_doublepress_window()
     close_right_doublepress_window()
     -- Cancel a pending turn without treating focus changes as button presses.
@@ -581,7 +584,7 @@ function action_binder:update_active_crossbar(left_trigger_just_pressed, right_t
             self.active_crossbar = 2
         end
     else
-        self.active_crossbar = nil
+        self.active_crossbar = self.shoulder_crossbar
     end
 end
 
@@ -592,7 +595,7 @@ function action_binder:dpad_left(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.dpad_left_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 1
             self:submit_selected_option()
@@ -612,7 +615,7 @@ function action_binder:dpad_right(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.dpad_right_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 3
             self:submit_selected_option()
@@ -632,7 +635,7 @@ function action_binder:dpad_down(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.dpad_down_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 2
             self:submit_selected_option()
@@ -652,7 +655,7 @@ function action_binder:dpad_up(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.dpad_up_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 4
             self:submit_selected_option()
@@ -667,7 +670,7 @@ end
 
 function action_binder:button_a(pressed)
     self:menu_input('a',pressed)
-    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'a' or
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'a' or
             self.button_layout == 'playstation' and self.cancel_button == 'cross' or
             self.button_layout == 'xbox' and self.cancel_button == 'a' or
             self.button_layout == 'nintendo' and self.cancel_button == 'b') then self:go_back(); return end
@@ -676,7 +679,7 @@ function action_binder:button_a(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.button_a_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 6
             self:submit_selected_option()
@@ -698,7 +701,7 @@ end
 
 function action_binder:button_b(pressed)
     self:menu_input('b',pressed)
-    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'b' or
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'b' or
             self.button_layout == 'playstation' and self.cancel_button == 'square' or
             self.button_layout == 'xbox' and self.cancel_button == 'x' or
             self.button_layout == 'nintendo' and self.cancel_button == 'y') then self:go_back(); return end
@@ -707,7 +710,7 @@ function action_binder:button_b(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.button_b_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 5
             self:submit_selected_option()
@@ -729,7 +732,7 @@ end
 
 function action_binder:button_x(pressed)
     self:menu_input('x',pressed)
-    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'x' or
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'x' or
             self.button_layout == 'playstation' and self.cancel_button == 'circle' or
             self.button_layout == 'xbox' and self.cancel_button == 'b' or
             self.button_layout == 'nintendo' and self.cancel_button == 'a') then self:go_back(); return end
@@ -738,7 +741,7 @@ function action_binder:button_x(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.button_x_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 7
             self:submit_selected_option()
@@ -760,7 +763,7 @@ end
 
 function action_binder:button_y(pressed)
     self:menu_input('y',pressed)
-    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.trigger_left_pressed and not self.trigger_right_pressed and (self.button_layout == 'gamecube' and self.cancel_button == 'y' or
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'y' or
             self.button_layout == 'playstation' and self.cancel_button == 'triangle' or
             self.button_layout == 'xbox' and self.cancel_button == 'y' or
             self.button_layout == 'nintendo' and self.cancel_button == 'x') then self:go_back(); return end
@@ -769,7 +772,7 @@ function action_binder:button_y(pressed)
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
         self.button_y_pressed = pressed
-        if (pressed and (self.trigger_left_pressed or self.trigger_right_pressed)) then
+        if (pressed and (self.active_crossbar)) then
             self:show_pressed_buttons()
             self.hotkey = 8
             self:submit_selected_option()
@@ -786,6 +789,18 @@ function action_binder:button_y(pressed)
             self.button_layout == 'nintendo' and self.cancel_button == 'x') then
             self:go_back()
         end
+    end
+end
+
+function action_binder:is_binding_combo()
+    return not self.is_hidden and not self.chooser_active and self.state == states.SELECT_BUTTON_ASSIGNMENT
+end
+
+function action_binder:set_shoulder_combo(bar)
+    if self:is_binding_combo() then
+        self.shoulder_crossbar = bar
+        self:update_active_crossbar(false, false)
+        self:show_pressed_buttons()
     end
 end
 
@@ -1980,6 +1995,8 @@ function action_binder:show_button_entry_captions(confirming)
             or 'Press a button combo to bind it to this action'
     end
 
+    local shoulder = shoulders.labels[self.active_crossbar]
+    if shoulder then caption_text = shoulder..'  —  '..caption_text end
     local caption = self:create_text(caption_text, caption_x, caption_y)
     caption:size(14)
     self:center_caption(caption, caption_y)
@@ -1993,6 +2010,7 @@ function action_binder:show_button_entry_captions(confirming)
 end
 
 function action_binder:display_button_assigner()
+    self.active_crossbar = nil
     self:show_set_title('Enter Button Combo')
     self:reset_gamepad()
     self.selector:hide()
@@ -3384,14 +3402,14 @@ function action_binder:capture_global_icon_source_name()
     local function lookup(env_name)
         local env_table = player_data.hotbar[env_name]
         if (env_table == nil) then return nil end
-        local hb = env_table['hotbar_' .. self.active_crossbar]
+        local hb = shoulders.bar(player_data.hotbar, env_name, self.active_crossbar)
         if (hb == nil) then return nil end
         local action = hb['slot_' .. self.hotkey]
         if (action == nil or action.action == nil) then return nil end
         return action
     end
 
-    local env = player_data.hotbar_settings.active_environment
+    local env = shoulders.destination(player_data.hotbar_settings.active_environment, self.active_crossbar)
     local action = lookup(env)
     if (action == nil) then
         for _, d in ipairs({'default', 'job-default', 'all-jobs-default'}) do
@@ -3411,12 +3429,12 @@ function action_binder:capture_global_icon_source_name()
 end
 
 function action_binder:check_slot_bound_in_active_env()
-    local env = player_data.hotbar_settings.active_environment
+    local env = shoulders.destination(player_data.hotbar_settings.active_environment, self.active_crossbar)
 
     local function lookup(env_name)
         local env_table = player_data.hotbar[env_name]
         if (env_table == nil) then return nil end
-        local hb = env_table['hotbar_' .. self.active_crossbar]
+        local hb = shoulders.bar(player_data.hotbar, env_name, self.active_crossbar)
         if (hb == nil) then return nil end
         local action = hb['slot_' .. self.hotkey]
         if (action == nil or action.action == nil) then return nil end

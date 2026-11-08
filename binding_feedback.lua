@@ -1,6 +1,6 @@
 -- Human-readable locations use the same slot order as the XML serializer.
 local feedback = {}
-local bars = {'L2', 'R2', 'R2 > L2', 'L2 > R2', 'L2 twice', 'R2 twice'}
+local bars = {'L2', 'R2', 'R2 > L2', 'L2 > R2', 'L2 twice', 'R2 twice', 'L1', 'R1', 'L1 + R1'}
 local buttons = {'Left', 'Down', 'Right', 'Up', 'Square', 'Cross', 'Circle', 'Triangle'}
 function feedback.set_name(hotbars, key)
     local set=hotbars and hotbars[key]

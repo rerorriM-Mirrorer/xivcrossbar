@@ -1,5 +1,18 @@
 local M = {}
 local banks = {'L1', 'R1', 'Both'}
+M.ids = {L1=7, R1=8, Both=9}
+M.labels = {[7]='L1', [8]='R1', [9]='L1 + R1'}
+local keys = {[7]='hotbar_shoulder-l1', [8]='hotbar_shoulder-r1', [9]='hotbar_shoulder-both'}
+function M.destination(environment, bar)
+    if keys[bar] then return 'shared', keys[bar] end
+    return environment, 'hotbar_'..bar
+end
+function M.bar(hotbar, environment, bar)
+    local key
+    environment, key = M.destination(environment, bar)
+    return hotbar[environment] and hotbar[environment][key]
+end
+
 local names = {l1='L1', r1='R1', both='Both'}
 local function supported(profile, bank)
     return profile ~= 'xinput-r1-chooser' or bank == 'L1'
@@ -13,10 +26,18 @@ function M.requested(settings, profile)
     return false
 end
 
-function M.select(settings, profile, down, eligible)
-    if not eligible or down[87] or down[88] or down[67] or down[68] then return end
+function M.capture_mask(settings, profile)
+    local mask = 0
+    for index, bank in ipairs(banks) do
+        if settings[bank].Enabled and supported(profile, bank) then mask = mask + 2^(index-1) end
+    end
+    return mask
+end
+
+function M.select(settings, profile, down, eligible, binding)
+    if not eligible or down[67] or down[68] or (not binding and (down[87] or down[88])) then return end
     local bank = down[89] and (down[90] and 'Both' or 'L1') or down[90] and 'R1'
-    if bank and supported(profile, bank) and settings[bank].Enabled then
+    if bank and supported(profile, bank) and (binding or settings[bank].Enabled) then
         return bank, settings[bank].Visible
     end
 end
@@ -46,7 +67,7 @@ function M.command(settings, profile, section, option, value, save, say)
         if option == 'on' or option == 'off' then settings[bank].Enabled = option == 'on'
         else settings[bank].Visible = option == 'show' end
         save()
-        say(bank..' bank preference saved for the bank UI.')
+        say(bank..' bank '..option..'.')
     elseif section == 'status' and not option and not value then
         M.command(settings, profile, 'targeting', nil, nil, save, say)
         for _, name in ipairs(banks) do
@@ -54,7 +75,6 @@ function M.command(settings, profile, section, option, value, save, say)
             say(name..' bank '..(state.Enabled and 'ON' or 'OFF')..' | '..(state.Visible and 'visible' or 'hidden')..
                 (supported(profile, name) and '' or ' | unavailable with the RB chooser'))
         end
-        say('Bank settings preview. Binding and rendering are pending.')
     else
         say('//xb bank status | targeting [on|off] | <l1|r1|both> <on|off|show|hide>')
     end

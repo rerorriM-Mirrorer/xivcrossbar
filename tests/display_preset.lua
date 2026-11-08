@@ -46,6 +46,8 @@ ui:set_action_cost_color(1,1,'mp',false);assert(captured[1]==194 and captured[2]
 ui:set_action_cost_color(1,1,'mp',true);assert(captured[1]==255 and captured[2]==149)
 ui:set_action_cost_color(1,1,'tp',false);assert(captured[3]==255 and captured[2]==211)
 ui.theme.hotbar_number=1
+ui.render_banks={1}
+env.shoulders=require('shoulder_banks')
 ui.disabled_slots={no_vitals={},actions={},on_cooldown={},on_warmup={}}
 ui.toggle_slot=function() end
 env.maybe_get_default_action=function() end

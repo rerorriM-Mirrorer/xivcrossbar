@@ -51,4 +51,23 @@ assert(ui.bar_background_left:visible() and ui.bar_background_right:visible())
 assert(ui.bar_background_right:path():find('xi-bar_bg_compact_alt.png',1,true))
 ui:show_bar_background(3)
 assert(ui.bar_background:visible() and not ui.bar_background_right:visible())
+options.hotbar_number=2
+options.shoulder_banks=true
+ui:setup(options,{})
+assert(ui.hotbars[7] and not ui.hotbars[3], 'shoulder setup keeps the original bar count')
+assert(ui:get_slot_x(7,1)==ui:get_slot_x(3,1) and ui:get_slot_y(9,8)==ui:get_slot_y(3,8))
+actions.shared={['hotbar_shoulder-l1']={slot_1={type='ct',action='echo bound',source_environment='shared'}}}
+local function shoulder_draw(active, shoulder, menu, preview)
+    ui:check_recasts(actions,{},'basic',{}, {active_bar=active,shoulder_display=shoulder},
+        {get_skillchain_window=function()return 0,0 end},{},false,false,menu,preview,1)
+end
+shoulder_draw(0,7)
+assert(ui.hotbars[7].slot_icon[1]:visible() and not ui.hotbars[1].slot_icon[1]:visible())
+shoulder_draw(1,7)
+assert(not ui.hotbars[7].slot_icon[1]:visible() and ui.hotbars[1].slot_icon[1]:visible())
+shoulder_draw(0,nil,true,9)
+assert(ui.hotbars[9].slot_icon[1]:visible() and ui.binding_tint:visible())
+ui:set_display_layout(nil,true)
+assert(ui.geometry.surfaces[ui.hotbars[9].slot_icon[1]].x==ui:get_slot_x(9,1))
+print('Centered shoulder banks, trigger priority, disabled binding preview and layout changes passed.')
 print('XI compact spacing, Legacy reversibility, empty frames and fitted trigger fields passed.')
