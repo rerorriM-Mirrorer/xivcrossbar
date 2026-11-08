@@ -486,3 +486,11 @@ the regular binder, then hold the shoulder combo and select a slot.
 Use `//xb bank <l1|r1|both> on` to enable the bank. `show` and `hide`
 control visibility separately. Shoulder bindings are shared across the
 character's jobs and sets. The alternate RB chooser profile supports L1.
+
+2026-11-08: `//xb triggerbanks 5` shares both trigger orders on bank 3
+and keeps both double taps on their existing banks. With TriggerScale on,
+the side pair and centered bank slide and crossfade when swapping.
+
+2026-11-08: Typed Trust, avatar and spirit slots now follow party/pet state.
+Pet attacks can pair with standard Attack or Disengage. Use `//xb jobsets`
+to add missing editable category sets for the current job combination.

@@ -106,6 +106,12 @@ binder.action_alias,binder.action_command,binder.action_icon='Old label','xb bar
 binder.selector:display_options(L{{id='spell',name='Cure',icon='spell.png',data={target_type={Self=true,Party=true}}}})
 binder:submit_selected_option()
 assert(binder.action_alias==nil and binder.action_command==nil and binder.action_icon==nil)
+binder.theme_options.hotbar_number=5
+binder.trigger_left_pressed,binder.trigger_right_pressed=true,true
+binder:update_active_crossbar(true,false);assert(binder.active_crossbar==3)
+binder:update_active_crossbar(false,true);assert(binder.active_crossbar==3)
+binder.trigger_left_pressed,binder.trigger_right_doublepressed=false,true
+binder:update_active_crossbar(false,true);assert(binder.active_crossbar==6)
 binder:hide();binder:reset_state()
 require('ui/resources').destroy_all()
 print('Default destinations, renamed labels, actual binder/slot save, same-slot round trips and quick-switch return passed.')

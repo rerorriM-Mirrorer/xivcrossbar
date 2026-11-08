@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.shoulder-slots1'
+_addon.version = '0.4.0-beta1.20261107.personal-parity1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -851,8 +851,8 @@ function set_action_command(args)
     local alias = args[7] or nil
     local icon = args[8] or nil
 
-    if hotbar < 1 or hotbar > theme_options.hotbar_number then
-        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
+    if hotbar < 1 or hotbar > (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) then
+        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) .. '.')
         return
     end
 
@@ -880,8 +880,8 @@ function delete_action_command(args)
     local hotbar = gamepad_converter:convert_to_crossbar(args[2]) or 0
     local slot = gamepad_converter:convert_to_slot(args[3]) or 0
 
-    if hotbar < 1 or hotbar > theme_options.hotbar_number then
-        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
+    if hotbar < 1 or hotbar > (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) then
+        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) .. '.')
         return
     end
 
@@ -912,8 +912,8 @@ function copy_action_command(args, is_moving)
     local to_hotbar = gamepad_converter:convert_to_crossbar(args[5]) or 0
     local to_slot = gamepad_converter:convert_to_slot(args[6]) or 0
 
-    if hotbar < 1 or hotbar > theme_options.hotbar_number or to_hotbar < 1 or to_hotbar > theme_options.hotbar_number then
-        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
+    if hotbar < 1 or hotbar > (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) or to_hotbar < 1 or to_hotbar > (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) then
+        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) .. '.')
         return
     end
 
@@ -939,8 +939,8 @@ function update_alias_command(args)
     local slot = gamepad_converter:convert_to_slot(args[3]) or 0
     local alias = args[4]
 
-    if hotbar < 1 or hotbar > theme_options.hotbar_number then
-        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
+    if hotbar < 1 or hotbar > (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) then
+        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) .. '.')
         return
     end
 
@@ -966,8 +966,8 @@ function update_icon_command(args)
     local slot = gamepad_converter:convert_to_slot(args[3]) or 0
     local icon = args[4]
 
-    if hotbar < 1 or hotbar > theme_options.hotbar_number then
-        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. theme_options.hotbar_number .. '.')
+    if hotbar < 1 or hotbar > (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) then
+        chat_format.say(123,'XIVCROSSBAR: Invalid hotbar. Please use a number between 1 and ' .. (theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number) .. '.')
         return
     end
 
@@ -1262,6 +1262,8 @@ function display_help_menu()
     chat_help.command("unload","Fade out and unload the addon.")
     chat_help.command("regenerate","Regenerate cached resource files.")
     chat_help.command("bank targeting [on|off]","Use R1 to acquire or cycle targets.")
+    chat_help.command("triggerbanks [3|4|5|6]","Set the trigger layout and reload. Five shares the combined bank.")
+    chat_help.command("jobsets","Create missing category sets for the current job combination.")
     chat_help.command("bank status","Show shoulder bank preferences.")
     chat_help.command("slotrumble [on|off]","Toggle the optional GripRumble test tap for this load.")
     chat_help.command("inputtest [on|off]","Replace real actions with dummy tests.")
@@ -1340,6 +1342,7 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    if player.cancel_summon_swap then player:cancel_summon_swap() end
     profile_gate:reset()
     xivcrossbar.ready = false
     xivcrossbar.initialized = false
@@ -1362,6 +1365,7 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    if player.cancel_summon_swap then player:cancel_summon_swap() end
     launch_attempt = nil
     native_stop(settings.NativeDetachOnUnload~=false)
     if diagnostic then diagnostic:close() end
@@ -1411,6 +1415,30 @@ windower.register_event('addon command', function(command, ...)
                 chat_format.say(207, '[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
             end
         else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
+        return
+    elseif command == 'triggerbanks' then
+        local value = tonumber((...))
+        if value == 3 or value == 4 or value == 5 or value == 6 then
+            if settings.Hotbar.Number ~= value then
+                settings.Hotbar.Number = value
+                config.save(settings)
+                graceful_restart(false)
+            end
+        else
+            chat_format.say(207, '[XIVCrossbar] Trigger banks '..settings.Hotbar.Number..' | //xb triggerbanks [3|4|5|6]')
+        end
+        return
+    elseif command == 'jobsets' then
+        if not xivcrossbar.ready or not player.hotbar_load_ok then return end
+        local actor = windower.ffxi.get_player()
+        if not actor then return end
+        local count = require('libs/job_crossbars').ensure(player.hotbar, actor, res.spells, windower.ffxi.get_spells(),
+            player.hotbar_settings.max)
+        if count > 0 then
+            player:save_hotbar()
+            reload_hotbar()
+        end
+        chat_format.say(207, '[XIVCrossbar] Created '..count..' missing job category sets.')
         return
     elseif command == 'bank' then
         local section, option, value = ...
@@ -1985,7 +2013,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
             gamepad_state.active_bar = 1
         end
     elseif (gamepad_state.capturing and gamepad_state.right_trigger and not gamepad_state.left_trigger) then
-        if (gamepad_state.right_trigger_doublepress and theme_options.hotbar_number >= 6) then
+        if (gamepad_state.right_trigger_doublepress and theme_options.hotbar_number >= 5) then
             change_active_hotbar(6)
             gamepad_state.active_bar = 6
         else
@@ -1993,7 +2021,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
             gamepad_state.active_bar = 2
         end
     elseif (gamepad_state.capturing and gamepad_state.right_trigger and gamepad_state.left_trigger) then
-        if (theme_options.hotbar_number > 3) then
+        if (theme_options.hotbar_number == 4 or theme_options.hotbar_number == 6) then
             if (left_trigger_just_pressed) then
                 -- R -> L = bar 3
                 change_active_hotbar(3)
@@ -2642,5 +2670,6 @@ windower.register_event('incoming chunk', function(id, data)
 end)
 
 windower.register_event('zone change', function()
+    if player.cancel_summon_swap then player:cancel_summon_swap() end
     skillchains.zone_change()
 end)

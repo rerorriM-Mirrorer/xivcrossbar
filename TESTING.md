@@ -1,3 +1,40 @@
+# Current Development Status — November 8, 2026 — Trigger and job parity
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint: `adba856143afdbe4247afae4cdfcb22eda7e1edc`.
+Test build: `0.4.0-beta1.20261107.personal-parity1`.
+
+Install the matching x86 artifact with FFXI closed and the reader
+stopped. Keep your data folder. Roll back by restoring the preceding
+program files with FFXI closed and the reader stopped.
+
+- Use `//xb triggerbanks 5` to reload in five-bank mode. Test both trigger
+  orders, then double-tap L2 and R2 separately. Both orders use saved
+  bar 3, double taps keep bars 5 and 6, and saved bar 4 returns when
+  switching back to six. Check the binding preview and confirmation too.
+- With `//xb triggerscale on`, swap from the side pair to the combined
+  or shoulder bank and back. Check fast reversals, menus, Always and
+  Autohide. The two sides move inward or outward and crossfade with the
+  center over 90 ms. Existing scale easing is still 60 ms.
+- Bind a learned Trust as a typed spell. Expect the summoned Trust to
+  show Return on its own slot and dismiss by name. Check unlearned spells,
+  pet-only actions with no pet, and command bindings with linked metadata.
+- On SMN, check Assault/Retreat with the pet idle and engaged, and
+  paired Attack/Disengage against a concrete target. A matching avatar
+  or spirit slot shows Release. A different summon releases, waits for
+  the pet to disappear, and casts once. Try zoning and another action
+  during the wait. Selector-style attacks remain ordinary attacks.
+- Run `//xb jobsets` on a job with eligible magic or pet commands. It
+  explicitly creates missing editable category sets for the current
+  job/subjob. It preserves existing sets and slots. Run it twice to
+  confirm the second invocation adds zero.
+
+Local fixtures cover the five-bank surfaces and interrupted animation,
+real dispatch for Trust/pet actions and summon replacement, and additive
+job sets. Gamepad visuals and action acceptance remain pending in FFXI.
+
+---
+
 # Current Development Status — November 7, 2026 — Playable shoulder banks
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

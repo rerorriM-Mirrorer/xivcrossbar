@@ -19,6 +19,9 @@ function geometry:point(x, y, right, bank)
         x = bank.x + (x - bank.x) * bank.value
         y = bank.y + (y - bank.y) * bank.value
     end
+    if bank and bank.slide then
+        x, y = x + bank.slide_x * (1-bank.slide.value), y + bank.slide_y * (1-bank.slide.value)
+    end
     return self.screen_x + (x - self.x) * self.scale - width,
         self.screen_y + (y - self.y) * self.scale
 end
@@ -99,11 +102,31 @@ function geometry:set_bank_scale(number, x, y, target, instant, initial)
     if moved or bank.value ~= previous then redraw_bank(self, bank) end
 end
 
+function geometry:set_bank_slide(number, dx, dy, entering, instant)
+    local bank = self.banks[number]
+    if instant then
+        if bank.slide.active or bank.slide.value ~= 1 then
+            bank.slide.active = false
+            bank.slide:to(1, 0)
+            redraw_bank(self, bank)
+        end
+    elseif dx or dy then
+        if entering and not bank.slide.active then bank.slide:to(0, 0) end
+        bank.slide_x, bank.slide_y = dx or 0, dy or 0
+        bank.slide:to(entering and 1 or 0, .09)
+        redraw_bank(self, bank)
+    end
+end
+
 function geometry:setup_bank_scales(count)
     local clock = require('socket').gettime
     local fade = require('ui_fade')
     self.banks = {}
-    for bank=1,count do self.banks[bank] = fade.new(clock, 1, 1.25) end
+    for i=1,count do
+        local bank = fade.new(clock, 1, 1.25)
+        bank.slide, bank.slide_x, bank.slide_y = fade.new(clock, 1), 0, 0
+        self.banks[i] = bank
+    end
 end
 
 local function draw_primitive(g, name, p)
@@ -163,6 +186,7 @@ draw_opacity = function(g, m)
     if m.kind=='text' and animated_text and not g.text_fade then
         opacity=(g.opacity==1 and g.fade and g.fade.target==1) and 1 or 0
     end
+    if m.bank and m.bank.slide then opacity = opacity * m.bank.slide.value end
     local alpha=rounded_alpha(m.alpha,opacity)
     if alpha ~= m.draw_alpha then m.object:alpha(alpha);m.draw_alpha=alpha end
     if m.bg_alpha then
@@ -288,6 +312,10 @@ function geometry:tick()
         if bank.active then
             local previous = bank.value
             if bank:step() ~= previous then redraw_bank(self, bank) end
+        end
+        if bank.slide.active then
+            local previous = bank.slide.value
+            if bank.slide:step() ~= previous then redraw_bank(self, bank) end
         end
     end
     for _,m in pairs(self.surfaces) do

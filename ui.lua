@@ -1,4 +1,6 @@
 local shoulders = require('shoulder_banks')
+local pet_policy = require('libs/pet_actions')
+local trust_policy = require('libs/trust_actions')
 local ui_resources = require('ui/resources')
 local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
@@ -483,10 +485,11 @@ function ui:load(theme_options)
     self.hotbars = {}
     self.render_banks = {}
     for h=1,theme_options.hotbar_number do self.render_banks[h] = h end
+    if theme_options.hotbar_number == 5 then self.render_banks[4], self.render_banks[5] = 5, 6 end
     if theme_options.shoulder_banks then
         for h=7,9 do self.render_banks[#self.render_banks+1] = h end
     end
-    geometry:setup_bank_scales(theme_options.shoulder_banks and 9 or theme_options.hotbar_number)
+    geometry:setup_bank_scales(theme_options.shoulder_banks and 9 or self.render_banks[#self.render_banks])
     self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
@@ -790,7 +793,14 @@ function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, 
     if small ~= small or small < .75 or small > 1 then small = .95 end
     local selected = enabled and visible and active_bar or 0
     local single = selected == 1 or selected == 2
-    local returning = enabled and visible and self.scale_active_bar >= 3 and selected < 3
+    local returning = enabled and visible and self.scale_visible and self.scale_active_bar >= 3 and selected < 3
+    local function centered(bar)
+        return bar == 3 or bar == 4 or bar >= 7 or (bar >= 5 and self.AutoHideExtraBars)
+    end
+    local enter_center = enabled and visible and self.scale_visible
+        and not centered(self.scale_active_bar) and centered(selected)
+    local leave_center = enabled and visible and self.scale_visible
+        and centered(self.scale_active_bar) and not centered(selected)
     local revealing = enabled and autohide and visible and not self.scale_visible and geometry.opacity == 0
     local instant = not enabled or (not visible and not geometry.fade_enabled)
     for _, h in ipairs(self.render_banks) do
@@ -801,6 +811,14 @@ function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, 
         end
         local target = selected == h and 2-small or (single and h <= 2 and small or 1)
         local initial = returning and h <= 2 and small or revealing and 1 or nil
+        local horizontal = h == 1 and 16 or h == 2 and -16 or nil
+        if (enter_center or leave_center) and horizontal then
+            geometry:set_bank_slide(h, horizontal, nil, leave_center, false)
+        elseif enter_center and h == selected or leave_center and h == self.scale_active_bar then
+            geometry:set_bank_slide(h, nil, 8, enter_center, false)
+        elseif instant or not visible or selected >= 3 and h == selected and h ~= self.scale_active_bar then
+            geometry:set_bank_slide(h, nil, nil, false, true)
+        end
         geometry:set_bank_scale(h, (left+right)/2,
             (self:get_slot_y(h, 2)+self:get_slot_y(h, 4)+40)/2, target, instant, initial)
     end
@@ -864,27 +882,29 @@ function ui:show(player_hotbar, environment)
 
     self:show_button_hints()
 
-    for h=1,self.theme.hotbar_number do
-        for i=1,8,1 do
-            local slot = i
-            if slot == 10 then slot = 0 end
+    for _,h in ipairs(self.render_banks) do
+        if h <= 6 then
+            for i=1,8,1 do
+                local slot = i
+                if slot == 10 then slot = 0 end
 
-            local bar = shoulders.bar(player_hotbar, environment, h)
-            local action = bar and bar['slot_' .. slot]
+                local bar = shoulders.bar(player_hotbar, environment, h)
+                local action = bar and bar['slot_' .. slot]
 
-            if (action == nil or action.action == nil) then
-                action = maybe_get_default_action(player_hotbar, environment, h, slot)
+                if (action == nil or action.action == nil) then
+                    action = maybe_get_default_action(player_hotbar, environment, h, slot)
+                end
+
+                if self.theme.hide_empty_slots == false then self.hotbars[h].slot_background[i]:show() end
+                self.hotbars[h].slot_icon[i]:show()
+                if action ~= nil then self.hotbars[h].slot_frame[i]:show() end
+                if self.theme.hide_recast_animation == false then self.hotbars[h].slot_recast[i]:show() end
+                if self.theme.hide_recast_animation == false then self.hotbars[h].slot_warmup[i]:show() end
+                if self.theme.hide_action_element == false then self.hotbars[h].slot_element[i]:show() end
+                if self.theme.hide_action_names == false then self.hotbars[h].slot_text[i]:show() end
+                if self.theme.hide_action_cost == false then self.hotbars[h].slot_cost[i]:show() end
+                if self.theme.hide_recast_text == false then self.hotbars[h].slot_recast_text[i]:show() end
             end
-
-            if self.theme.hide_empty_slots == false then self.hotbars[h].slot_background[i]:show() end
-            self.hotbars[h].slot_icon[i]:show()
-            if action ~= nil then self.hotbars[h].slot_frame[i]:show() end
-            if self.theme.hide_recast_animation == false then self.hotbars[h].slot_recast[i]:show() end
-            if self.theme.hide_recast_animation == false then self.hotbars[h].slot_warmup[i]:show() end
-            if self.theme.hide_action_element == false then self.hotbars[h].slot_element[i]:show() end
-            if self.theme.hide_action_names == false then self.hotbars[h].slot_text[i]:show() end
-            if self.theme.hide_action_cost == false then self.hotbars[h].slot_cost[i]:show() end
-            if self.theme.hide_recast_text == false then self.hotbars[h].slot_recast_text[i]:show() end
         end
     end
     return true
@@ -983,6 +1003,7 @@ end
 
 -- load player hotbar
 function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepad_state)
+    self.resolved_slots = {}
     self:clear_recast_flashes()
     -- A rebuilt bar must reapply the visibility policy on the next render.
     self.public_visible = nil
@@ -1814,6 +1835,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         self.bar_background_right:hide()
     end
 
+    local pet_state
+    self.resolved_slots = self.resolved_slots or {}
     for _, h in ipairs(self.render_banks) do
         local isThisBarActive = active_bar == h
         local isThisBarVisibleByDefault
@@ -1827,7 +1850,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         end
         local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
         self.pulse_visible_bars[h]=shouldDrawThisBar
-        if (shouldDrawThisBar) then
+        local slide = geometry.banks[h].slide
+        local outgoing = not menu_open and slide.active and slide.target == 0
+        if shouldDrawThisBar or outgoing then
             for i=1,8,1 do
                 local slot = i
                 if slot == 10 then slot = 0 end
@@ -1850,6 +1875,24 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 if self.display_palette and action and (not action.action or action.action == '') then
                     action = nil
                 end
+
+                local resolved, unavailable_reason
+                if action and (action.type == 'ma' or action.type == 'ja' or action.type == 'pet') then
+                    pet_state = pet_state or pet_policy.snapshot(windower.ffxi)
+                    resolved = pet_policy.resolve(action, pet_state, crossbar_spells)
+                    local effective = resolved or action
+                    unavailable_reason = pet_policy.unavailable(effective, pet_state, crossbar_abilities)
+                        or trust_policy.unavailable(effective, pet_state.trust, crossbar_spells)
+                end
+                local slot_key = h * 8 + i
+                local previous = self.resolved_slots[slot_key]
+                if resolved and (not previous or previous.type ~= resolved.type or previous.action ~= resolved.action
+                    or previous.target ~= resolved.target or previous.alias ~= resolved.alias)
+                    or previous and not resolved then
+                    self:load_action(player_hotbar, environment, h, i, resolved or action, player_vitals, true)
+                    self.resolved_slots[slot_key] = resolved
+                end
+                action = resolved or action
 
                 local frame = self.hotbars[h].slot_frame[i]
                 if self.display_palette and not action then
@@ -1888,8 +1931,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 local glow = self.slot_glow_enabled and self.pulse_tracks[i]
                 if glow and glow.hotbar ~= h then glow = nil end
                 local occupied = action and action.action and action.action ~= ''
-                local unavailable = glow and occupied and
-                    (not action.type or (action.type == 'pet' and not windower.ffxi.get_mob_by_target('pet')))
+                local unavailable = unavailable_reason or (glow and occupied and not action.type)
 
                 -- Honor linked_type so an action that LINKS to a spell/ability/WS
                 -- enters the recast-tracking branch below even though its own
@@ -2318,6 +2360,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     if (action ~= nil and action.source_environment ~= environment and dim_default_slots) then
                         self:mark_default_set_action(h, i, action.source_environment)
                     end
+                end
+                if unavailable_reason then
+                    self.hotbars[h].slot_icon[i]:color(130, 130, 130)
                 end
                 if glow then
                     if not occupied then glow.brightness = 145

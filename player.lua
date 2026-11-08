@@ -42,7 +42,7 @@ function player:initialize(windower_player, server, theme_options, enchanted_ite
     self.server = server
     self.id = windower_player.id
     self.enchanted_items = enchanted_items
-    self.hotbar_settings.max = theme_options.hotbar_number
+    self.hotbar_settings.max = theme_options.hotbar_number == 5 and 6 or theme_options.hotbar_number
     self.vitals.mp = windower_player.vitals.mp
     self.vitals.tp = windower_player.vitals.tp
     self.sch_jp_spent = windower_player.job_points.sch.jp_spent
@@ -679,6 +679,7 @@ function player:execute_action(slot, bank_override)
     if (is_still_missing) then return false end
 
     if action.type == 'switch' then
+        self:cancel_summon_swap()
         local target_env = kebab_casify(action.action or '')
         if (not self:is_valid_environment(target_env)) then
             chat_format.say(123, '[XIVCrossbar] Cannot switch - set "' .. tostring(action.action) .. '" not found in current job.')
@@ -691,21 +692,70 @@ function player:execute_action(slot, bank_override)
         return true
     end
 
-    if not self:dispatch_action(action) then return false end
+    local accepted, stay = self:dispatch_action(action)
+    if not accepted then return false end
 
-    if (self.temp_switch_previous_env ~= nil) then
+    if self.temp_switch_previous_env ~= nil and not stay then
         self.pending_env_switch = self.temp_switch_previous_env
         self.temp_switch_previous_env = nil
     end
     return true
 end
 
+function player:cancel_summon_swap()
+    if self.summon_swap then self.summon_swap:cancel() end
+end
+
 function player:dispatch_action(action)
     if not action.type then return false end
-    if action.type == 'pet' and not windower.ffxi.get_mob_by_target('pet') then
-        chat_format.say(123, '[XIVCrossbar] No active pet.')
-        return false
+    local policy = require('libs/pet_actions')
+    local typed = action.type
+    local state
+    if typed == 'pet' or typed == 'ja' or typed == 'ma' or typed == 'a' then
+        state = policy.snapshot(windower.ffxi)
     end
+    local swapping = state and state.summon and policy.is_summon(action)
+        and not policy.summon_toggle(action,state)
+    if not swapping then self:cancel_summon_swap() end
+    if state then
+        local spells = require('resources/crossbar_spells')
+        action = policy.resolve(action,state,spells) or action
+        local reason = policy.unavailable(action,state,require('resources/crossbar_abilities'))
+            or require('libs/trust_actions').unavailable(action,state.trust,spells)
+        if reason then
+            local now = os.clock()
+            if self.pet_notice_reason ~= reason or now-self.pet_notice_at >= 2 then
+                self.pet_notice_at,self.pet_notice_reason=now,reason
+                chat_format.say(123, '[XIVCrossbar] '..reason)
+            end
+            return false
+        end
+        local commands = policy.combat_commands(action,state)
+        if commands then
+            for _, command in ipairs(commands) do windower.send_command(command) end
+            return true
+        end
+    end
+    if swapping then
+        if not self.summon_swap then
+            self.summon_swap = require('libs/summon_swap').new({
+                clock=require('socket').gettime,
+                schedule=function(fn, delay) coroutine.schedule(fn,delay) end,
+                snapshot=function() return policy.snapshot(windower.ffxi) end,
+                context=function()
+                    local p=windower.ffxi.get_player() or {}
+                    local info=windower.ffxi.get_info() or {}
+                    return table.concat({tostring(p.id),tostring(p.main_job_id),tostring(p.sub_job_id),
+                        tostring(info.zone),tostring(info.logged_in)},':')
+                end,
+                send=windower.send_command,
+                cast=function(next_action) self:dispatch_action(next_action) end,
+                notice=function(message) chat_format.say(123,'[XIVCrossbar] '..message) end,
+            })
+        end
+        return self.summon_swap:request(action,state)
+    end
+    local stay = policy.is_release(action)
     if action.type == 'ct' then
         local command = '/' .. action.action
 
@@ -714,7 +764,7 @@ function player:dispatch_action(action)
         end
 
         windower.send_command('input ' .. command)
-        return true
+        return true, stay
     end
 
     if action.type == 'gs' then
@@ -799,6 +849,8 @@ function player:dispatch_action(action)
     -- run all other actions
     windower.send_command('input /' .. action.type .. ' "' .. action.action .. target_string)
 
+    if stay then return true, true end
+
     -- switch to avatars bar if it exists
     -- TODO: Check if this is redundant, Aliekber mentioned he wanted to implement this at some point
 	if action.type == 'ma' and avatar_names:contains(action.action:capitalize()) then
@@ -817,9 +869,6 @@ function player:dispatch_action(action)
 		if env ~= nil then
 			set_active_environment(env)
 		end
-	elseif action.type == 'pet' and action.action:capitalize() == "Release" then -- go back to basic if release is used.
-		-- TODO: Implement a fallback in case a player has no basic hotbar
-        set_active_environment("basic")
 	end
 
     -- switch to set defined in job_abilities (without spaces)

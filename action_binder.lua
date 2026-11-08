@@ -560,7 +560,7 @@ end
 
 function action_binder:update_active_crossbar(left_trigger_just_pressed, right_trigger_just_pressed)
     if (self.trigger_left_pressed and self.trigger_right_pressed) then
-        if (self.theme_options.hotbar_number > 3) then
+        if (self.theme_options.hotbar_number == 4 or self.theme_options.hotbar_number == 6) then
             if (left_trigger_just_pressed) then
                 -- R -> L = bar 3
                 self.active_crossbar = 3
@@ -2068,6 +2068,10 @@ function action_binder:show_pressed_buttons()
         elseif (self.active_crossbar == 2) then
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
             icons:append('ui/binding_icons/plus.png')
+        elseif (self.active_crossbar == 3 and self.theme_options.hotbar_number == 5) then
+            icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_left.png')
+            icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
+            icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 3) then
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
             icons:append('ui/binding_icons/arrow_right.png')
@@ -2145,6 +2149,10 @@ function action_binder:confirm_buttons()
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_left.png')
             icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 2) then
+            icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
+            icons:append('ui/binding_icons/plus.png')
+        elseif (self.active_crossbar == 3 and self.theme_options.hotbar_number == 5) then
+            icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_left.png')
             icons:append('ui/binding_icons/trigger_' .. self.button_layout .. '_right.png')
             icons:append('ui/binding_icons/plus.png')
         elseif (self.active_crossbar == 3) then
