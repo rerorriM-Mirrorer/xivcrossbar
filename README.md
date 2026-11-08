@@ -9,32 +9,26 @@ Keep your native Gamepad Config assignments. Switch profiles with buttons
 released and use the same reader profile/device across clients. Install the
 complete test folder with its matching `native/xb_gamepad_messages.dll`.
 
-## Unified diagnostics in this beta (new)
+## Unified diagnostics
 
-Run `//xb diagnose` on a character to capture **30 seconds** of
-AHK hardware observations, Lua button reception, routing,
-context/focus/transport state, and public text/image rendering observations.
-All go into a **single new file** per request under
-`data/diagnostics/<Character>-<timestamp>-<session>.log`. AHK writes only a
-temporary bounded observation feed under `data/diagnostics-staging/`;
-Lua combines and removes the feed after a successful save. Previous captures
-are never appended to or replaced. Only **one AHK capture** can be active on
-the shared reader at a time; other clients are unaffected by the logging.
+`//xb diagnose` starts a 30-second input capture. It records the focused
+client's AHK samples, Lua button sequences, route decisions, action results,
+native mask changes and slow reader stages. Use `//xb diagnose start render`
+for layout, text and drawing issues, or `//xb diagnose start full` for both.
+Render-only capture does not request a shared reader feed.
 
-`//xb diagnose mark` adds an observation marker; `//xb diagnose stop` ends
-early and saves after a short handoff; `//xb diagnose status` shows progress;
-`//xb diagnose snapshot` records a near-immediate state capture. A normal
-capture saves automatically around 30 seconds. Wait for "Diagnostic saved"
-before copying the file, especially after manually stopping. Addon unload
-also attempts to preserve the partial Lua capture.
+Use `//xb diagnose mark <note>` to mark the issue and `//xb diagnose stop`
+to finish early. `status` shows capture progress, and `snapshot` saves state
+without arming either trace. Wait for “Diagnostic saved” before sharing
+the one new file in `data/diagnostics/`. Other clients keep normal input.
+Captures report missing feeds and dropped events. Character names, local
+paths, saved binding text and captions are omitted by default. User marks
+are included verbatim. Rendering records Lua drawing calls and input
+captures record addon decisions. Live observation still establishes
+whether the game drew or acted on them.
 
-Render observation tracks real native text/image calls, measured extents,
-positions, center requests, visibility, object lifetimes and long frame gaps
-through opt-in instrumentation. **It does not see GPU pixels or confirm how
-FFXI interpreted an injected key.** Diagnostic timestamps are clock-based
-observations, not proof of game engine timing; high-rate tracing may itself
-add overhead. The personal build's text-settling algorithm and banks are
-not imported. No normal gameplay logging is active until you request it.
+Use `//xb nativepad probe` for an explicit filtering test. The older
+controller and render trace commands remain available as capture aliases.
 
 ## Gamepad controls
 

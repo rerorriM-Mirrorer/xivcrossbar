@@ -1,9 +1,10 @@
 -- Exercises the actual Beta 1 message parser; no Windower or AHK runtime.
 local messages=require('controller_messages')
 local now,wall=10,1780000000
-local edges,captures,cancels={},{},0
+local edges,captures,cancels,routed={},{},0,{}
 local m=messages.new({session='beta1-test',clock=function()return now end,wallclock=function()return wall end,
-    event=function(dik,pressed) edges[#edges+1]={dik,pressed} end,
+    event=function(dik,pressed,_,seq) edges[#edges+1]={dik,pressed,seq};return 'fixture-claim','crossbar',1,4 end,
+    routed=function(...) routed[#routed+1]={...} end,
     capture=function(pressed) captures[#captures+1]=pressed end,
     cancel=function() cancels=cancels+1 end})
 m:context('focused-client',true)
@@ -14,6 +15,7 @@ end
 local token=m.token
 assert(m:accept(snap(token,10,'1,cancel,0\n2,down,11\n3,down,5\n4,up,5\n5,up,11\n')))
 assert(m.ack==5 and #edges==4)
+assert(edges[1][3]==2 and routed[1][1]==2 and routed[1][4]=='fixture-claim' and routed[1][7]==4)
 assert(edges[1][1]==87 and edges[1][2]==true)
 assert(edges[2][1]==63 and edges[2][2]==true)
 assert(edges[3][1]==63 and edges[3][2]==false)

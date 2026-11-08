@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.bridge-test1'
+_addon.version = '0.4.0-beta1.20261107.diagnostics2'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -477,11 +477,12 @@ end
 diagnostic=require('diagnostic_bridge').new({
     path=windower.addon_path,clock=profile_clock,
     mkdir=windower.create_dir,
+    pid=function() return native_gamepad and native_gamepad.process_id end,
     say=function(message) chat_format.say(207,'[XIVCrossbar] '..message) end,
     frame_state=function()
         local v=windower.get_windower_settings()
-        return {bar=gamepad_state.active_bar,
-            set=player.hotbar_settings and player.hotbar_settings.active_environment,
+        return {bar=gamepad_state.shoulder_display or gamepad_state.active_bar,
+            set=player.hotbar_settings and player.hotbar_settings.active_environment and "loaded",
             editor=action_binder.state,
             width=v.ui_x_res or v.x_res,height=v.ui_y_res or v.y_res,
             scale=settings.CrossbarScale,
@@ -491,21 +492,36 @@ diagnostic=require('diagnostic_bridge').new({
         local p=windower.ffxi.get_player()
         local info=windower.ffxi.get_info()
         local viewport=windower.get_windower_settings()
+        local status=controller_status() or {}
+        local reader={}
+        for _,key in ipairs({'profile','device','state','connected','ready','route','ahk','running','fresh',
+            'clients_reason','clients_loaded','clients_locked','clients_owner_errors','clients_invalid_records',
+            'clients_records','clients_seen','clients_last_kill','bridge_movement','bridge_ps'}) do
+            reader[key]=status[key]
+        end
+        if reader.bridge_ps then reader.bridge_ps=reader.bridge_ps:gsub(' HWND %d+',' [window]') end
+        local menu=controller_bridge.menu
         return {
-            version=_addon.version,character=p and p.name or 'prelogin',
-            server=info and info.server,player_id=p and p.id,
-            profile=settings.ControllerProfile,device=settings.ControllerDevice,
+            version=_addon.version,profile=settings.ControllerProfile,device=settings.ControllerDevice,
             ready=xivcrossbar.ready,focus=windower.has_focus(),
             chat_open=info and info.chat_open,menu_open=info and info.menu_open,
             character_status=p and p.status,modifier=controller_modifier,
-            controller=controller_status() or {},
-            receiver=message_bridge and {token=message_bridge.token,ack=message_bridge.ack,
-                received=message_bridge.received,rejected=message_bridge.rejected,
-                reason=message_bridge.reason} or {},
+            controller=reader,
+            native={mode=native_mode,receiving=native_receiving,filtering=native_filtering,
+                hook=native_gamepad and native_gamepad.hook_status(),
+                sample=native_gamepad and native_gamepad.snapshot and native_gamepad.snapshot()},
+            receiver=message_bridge and {ack=message_bridge.ack,received=message_bridge.received,
+                rejected=message_bridge.rejected,reason=message_bridge.reason,
+                heartbeat_age_ms=message_bridge.last_beat and math.floor((profile_clock()-message_bridge.last_seen)*1000),
+                ack_age_ms=message_bridge.last_ack_at and math.floor((profile_clock()-message_bridge.last_ack_at)*1000)} or {},
+            bridges={movement=controller_bridge.mode(settings,'movement'),ps=controller_bridge.mode(settings,'ps'),
+                menu=controller_bridge.mode(settings,'menu'),lease=menu.token and menu.state or 'none',
+                lease_reason=menu.lease_reason,last_menu_action=menu.last,menu_claim=gamepad_state.trust_menu_live},
             ui_objects=require('ui/resources').snapshot(),
             viewport={width=viewport.ui_x_res or viewport.x_res,height=viewport.ui_y_res or viewport.y_res},
-            scale=settings.CrossbarScale,set=player.hotbar_settings and player.hotbar_settings.active_environment,
-            bar=gamepad_state.active_bar,
+            scale=settings.CrossbarScale,display=settings.DisplayPreset,trigger_banks=settings.Hotbar.Number,
+            bar=gamepad_state.active_bar,shoulder=gamepad_state.shoulder_bank,
+            shoulder_visible=gamepad_state.shoulder_bank_visible,
             triggers={l2=gamepad_state.left_trigger,r2=gamepad_state.right_trigger},
             editor={state=action_binder.state,page=action_binder.page,showing=not action_binder.is_hidden},
         }
@@ -725,16 +741,23 @@ local function emit_slotpress()
 end
 
 -- trigger hotbar action
-function trigger_action(slot, bank)
+function trigger_action(slot, bank, input_seq)
     local bar = bank or player.hotbar_settings.active_hotbar
     ui:press_slot_pulse(bar, slot)
     if ui.slot_glow_enabled then ui_dirty = true end
     if settings.InputTest then
+        if diagnostic and diagnostic.input_active and diagnostic:input_active() then
+            diagnostic:record('ACTION',('seq=%s bank=%d slot=%d result=dummy'):format(tostring(input_seq),bar,slot))
+        end
         chat_format.say(207, '[XIVCrossbar test] Crossbar ' .. tostring(bank or gamepad_state.active_bar) .. ' slot ' .. slot .. ' — dummy action')
         ui:trigger_feedback(bar, slot)
         return
     end
     local accepted = player:execute_action(slot, bank)
+    if diagnostic and diagnostic.input_active and diagnostic:input_active() then
+        diagnostic:record('ACTION',('seq=%s bank=%d slot=%d result=%s')
+            :format(tostring(input_seq),bar,slot,accepted and 'accepted' or 'empty-or-rejected'))
+    end
 
     if (player.pending_env_switch ~= nil) then
         local target = player.pending_env_switch
@@ -1240,7 +1263,8 @@ function display_help_menu()
     chat_help.command("controller status|start|stop|profiles","Show/control the shared controller reader.")
     chat_help.command("controller profile <name> [device]","Select controller and device.")
     chat_help.command("remap","Run controller setup.")
-    chat_help.command("diagnose [start|stop|mark|status|snapshot]","Record 30-second unified diagnostics.")
+    chat_help.command("diagnose start [input|render|full]","Record 30 seconds of diagnostics. Bare diagnose records input.")
+    chat_help.command("diagnose [stop|mark|status|snapshot]","Finish, mark, inspect, or snapshot a diagnostic.")
     chat_help.heading('Display')
     chat_help.command("status","Show current state and settings.")
     chat_help.command("resources","Report live drawing objects.")
@@ -1390,7 +1414,10 @@ end)
 -- ON COMMAND
 windower.register_event('addon command', function(command, ...)
     command = command and command:lower() or 'help'
-    if command == 'diagnose' or command == 'diagnostics' then
+    if command == 'rendertrace' then
+        local mode = (...) or 'start'
+        return diagnostic:command(mode=='save' and 'stop' or mode, mode=='mark' and table.concat({...},' ',2) or 'render')
+    elseif command == 'diagnose' or command == 'diagnostics' then
         local mode,note,device=...
         if mode=='native' and native_command then
             if note=='detach' then
@@ -1404,7 +1431,7 @@ windower.register_event('addon command', function(command, ...)
             end
             return native_command(note=='block' and 'probe' or note=='pass' and 'off' or note=='auto' and 'auto' or 'status', nil, device)
         end
-        return diagnostic:command(mode,note)
+        return diagnostic:command(mode,mode=='mark' and table.concat({...},' ',2) or note)
     elseif command == 'nativepad' then
         if native_command then return native_command(...) end
     elseif command == 'controller' then
@@ -1415,6 +1442,7 @@ windower.register_event('addon command', function(command, ...)
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
         elseif mode == 'profile' then select_controller_profile(name, device)
         elseif mode == 'status' then report_controller_status()
+        elseif mode == 'trace' then return diagnostic:command(name or 'start','input')
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
                 local profile = controller_profiles.profiles[id]
@@ -1849,7 +1877,7 @@ local function close_addon_menus()
     ui_dirty = true
 end
 
-local function handle_controller_key(dik, pressed, flags, blocked)
+local function handle_controller_key(dik, pressed, flags, blocked, input_seq)
     local left_trigger_just_pressed = pressed and gamepad.is_left_trigger(dik) and not gamepad_state.left_trigger
     local right_trigger_just_pressed = pressed and gamepad.is_right_trigger(dik) and not gamepad_state.right_trigger
     local left_trigger_just_released = (not pressed) and gamepad.is_left_trigger(dik) and gamepad_state.left_trigger
@@ -2113,7 +2141,7 @@ local function handle_controller_key(dik, pressed, flags, blocked)
         if crossbar_menu_open() then return true end
         if (pressed) then
             local slot = gamepad.crossbar_slot(dik)
-            if slot then trigger_action(slot) end
+            if slot then trigger_action(slot,nil,input_seq) end
 
             if (not (gamepad.is_plus(dik) or gamepad.is_minus(dik))) then
                 return true
@@ -2175,16 +2203,18 @@ windower.register_event('keyboard', controller_keyboard)
 
 -- DirectLink routes addon input only. FFXI receives untouched native
 -- gameplay/navigation, including dialogue and the login screens.
-local function route_controller_message(dik, pressed, chord)
-    if restart_pending or native_mode ~= 'guard' or not native_filtering then return end
+local function route_controller_message(dik, pressed, chord, seq)
+    if restart_pending or native_mode ~= 'guard' or not native_filtering then return 'guard-inactive' end
     local context = input_context()
     local info = windower.ffxi.get_info()
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
-    if not item or edge == 'repeat' then return end
-    if controller_bridge and controller_bridge.menu:edge(dik, pressed, buttonmapping,
-        gamepad_state.trust_menu_live) then return end
-    if gamepad_state.trust_menu_live and pressed then return end
+    if not item or edge == 'repeat' then return 'unmapped-or-held',context end
+    if controller_bridge then
+        local claimed, decision = controller_bridge.menu:edge(dik, pressed, buttonmapping,gamepad_state.trust_menu_live)
+        if claimed then return decision or 'trust-menu-release',context end
+    end
+    if gamepad_state.trust_menu_live and pressed then return 'trust-menu-priority',context end
     if dik == 89 or dik == 90 then
         if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
             local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
@@ -2200,14 +2230,21 @@ local function route_controller_message(dik, pressed, chord)
                     not not windower.ffxi.get_mob_by_target('t'))
                 if action == 'tab' then
                     local sent = native_gamepad.tap_tab() == 1
-                    diagnostic:record('BANK', sent and 'R1 Tab sent' or 'R1 Tab unavailable')
+                    return sent and 'targeting-tab-sent' or 'targeting-tab-unavailable',context
                 elseif action == 'targetnpc' then
                     windower.send_command('input /targetnpc')
-                    diagnostic:record('BANK', 'R1 /targetnpc')
+                    return 'targeting-acquire-sent',context
                 end
             end
         end
-        return
+        if chord then return 'shoulder-chord',context end
+        if context == 'crossbar' then return 'trigger-priority',context,gamepad_state.active_bar end
+        if pressed then
+            for slot_dik=59,66 do
+                if transport.down[slot_dik] then return 'shoulder-after-held-slot',context end
+            end
+        end
+        return 'shoulder-state',context
     end
     local slot = not pressed and gamepad.crossbar_slot(dik)
     if slot then
@@ -2218,32 +2255,38 @@ local function route_controller_message(dik, pressed, chord)
     if settings.InputTrace then
         chat_format.say(207, '[XIVCrossbar test] '..item.name..' '..edge..' | '..tostring(owner or context))
     end
-    if context == 'login' or (pressed and context == 'native-chat') then return end
-    if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return end
+    if context == 'login' or (pressed and context == 'native-chat') then return 'native-context',context end
+    if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return 'release-context-changed',context end
     if item.logical <= 66 and context == 'gameplay' and pressed and gamepad_state.shoulder_slots
         and info and not info.menu_open and windower.has_focus() then
         local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true)
         local slot = gamepad.crossbar_slot(dik)
         if bank and slot then
-            trigger_action(slot, shoulder_banks.ids[bank])
-            return
+            trigger_action(slot, shoulder_banks.ids[bank],seq)
+            return 'shoulder-slot',context,shoulder_banks.ids[bank],slot
         end
     end
-    if item.logical <= 66 and (context == 'gameplay' or context == 'native-chat') then return end
-    if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return end
+    if item.logical <= 66 and (context == 'gameplay' or context == 'native-chat') then return 'no-addon-claim',context end
+    if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return 'set-chooser-ignored',context end
     local captured = gamepad_state.capturing
     gamepad_state.capturing = true
-    handle_controller_key(dik, pressed, 0, false)
+    local handled = handle_controller_key(dik, pressed, 0, false, seq)
     gamepad_state.capturing = captured
+    return handled and 'crossbar-handled' or 'state-only',context,gamepad_state.active_bar
 end
 
 local message_session='messages-'..os.time()..'-'..tostring({}):gsub('[^%w]','')
 message_bridge=require('controller_messages').new({
     session=message_session,clock=profile_clock,wallclock=os.time,
     observe=function(message)
-        if diagnostic then diagnostic:record('DIRECTLINK',message) end
+        if diagnostic and diagnostic:input_active() then diagnostic:record('DIRECTLINK',message) end
     end,
     event=route_controller_message,
+    routed=function(seq,button,kind,reason,context,bank,slot)
+        if not diagnostic or not diagnostic:input_active() then return end
+        diagnostic:record('ROUTE',('seq=%d button=%d edge=%s context=%s decision=%s bank=%s slot=%s')
+            :format(seq,button,kind,tostring(context),tostring(reason),tostring(bank),tostring(slot)))
+    end,
     capture=function() end,
     cancel=function()
         ui:clear_slot_pulses()
@@ -2428,6 +2471,15 @@ do
         end, function() end, generation)
         gamepad_state.shoulder_targeting = targeting and message_bridge.extended
         gamepad_state.shoulder_slots = banks ~= 0 and message_bridge.extended
+        if diagnostic and diagnostic:input_active() and native_gamepad.snapshot then
+            local sample=native_gamepad.snapshot()
+            local signature=('%d:%d:%04x:%04x:%d'):format(sample.generation,context,sample.raw,sample.masked,trust_slots)
+            if signature~=diagnostic.last_native then
+                diagnostic.last_native=signature
+                diagnostic:record('NATIVE',('generation=%d context=%d raw=0x%04x masked=0x%04x trust=0x%02x polls=%d')
+                    :format(sample.generation,context,sample.raw,sample.masked,trust_slots,sample.polls))
+            end
+        end
         local polls=native_gamepad.poll_count()
         if context~=0 and polls~=last_polls then last_native_poll=now end
         last_polls=polls

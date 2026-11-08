@@ -9,7 +9,7 @@ function M.new(opts)
     end
     function self:reset(reason)
         if self.token then cancel() end
-        self.token=nil;self.key=nil;self.ack=0;self.last_beat=nil;self.last_seen=0
+        self.token=nil;self.key=nil;self.ack=0;self.last_beat=nil;self.last_seen=0;self.last_ack_at=nil
         self.extended=false
         self.reason=reason or 'reset'
     end
@@ -74,6 +74,7 @@ function M.new(opts)
         if self.last_beat and beat<self.last_beat then return false end
         if beat~=self.last_beat then self.last_seen=opts.clock();self.last_beat=beat end
         self.extended=extended
+        if #events>0 then self.last_ack_at=opts.clock() end
         for index,event in ipairs(events) do
             -- Never replay an earlier action before a later cancel in one snapshot.
             self.ack=event[1];self.received=self.received+1
@@ -88,10 +89,12 @@ function M.new(opts)
                 elseif kind=='down' and not self.held[button] then
                     if not self.captured then self.captured=true;opts.capture(true) end
                     self.held[button]=true
-                    opts.event(M.diks[button],true,event[4])
+                    local reason,context,bank,slot=opts.event(M.diks[button],true,event[4],event[1])
+                    if opts.routed then opts.routed(event[1],button,kind,reason,context,bank,slot) end
                 elseif kind=='up' and self.held[button] then
                     self.held[button]=nil
-                    opts.event(M.diks[button],false)
+                    local reason,context,bank,slot=opts.event(M.diks[button],false,nil,event[1])
+                    if opts.routed then opts.routed(event[1],button,kind,reason,context,bank,slot) end
                     if not next(self.held) then self.captured=false;opts.capture(false) end
                 end
             end

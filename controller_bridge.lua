@@ -49,7 +49,10 @@ function M.new(clock, execute, report)
             self.path,self.mode,self.next_read,self.token = path,mode,0,nil
             for _, hold in pairs(self.held) do hold.repeat_action = nil end
         end
-        if not path or mode == 'off' then return end
+        if not path or mode == 'off' then
+            self.lease_reason = mode=='off' and 'off' or 'context-ineligible'
+            return
+        end
         if now >= self.next_read then
             self.next_read = now + .05
             local file = io.open(path,'rb')
@@ -65,10 +68,15 @@ function M.new(clock, execute, report)
                     end
                     if token ~= self.last_token then self.last_token,self.sequence = token,0 end
                     self.token,self.state,self.stamp = token,state,tonumber(stamp)
+                    self.lease_reason = 'fresh'
                 end
             end
         end
-        if self.token and (now-self.stamp > .35 or self.stamp-now > .1) then self.token = nil end
+        if self.token and (now-self.stamp > .35 or self.stamp-now > .1) then
+            self.token,self.lease_reason = nil,'stale'
+        elseif not self.token and self.lease_reason ~= 'stale' then
+            self.lease_reason = 'unavailable'
+        end
     end
     function self:mask(mapping)
         if not self.token or self.mode ~= 'on' then return 0 end
@@ -100,9 +108,10 @@ function M.new(clock, execute, report)
         self.held[dik] = hold
         if self.state == 'navigation' or self.state == 'text' and not directions[dik] then
             self:send(action)
+            hold.decision = 'trust-'..action
             if directions[dik] and hold.live then hold.repeat_action = action end
         elseif self.mode == 'test' then report('Trust menu '..self.state..' would hold '..action) end
-        return hold.live
+        return hold.live,hold.decision or 'trust-'..self.state..'-held'
     end
     function self:tick(live)
         if not live or self.mode ~= 'on' or self.state ~= 'navigation' then return end

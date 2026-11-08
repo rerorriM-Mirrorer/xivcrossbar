@@ -59,17 +59,27 @@ function M.new(opts)
     function self:record(kind,message)
         recorder:record(kind,message)
     end
+    function self:input_active()
+        return recorder.active and recorder.profile ~= 'render' and recorder.profile ~= 'snapshot'
+    end
     function self:command(mode,note)
         mode=type(mode)=='string' and mode:lower() or 'start'
         if mode=='on' then mode='start' end
         if mode=='start' then
             local state=opts.snapshot()
-            local name=state.character or 'prelogin'
-            local path,err=recorder:start(name,state)
+            local profile=type(note)=='string' and note:lower() or 'input'
+            if profile~='input' and profile~='render' and profile~='full' then
+                tell('Use //xb diagnose start [input|render|full]');return false
+            end
+            local pid=opts.pid and opts.pid()
+            local path,err=recorder:start('client',state,profile=='render' or (opts.pid and not pid),profile,pid)
+            if path and profile~='render' and opts.pid and not pid then
+                recorder:record('INFO','No matching client PID available for scoped AHK capture')
+            end
             if not path then tell('Diagnostic not started: '..tostring(err));return false end
-            render.start()
-            last_context=nil;last_frame=nil
-            tell('Diagnostic ON (30 seconds). Use //xb diagnose mark, stop or status.')
+            if profile~="input" then render.start(true) end
+            last_context=nil;last_frame=nil;self.last_native=nil
+            tell('Diagnostic '..profile..' ON (30 seconds). Use //xb diagnose mark, stop or status.')
             tell('Destination: '..path)
             return true
         elseif mode=='mark' then
@@ -85,20 +95,19 @@ function M.new(opts)
         elseif mode=='status' then
             local status=recorder:status()
             tell(status.active and string.format('Diagnostic ON; %.1fs left; %d Lua events; render=%d events.',
-                status.remaining,status.count,render.status().count)
+                status.remaining,status.count,render.enabled and render.status().count or 0)
                 or status.pending and 'Diagnostic finalizing: '..status.path
                 or 'Diagnostic OFF; last: '..tostring(status.path or 'none'))
             return true
         elseif mode=='snapshot' then
             local state=opts.snapshot()
-            local path,err=recorder:start(state.character or 'prelogin',state,true)
+            local path,err=recorder:start('client',state,true,'snapshot')
             if not path then tell('Snapshot not started: '..tostring(err));return false end
-            render.start()
             recorder:stop('snapshot',opts.snapshot())
             tell('Snapshot finalizing: '..path)
             return true
         end
-        tell('Use //xb diagnose [start|stop|mark|status|snapshot]')
+        tell('Use //xb diagnose start [input|render|full] or stop|mark|status|snapshot')
         return false
     end
     function self:tick(context)
@@ -115,7 +124,7 @@ function M.new(opts)
             end
             if now>=recorder.deadline then
                 recorder:stop('deadline',opts.snapshot())
-            else
+            elseif render.enabled then
                 local st=opts.frame_state()
                 render.context(st.bar,st.set,context,st.editor,st.width,
                     st.height,st.scale,st.route)

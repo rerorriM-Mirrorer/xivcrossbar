@@ -8,6 +8,7 @@ local events, head, count, dropped, frame = {}, 1, 0, 0, 0
 local started, previous_frame, context, epoch = 0, nil, nil, 0
 local counters = {}
 local max_gap = 0
+local shareable = false
 
 local function clean(value)
     local s = tostring(value == nil and '<nil>' or value)
@@ -41,7 +42,7 @@ end
 local function append(kind, info, values)
     local t=clock()
     local descriptor=info and table.concat({info.id,info.kind,info.owner,info.role,
-        'rev='..info.revision,clean(info.caption or '')},'|') or '-'
+        'rev='..info.revision,shareable and '' or clean(info.caption or '')},'|') or '-'
     local line=string.format('%.6f\t%d\t%s\t%s\t%s',t,frame,kind,descriptor,values)
     local index=(head+count-1)%M.capacity+1
     if count==M.capacity then index=head;head=head%M.capacity+1;dropped=dropped+1
@@ -54,6 +55,12 @@ function M.event(kind, object, ...)
     if not M.enabled then return end
     local values={}
     for i=1,select('#',...) do values[i]=clean(select(i,...)) end
+    if shareable and kind ~= 'MARK' then
+        for i in ipairs(values) do
+            local kind=type(select(i,...))
+            if kind=='string' or kind=='table' then values[i]='[text]' end
+        end
+    end
     append(kind,object and M.track(object) or nil,table.concat(values,'|'))
 end
 
@@ -69,6 +76,13 @@ function M.call(object, kind, ...)
     counters['calls.'..kind]=(counters['calls.'..kind] or 0)+1
     if info.last[kind]==value and kind~='native.text' then return end
     info.last[kind]=value
+    if shareable then
+        for i in ipairs(values) do
+            local kind=type(select(i,...))
+            if kind=='string' or kind=='table' then values[i]='[text]' end
+        end
+        value=table.concat(values,'|')
+    end
     append(kind,info,value)
 end
 
@@ -91,8 +105,9 @@ function M.context(...)
     if context~=value then context=value;append('context',nil,value) end
 end
 
-function M.start()
+function M.start(redact)
     if M.enabled then return false end
+    shareable=redact==true
     events,head,count,dropped,frame={},1,0,0,0
     counters={}
     context,previous_frame=nil,nil

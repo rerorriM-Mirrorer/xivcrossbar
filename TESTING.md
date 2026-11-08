@@ -1,3 +1,39 @@
+# Current Development Status — November 8, 2026 — Input-first diagnostics
+
+Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint: `4ef0784f8a583d60eb1c66699e06deb4842ecd51`.
+Build: `0.4.0-beta1.20261107.diagnostics2`.
+
+Install the matching x86 artifact with FFXI and its shared reader stopped.
+Preserve `data/`. Restore the previous program files with both stopped
+to roll back.
+
+- Run bare `//xb diagnose`. Press a native D-pad direction, then test a
+  held direction followed by L1, an L1 slot, and R2 takeover. Add a
+  multiword mark and stop. The single log should link reader sequence,
+  Lua receipt, route and slot outcome. It should include native masks
+  where available and contain no render events.
+- Repeat over Trust with `bridge menu test`, then live. Check the
+  difference between dry-run status and a claimed navigation edge.
+  Move focus to another client during the capture. Its AHK input
+  should not appear in the original client's reader feed.
+- Start a `render` capture and check that extents and positions remain
+  while captions and paths are omitted. `full` includes both streams.
+  `snapshot` saves state only. Test a pre-login capture without a
+  known PID and confirm the wrapper feed is explicitly omitted.
+- Test two clients requesting the one shared reader and verify the
+  existing reader capture continues. Wait for the save message before
+  sharing files. Explicit user marks are included.
+- Reader stages use QPC wall-time deltas and record stages at or above
+  8 ms during a capture. Native masks are observed samples. Neither
+  source establishes what the FFXI UI actually did.
+
+Local fixtures cover capture profiles, stream merging, PID request
+shape, redaction, snapshot isolation and message sequence propagation.
+Live FFXI and two-client diagnostics remain pending.
+
+---
+
 # Current Development Status — November 8, 2026 — Optional controller bridges
 
 Repository: `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

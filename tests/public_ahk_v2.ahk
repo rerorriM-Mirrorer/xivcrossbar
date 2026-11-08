@@ -46,6 +46,12 @@ try {
     owner := 0
     ControllerMessageInit()
     BridgeInit()
+    DiagInit()
+    Check(!DiagMatch(0, 123), "PID-scoped capture does not match outside FFXI")
+    DX.active := true, DX.matched := false
+    DiagRecord("unfocused synthetic event")
+    Check(DX.lines.Length = 0, "unmatched foreground cannot enter a scoped feed")
+    DX.active := false
     BridgeLease("bridge_movement=test`nbridge_ps=on`nbridge_gameplay=1`n")
     Check(CB.movement = "test" && CB.ps = "on" && CB.gameplay && CB.psDown,
         "bridge modes parse and arm from neutral")

@@ -94,7 +94,7 @@ local ahk=read('ffxi_directinput.ahk')
 local controller=read('controller_diagnostics.ahk')
 assert(root:find("command == 'diagnose'",1,true))
 assert(root:find("diagnostic:tick(input_context())",1,true))
-assert(ahk:find('DiagTick()',1,true) and ahk:find('DiagSample(states,active,phase)',1,true))
+assert(ahk:find('DiagTick(active)',1,true) and ahk:find('DiagSample(states,active,phase)',1,true))
 assert(controller:find('GetSystemTimeAsFileTime',1,true))
 assert(not root:find('require(\"libs/banks',1,true))
 print('Beta 1 diagnostics integration and isolation checks passed.')
@@ -157,3 +157,49 @@ local ui_source=read('ui.lua')
 assert(ui_source:find('if self.is_compact then self:hide_button_hints();return end',1,true),
     'Compact UI hints must be guarded at their show function')
 print('Large timeline streams incrementally, in order, with drops counted; compact hints remain hidden.')
+
+-- Production commands select streams without retaining paths or captions.
+local base=os.tmpname()
+os.remove(base)
+assert(os.execute('mkdir -p '..base..'/data/diagnostics '..base..'/data/diagnostics-staging'))
+local commands=require('diagnostic_bridge').new({
+    clock=function()return clock end,path=base..'/',mkdir=function()end,
+    pid=function()return 456 end,snapshot=function()return {profile='ps5'}end,
+    frame_state=function()return {bar=1,set='loaded',width=960,height=540,scale=1}end,
+})
+assert(commands:command('start'))
+local function file_text(path)
+    local f=assert(io.open(path,'rb'));local data=f:read('*a');f:close();return data
+end
+local request_path=base..'/data/diagnostics-staging/request.txt'
+assert(file_text(request_path):match('^on .+ client 456\n$'))
+assert(commands:input_active() and not trace.enabled)
+assert(commands:command('stop'))
+commands:close()
+local default_log=commands.recorder.last_path
+assert(file_text(default_log):find('Capture profile: input',1,true))
+assert(not file_text(default_log):find('[RENDER]',1,true))
+os.remove(request_path)
+
+assert(commands:command('start','render'))
+assert(trace.enabled and not commands:input_active())
+assert(not io.open(request_path,'rb'),'render capture must leave the shared reader alone')
+local private=resources.text({})
+private:text('PRIVATE_CHAR_NAME')
+private:text('981273645')
+trace.call(private,'native.path','C:/Users/PRIVATE_USER/custom.png')
+trace.call(private,'native.pos',123,456)
+commands:tick('gameplay')
+commands:close()
+local render_log=commands.recorder.last_path
+local result=file_text(render_log)
+assert(result:find('[RENDER]',1,true) and result:find('123|456',1,true))
+assert(not result:find('PRIVATE_',1,true) and not result:find('981273645',1,true))
+private:destroy()
+assert(commands:command('snapshot'))
+commands:close()
+assert(file_text(commands.recorder.last_path):find('Capture profile: snapshot',1,true))
+assert(not trace.enabled)
+for _,path in ipairs({default_log,render_log,commands.recorder.last_path}) do os.remove(path) end
+os.execute('rmdir '..base..'/data/diagnostics '..base..'/data/diagnostics-staging '..base..'/data '..base)
+print('Input-only default, scoped reader, render privacy and snapshot isolation passed.')

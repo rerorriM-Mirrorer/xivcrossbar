@@ -48,7 +48,7 @@ function M.new(opts)
         snapshot(name,object or {},lines,{},0)
         for _,line in ipairs(lines) do record('STATE',line) end
     end
-    function self:start(name,state,skip_ahk)
+    function self:start(name,state,skip_ahk,profile,pid)
         if self.active or self.pending then return nil,'A diagnostic is already active or saving.' end
         name=tostring(name or 'prelogin'):gsub('[^%w_-]','_')
         self.serial=self.serial+1
@@ -58,6 +58,8 @@ function M.new(opts)
         -- another client started in the same second.
         local id=stamp..'-'..string.format('%06d',usec)..'-'..self.serial..'-'..name
         self.id=id
+        self.profile=profile or 'full'
+        self.pid=pid
         self.skip_ahk=skip_ahk==true
         self.name=name
         self.path=opts.directory..'/'..name..'-'..id..'.log'
@@ -69,12 +71,12 @@ function M.new(opts)
         append(clock(),'SESSION','start id='..id..' character='..name..' duration=30s')
         self:state('start',state)
         if opts.request and not self.skip_ahk then
-            local ok,err=opts.request('on '..id..' '..name)
-            if not ok then record('WARNING','AHK capture request failed: '..tostring(err)) end
+            local ok=opts.request('on '..id..' '..name..(pid and (' '..pid) or ''))
+            if not ok then record('WARNING','Could not publish AHK capture request') end
         end
         return self.path
     end
-    function self:mark(note) record('MARK',note or 'user observation') end
+    function self:mark(note) record('MARK',note and note~='' and note or 'user observation') end
     function self:status()
         return {active=self.active,pending=self.pending==true,path=self.path,
             count=#self.events,dropped=self.dropped,
@@ -90,7 +92,10 @@ function M.new(opts)
     -- another multi-megabyte string inside Windower's 32-bit Lua process.
     -- Each source is already recorded chronologically; merge three cursors.
     local function assemble_stream(reason,emit)
-        local render,render_dropped,render_state=opts.render_lines()
+        local render,render_dropped,render_state
+        if self.profile=='render' or self.profile=='full' then
+            render,render_dropped,render_state=opts.render_lines()
+        end
         render=render or {}
         local feed=not self.skip_ahk and read(self.feed) or nil
         if feed and (#feed>1048576 or feed:match('^# diagnostic%-feed ([^%s]+)')~=self.id) then
@@ -106,7 +111,7 @@ function M.new(opts)
         end
         for _,line in ipairs({
             '# XIVCrossbar unified diagnostic v1',
-            '# Character: '..self.name,
+            '# Capture profile: '..self.profile,
             '# Session: '..self.id,
             '# Started UTC: '..wall('!%Y-%m-%dT%H:%M:%SZ',math.floor(self.deadline-30)),
             '# Termination: '..reason,
@@ -159,7 +164,7 @@ function M.new(opts)
         end
         if ahk_count==0 then
             emit(string.format('%.6f [%s] %s',clock(),self.skip_ahk and 'INFO' or 'WARNING',
-                self.skip_ahk and 'Instantaneous snapshot: AHK capture intentionally omitted'
+                self.skip_ahk and (self.profile=='snapshot' and 'Instantaneous snapshot: AHK capture intentionally omitted' or 'AHK capture intentionally omitted')
                 or 'AHK feed absent or unreadable at finalization; temporary feed may have arrived late'))
         end
         emit('# End diagnostic')
@@ -201,7 +206,7 @@ function M.new(opts)
         self.pending_reason=reason or 'manual'
         self.finish_at=clock()+.75
         if opts.request and not self.skip_ahk then opts.request('off '..self.id..' '..self.name) end
-        if opts.render_stop then opts.render_stop() end
+        if opts.render_stop and (self.profile=='render' or self.profile=='full') then opts.render_stop() end
         return true,nil,self.path
     end
     return self

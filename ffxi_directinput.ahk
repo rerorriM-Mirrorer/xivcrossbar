@@ -58,7 +58,6 @@ TransportPoll() {
     Critical("On")
     if WrapperClientsShouldExit()
         ExitApp()
-    DiagTick()
     if FileExist(A_ScriptDir . "\data\input-stop.request") {
         try FileDelete(A_ScriptDir . "\data\input-stop.request")
         catch Error
@@ -66,6 +65,8 @@ TransportPoll() {
         ExitApp()
     }
     active := WinActive("ahk_class FFXiClass")
+    DiagTick(active)
+    DiagStage("start")
     if (!active) {
         BridgeOutside()
         ReleaseTransport()
@@ -83,6 +84,7 @@ TransportPoll() {
     }
     owner := active
     states := ReadTransportStates(GetKeyState, CB.movement != "off" or CB.ps != "off")
+    DiagStage("hardware-read")
     connected := IsObject(states)
     if (!connected) {
         CB.psDown := true, CB.neutral := false
@@ -108,7 +110,9 @@ TransportPoll() {
         return
     }
     ControllerMessagePoll(states, active)
+    DiagStage("lease-routing-write")
     BridgePoll(states, active)
+    DiagStage("bridge-decisions")
 }
 
 ; Explicit local stop; it exits only this script, even outside FFXI.
