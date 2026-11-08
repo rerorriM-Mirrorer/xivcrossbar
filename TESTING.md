@@ -36,6 +36,8 @@ forces any saved live bridge into test mode.
    verify the reader reports no new bridge actions.
 
 Portable Lua/native fixtures cover mode and ownership boundaries.
+The first Windows run built and passed both native fixtures, then stopped
+because the reader test staging list omitted the new AHK include.
 Windows x86/AHK CI and actual FFXI/Trust observations are separate
 checks. Live input and focus-switch acceptance remain pending.
 
