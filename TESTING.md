@@ -1,3 +1,34 @@
+# Current Development Status — November 9, 2026 — Combined-bank release
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `92065c119a532fe5aa03bfa0496670f15bd48eae`.
+
+In Auto, the combined L2/R2 bank keeps its visual selection for 75 ms after
+the first release. A second release within the window fades or hides the
+center by itself. If one trigger stays down, the side pair replaces the
+center in the next draw after the window. Gameplay continues to route using
+the physical triggers.
+
+1. Overlay the Lua patch and run `//xb restart`. Use Auto with TriggerScale.
+2. With Fade On, hold both triggers and release them in quick succession.
+   Check that only the center fades. Repeat while still moving into center.
+3. Hold both, release one and keep the other held. Check that the side pair
+   takes over without the center fading on top. Press a slot immediately
+   after the first release to verify that the remaining trigger owns input.
+4. Repeat with Fade Off. A quick paired release should hide the center
+   directly. A sustained single trigger should reveal the side pair.
+5. Repeat both trigger orders in six-bank mode. Confirm a trigger repress
+   or opening the addon menu clears a pending handoff.
+
+The capture ending in `215759-744394-1-client.log` contains 44 paired
+releases from center. Twelve were routed together, and 31 more arrived
+within 75 ms. Six Lua test suites passed with mocked Windower surfaces,
+including both fade settings, both TriggerScale settings, same-frame
+releases, re-press, menu cancellation, and the preserved travel into center.
+Live FFXI verification is pending.
+
+---
+
 # Current Development Status — November 9, 2026 — Compact HUD hints
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

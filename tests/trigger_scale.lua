@@ -118,3 +118,77 @@ step(.10)
 near(g.banks[1].slide.value,1)
 near(g.banks[3].slide.value,0)
 print('Five-bank surfaces, center crossfade and interruption continuity passed.')
+
+-- Drive the same display selection, animation, and draw order as prerender.
+local hotbar={basic={}}
+local skillchains={get_skillchain_window=function() return 0,0 end}
+ui.display_skillchain_indicator=function() end
+ui.display_aa_indicator=function() end
+
+options.hotbar_number=6
+for _, fade in ipairs({true,false}) do
+    local center_bank=fade and 3 or 4
+    for _, scale in ipairs({true,false}) do
+        options.fade_enabled=fade
+        ui:setup(options,{})
+        g.load_fade_state.claimed=true
+        local function draw(active, menu)
+            local visible=active~=0 or menu
+            local grace=not menu and (active==1 or active==2)
+            local displayed=ui:select_display_bank(menu and 0 or active,grace,now)
+            ui:update_trigger_scale(scale,.90,displayed,visible,true,menu)
+            if visible then
+                if not ui.public_visible then ui.public_visible=ui:show(hotbar,'basic') end
+                ui:check_recasts(hotbar,{},'basic',{}, {active_bar=active},skillchains,{},false,false,
+                    menu,nil,nil,displayed)
+            else
+                ui:hide()
+                ui.public_visible=false
+            end
+            return displayed
+        end
+
+        local side=g.surfaces[ui.hotbars[1].slot_background[1]]
+        local center=g.surfaces[ui.hotbars[center_bank].slot_background[1]]
+        assert(draw(1)==1)
+        step(.11)
+        assert(draw(center_bank)==center_bank and center.visible)
+        step(.025)
+        assert(draw(2)==center_bank,'first release should keep the center bank')
+        step(.050)
+        assert(draw(2)==center_bank,'center should remain inside grace period')
+        local last_pose=g.banks[center_bank].slide.value
+        assert(draw(0)==0 and not side.draw_visible and not side.defer_visible,
+            'the side pair joined a center fade')
+        assert((center.defer_visible==true)==fade and center.draw_visible==fade)
+        step(.02)
+        near(g.banks[center_bank].slide.value,last_pose)
+        step(.51)
+        assert(not center.draw_visible)
+
+        assert(draw(center_bank)==center_bank)
+        step(.11)
+        assert(draw(1)==center_bank)
+        step(.0751)
+        assert(draw(1)==1 and side.draw_visible and not center.draw_visible,
+            'the side pair should replace the center when the grace expires')
+        if scale then near(g.banks[1].value,.90) end
+        assert(draw(0)==0 and not center.defer_visible)
+        assert((side.defer_visible==true)==fade)
+        step(.51)
+
+        assert(draw(center_bank)==center_bank)
+        assert(draw(2)==center_bank and ui.center_release_deadline)
+        assert(draw(center_bank)==center_bank and not ui.center_release_deadline,'repress should cancel the grace')
+        assert(draw(2)==center_bank and ui.center_release_deadline)
+        assert(draw(2,true)==0 and not ui.center_release_deadline,'menu should cancel the grace')
+
+        assert(draw(center_bank)==center_bank)
+        step(.11)
+        assert(draw(0)==0 and not side.draw_visible and not side.defer_visible,
+            'same-frame release should skip the side pair')
+        assert((center.defer_visible==true)==fade)
+        step(.51)
+    end
+end
+print('75 ms center release grace, exclusive fade or replacement, and cancellation passed with fades and scaling on/off.')

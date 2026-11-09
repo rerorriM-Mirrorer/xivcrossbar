@@ -2527,9 +2527,14 @@ windower.register_event('prerender',function()
         ui.is_setup and ui.geometry:is_startup_reveal_pending())
         or action_binder:is_moving_crossbars() or env_chooser:is_showing()
     if not visible then crossbar_drag:finish() end
+    local display_bank
     if ui.is_setup then
+        local autohide = settings.VisibilityMode == 'oninput'
+        local active_bank = gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0
+        local grace_enabled = autohide and not menu_open and gamepad_state.left_trigger ~= gamepad_state.right_trigger
+        display_bank = ui:select_display_bank(visible and not menu_open and active_bank or 0, grace_enabled, profile_clock())
         ui:update_trigger_scale(settings.Animation.TriggerScale, settings.Animation.SmallScale,
-            gamepad_state.shoulder_display or gamepad_state.active_bar, visible, settings.VisibilityMode=='oninput', menu_open)
+            display_bank, visible, autohide, menu_open)
     end
     if ui.is_setup and ui.public_visible ~= visible then
         if visible then
@@ -2550,7 +2555,7 @@ windower.register_event('prerender',function()
     if visible and ui.is_setup then
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open,
-            action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot())
+            action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot(), display_bank)
         ui:show_slot_pulse(menu_open)
     end
 

@@ -537,3 +537,7 @@ the slot's recast overlay and hides the cost until the preview closes.
 2026-11-09: Compact mode leaves the Options and Share HUD hints out of its
 draw objects. The full layout still displays them and the set chooser
 remains accessible in both layouts.
+
+2026-11-09: Auto keeps the combined trigger bank drawn for a 75 ms visual
+grace period after the first release. A quick second release dismisses only
+the center. A sustained trigger replaces it with the side pair.

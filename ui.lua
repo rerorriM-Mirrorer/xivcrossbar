@@ -500,6 +500,7 @@ function ui:load(theme_options)
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
     self.scale_visible, self.scale_active_bar = false, 0
+    self.display_bank, self.center_release_deadline = 0, nil
     -- load battle notice
     prepare_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
@@ -771,6 +772,23 @@ function ui:get_drag_bounds()
     return {x=left,y=top,width=right-left,height=bottom-top}
 end
 
+-- Briefly keep the combined bank drawn while a two-trigger release settles.
+-- Input routing still uses the live bank.
+function ui:select_display_bank(active_bank, grace_enabled, now)
+    local previous = self.display_bank
+    if grace_enabled and (active_bank == 1 or active_bank == 2)
+        and (previous == 3 or previous == 4) then
+        local deadline = self.center_release_deadline or now + .075
+        if now < deadline then
+            self.center_release_deadline = deadline
+            return previous
+        end
+    end
+
+    self.display_bank, self.center_release_deadline = active_bank, nil
+    return active_bank
+end
+
 function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, menu_open)
     enabled = enabled and not menu_open
     small = tonumber(small) or .95
@@ -785,6 +803,8 @@ function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, 
         and not centered(self.scale_active_bar) and centered(selected)
     local leave_center = enabled and visible and self.scale_visible
         and centered(self.scale_active_bar) and not centered(selected)
+    local replace_center = leave_center and autohide
+        and (self.scale_active_bar == 3 or self.scale_active_bar == 4)
     local revealing = enabled and autohide and visible and not self.scale_visible and geometry.opacity == 0
     local instant = not enabled or (not visible and not geometry.fade_enabled)
     for _, h in ipairs(self.render_banks) do
@@ -796,11 +816,13 @@ function ui:update_trigger_scale(enabled, small, active_bar, visible, autohide, 
         local target = selected == h and 2-small or (single and h <= 2 and small or 1)
         local initial = returning and h <= 2 and small or revealing and 1 or nil
         local horizontal = h == 1 and 16 or h == 2 and -16 or nil
-        if (enter_center or leave_center) and horizontal then
+        if visible and (replace_center or not self.scale_visible) then
+            geometry:set_bank_slide(h, nil, nil, false, true)
+        elseif (enter_center or leave_center) and horizontal then
             geometry:set_bank_slide(h, horizontal, nil, leave_center, false)
         elseif enter_center and h == selected or leave_center and h == self.scale_active_bar then
             geometry:set_bank_slide(h, nil, 8, enter_center, false)
-        elseif instant or not visible or selected >= 3 and h == selected and h ~= self.scale_active_bar then
+        elseif visible and (instant or selected >= 3 and h == selected and h ~= self.scale_active_bar) then
             geometry:set_bank_slide(h, nil, nil, false, true)
         end
         geometry:set_bank_scale(h, (left+right)/2,
@@ -811,6 +833,7 @@ end
 
 -- hide all ui components
 function ui:hide()
+    self.display_bank, self.center_release_deadline = 0, nil
     self:clear_recast_flashes()
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
@@ -825,23 +848,13 @@ function ui:hide()
     self:hide_button_hints()
 
     for _, h in ipairs(self.render_banks) do
-        for i=1,8,1 do
-            self.hotbars[h].slot_background[i]:hide()
-            self.hotbars[h].slot_warmup[i]:hide()
-            self.hotbars[h].slot_icon[i]:hide()
-            self.hotbars[h].slot_frame[i]:hide()
-            self.hotbars[h].slot_recast[i]:hide()
-            self.hotbars[h].slot_element[i]:hide()
-            self.hotbars[h].slot_text[i]:hide()
-            self.hotbars[h].slot_cost[i]:hide()
-            self.hotbars[h].slot_recast_text[i]:hide()
-            -- self.hotbars[h].slot_key[i]:hide()
+        local slide = geometry.banks[h].slide
+        local outgoing = slide.target == 0
+        -- Freeze the slide while the selected bank fades.
+        slide.active = false
+        for _, slots in pairs(self.hotbars[h]) do
+            for _, surface in ipairs(slots) do surface:hide(outgoing) end
         end
-
-        local dpadSlot = 9;
-        local faceSlot = 10;
-        self.hotbars[h].slot_recast[dpadSlot]:hide()
-        self.hotbars[h].slot_recast[faceSlot]:hide()
     end
     self.bar_background:hide()
     self.bar_background_left:hide()
@@ -1767,7 +1780,7 @@ function ui:tick_recast_flashes()
 end
 
 -- check action recasts
-function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank, tentative_slot)
+function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank, tentative_slot, display_bank)
     animation_frame_count = animation_frame_count + self.frame_skip + 1
     if (animation_frame_count > 40) then
         animation_frame_count = 1
@@ -1781,7 +1794,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     self:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
     self:display_aa_indicator()
 
-    local active_bar = menu_open and (preview_bank or 0)
+    local active_bar = menu_open and (preview_bank or 0) or display_bank
         or (gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0)
     if menu_open and preview_bank and preview_bank >= 1 and self.hotbars[preview_bank] ~= nil
         and tentative_slot and tentative_slot >= 1 and tentative_slot <= 8 then
