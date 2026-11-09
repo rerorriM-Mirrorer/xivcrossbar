@@ -519,3 +519,6 @@ the controller hold-repeat timer.
 2026-11-09: Edit Custom Action review offers Delete Custom Action after
 Link Action. It opens the existing confirmation for the saved entry,
 and Back restores the draft.
+
+2026-11-09: Choose Icon shows the custom action name and folder path.
+Entering the picker from review clears the previous screen's trigger gesture.

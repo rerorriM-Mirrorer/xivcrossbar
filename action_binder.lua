@@ -1328,6 +1328,10 @@ function action_binder:submit_selected_option()
             self:set_capturing_text(true)
             self:display_inline_custom_action_entry()
         elseif (option.id == 'CHANGE_ICON') then
+            -- Review may have left a trigger down or a page gesture pending.
+            -- The icon picker starts with a fresh trigger press.
+            self:reset_gamepad_triggers()
+            self.page_gesture = nil
             self.icon_picker_return = 'custom_review'
             self.action_type = self.editing_custom_action and action_types.EDIT_CUSTOM_ACTION or action_types.CREATE_CUSTOM_ACTION
             self.state = states.SELECT_ICON
@@ -3002,7 +3006,9 @@ function action_binder:display_icon_selector(rel_path)
     rel_path = rel_path or self.icon_picker_path or ''
     self.icon_picker_path = rel_path
     local title_text
-    if (self.action_type == action_types.GLOBAL_ICON_SET) then
+    if self.icon_picker_return == 'custom_review' and self.custom_action_draft then
+        title_text = 'Pick Icon for "' .. self.custom_action_draft.name .. '"'
+    elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
         title_text = 'Pick Icon for "' .. (self.global_icon_source_name or '?') .. '"'
     elseif (self.action_type == action_types.CHANGE_ICON) then
         title_text = 'Pick Icon for Slot'

@@ -1,3 +1,22 @@
+# Current Development Status — November 9, 2026 — Custom-action icon picker
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `2e459a0015ef57f883a5ced63300cb86aea9e21b`.
+
+Overlay the Lua patch and run `//xb restart`. Edit the Quests custom
+action, select Choose Icon, and confirm the title identifies Quests.
+Open a folder and check its breadcrumb. Without switching focus, tap
+R2 then L2 and repeat after Back and re-entry. A trigger already held
+on entry must be released before it can page on the next press.
+
+The user reported that paging resumed after focus changed. The fixture
+covers stale binder trigger flags and successful paging in both
+directions. If it still stalls in Windower, collect a full diagnostic
+through the failing taps and focus change so the input and render paths
+can be compared.
+
+---
+
 # Current Development Status — November 9, 2026 — Delete from custom-action review
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

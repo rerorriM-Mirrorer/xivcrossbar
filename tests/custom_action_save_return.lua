@@ -112,6 +112,26 @@ assert(binder.state==19 and player.custom_actions.Aardvark,'failed delete lost a
 failing=false
 binder:submit_selected_option()
 assert(binder.is_hidden and not player.custom_actions.Aardvark)
+assert(binder:new_custom_action('Quests','command'))
+windower.get_dir=function()
+    local files={}
+    for index=1,100 do files[index]=('icon-%03d.png'):format(index) end
+    return files
+end
+windower.dir_exists=function() return false end
+binder.trigger_left_pressed=true
+binder.trigger_right_pressed=true
+binder.page_gesture={used=true}
+select_id('CHANGE_ICON')
+assert(binder.title:text()=='Pick Icon for "Quests"')
+assert(not binder.trigger_left_pressed and not binder.trigger_right_pressed and not binder.page_gesture)
+binder:trigger_right(true);binder:trigger_right(false)
+assert(binder.selector.current_page==2,'R2 could not page on entering the icon picker')
+binder:trigger_left(true);binder:trigger_left(false)
+assert(binder.selector.current_page==1,'L2 could not return to the first icon page')
+binder:display_icon_selector('weaponskills/Great-axe')
+assert(binder.title:text()=='Pick Icon for "Quests" — Weapon Skills / Great Axe')
+binder:hide();binder:reset_state()
 assert(binder:new_custom_action('Never Saved','command'))
 for _, option in ipairs(binder.selector.current_options) do assert(option.id~='DELETE_CUSTOM_ACTION') end
 binder:go_back()
