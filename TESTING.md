@@ -1,3 +1,23 @@
+# Current Development Status — November 9, 2026 — XI preset and set labels
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `45f9fdbd4bf20872c248548c36866ec8f1e8d552`.
+
+Apply the Lua patch and run `//xb restart`. Reapply `//xb display xi` to
+activate Slot Glow, Recast Flash, and TriggerScale in an existing XI setup.
+Check the toggles with their individual status commands. Override them
+individually to compare effects.
+
+Open the set chooser and both set-switch pickers. Verify ALL, the main-job
+abbreviation, the job/subjob pair, and Main. With no subjob, the job-pair
+label uses the main job alone. Try switching with existing bindings and
+by saved key. Switch to Legacy and verify the previous labels return.
+
+Local Lua checks exercise the preset and destination keys. Live drawing
+and keyboard ownership are separate acceptance checks.
+
+---
+
 # Current Development Status — November 9, 2026 — Setup selection controls
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

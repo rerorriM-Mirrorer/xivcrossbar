@@ -13,6 +13,7 @@ local options=theme.apply(settings)
 local ui={is_setup=true,geometry={interrupt_startup_reveal=function() end,
     configure_fade=function(self,value) self.enabled=value end,
     set_text_fade=function(self,value) self.text=value end},
+    set_slot_glow_enabled=function(self,value) self.glow=value end,
     set_slot_pulse_enabled=function(self,value) self.pulses=value end,
     set_display_layout=function(self,palette,value) self.display_palette=palette;self.compact=value end,
     get_set_chooser_anchor=function() return 0,0 end,
@@ -25,6 +26,8 @@ local handler=extract(read('xivcrossbar.lua'),'local function set_display_preset
 assert(not options.display_palette and not options.slot_pulse_enabled)
 handler()
 assert(settings.DisplayPreset=='xi' and settings.VisibilityMode=='oninput' and settings.iscompact)
+assert(settings.Animation.SlotGlow and settings.Animation.RecastFlash and settings.Animation.TriggerScale)
+assert(ui.glow and ui.recast_flash_enabled)
 assert(ui.compact and ui.pulses and ui.geometry.enabled and ui.geometry.text and ui.display_palette)
 assert(theme.apply(settings).display_palette==ui.display_palette)
 handler()
@@ -36,6 +39,18 @@ handler('legacy'); assert(not settings.iscompact)
 handler('xi'); assert(settings.iscompact)
 handler('status');handler('invalid')
 assert(saves==4 and refreshes==4)
+
+local destinations=require('crossbar_destinations')
+local names={['all-jobs-default']='ALL',['job-default']='RDM',default='RDM/WHM',basic='Main',travel='Travel'}
+local bars={}
+for key in pairs(names) do bars[key]={name=key=='travel' and 'Travel' or 'Stored Name'} end
+for _, entry in ipairs(destinations.build(bars,function(key,name)
+    return destinations.xi_label(key,name,'RDM','WHM')
+end)) do
+    assert(entry.name==names[entry.key] and bars[entry.key])
+end
+assert(bars.basic.name=='Stored Name' and bars.default.name=='Stored Name')
+assert(destinations.xi_label('default','Default','RDM','NON')=='RDM')
 
 local captured
 ui.hotbars={{slot_cost={{color=function(_,...) captured={...} end}}}}

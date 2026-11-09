@@ -89,7 +89,8 @@ end
 -----------------------------
 
 -- setup env_chooser
-function env_chooser:setup(theme_options)
+function env_chooser:setup(theme_options, set_display_name)
+    self.set_display_name = set_display_name
     self.theme.slot_opacity = theme_options.slot_opacity
     self.theme.disabled_slot_opacity = theme_options.disabled_slot_opacity
     self.theme.button_layout = theme_options.button_layout
@@ -228,10 +229,8 @@ function env_chooser:get_player_environments(player_hotbar)
     local shared = nil
 
     for environment_name, environment in pairs(player_hotbar) do
-        if (environment.name == nil) then
-            environment.name = environment_name
-        end
         local kebab_name = kebab_casify(environment_name)
+        environment = {key=kebab_name, name=environment.name or environment_name}
         if (not default_hotbars[kebab_name]) then
             non_defaults:append(environment)
         elseif (kebab_name == 'default') then
@@ -264,7 +263,7 @@ function env_chooser:get_player_environments(player_hotbar)
        environments:append(environment)
     end
 
-    environments:append({['name'] = ADD_NEW_SET})
+    environments:append({key=kebab_casify(ADD_NEW_SET), name=ADD_NEW_SET})
 
     return environments
 end
@@ -325,18 +324,19 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
 
     for i, environment in ipairs(environments) do
         local index = (#environments - i) + 1 -- put first environment at the top instead of bottom
-        if (default_hotbars[kebab_casify(environment.name)]) then
-            self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,128,255)' .. HIDDEN_SPACE .. environment.name)
+        local name = self.set_display_name and self.set_display_name(environment.key, environment.name) or environment.name
+        if (default_hotbars[environment.key]) then
+            self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,128,255)' .. HIDDEN_SPACE .. name)
         elseif (environment.name == ADD_NEW_SET) then
-            self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. environment.name)
+            self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. name)
             self.indexof_add_new_set = index
         else
-            self.environments[index].name_text:text(HAIRLINE .. '\\cs(255,255,255)' .. HIDDEN_SPACE .. environment.name)
+            self.environments[index].name_text:text(HAIRLINE .. '\\cs(255,255,255)' .. HIDDEN_SPACE .. name)
         end
         self.environments[index].name_text:pos(self:get_name_x(index), self:get_name_y(index))
         self.environments[index].name_text:show()
-        if (kebab_casify(environment.name) == current_environment) then
-            self:maybe_show_default_sets_tooltip(environment.name, #environments)
+        if (environment.key == current_environment) then
+            self:maybe_show_default_sets_tooltip(environment.key, #environments)
             prim.set_position('menu_highlight', self:get_name_x(index) - 10, self:get_name_y(index) - 2)
         end
     end
@@ -481,15 +481,15 @@ function env_chooser:get_prev_environment(player_hotbar, current_environment)
     local environments = self:get_player_environments(player_hotbar)
     for i, environment in ipairs(environments) do
         if (last_was_current) then
-            return kebab_casify(environment.name)
+            return environment.key
         end
-        if (kebab_casify(environment.name) == current_environment) then
+        if (environment.key == current_environment) then
             last_was_current = true
         end
     end
 
     -- if we're here, the current environment is the last in the list so return the first
-    return kebab_casify(environments[1].name)
+    return environments[1].key
 end
 
 function env_chooser:get_next_environment(player_hotbar, current_environment)
@@ -499,17 +499,17 @@ function env_chooser:get_next_environment(player_hotbar, current_environment)
 
     local environments = self:get_player_environments(player_hotbar)
     for i, environment in ipairs(environments) do
-        if (kebab_casify(environment.name) == current_environment) then
+        if (environment.key == current_environment) then
             if (prev_name ~= nil) then
                 return prev_name
             else
                 current_is_first = true
             end
         else
-            prev_name = kebab_casify(environment.name)
+            prev_name = environment.key
         end
 
-        last_name = kebab_casify(environment.name)
+        last_name = environment.key
     end
 
     -- if we're here, the current environment is the first in the last so return the last

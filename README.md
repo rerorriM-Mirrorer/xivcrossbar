@@ -507,3 +507,7 @@ Use `//xb nativepad auto` to retry with the intended controller connected.
 Artwork share an amber selection and animated gold cursor across arrow-key
 and mouse navigation. The selection panel keeps mouse presses and releases
 together when the pointer crosses its edge.
+
+2026-11-09: Applying the XI preset enables Slot Glow, Recast Flash, and
+TriggerScale. Set choosers display ALL, the main job, the job/subjob pair,
+and Main. Existing set keys and saved names retain their original values.

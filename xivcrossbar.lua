@@ -162,6 +162,13 @@ local function set_display_preset(mode)
         if xi then
             crossbar_drag:finish()
             settings.iscompact, theme_options.is_compact = true, true
+            settings.Animation.SlotGlow = true
+            settings.Animation.RecastFlash = true
+            settings.Animation.TriggerScale = true
+            theme_options.slot_glow_enabled = true
+            theme_options.recast_flash_enabled = true
+            ui:set_slot_glow_enabled(true)
+            ui.recast_flash_enabled = true
         end
         ui:set_display_layout(theme_options.display_palette, xi or ui.is_compact)
         if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
@@ -283,8 +290,15 @@ function delete_hotkey(hotbar, slot)
     chat_format.say(207, feedback.cleared(feedback.set_name(player.hotbar,environment), hotbar, slot))
 end
 
+local function set_display_name(key, name)
+    if settings.DisplayPreset == 'xi' then
+        return require('crossbar_destinations').xi_label(key, name, player.main_job, player.sub_job)
+    end
+    return name
+end
+
 function get_crossbar_sets()
-    return require('crossbar_destinations').build(player.hotbar)
+    return require('crossbar_destinations').build(player.hotbar, set_display_name)
 end
 
 function create_new_set(name)
@@ -700,7 +714,7 @@ function initialize(server_id, expected_name, expected_id)
     ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
 
     consumables:setup()
-    env_chooser:setup(theme_options)
+    env_chooser:setup(theme_options, set_display_name)
     env_chooser:set_anchor(ui:get_set_chooser_anchor())
     gamepad_converter:setup(theme_options.button_layout)
 
@@ -1455,7 +1469,7 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(0,chat_format.row('Addon',chat_format.state(xivcrossbar.ready and 'ready' or 'initializing')))
         chat_format.say(0,chat_format.row('Character',
             storage.identity_valid and (player.server..'/'..player.name) or 'Awaiting in-world login'))
-        chat_format.say(0,chat_format.row('Current Set',tostring(player.hotbar_settings.active_environment)))
+        chat_format.say(0,chat_format.row('Current Set',set_display_name(player.hotbar_settings.active_environment, tostring(player.hotbar_settings.active_environment))))
         chat_format.say(0,chat_format.heading('Crossbars'))
         chat_format.say(0,chat_format.row('Layout',
             (settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)))
