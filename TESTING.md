@@ -1,3 +1,22 @@
+# Current Development Status — November 9, 2026 — Delete from custom-action review
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `45f9fdb`, with the XI preset and keyboard changes in
+this batch. Apply the combined Lua overlay and run `//xb restart`.
+
+Edit an existing custom action and check that Delete Custom Action is
+last, after Link Action. Enter confirmation, then press Escape or Back.
+The draft should return intact. If you changed the name without saving,
+confirmation should still identify the original catalog entry. Confirm
+on a disposable entry and check the catalog. An unsaved new action
+should have no Delete option.
+
+The Lua fixture exercises the real review and catalog callbacks for
+cancel, unsaved rename, failed write, and successful deletion. Live
+keyboard capture and menu rendering remain to verify.
+
+---
+
 # Current Development Status — November 9, 2026 — Modal keyboard ownership
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

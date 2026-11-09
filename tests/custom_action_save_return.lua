@@ -16,7 +16,7 @@ function player:save_custom_actions_file()
 end
 local f=assert(io.open('xivcrossbar.lua'));local source=f:read('*a');f:close()
 local first=assert(source:find('function save_custom_action(',1,true))
-local last=assert(source:find('-- Delete Custom Action callback',first,true))
+local last=assert(source:find('-- A: the saved selection is per client',first,true))
 local env=setmetatable({player=player,windower=windower,chat_format={say=function()end}}, {__index=_G})
 assert(load(source:sub(first,last-1),'actual catalog save/update','t',env))()
 local options=require('theme').apply(require('defaults'));options.button_layout='playstation'
@@ -42,7 +42,7 @@ for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,14
     screen.ui_x_res,screen.ui_y_res=resolution[1],resolution[2]
     binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},
         function(...)saved_binding={...}end,function()end,options,function()return {'Basic'}end,
-        nil,nil,nil,nil,nil,nil,env.save_custom_action,env.update_custom_action)
+        nil,nil,nil,nil,nil,nil,env.save_custom_action,env.update_custom_action,env.delete_custom_action)
     binder:reset_state();player.custom_actions={}
     local capacity=binder.selector.normal_max_row*binder.selector.normal_max_col
     for i=1,capacity*2+1 do player.custom_actions[string.format('Entry%03d',i)]={command='input /echo old'} end
@@ -96,5 +96,24 @@ for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,14
         assert(after.text==baseline.text and after.image==baseline.image,'save-return retained drawings')
     end
 end
+assert(binder:new_custom_action('Aardvark','command'))
+assert(binder.editing_custom_action)
+local options=binder.selector.current_options
+assert(options[#options-1].id=='CHANGE_LINKED' and options[#options].id=='DELETE_CUSTOM_ACTION')
+binder.custom_action_draft.name='Unsaved Rename'
+select_id('DELETE_CUSTOM_ACTION')
+assert(binder.state==19 and binder.custom_action_delete_target=='Aardvark' and binder:is_keyboard_review())
+binder:go_back()
+assert(binder.state==17 and binder.custom_action_draft.name=='Unsaved Rename' and player.custom_actions.Aardvark)
+select_id('DELETE_CUSTOM_ACTION')
+failing=true
+binder:submit_selected_option()
+assert(binder.state==19 and player.custom_actions.Aardvark,'failed delete lost action or confirmation')
+failing=false
+binder:submit_selected_option()
+assert(binder.is_hidden and not player.custom_actions.Aardvark)
+assert(binder:new_custom_action('Never Saved','command'))
+for _, option in ipairs(binder.selector.current_options) do assert(option.id~='DELETE_CUSTOM_ACTION') end
+binder:go_back()
 resources.destroy_all()
 print('Save-return: six resolutions, new/edit/rename/paged selection, menu/command origins, failures/invalid names, Back/cancel, Save & Bind and 180 bounded repeat cycles passed.')

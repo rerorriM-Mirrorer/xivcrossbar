@@ -480,6 +480,7 @@ function action_binder:reset_state()
     self.editing_custom_action = false
     self.custom_action_original_name = nil
     self.custom_action_delete_target = nil
+    self.custom_action_delete_from_review = false
     self:set_capturing_text(false)
     self.text_entry_buffer = ''
     self.new_set_name = nil
@@ -1340,6 +1341,11 @@ function action_binder:submit_selected_option()
             self.action_type = action_types.EDIT_CUSTOM_ACTION
             self.state = states.SELECT_LINKED_TYPE
             self:display_linked_type_selector()
+        elseif option.id == 'DELETE_CUSTOM_ACTION' and self.editing_custom_action and self.custom_action_original_name then
+            self.custom_action_delete_target = self.custom_action_original_name
+            self.custom_action_delete_from_review = true
+            self.state = states.DELETE_CUSTOM_ACTION_CONFIRM
+            self:display_delete_custom_action_confirm()
         elseif (option.id == 'REMOVE_LINKED') then
             self.custom_action_draft.linked_action = nil
             self.custom_action_draft.linked_type = nil
@@ -1383,7 +1389,7 @@ function action_binder:submit_selected_option()
             self:display_delete_custom_action_confirm()
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_CONFIRM) then
-        self:apply_custom_action_delete()
+        if not self:apply_custom_action_delete() then return end
         self:hide()
         self:reset_state()
     end
@@ -1642,8 +1648,14 @@ function action_binder:go_back()
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_CONFIRM) then
         self.custom_action_delete_target = nil
-        self.state = states.DELETE_CUSTOM_ACTION_PICK
-        self:display_custom_actions_picker('Delete Custom Action: Pick Entry')
+        if self.custom_action_delete_from_review then
+            self.custom_action_delete_from_review = false
+            self.state = states.EDIT_CUSTOM_ACTION_REVIEW
+            self:display_edit_custom_action_review()
+        else
+            self.state = states.DELETE_CUSTOM_ACTION_PICK
+            self:display_custom_actions_picker('Delete Custom Action: Pick Entry')
+        end
     end
 end
 
@@ -3275,6 +3287,9 @@ function action_binder:display_edit_custom_action_review()
         list:append({id=option[1],name=option[2],icon=path..option[3]..'.png',
             disabled=saving and not review.nonempty(d.name)})
     end
+    if self.editing_custom_action and self.custom_action_original_name then
+        list:append({id='DELETE_CUSTOM_ACTION', name='Delete Custom Action', icon=path..'ui/red-x.png'})
+    end
     self.selector.review_base_x=self.base_x+(self.width-560)/2
     if review.nonempty(d.name) then
         self.selector:set_page(1); self.selector:display_options(list,'review')
@@ -3379,7 +3394,7 @@ function action_binder:apply_custom_action_delete()
         chat_format.say(123, '[XIVCrossbar] Delete Custom Action: no entry selected.')
         return
     end
-    self.delete_custom_action(target)
+    return self.delete_custom_action(target)
 end
 
 function action_binder:clear_button_entry_ui()
@@ -3768,7 +3783,8 @@ end
 -- screens, never during inline typing, set selection or ordinary gameplay.
 function action_binder:is_keyboard_review()
     return not self.is_hidden and not self.chooser_active and not self.capturing_text
-        and (self.state==states.EDIT_CUSTOM_ACTION_REVIEW or self.state==states.CONFIRM_CUSTOM_ACTION)
+        and (self.state==states.EDIT_CUSTOM_ACTION_REVIEW or self.state==states.CONFIRM_CUSTOM_ACTION
+            or (self.state==states.DELETE_CUSTOM_ACTION_CONFIRM and self.custom_action_delete_from_review))
 end
 
 function action_binder:set_capturing_text(enabled)
