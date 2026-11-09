@@ -555,26 +555,9 @@ function ui:load(theme_options)
     self.bar_background_left:alpha(self.button_bg_alpha)
     self.bar_background_right:alpha(self.button_bg_alpha)
 
-    -- setup button ui hints
-    self.action_binder_icon = new_image(images_setup)
-    self.action_binder_icon:size(40, 40)
-    self.action_binder_icon:pos(self:get_slot_x(1, 1) - 10, self:get_slot_y(1, 4) - 27)
-    self.action_binder_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/minus_'..self.theme.button_layout..'.png')
-    self.action_binder_icon:alpha(255)
-    self.action_binder_text = new_text(text_setup)
-    setup_text(self.action_binder_text, theme_options, true)
-    self.action_binder_text:pos(self:get_slot_x(1, 1) + 35, self:get_slot_y(1, 4) - 15)
-    self.action_binder_text:text('Bind an action')
-    self.environment_selector_icon = new_image(images_setup)
-    self.environment_selector_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/plus_'..self.theme.button_layout..'.png')
-    self.environment_selector_icon:size(40, 40)
-    self.environment_selector_icon:pos(self:get_slot_x(2, 5) - 5, self:get_slot_y(1, 4) - 27)
-    self.environment_selector_icon:alpha(255)
-    self.environment_selector_text = new_text(text_setup)
-    setup_text(self.environment_selector_text, theme_options, true)
-    self.environment_selector_text:pos(self:get_slot_x(2, 5) + 40, self:get_slot_y(1, 4) - 15)
-    self.environment_selector_text:text('Change crossbar sets')
-    self.button_hints_visible = false
+    self.button_hints, self.button_hints_visible = nil, false
+    self.hint_theme = theme_options
+    self:layout_button_hints()
 
     -- create ui elements for hotbars
     for _, h in ipairs(self.render_banks) do
@@ -741,12 +724,8 @@ function ui:set_display_layout(palette, enabled)
         end
     end
     self:update_trigger_field_art()
-    self.action_binder_icon:pos(self:get_slot_x(1,1)-10,self:get_slot_y(1,4)-27)
-    self.action_binder_text:pos(self:get_slot_x(1,1)+35,self:get_slot_y(1,4)-15)
-    self.environment_selector_icon:pos(self:get_slot_x(2,5)-5,self:get_slot_y(1,4)-27)
-    self.environment_selector_text:pos(self:get_slot_x(2,5)+40,self:get_slot_y(1,4)-15)
-    if enabled or not self.public_visible then self:hide_button_hints()
-    else self:show_button_hints() end
+    self:layout_button_hints()
+    if self.public_visible then self:show_button_hints() end
     -- Background visibility is decided by the normal render; only move it now.
     local h = self.background_hotbar or 1
     self.bar_background:pos(self:get_slot_x(h,1)-30,self:get_slot_y(h,4)-35)
@@ -770,8 +749,7 @@ function ui:move_to(offset_x,offset_y)
 end
 
 function ui:get_set_chooser_anchor()
-    local icon=geometry.surfaces[self.environment_selector_icon]
-    local bounds=geometry:rect(icon.x,icon.y,icon.width or 40,icon.height or 40)
+    local bounds=geometry:rect(self:get_slot_x(2,5)-5,self:get_slot_y(1,4)-27,40,40)
     return bounds.x,bounds.y+bounds.height
 end
 
@@ -870,13 +848,49 @@ function ui:hide()
     self.bar_background_right:hide()
 end
 
+function ui:layout_button_hints()
+    local hints = self.button_hints
+    if self.is_compact then
+        if hints then
+            for _, view in pairs(hints) do
+                view:hide(true)
+                view:destroy()
+            end
+        end
+        self.button_hints, self.button_hints_visible = nil, false
+        return
+    end
+
+    if not hints then
+        local base = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/'
+        local suffix = self.theme.button_layout .. '.png'
+        hints = {}
+        hints.binder_icon = new_image(images_setup)
+        hints.binder_icon:path(base .. 'minus_' .. suffix)
+        hints.binder_text = new_text(text_setup)
+        setup_text(hints.binder_text, self.hint_theme, true)
+        hints.binder_text:text('Bind an action')
+        hints.chooser_icon = new_image(images_setup)
+        hints.chooser_icon:path(base .. 'plus_' .. suffix)
+        hints.chooser_text = new_text(text_setup)
+        setup_text(hints.chooser_text, self.hint_theme, true)
+        hints.chooser_text:text('Change crossbar sets')
+        self.button_hints = hints
+    end
+
+    local x, y = self:get_slot_x(1,1), self:get_slot_y(1,4)
+    local chooser_x = self:get_slot_x(2,5)
+    hints.binder_icon:pos(x-10,y-27)
+    hints.binder_text:pos(x+35,y-15)
+    hints.chooser_icon:pos(chooser_x-5,y-27)
+    hints.chooser_text:pos(chooser_x+40,y-15)
+end
+
 function ui:hide_button_hints()
-    self.button_hints_visible=false
-    -- Compact hints must leave the draw list even during a crossbar fade.
-    self.action_binder_icon:hide(self.is_compact)
-    self.action_binder_text:hide(self.is_compact)
-    self.environment_selector_icon:hide(self.is_compact)
-    self.environment_selector_text:hide(self.is_compact)
+    self.button_hints_visible = false
+    if self.button_hints then
+        for _, view in pairs(self.button_hints) do view:hide() end
+    end
 end
 
 -- show ui components
@@ -893,22 +907,23 @@ function ui:show(player_hotbar, environment)
 end
 
 function ui:show_button_hints()
-    -- Compact is a strict hide policy: menu/fade callbacks must not revive
-    -- the Options/Share hint for a single frame.
-    if self.is_compact then self:hide_button_hints();return end
-    self.button_hints_visible=true
-    self.action_binder_icon:show()
-    self.action_binder_text:show()
-    self.environment_selector_icon:show()
-    if self.chooser_open then self.environment_selector_text:hide(true)
-    else self.environment_selector_text:show() end
+    local hints = self.button_hints
+    if not hints then return end
+    self.button_hints_visible = true
+    hints.binder_icon:show()
+    hints.binder_text:show()
+    hints.chooser_icon:show()
+    if self.chooser_open then hints.chooser_text:hide(true)
+    else hints.chooser_text:show() end
 end
 
 function ui:set_chooser_open(open)
-    if self.chooser_open==open then return end
-    self.chooser_open=open
-    if open then self.environment_selector_text:hide(true)
-    elseif self.button_hints_visible then self.environment_selector_text:show() end
+    if self.chooser_open == open then return end
+    self.chooser_open = open
+    local hints = self.button_hints
+    if not hints then return end
+    if open then hints.chooser_text:hide(true)
+    elseif self.button_hints_visible then hints.chooser_text:show() end
 end
 
 function ui:update_trigger_field_art()

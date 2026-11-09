@@ -540,6 +540,8 @@ diagnostic=require('diagnostic_bridge').new({
             bridges={movement=controller_bridge.mode(settings,'movement'),ps=controller_bridge.mode(settings,'ps'),
                 menu=controller_bridge.mode(settings,'menu'),lease=menu.token and menu.state or 'none',
                 lease_reason=menu.lease_reason,last_menu_action=menu.last,menu_claim=gamepad_state.trust_menu_live},
+            hud={compact=ui.is_compact,fade=settings.Animation.Enabled,visibility=settings.VisibilityMode,
+                hint_objects=ui.button_hints ~= nil},
             ui_objects=require('ui/resources').snapshot(),
             viewport={width=viewport.ui_x_res or viewport.x_res,height=viewport.ui_y_res or viewport.y_res},
             scale=settings.CrossbarScale,display=settings.DisplayPreset,trigger_banks=settings.Hotbar.Number,
@@ -1629,6 +1631,7 @@ windower.register_event('addon command', function(command, ...)
         end
         local enabled = mode == 'on' or (not mode and not settings.Animation.Enabled)
         settings.Animation.Enabled = enabled
+        diagnostic:record('HUD', 'fade=' .. tostring(enabled))
         theme_options.fade_enabled = enabled
         ui.geometry.deferring_hide = false
         ui.geometry:configure_fade(enabled, settings.Animation.FadeIn, settings.Animation.FadeOut)

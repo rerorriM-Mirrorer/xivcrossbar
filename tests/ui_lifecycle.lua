@@ -59,6 +59,7 @@ for _, compact in ipairs({false,true}) do
     options.hotbar_number=5
     options.fade_enabled=true
     ui:setup(options,{})
+    assert((ui.button_hints == nil) == compact, 'initial hint allocation ignored layout')
     local icon=ui.hotbars[1].slot_icon[1]
     local center=ui.geometry.surfaces[ui.hotbars[3].slot_background[1]]
     local raw=ui.geometry.surfaces[icon].object

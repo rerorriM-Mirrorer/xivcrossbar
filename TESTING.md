@@ -1,3 +1,31 @@
+# Current Development Status — November 9, 2026 — Compact HUD hints
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `fd6c68a06ffc9fa2dd6981828ee74ea79b978f32`.
+Compact mode skips creation of the Options/Share HUD hints. Switching from
+full to compact disposes the hint images and captions immediately, including
+during a fade. The set chooser computes its anchor from the layout.
+
+1. Overlay the Lua patch and run `//xb restart`.
+2. In XI compact and Auto, tap L2/R2 rapidly with Fade On, then Off, then
+   On again. Options and Share hints should stay absent.
+3. Hold Options in compact and check that the chooser opens at its normal
+   anchor. Switch to full and verify both hints return, then back to compact.
+4. If a hint still flashes, capture one occurrence and stop immediately.
+   Capture state includes the actual layout, fade option and hint allocation.
+   Fade commands are recorded separately from high-volume draw calls.
+
+### November 9 — Options hint follow-up
+
+The full capture ending in `215434-528375-7-client.log` recorded 137 routed
+L2/R2 edges. The render ring overwrote 222,563 entries and retained roughly
+the last half-second, without enough data to identify the flashing object.
+Mocked layout and lifecycle tests check compact startup, removal of full
+hints during interrupted fades, and restoration without growing the live
+resource count. Live FFXI verification remains pending.
+
+---
+
 # Current Development Status — November 9, 2026 — Set chooser rendering
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

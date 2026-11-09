@@ -153,10 +153,7 @@ assert(stream_count>3000 and stream_bytes>100000,'Stress output unexpectedly tru
 assert(saw_lua and saw_render and saw_ahk,'Merged capture lost a diagnostic source')
 assert(streaming.last_error==nil,'Streaming session failed to save')
 assert(streaming.dropped>=100 and streaming.dropped<=110,'Lua event cap/drop count changed')
-local ui_source=read('ui.lua')
-assert(ui_source:find('if self.is_compact then self:hide_button_hints();return end',1,true),
-    'Compact UI hints must be guarded at their show function')
-print('Large timeline streams incrementally, in order, with drops counted; compact hints remain hidden.')
+print('Large timeline streams incrementally, in order, with drops counted.')
 
 -- Production commands select streams without retaining paths or captions.
 local base=os.tmpname()

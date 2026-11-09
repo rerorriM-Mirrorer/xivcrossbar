@@ -77,10 +77,15 @@ for _,res in ipairs(resolutions) do
     end
     ui:trigger_feedback(1,3)
     local before=created
+    local old_hints=ui.button_hints
+    local hint_resources=require('ui/resources').snapshot()
     ui:show_button_hints()
     ui.geometry.deferring_hide=true
     equal(ui:set_compact(true),true,'switch on')
     equal(created,before,'no new drawing objects')
+    for _,view in pairs(old_hints) do
+     assert(not ui.geometry.surfaces[view], 'compact retained a full-layout hint')
+    end
     equal(ui.geometry.scale,scale,'scale')
     equal(ui.geometry.opacity,.43,'opacity')
     equal(ui.geometry.fade,fade,'fade object')
@@ -101,33 +106,30 @@ for _,res in ipairs(resolutions) do
      end
     end
     local anchorX,anchorBottom=ui:get_set_chooser_anchor()
-    local hint=ui.geometry.surfaces[ui.environment_selector_icon]
-    local rect=ui.geometry:rect(hint.x,hint.y,40,40)
+    local rect=ui.geometry:rect(ui:get_slot_x(2,5)-5,ui:get_slot_y(1,4)-27,40,40)
     equal(anchorX,rect.x,'chooser X');equal(anchorBottom,rect.y+rect.height,'chooser Y')
     equal(ui:set_compact(true),false,'idempotent on')
     for _=1,4 do
      ui:show_button_hints()
      ui:set_chooser_open(false);ui:set_chooser_open(true)
      ui.geometry:set_opacity(.66);ui.geometry:set_opacity(.43)
-     for _,key in ipairs({'action_binder_icon','action_binder_text',
-         'environment_selector_icon','environment_selector_text'}) do
-      local surface=ui.geometry.surfaces[ui[key]]
-      assert(not surface.visible and not surface.defer_visible and not surface.draw_visible,
-          'compact hint survived an interrupted fade: '..key)
-     end
+     assert(ui.button_hints==nil,'compact recreated a hint during a fade')
     end
     ui.geometry.deferring_hide=false
     equal(ui:set_compact(false),true,'switch off')
-    equal(created,before,'repeated toggle allocation')
+    equal(created,before+4,'only full layout hints are recreated')
+    local restored=require('ui/resources').snapshot()
+    equal(restored.image,hint_resources.image,'live image count after restoring layout')
+    equal(restored.text,hint_resources.text,'live text count after restoring layout')
     for h,bar in ipairs(ui.hotbars) do
      for i=1,8 do
       local m=ui.geometry.surfaces[bar.slot_icon[i]]
       equal(m.x,old[h][i][1],'return X');equal(m.y,old[h][i][2],'return Y')
      end
     end
-    equal(ui.environment_selector_text:visible(),false,'chooser-open hint stays hidden')
+    equal(ui.button_hints.chooser_text:visible(),false,'chooser-open hint stays hidden')
     ui.public_visible=false;ui:set_compact(true);ui:set_compact(false)
-    equal(ui.action_binder_icon:visible(),false,'hidden bar stays hidden')
+    equal(ui.button_hints.binder_icon:visible(),false,'hidden bar stays hidden')
     cases=cases+1
    end
   end

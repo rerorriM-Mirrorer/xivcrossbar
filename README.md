@@ -533,3 +533,7 @@ chooser's ordinary fade.
 
 2026-11-09: The binding preview gives inherited-set badges exclusive use of
 the slot's recast overlay and hides the cost until the preview closes.
+
+2026-11-09: Compact mode leaves the Options and Share HUD hints out of its
+draw objects. The full layout still displays them and the set chooser
+remains accessible in both layouts.
