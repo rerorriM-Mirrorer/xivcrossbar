@@ -1,3 +1,22 @@
+# Current Development Status — November 9, 2026 — Superwarp city folders
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `0c8a53f89557214f8644477be88ea8bede5eea9e`.
+This ports the November 7 Public Beta Superwarp city-folder overlay from
+its `206bbde` base into the current binder.
+
+Apply the combined Lua patch and run `//xb restart`. Open Action Binder,
+choose Superwarp, and check that Bastok, San d'Oria, and Windurst appear
+before the remaining alphabetical destinations. Choose a numbered Home
+Point or Survival Guide and verify the stored command. Back from binding
+should restore the city page. Back again should restore the root city row.
+
+The Lua fixture covers the three folders, 38 numbered Home Points,
+3 Survival Guides, scope preservation, and both Back transitions. Warp
+landing landmarks still need in-game confirmation.
+
+---
+
 # Current Development Status — November 9, 2026 — Custom-action icon picker
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

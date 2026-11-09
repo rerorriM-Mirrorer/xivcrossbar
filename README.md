@@ -522,3 +522,7 @@ and Back restores the draft.
 
 2026-11-09: Choose Icon shows the custom action name and folder path.
 Entering the picker from review clears the previous screen's trigger gesture.
+
+2026-11-09: Restored the Superwarp city folders for Bastok, San d'Oria,
+and Windurst in the Public Beta binder. The remaining destinations still
+appear alphabetically below them.

@@ -464,6 +464,8 @@ function action_binder:reset_state()
     self.action_linked_action = nil
     self.action_linked_type = nil
     self.action_alias = nil
+    self.superwarp_folder = nil
+    self.superwarp_parent_selection = nil
     self.hotkey = nil
     self.selection_states = {}
     self.selector:reset_state()
@@ -1072,6 +1074,13 @@ function action_binder:submit_selected_option()
             self.selector:decrement_page()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
+        elseif self.action_type == action_types.SUPERWARP and option.data and option.data.warp_folder then
+            -- Save the selected city in the root so Back returns to it.
+            self.superwarp_parent_selection = self.selection_states[states.SELECT_ACTION]
+            self.selection_states[states.SELECT_ACTION] = nil
+            self.superwarp_folder = option.data.warp_folder
+            self.selector:set_page(1)
+            self:display_superwarp_selector()
         elseif (self.is_linking_for_custom_action) then
             self.custom_action_draft.linked_action = option.text
             self.is_linking_for_custom_action = false
@@ -1464,6 +1473,16 @@ function action_binder:go_back()
         self.selector:import_selection_state(self.selection_states[states.SELECT_ACTION_TYPE])
         self.selection_states[states.SELECT_ACTION_TYPE] = nil
     elseif (self.state == states.SELECT_ACTION) then
+        if self.action_type == action_types.SUPERWARP and self.superwarp_folder then
+            local previous = self.superwarp_parent_selection
+            self.superwarp_folder = nil
+            self.superwarp_parent_selection = nil
+            self.selection_states[states.SELECT_ACTION] = nil
+            if previous then self.selector:set_page(previous.page) end
+            self:display_superwarp_selector()
+            if previous then self.selector:import_selection_state(previous) end
+            return
+        end
         if (self.is_linking_for_custom_action) then
             self.is_linking_for_custom_action = false
             self.state = states.SELECT_LINKED_TYPE
@@ -3643,10 +3662,10 @@ function action_binder:display_execute_command_selector()
 end
 
 function action_binder:display_superwarp_selector()
-    self.title:text('Select Warp Location')
+    self.title:text(self.superwarp_folder or 'Select Warp Location')
     self.title:show()
 
-    self.selector:display_options(get_warp_zones())
+    self.selector:display_options(get_warp_zones(self.superwarp_folder))
     self:show_control_hints('Confirm', 'Go Back')
 end
 
@@ -4369,16 +4388,63 @@ function get_icons() -- Used for EXECUTE_COMMAND action type
 	return command_list
 end
 
-function get_warp_zones()
+function get_warp_zones(folder_name)
     local commands = L{}
     local all = action_binder.theme_options.enable_superwarp_all and ' all' or ''
+    local icon_base = 'images/' .. get_icon_pathbase() .. '/'
+
+    -- City choices are directly bindable: no extra zone subfolders.
+    if folder_name then
+        for _, folder in ipairs(sw_zones.city_folders) do
+            if folder.name == folder_name then
+                for _, zone in ipairs(folder.zones) do
+                    for point, landmark in ipairs(zone.points) do
+                        local name = zone.short .. ' - ' .. landmark
+                        commands:append({id = 0, name = name,
+                            icon = icon_base .. 'home-point.png',
+                            data = {target_type = {['None'] = true},
+                                action_name = zone.zone .. ' - ' .. landmark,
+                                alias = name,
+                                command = 'sw hp' .. all .. ' ' .. zone.zone .. ' ' .. point,
+                                icon_path = 'home-point'}})
+                    end
+                    if zone.guide then
+                        commands:append({id = 0, name = zone.short .. ' - Survival Guide',
+                            icon = icon_base .. 'survival-guide.png',
+                            data = {target_type = {['None'] = true},
+                                action_name = zone.zone .. ' - Survival Guide',
+                                alias = zone.short .. ' SG',
+                                command = 'sw sg' .. all .. ' ' .. zone.zone,
+                                icon_path = 'survival-guide'}})
+                    end
+                end
+                return commands
+            end
+        end
+        return commands
+    end
+
+    -- The original alphabetical catalog stays below the three new folders.
+    -- Remove only the city entries now reachable through those folders.
+    local in_folders = {hp = {}, sg = {}}
+    for _, folder in ipairs(sw_zones.city_folders) do
+        commands:append({id = 0, name = folder.name,
+            icon = icon_base .. 'map.png',
+            data = {warp_folder = folder.name}})
+        for _, zone in ipairs(folder.zones) do
+            in_folders.hp[zone.zone:lower()] = true
+            if zone.guide then in_folders.sg[zone.zone:lower()] = true end
+        end
+    end
+
+    local remaining = L{}
     for _, entry in pairs(res.zones) do
         if entry and entry.en ~= 'unknown' then
             for _, transport in ipairs({'hp', 'sg'}) do
-                if sw_zones[transport][entry.en] then
+                if sw_zones[transport][entry.en] and not in_folders[transport][entry.en:lower()] then
                     local icon = transport == 'hp' and 'home-point' or 'survival-guide'
-                    commands:append({id = 0, name = entry.en,
-                        icon = 'images/' .. get_icon_pathbase() .. '/' .. icon .. '.png',
+                    remaining:append({id = 0, name = entry.en,
+                        icon = icon_base .. icon .. '.png',
                         data = {target_type = {['None'] = true}, alias = entry.en,
                             command = 'sw ' .. transport .. all .. ' ' .. entry.en,
                             icon_path = icon}})
@@ -4386,7 +4452,8 @@ function get_warp_zones()
             end
         end
     end
-    commands:sort(sortByName)
+    remaining:sort(sortByName)
+    for _, option in ipairs(remaining) do commands:append(option) end
     return commands
 end
 
