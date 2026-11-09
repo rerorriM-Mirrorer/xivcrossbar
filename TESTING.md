@@ -1,3 +1,39 @@
+# Current Development Status — November 9, 2026 — Setup selection controls
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Starting checkpoint `d5a3793018f73b1691808ea3d20683b9044f1d20`.
+Windower 4 x86 and the existing AutoHotkey v2 reader.
+
+Cioara completed setup on the attachment-recovery build after manually
+selecting PlayStation 5, Device 2 and then clicking the profile tile.
+The initial click alone did not proceed. The exact cause of that
+initial failure remains open. Device discovery is a separate pass.
+
+Overlay this Lua patch on the attachment-recovery build and run
+`//xb restart`. Then use `//xb remap` on a client you are comfortable
+remapping. A first-time installation can also test the Welcome page.
+Use the same device slot that already worked on Cioara.
+
+1. On Welcome, check the Enter-or-click prompt and tap Enter. Hold it
+   long enough to repeat and verify that it advances only one page.
+2. On Input Profile and Button Artwork, use the arrow keys, hover a
+   different tile, then resume with the keyboard. The animated gold
+   cursor and amber highlight should follow one shared selection.
+   Confirm once by keyboard and once by mouse on separate passes.
+3. Open setup over an FFXI menu. Click blank panel space, right-click,
+   and scroll inside and outside the panel. FFXI should receive only
+   outside input. Drag from inside to outside and outside to inside.
+   Each release belongs to the side that received the press.
+4. Confirm artwork and verify the cursor disappears. Map buttons with
+   the existing controller prompts. Cancel and reopen setup to check
+   that the previous click cannot activate a new page.
+
+The Lua fixture exercises the real wizard handlers with a simulated
+Windower host. Physical input capture, visuals, and panel layering
+remain live acceptance checks.
+
+---
+
 # Current Development Status — November 9, 2026 — Native attachment recovery
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

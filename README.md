@@ -502,3 +502,8 @@ and error code in `//xb nativepad status`. DirectInput can recover a failed
 joystick-ID lookup or device open when the selected Windows joystick slot is
 the only responsive slot and DirectInput sees exactly one attached device.
 Use `//xb nativepad auto` to retry with the intended controller connected.
+
+2026-11-09: Setup Welcome accepts Enter or a click. Input Profile and Button
+Artwork share an amber selection and animated gold cursor across arrow-key
+and mouse navigation. The selection panel keeps mouse presses and releases
+together when the pointer crosses its edge.

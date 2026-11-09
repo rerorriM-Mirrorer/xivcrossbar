@@ -1,4 +1,5 @@
 local ui_resources = require('ui/resources')
+local keyboard = require('keyboard_mapper')
 texts = require('texts')
 
 local gamepad_mapper = {}
@@ -25,6 +26,7 @@ end
 
 function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, theme_options, base_x, base_y, max_width, max_height, profile_options)
     ui_resources.clear(self.images); ui_resources.clear(self.hints)
+    if self.cursor then self.cursor:destroy(); self.cursor = nil end
     for _, name in ipairs({'title','subtitle','intro','subintro','welcome_prompt','welcome_glow'}) do
         if self[name] then self[name]:destroy() end
     end
@@ -81,11 +83,8 @@ function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, the
     self.profile_status:size(12)
     self.profile_status:hide()
     self.controller_choices = {}
-
-    self.playstation_hint = nil
-    self.nintendo_hint = nil
-    self.xbox_hint = nil
-    self.gamecube_hint = nil
+    self.profile_index = 1
+    self.layout_index = 1
 
     icon_pack = theme_options.iconpack
 
@@ -112,9 +111,14 @@ function gamepad_mapper:setup(buttonmapping, start_controller_wrappers_func, the
     windower.prim.set_position('button_mapping_bg', self.base_x + 16, self.base_y + 16)
     windower.prim.set_size('button_mapping_bg', self.width - 32, self.height - 32)
     windower.prim.set_visibility('button_mapping_bg', false)
+
+    windower.prim.create('gamepad_layout_selection')
+    windower.prim.set_color('gamepad_layout_selection', 210, 101, 70, 41)
+    windower.prim.set_visibility('gamepad_layout_selection', false)
 end
 
 function gamepad_mapper:reset_state()
+    self.mouse_click = nil
     ui_resources.clear(self.images); ui_resources.clear(self.hints)
     self.state = states.HIDDEN
 
@@ -136,6 +140,8 @@ function gamepad_mapper:hide()
 end
 
 function gamepad_mapper:hide_text()
+    if self.cursor then self.cursor:hide() end
+    windower.prim.set_visibility('gamepad_layout_selection', false)
     self.title:hide()
     self.subtitle:hide()
     self.intro:hide()
@@ -203,7 +209,7 @@ function gamepad_mapper:display_gamepad_intro_screen()
     self.subintro:text('It looks like this is your first time using XIVCrossbar. We\'ll need to perform a few short steps\nto set up your gamepad; it will take less than a minute.\n\n To start, please install AutoHotkey (www.autohotkey.com) if you have not already done so.\nThis is needed in order to pass gamepad information to the addon.')
     self.subintro:pos(self.base_x + (self.width / 2) - 350, self.base_y + (self.height / 2) - 45)
     self.subintro:show()
-    local caption = 'Once AutoHotkey has been installed, please click this dialog to continue.'
+    local caption = 'Once AutoHotkey is installed, press Enter or click to continue.'
     self.welcome_prompt:text(caption)
     self.welcome_glow:text(caption)
     self.welcome_x = self.base_x + self.width / 2 - 350
@@ -220,11 +226,11 @@ function gamepad_mapper:display_profile_selector(message)
     self:hide_images()
     self.title:text('Choose Controller Profile')
     self.title:show()
-    self.subtitle:text('Click your controller input profile. Other profiles are experimental.')
+    self.subtitle:text('Use the arrow keys and Enter, or click your controller profile.')
     self.subtitle:pos(self.base_x + 40, self.base_y + 75)
     self.subtitle:show()
     local options = {
-        {id='ps5-directinput', label='PS5 - DirectInput'},
+        {id='ps5-directinput', label='PlayStation 5 - DirectInput'},
         {id='xinput', label='Xbox / XInput (experimental)'},
         {id='f710-directinput', label='F710 - DirectInput (experimental)'},
         {id='fightpadpro-directinput', label='FightPadPro - DirectInput (experimental)'},
@@ -254,24 +260,69 @@ function gamepad_mapper:display_profile_selector(message)
     self.profile_status:text(message or 'Button artwork is chosen next, separately from the input profile.')
     self.profile_status:pos(self.base_x+40, self.base_y+330)
     self.profile_status:show()
+    if self.state == states.SELECT_INPUT_PROFILE then self:highlight_selection() end
 end
 
-function gamepad_mapper:profile_at(x, y)
-    for _, choice in ipairs(self.profile_buttons or {}) do
-        if x >= choice.x and x <= choice.x+choice.width and y >= choice.y and y <= choice.y+choice.height then
-            return choice
+function gamepad_mapper:selection_at(x, y)
+    local choices = self.state == states.SELECT_INPUT_PROFILE and self.profile_buttons
+        or self.state == states.SELECT_GAMEPAD_TYPE and self.controller_choices
+    for i, choice in ipairs(choices or {}) do
+        if x >= choice.x and x < choice.x+choice.width and y >= choice.y and y < choice.y+choice.height then
+            return i
         end
     end
 end
 
-function gamepad_mapper:hover_profile(x, y)
-    local hovered = self:profile_at(x, y)
-    for _, choice in ipairs(self.profile_buttons or {}) do
-        local lift = choice == hovered and self.state == states.SELECT_INPUT_PROFILE and -2 or 0
-        choice.caption:pos(choice.x+14+lift, choice.y+19+lift)
-        windower.prim.set_position(choice.background, choice.x+lift, choice.y+lift)
-        if lift ~= 0 then windower.prim.set_color(choice.background, 210, 101, 70, 41)
-        else windower.prim.set_color(choice.background, 190, 24, 41, 69) end
+function gamepad_mapper:highlight_selection()
+    local choice
+    if self.state == states.SELECT_INPUT_PROFILE then
+        for i, profile in ipairs(self.profile_buttons) do
+            if i == self.profile_index then
+                windower.prim.set_color(profile.background, 210, 101, 70, 41)
+                profile.caption:color(255, 216, 112)
+                choice = profile
+            else
+                windower.prim.set_color(profile.background, 190, 24, 41, 69)
+                profile.caption:color(255, 255, 255)
+            end
+        end
+    elseif self.state == states.SELECT_GAMEPAD_TYPE then
+        choice = self.controller_choices[self.layout_index]
+        windower.prim.set_position('gamepad_layout_selection', choice.x, choice.y)
+        windower.prim.set_size('gamepad_layout_selection', choice.width, choice.height)
+        windower.prim.set_visibility('gamepad_layout_selection', true)
+        for i, artwork in ipairs(self.controller_choices) do
+            if i == self.layout_index then artwork.caption:color(255, 216, 112)
+            else artwork.caption:color(255, 255, 255) end
+        end
+    end
+    if not choice then return end
+    if not self.cursor then
+        self.cursor = require('ui/animated_cursor').new(windower.addon_path .. 'images/assets/menu/cursor',
+            {clock=require('socket').gettime or os.clock})
+    end
+    self.cursor:pos(choice.x - 27, choice.y + choice.height / 2 - 10)
+    self.cursor:show()
+end
+
+function gamepad_mapper:select_index(index)
+    local key = self.state == states.SELECT_INPUT_PROFILE and 'profile_index' or 'layout_index'
+    if self[key] == index then return end
+    self[key] = index
+    self:highlight_selection()
+end
+
+function gamepad_mapper:confirm_selection(index)
+    if self.state == states.INTRO_SCREEN then
+        self.state = states.SELECT_INPUT_PROFILE
+        self:display_profile_selector()
+    elseif self.state == states.SELECT_INPUT_PROFILE then
+        self:select_index(index)
+        self:choose_profile(self.profile_buttons[index].id)
+    elseif self.state == states.SELECT_GAMEPAD_TYPE then
+        self.button_layout = self.controller_choices[index].id
+        self.state = states.INPUT_CONFIRM_BUTTON
+        self:display_button_mapper()
     end
 end
 
@@ -306,43 +357,32 @@ function gamepad_mapper:display_gamepad_type_selector()
     self:hide_text()
     self:hide_images()
 
-    local midpoint_x = self.base_x + (self.width / 2)
-    local midpoint_y = self.base_y + (self.height / 2)
-
     self.title:text('Choose Button Artwork')
     self.title:show()
-    self.subtitle:text('Click the button labels you want the addon to display')
-    self.subtitle:pos(midpoint_x - 280, self.base_y + 85)
+    self.subtitle:text('Use the arrow keys and Enter, or click the button artwork you want.')
+    self.subtitle:pos(self.base_x + 40, self.base_y + 85)
     self.subtitle:show()
 
-    local playstation_x = midpoint_x - 360
-    local nintendo_x = midpoint_x - 160
-    local xbox_x = midpoint_x + 40
-    local gamecube_x = midpoint_x + 240
-
-    local image_y = midpoint_y - 30
-    local hint_y = midpoint_y + 80
-
-    local playstation_image = self:create_image('ui/binding_icons/playstation.png', playstation_x, image_y)
-    local nintendo_image = self:create_image('ui/binding_icons/nintendo.png', nintendo_x, image_y)
-    local xbox_image = self:create_image('ui/binding_icons/xbox.png', xbox_x, image_y)
-    local gamecube_image = self:create_image('ui/binding_icons/gamecube.png', gamecube_x, image_y)
-
-    self.playstation_hint = self:create_hint('Playstation', playstation_x + 15, hint_y)
-    self.nintendo_hint = self:create_hint('Nintendo', nintendo_x + 22, hint_y)
-    self.xbox_hint = self:create_hint('Xbox', xbox_x + 40, hint_y)
-    self.gamecube_hint = self:create_hint('   Glorious\n Gamecube\nMaster Race', gamecube_x + 10, hint_y - 15)
-
-    self.controller_choices = {
-        {image=playstation_image,hint=self.playstation_hint,x=playstation_x,y=image_y,hx=playstation_x+15,hy=hint_y},
-        {image=nintendo_image,hint=self.nintendo_hint,x=nintendo_x,y=image_y,hx=nintendo_x+22,hy=hint_y},
-        {image=xbox_image,hint=self.xbox_hint,x=xbox_x,y=image_y,hx=xbox_x+40,hy=hint_y},
-        {image=gamecube_image,hint=self.gamecube_hint,x=gamecube_x,y=image_y,hx=gamecube_x+10,hy=hint_y-15},
+    local labels = {
+        {'playstation', 'PlayStation'}, {'nintendo', 'Nintendo'},
+        {'xbox', 'Xbox'}, {'gamecube', 'GameCube'},
     }
-    self.playstation_hint:hide()
-    self.nintendo_hint:hide()
-    self.xbox_hint:hide()
-    self.gamecube_hint:hide()
+    local width = (self.width - 104) / 4
+    local image_size = math.min(120, width - 16)
+    local y = self.base_y + self.height / 2 - 48
+    self.controller_choices = {}
+    for i, layout in ipairs(labels) do
+        local x = self.base_x + 34 + (i-1) * (width + 12)
+        local image = self:create_image('ui/binding_icons/' .. layout[1] .. '.png', x + (width-image_size)/2, y+8)
+        image:size(image_size, image_size)
+        local caption = self:create_hint(layout[2], x+12, y+image_size+15)
+        self.controller_choices[i] = {id=layout[1], x=x, y=y, width=width,
+            height=image_size+44, caption=caption}
+        if self.buttonmapping.button_layout == layout[1] then self.layout_index = i end
+    end
+    -- Build the cursor after the artwork so it can draw across tile edges.
+    if self.cursor then self.cursor:destroy(); self.cursor = nil end
+    self:highlight_selection()
 end
 
 function gamepad_mapper:display_button_mapper()
@@ -447,74 +487,6 @@ function gamepad_mapper:display_completion_dialog()
 
 end
 
-function gamepad_mapper:is_over_playstation_buttons(x, y)
-    if (self.width == nil or self.height == nil or self.base_x == nil or self.base_y == nil) then
-        return false
-    end
-
-    local midpoint_x = self.base_x + (self.width / 2)
-    local midpoint_y = self.base_y + (self.height / 2)
-    local buttons_x = midpoint_x - 360
-    local buttons_y = midpoint_y - 30
-    local button_width_height = 120
-
-    local valid_x = (buttons_x <= x) and (x <= (buttons_x + button_width_height))
-    local valid_y = (buttons_y <= y) and (y <= (buttons_y + button_width_height))
-
-    return valid_x and valid_y
-end
-
-function gamepad_mapper:is_over_nintendo_buttons(x, y)
-    if (self.width == nil or self.height == nil or self.base_x == nil or self.base_y == nil) then
-        return false
-    end
-
-    local midpoint_x = self.base_x + (self.width / 2)
-    local midpoint_y = self.base_y + (self.height / 2)
-    local buttons_x = midpoint_x - 160
-    local buttons_y = midpoint_y - 30
-    local button_width_height = 120
-
-    local valid_x = (buttons_x <= x) and (x <= (buttons_x + button_width_height))
-    local valid_y = (buttons_y <= y) and (y <= (buttons_y + button_width_height))
-
-    return valid_x and valid_y
-end
-
-function gamepad_mapper:is_over_xbox_buttons(x, y)
-    if (self.width == nil or self.height == nil or self.base_x == nil or self.base_y == nil) then
-        return false
-    end
-
-    local midpoint_x = self.base_x + (self.width / 2)
-    local midpoint_y = self.base_y + (self.height / 2)
-    local buttons_x = midpoint_x + 40
-    local buttons_y = midpoint_y - 30
-    local button_width_height = 120
-
-    local valid_x = (buttons_x <= x) and (x <= (buttons_x + button_width_height))
-    local valid_y = (buttons_y <= y) and (y <= (buttons_y + button_width_height))
-
-    return valid_x and valid_y
-end
-
-function gamepad_mapper:is_over_gamecube_buttons(x, y)
-    if (self.width == nil or self.height == nil or self.base_x == nil or self.base_y == nil) then
-        return false
-    end
-
-    local midpoint_x = self.base_x + (self.width / 2)
-    local midpoint_y = self.base_y + (self.height / 2)
-    local buttons_x = midpoint_x + 240
-    local buttons_y = midpoint_y - 30
-    local button_width_height = 120
-
-    local valid_x = (buttons_x <= x) and (x <= (buttons_x + button_width_height))
-    local valid_y = (buttons_y <= y) and (y <= (buttons_y + button_width_height))
-
-    return valid_x and valid_y
-end
-
 function gamepad_mapper:create_image(path, x, y)
     local image = ui_resources.image({draggable = false})
 
@@ -530,17 +502,6 @@ function gamepad_mapper:create_hint(hint_text, x, y)
     hint:size(14)
     self.hints:append(hint)
     return hint
-end
-
--- Hover offsets always use the original coordinates; hitboxes never move.
-function gamepad_mapper:hover_controller(x, y)
-    for _,choice in ipairs(self.controller_choices) do
-        local hovered = x >= choice.x and x <= choice.x+120 and y >= choice.y and y <= choice.y+120
-        local offset = hovered and -2 or 0
-        choice.image:pos(choice.x+offset, choice.y+offset)
-        choice.hint:pos(choice.hx+offset, choice.hy+offset)
-        if hovered then choice.hint:show() else choice.hint:hide() end
-    end
 end
 
 function gamepad_mapper:hover_welcome(x, y)
@@ -756,76 +717,94 @@ function gamepad_mapper:trigger_right(pressed)
     self.trigger_right_pressed = pressed
 end
 
-local click_x = nil
-local click_y = nil
-local mouse_handler = windower.register_event('mouse', function(type, x, y, delta, blocked)
-    if blocked then
-        return
+local function selection_visible()
+    local state = gamepad_mapper.state
+    return gamepad_mapper.is_showing and (state == states.INTRO_SCREEN
+        or state == states.SELECT_INPUT_PROFILE or state == states.START_INPUT_PROFILE
+        or state == states.SELECT_GAMEPAD_TYPE)
+end
+
+local arrow = {[keyboard.left]=-1, [keyboard.right]=1, [keyboard.up]=-2, [keyboard.down]=2}
+local keys = {}
+windower.register_event('keyboard', function(dik, pressed, flags, blocked)
+    local step = arrow[dik]
+    if not step and dik ~= keyboard.enter and dik ~= 156 then return end
+    local owned = keys[dik]
+    if not pressed then
+        keys[dik] = nil
+        return owned == true
     end
+    if owned ~= nil then return owned end
+    owned = not blocked and selection_visible() or false
+    keys[dik] = owned
+    if not owned then return end
 
-    if (not gamepad_mapper.is_hidden and gamepad_mapper.state == states.INTRO_SCREEN) then
-        -- Mouse left click
-        if type == 0 then
-            gamepad_mapper:hover_welcome(x, y)
-        elseif type == 1 then
-            click_x = x
-            click_y = y
-        -- Mouse left release
-        elseif type == 2 then
-            if (click_x ~= nil and click_y ~= nil and gamepad_mapper:is_within_dialog(click_x, click_y) and gamepad_mapper:is_within_dialog(x, y)) then
-                click_x = nil
-                click_y = nil
-                gamepad_mapper.state = states.SELECT_INPUT_PROFILE
-                gamepad_mapper:display_profile_selector()
-            end
-        end
-    elseif gamepad_mapper.is_showing and (gamepad_mapper.state == states.SELECT_INPUT_PROFILE or gamepad_mapper.state == states.START_INPUT_PROFILE) then
-        if type == 0 then gamepad_mapper:hover_profile(x, y)
-        elseif type == 1 then click_x, click_y = x, y
-        elseif type == 2 then
-            local previous = click_x and gamepad_mapper:profile_at(click_x, click_y)
-            local current = gamepad_mapper:profile_at(x, y)
-            click_x, click_y = nil, nil
-            if previous and previous == current then gamepad_mapper:choose_profile(current.id) end
-        end
-    elseif (not gamepad_mapper.is_hidden and gamepad_mapper.state == states.SELECT_GAMEPAD_TYPE) then
-        -- Mouse hover
-        if type == 0 then
-            gamepad_mapper:hover_controller(x, y)
-        -- Mouse left click
-        elseif type == 1 then
-            click_x = x
-            click_y = y
-        -- Mouse left release
-        elseif type == 2 then
-            if (click_x ~= nil and click_y ~= nil) then
-                if (gamepad_mapper:is_over_playstation_buttons(click_x, click_y) and
-                    gamepad_mapper:is_over_playstation_buttons(x, y)) then
-                    gamepad_mapper.button_layout = 'playstation'
-                end
-                if (gamepad_mapper:is_over_nintendo_buttons(click_x, click_y) and
-                    gamepad_mapper:is_over_nintendo_buttons(x, y)) then
-                    gamepad_mapper.button_layout = 'nintendo'
-                end
-                if (gamepad_mapper:is_over_xbox_buttons(click_x, click_y) and
-                    gamepad_mapper:is_over_xbox_buttons(x, y)) then
-                    gamepad_mapper.button_layout = 'xbox'
-                end
-                if (gamepad_mapper:is_over_gamecube_buttons(click_x, click_y) and
-                    gamepad_mapper:is_over_gamecube_buttons(x, y)) then
-                    gamepad_mapper.button_layout = 'gamecube'
-                end
+    local mapper = gamepad_mapper
+    if mapper.state == states.INTRO_SCREEN then
+        if not step then mapper:confirm_selection() end
+    elseif mapper.state == states.SELECT_INPUT_PROFILE then
+        local index = mapper.profile_index
+        if not step then mapper:confirm_selection(index)
+        elseif math.abs(step) == 2 then mapper:select_index((index+1)%4+1)
+        else mapper:select_index(index%2 == 1 and index+1 or index-1) end
+    elseif mapper.state == states.SELECT_GAMEPAD_TYPE then
+        if not step then mapper:confirm_selection(mapper.layout_index)
+        elseif math.abs(step) == 1 then mapper:select_index((mapper.layout_index-1+step)%4+1) end
+    end
+    return true
+end)
 
-                click_x = nil
-                click_y = nil
-
-                if (gamepad_mapper.button_layout ~= nil) then
-                    gamepad_mapper.state = states.INPUT_CONFIRM_BUTTON
-                    gamepad_mapper:display_button_mapper()
+-- Keep each button's release with the owner of its press across panel edges.
+local buttons = {[1]=1, [2]=1, [3]=1, [4]=4, [5]=4, [6]=4, [7]=7, [8]=7, [9]=7}
+local mouse = {}
+windower.register_event('mouse', function(kind, x, y, delta, blocked)
+    local mapper = gamepad_mapper
+    local inside = selection_visible() and mapper:is_within_dialog(x, y)
+    local button = buttons[kind]
+    if button then
+        if kind == button+1 then
+            local owned = mouse[button]
+            mouse[button] = nil
+            if button == 1 then
+                local click = mapper.mouse_click
+                mapper.mouse_click = nil
+                if owned and not blocked and inside and click and click.state == mapper.state
+                    and click.index == mapper:selection_at(x,y) then
+                    mapper:confirm_selection(click.index)
                 end
             end
+            return owned == true
         end
+        if mouse[button] ~= nil then return mouse[button] end
+        local owned = not blocked and inside or false
+        mouse[button] = owned
+        if owned and kind == 1 then
+            local index = mapper:selection_at(x,y)
+            if index or mapper.state == states.INTRO_SCREEN then
+                mapper.mouse_click = {state=mapper.state, index=index}
+                if index then mapper:select_index(index) end
+            end
+        end
+        return owned
     end
+    if blocked then return end
+    if kind == 0 then
+        if mapper.is_showing and mapper.state == states.INTRO_SCREEN then mapper:hover_welcome(x,y) end
+        local index = inside and mapper:selection_at(x,y)
+        if index then mapper:select_index(index) end
+        -- Preserve drags the game already owns, even when they cross the panel.
+        for _, owned in pairs(mouse) do if not owned then return end end
+        return inside
+    end
+    return inside
+end)
+
+windower.register_event('lose focus', function()
+    keys, mouse = {}, {}
+    gamepad_mapper.mouse_click = nil
+end)
+windower.register_event('prerender', function()
+    if gamepad_mapper.cursor then gamepad_mapper.cursor:update() end
 end)
 
 return gamepad_mapper
