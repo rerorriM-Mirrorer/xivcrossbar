@@ -726,6 +726,11 @@ end
 
 local arrow = {[keyboard.left]=-1, [keyboard.right]=1, [keyboard.up]=-2, [keyboard.down]=2}
 local keys = {}
+function gamepad_mapper:has_owned_key()
+    for _, owned in pairs(keys) do if owned then return true end end
+    return false
+end
+
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     local step = arrow[dik]
     if not step and dik ~= keyboard.enter and dik ~= 156 then return end

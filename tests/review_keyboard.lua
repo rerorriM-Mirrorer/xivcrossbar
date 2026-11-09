@@ -2,12 +2,18 @@ local helper=require('libs/controller/review_keyboard').new()
 local calls={};local binder={active=true}
 function binder:is_keyboard_review()return self.active end
 for _,method in ipairs({'dpad_up','dpad_down','dpad_left','dpad_right','submit_selected_option','go_back'})do
- binder[method]=function(self)calls[#calls+1]=method end
+ binder[method]=function(self, pressed)
+  if method:sub(1,5)=='dpad_' then self.repeat_active=pressed end
+  if pressed~=false then calls[#calls+1]=method end
+ end
 end
 for _,key in ipairs({200,208,203,205,28,1})do
  local before=#calls;assert(helper:edge(key,true,binder,true))
  assert(helper:edge(key,true,binder,true) and #calls==before+1,'held key repeated action')
+ assert(not binder.repeat_active,'keyboard tap left controller repeat armed')
+ assert(helper:has_owned_key())
  binder.active=false;assert(helper:edge(key,false,binder,false),'owned release leaked after screen transition')
+ assert(not helper:has_owned_key())
  binder.active=true
 end
 binder.active=false;assert(not helper:edge(28,true,binder,true))
@@ -53,4 +59,13 @@ assert(dispatch(28,true,0,false) and calls[#calls]=='submit_selected_option')
 binder.capturing_text=true
 assert(dispatch(28,false,0,false),'Enter release escaped into text field')
 binder.capturing_text=false
+local guard=require('text_input_guard')
+local commands={}
+local function send(command) commands[#commands+1]=command end
+guard:update(false,send,true)
+guard:update(true,send)
+guard:release(send)
+assert(table.concat(commands,',')=='keyboard_blockinput 1')
+guard:update(false,send,false)
+assert(table.concat(commands,',')=='keyboard_blockinput 1,keyboard_blockinput 0')
 print('Review keys: physical arrows/Enter/Escape, single edge, review-only scope, field ownership and real routing passed.')

@@ -1,3 +1,21 @@
+# Current Development Status — November 9, 2026 — Modal keyboard ownership
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `45f9fdb`, with the XI preset changes in this batch.
+
+Apply the Lua patch and run `//xb restart`. Open remap or a custom-action
+review over a native menu. Try each arrow, Enter, and Escape. The native
+keyboard should be blocked while the addon screen owns it. Tap an arrow
+and wait a second. The cursor should only move once. Controller D-pad
+holds should still repeat. Try typing a name, going Back, changing focus
+between clients, and closing the addon while holding a navigation key.
+Verify normal native keyboard input returns on leaving the addon menu.
+
+Lua checks cover one-step dispatch, release after changing screens, and
+guard transitions. Verify the Windower input block in a live client.
+
+---
+
 # Current Development Status — November 9, 2026 — XI preset and set labels
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

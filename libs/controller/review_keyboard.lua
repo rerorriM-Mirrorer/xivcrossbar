@@ -5,6 +5,12 @@ local actions={[200]='dpad_up',[208]='dpad_down',[203]='dpad_left',[205]='dpad_r
     [28]='submit_selected_option',[1]='go_back'}
 function M.new()
     local self={held={},owned={}}
+    function self:reset()
+        self.held, self.owned = {}, {}
+    end
+    function self:has_owned_key()
+        return next(self.owned) ~= nil
+    end
     function self:edge(dik,pressed,binder,allowed)
         local action=actions[dik]
         if not action then return false end
@@ -21,6 +27,9 @@ function M.new()
         if was_held then return true end
         self.owned[dik]=true
         binder[action](binder,true)
+        -- Keyboard navigation is one step per press. The controller repeat
+        -- timer is only for D-pad holds that deliver their own release.
+        if action:sub(1,5) == 'dpad_' then binder[action](binder,false) end
         return true
     end
     return self

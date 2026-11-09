@@ -511,3 +511,7 @@ together when the pointer crosses its edge.
 2026-11-09: Applying the XI preset enables Slot Glow, Recast Flash, and
 TriggerScale. Set choosers display ALL, the main job, the job/subjob pair,
 and Main. Existing set keys and saved names retain their original values.
+
+2026-11-09: Remap and custom-action review hold the native keyboard block
+while they own navigation. Keyboard arrow taps move once without starting
+the controller hold-repeat timer.

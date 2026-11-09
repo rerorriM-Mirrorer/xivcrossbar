@@ -1260,7 +1260,8 @@ local function graceful_restart(unload)
         action_binder:reset_state()
     end
     if gamepad_mapper.is_showing then gamepad_mapper:hide() end
-    text_input_guard:release(windower.send_command)
+    text_input_guard:reset_confirmation()
+    text_input_guard:update(false, windower.send_command, false)
     if ui.is_setup then ui:hide() end
     local delay = theme_options.fade_enabled and math.max(0, tonumber(theme_options.fade_out) or 0) or 0
     coroutine.schedule(function() windower.send_command(unload and 'lua u xivcrossbar' or 'lua r xivcrossbar') end, delay)
@@ -1333,7 +1334,7 @@ windower.register_event('unload',function()
     message_lease:close()
     crossbar_drag:finish()
     text_input_guard:reset_confirmation()
-    text_input_guard:release(windower.send_command)
+    text_input_guard:update(false, windower.send_command, false)
     -- No broad killahk.bat: the wrapper is shared across FFXI clients.
     if ui.geometry then ui.geometry:shutdown() end
     require('ui/resources').destroy_all()
@@ -2298,7 +2299,11 @@ local function clear_controller_input()
     if env_chooser:is_showing() and not env_chooser.capturing then env_chooser:close() end
     ui_dirty = true
 end
-windower.register_event('lose focus', function() clear_controller_input() end)
+windower.register_event('lose focus', function()
+    review_keyboard:reset()
+    clear_controller_input()
+    text_input_guard:update(false, windower.send_command, false)
+end)
 windower.register_event('gain focus', function() clear_controller_input() end)
 
 -- Native filtering and DirectLink have one active profile per client.
@@ -2481,8 +2486,14 @@ windower.register_event('prerender',function()
         diagnostic:record('BANK', ('selected=%s visible=%s'):format(tostring(bank), tostring(bank_visible)))
     end
     gamepad_state.shoulder_display = bank_visible and shoulder_banks.ids[bank] or nil
-    action_binder:tick_navigation(profile_clock(), windower.has_focus())
-    text_input_guard:update(action_binder:is_capturing_text() or env_chooser.capturing, windower.send_command)
+    local focused = windower.has_focus()
+    action_binder:tick_navigation(profile_clock(), focused)
+    local keyboard_context = focused and not restart_pending
+    local navigation = keyboard_context and (gamepad_mapper.is_showing or action_binder:is_keyboard_review()
+        or gamepad_mapper:has_owned_key() or review_keyboard:has_owned_key()
+        or (menu_escape_down and text_input_guard.navigation)) or false
+    text_input_guard:update(keyboard_context and (action_binder:is_capturing_text() or env_chooser.capturing),
+        windower.send_command, navigation)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.
     if ui.geometry then ui.geometry:tick() end
