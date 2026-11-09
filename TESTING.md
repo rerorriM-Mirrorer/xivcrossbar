@@ -1,3 +1,39 @@
+# Current Development Status — November 9, 2026 — Set chooser rendering
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `29730f1347238a6d8835df72fd7098e554e74e01`.
+The Lua overlay keeps bank visibility in the render pass and writes each
+slot's resolved icon directly when a set changes. In the binder, an inherited
+source badge replaces the cost and recast overlay for its slot.
+
+1. Overlay the Lua patch and run `//xb restart`.
+2. With XI, Auto and Fade On, hold Options, highlight Add New Set, then
+   release Options. Watch that only the side bars fade. Repeat after entering
+   and backing out of name entry, in compact and full layouts.
+3. Scroll quickly through sets with different bindings and shared inherited
+   icons. Check that the selected set's art stays steady between changes.
+4. With the binder open, hold Options and scroll sets. Inherited ALL/JOB
+   badges should stay steady, with no MP/TP cost flashing underneath. Close
+   the binder and check that regular costs and recast overlays return.
+5. In XI compact, tap L2 and R2 quickly with Fade On and again with Fade Off.
+   If the Options hint still flashes, start `//xb diagnose start render`,
+   reproduce once and run `//xb diagnose stop` immediately.
+
+### November 9 — Set chooser and hint diagnostic evidence
+
+The compact full capture ending in `214606-288162-1-client.log` retained the
+late set-scroll rendering and overwrote 98,982 render records. The supplied
+full-size set, Options hint, and inherited-badge captures recorded input only.
+The later full capture ending in `215242-454624-6-client.log` retained 522
+same-frame repeated image path writes and 95 same-frame show/hide pairs for
+text surfaces. The render trace redacts art paths and caption contents. The
+set-refresh fixture asserts that inherited badges and costs no longer issue
+competing visibility calls, and that refreshing a set preserves the current
+reveal in compact and full layouts. The Options flash still needs an isolated
+render capture if it persists. Live visual verification is pending.
+
+---
+
 # Current Development Status — November 9, 2026 — Superwarp city folders
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

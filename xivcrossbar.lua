@@ -711,7 +711,7 @@ function initialize(server_id, expected_name, expected_id)
         return
     end
     set_active_environment(default_active_environment)
-    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
+    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
 
     consumables:setup()
     env_chooser:setup(theme_options, set_display_name)
@@ -795,14 +795,14 @@ end
 -- set battle environment
 function set_battle_environment(in_battle)
     player:set_battle_environment(in_battle)
-    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
+    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
 end
 
 -- set active environment
 function set_active_environment(environment_name)
     player:set_active_environment(environment_name)
     action_binder:refresh_set_title()
-    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
+    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
 end
 
 -- The chooser's Add New Set row is UI state, never an executable hotbar.
@@ -838,7 +838,7 @@ function reload_hotbar()
         end
         player:set_active_environment(selected)
     end
-    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment, gamepad_state)
+    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
     return true
 end
 

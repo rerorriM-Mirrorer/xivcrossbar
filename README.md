@@ -526,3 +526,10 @@ Entering the picker from review clears the previous screen's trigger gesture.
 2026-11-09: Restored the Superwarp city folders for Bastok, San d'Oria,
 and Windurst in the Public Beta binder. The remaining destinations still
 appear alphabetically below them.
+
+2026-11-09: Set changes refresh slot art without restarting the crossbar
+reveal. Only banks selected by the renderer participate in the set
+chooser's ordinary fade.
+
+2026-11-09: The binding preview gives inherited-set badges exclusive use of
+the slot's recast overlay and hides the cost until the preview closes.

@@ -204,12 +204,17 @@ end)
 -----------------------------
 
 -- setup images
-function setup_image(image, path)
+local function prepare_image(image, path)
     image:path(path)
     image:repeat_xy(1, 1)
     image:draggable(false)
     image:fit(true)
     image:alpha(255)
+end
+
+-- The controller setup screen also uses this legacy helper.
+function setup_image(image, path)
+    prepare_image(image, path)
     image:show()
 end
 
@@ -384,6 +389,7 @@ end
 
 -- setup ui
 function ui:setup(theme_options, enchanted_items)
+    self.public_visible = nil
     geometry:configure_fade(theme_options.fade_enabled, theme_options.fade_in,
         theme_options.fade_out, theme_options.load_fade_in, {claimed=false})
     geometry:set_text_fade(theme_options.text_fade)
@@ -495,7 +501,7 @@ function ui:load(theme_options)
     self.recast_flash_clock = require('socket').gettime
     self.scale_visible, self.scale_active_bar = false, 0
     -- load battle notice
-    setup_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
+    prepare_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
     self.battle_notice:hide()
     self.frame_image_path = windower.addon_path..'/themes/' .. (theme_options.frame_theme:lower()) .. '/frame.png'
@@ -556,7 +562,7 @@ function ui:load(theme_options)
     self.action_binder_icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/binding_icons/minus_'..self.theme.button_layout..'.png')
     self.action_binder_icon:alpha(255)
     self.action_binder_text = new_text(text_setup)
-    setup_text(self.action_binder_text, theme_options, self.is_compact)
+    setup_text(self.action_binder_text, theme_options, true)
     self.action_binder_text:pos(self:get_slot_x(1, 1) + 35, self:get_slot_y(1, 4) - 15)
     self.action_binder_text:text('Bind an action')
     self.environment_selector_icon = new_image(images_setup)
@@ -565,10 +571,10 @@ function ui:load(theme_options)
     self.environment_selector_icon:pos(self:get_slot_x(2, 5) - 5, self:get_slot_y(1, 4) - 27)
     self.environment_selector_icon:alpha(255)
     self.environment_selector_text = new_text(text_setup)
-    setup_text(self.environment_selector_text, theme_options, self.is_compact)
+    setup_text(self.environment_selector_text, theme_options, true)
     self.environment_selector_text:pos(self:get_slot_x(2, 5) + 40, self:get_slot_y(1, 4) - 15)
     self.environment_selector_text:text('Change crossbar sets')
-    self:show_button_hints()
+    self.button_hints_visible = false
 
     -- create ui elements for hotbars
     for _, h in ipairs(self.render_banks) do
@@ -600,13 +606,13 @@ function ui:load(theme_options)
             self.hotbars[h].slot_recast_text[i] = new_text(right_text_setup)
             self.hotbars[h].slot_icon[i]:size(40, 40)
 
-            setup_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
-            setup_image(self.hotbars[h].slot_icon[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
-            setup_image(self.hotbars[h].slot_frame[i], self.frame_image_path)
-            setup_image(self.hotbars[h].slot_element[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
-            setup_text(self.hotbars[h].slot_text[i], theme_options)
-            setup_text(self.hotbars[h].slot_cost[i], theme_options)
-            setup_text(self.hotbars[h].slot_recast_text[i], theme_options)
+            prepare_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
+            prepare_image(self.hotbars[h].slot_icon[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
+            prepare_image(self.hotbars[h].slot_frame[i], self.frame_image_path)
+            prepare_image(self.hotbars[h].slot_element[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
+            setup_text(self.hotbars[h].slot_text[i], theme_options, true)
+            setup_text(self.hotbars[h].slot_cost[i], theme_options, true)
+            setup_text(self.hotbars[h].slot_recast_text[i], theme_options, true)
 
             self.hotbars[h].slot_cost[i]:size(8)
             self.hotbars[h].slot_cost[i]:stroke_alpha(220)
@@ -631,7 +637,7 @@ function ui:load(theme_options)
     end
 
     self.binding_tint = new_image(images_setup)
-    setup_image(self.binding_tint, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
+    prepare_image(self.binding_tint, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
     self.binding_tint:size(40, 40)
     self.binding_tint:color(75, 235, 126)
     self.binding_tint:alpha(105)
@@ -639,7 +645,7 @@ function ui:load(theme_options)
 
     -- load feedback icon last so it stays above everything else
     self.feedback_icon = new_image(images_setup)
-    setup_image(self.feedback_icon, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
+    prepare_image(self.feedback_icon, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
     self.feedback.max_opacity = theme_options.feedback_max_opacity
     self.feedback.speed = theme_options.feedback_speed
     self.feedback.current_opacity = self.feedback.max_opacity
@@ -651,7 +657,7 @@ function ui:load(theme_options)
     self.pulse_views,self.pulse_tracks,self.pulse_visible_bars = {},{},{}
     for slot=1,8 do
         local view=new_image(images_setup)
-        setup_image(view,windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
+        prepare_image(view,windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
         view:hide()
         self.pulse_views[slot]=view
     end
@@ -882,31 +888,7 @@ function ui:show(player_hotbar, environment)
 
     self:show_button_hints()
 
-    for _,h in ipairs(self.render_banks) do
-        if h <= 6 then
-            for i=1,8,1 do
-                local slot = i
-                if slot == 10 then slot = 0 end
-
-                local bar = shoulders.bar(player_hotbar, environment, h)
-                local action = bar and bar['slot_' .. slot]
-
-                if (action == nil or action.action == nil) then
-                    action = maybe_get_default_action(player_hotbar, environment, h, slot)
-                end
-
-                if self.theme.hide_empty_slots == false then self.hotbars[h].slot_background[i]:show() end
-                self.hotbars[h].slot_icon[i]:show()
-                if action ~= nil then self.hotbars[h].slot_frame[i]:show() end
-                if self.theme.hide_recast_animation == false then self.hotbars[h].slot_recast[i]:show() end
-                if self.theme.hide_recast_animation == false then self.hotbars[h].slot_warmup[i]:show() end
-                if self.theme.hide_action_element == false then self.hotbars[h].slot_element[i]:show() end
-                if self.theme.hide_action_names == false then self.hotbars[h].slot_text[i]:show() end
-                if self.theme.hide_action_cost == false then self.hotbars[h].slot_cost[i]:show() end
-                if self.theme.hide_recast_text == false then self.hotbars[h].slot_recast_text[i]:show() end
-            end
-        end
-    end
+    -- The render pass selects banks and reveals their slot surfaces.
     return true
 end
 
@@ -1002,11 +984,9 @@ end
 -----------------------------
 
 -- load player hotbar
-function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepad_state)
+function ui:load_player_hotbar(player_hotbar, player_vitals, environment)
     self.resolved_slots = {}
     self:clear_recast_flashes()
-    -- A rebuilt bar must reapply the visibility policy on the next render.
-    self.public_visible = nil
     if environment == 'battle' and self.theme.hide_battle_notice == false then
         self.battle_notice:show()
     else
@@ -1020,14 +1000,10 @@ function ui:load_player_hotbar(player_hotbar, player_vitals, environment, gamepa
     self.disabled_slots.on_warmup = {}
 
     for _, h in ipairs(self.render_banks) do
-        local isThisBarActive = gamepad_state.active_bar == h
-        local isThisBarVisibleByDefault = h < 3 
-        local shouldDrawDefaultVisibleBars = gamepad_state.active_bar < 3
-        local shouldDrawThisBar = isThisBarActive or isThisBarVisibleByDefault and shouldDrawDefaultVisibleBars
         for slot=1,8,1 do
             local bar = shoulders.bar(player_hotbar, environment, h)
             local action = bar and bar['slot_' .. slot]
-            self:load_action(player_hotbar, environment, h, slot, action, player_vitals, shouldDrawThisBar)
+            self:load_action(player_hotbar, environment, h, slot, action, player_vitals, false)
         end
     end
 end
@@ -1049,6 +1025,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
     self:clear_slot(hotbar, slot)
 
     local icon_overridden = false
+    local blank_icon = '/images/' .. get_icon_pathbase() .. '/ui/blank.png'
 
     -- if slot is empty, check if there is an entry in the default crossbar
     if (action == nil or action.action == nil) then
@@ -1058,10 +1035,9 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
         if (action == nil) then
             if self.theme.hide_empty_slots == true then
                 self.hotbars[hotbar].slot_background[slot]:hide()
-            else
-                self.hotbars[hotbar].slot_background[slot]:show()
             end
-
+            self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. blank_icon)
+            self.hotbars[hotbar].slot_icon[slot]:hide()
             return
         end
     end
@@ -1123,14 +1099,10 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
         -- linked lookup — don't try linked_type='enchanteditem'
         if (action.type == 'enchanteditem') then
             self.enchanted_items:register(action.action, action.warmup, 2, action.cooldown)
-            self.hotbars[hotbar].slot_icon[slot]:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
-            self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/items/' .. kebab_casify(action.action) .. '.png')
+            icon_path = '/images/' .. get_icon_pathbase() .. '/items/' .. kebab_casify(action.action) .. '.png'
         end
 
         self.hotbars[hotbar].slot_background[slot]:alpha(200)
-        if (show_when_ready) then
-            self.hotbars[hotbar].slot_icon[slot]:show()
-        end
     -- if action is an item
     elseif action.type == 'item' then
         local custom_icon = 'items/' ..  kebab_casify(action.action) .. '.png'
@@ -1149,10 +1121,6 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
                 icon_path = '/images/' .. get_icon_pathbase() .. '/item.png'
             end
         end
-
-        if (show_when_ready) then
-            self.hotbars[hotbar].slot_icon[slot]:show()
-        end
     elseif (action.type == 'mount') then
         local default_icon = '/images/' .. get_icon_pathbase() .. '/mount.png'
         local custom_icon = 'mounts/' ..  kebab_casify(action.action) .. '.png'
@@ -1166,35 +1134,27 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
         icon_path = '/images/' .. get_icon_pathbase() .. '/none.png'
         icon_overridden = true
         self.hotbars[hotbar].slot_icon[slot]:size(40,40)
-        if show_when_ready then self.hotbars[hotbar].slot_icon[slot]:show() end
     end
 
-    if (icon_path ~= nil) then
-        self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. icon_path)
-    else
-        self.hotbars[hotbar].slot_icon[slot]:hide()
-    end
-    -- Geometry already fits native and custom artwork to the 40px slot.
-    -- The old 4px inset for native 32px icons would push it outside the frame.
-    self.hotbars[hotbar].slot_icon[slot]:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
-
-    -- if action is custom
-    if (not icon_overridden and action.icon ~= nil and action.icon ~= '') then
+    -- Select the final texture before touching the native image.
+    if not icon_overridden and action.icon and action.icon ~= '' then
         self.hotbars[hotbar].slot_background[slot]:alpha(200)
-        self.hotbars[hotbar].slot_icon[slot]:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
-        -- Old extracted cache paths are derived data: reuse the newly resolved
-        -- item image/fallback instead of treating a BMP path as an iconpack stem.
-        if action.type == 'item' and item_icons.is_extracted(action.icon) then
-            if icon_path then self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. icon_path) end
-        elseif action.icon:match('^/?images/') then
-            self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/' .. action.icon:gsub('^/', ''))
-        else
-            self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/' .. action.icon .. '.png')
-        end
-        if (show_when_ready) then
-            self.hotbars[hotbar].slot_icon[slot]:show()
+        -- Extracted item cache paths are derived data.
+        if action.type ~= 'item' or not item_icons.is_extracted(action.icon) then
+            if action.icon:match('^/?images/') then
+                icon_path = '/' .. action.icon:gsub('^/', '')
+            else
+                icon_path = '/images/' .. get_icon_pathbase() .. '/' .. action.icon .. '.png'
+            end
         end
     end
+
+    local icon = self.hotbars[hotbar].slot_icon[slot]
+    icon:path(windower.addon_path .. (icon_path or blank_icon))
+    -- Geometry fits both native and custom artwork to the slot.
+    icon:pos(self:get_slot_x(hotbar, slot), self:get_slot_y(hotbar, slot))
+    if not icon_path then icon:hide()
+    elseif show_when_ready then icon:show() end
 
     if action.type == 'item' then
         -- A 32-pixel extracted bitmap still fills the bound 40-pixel slot.
@@ -1234,9 +1194,6 @@ end
 function ui:clear_slot(hotbar, slot)
     self:clear_recast_flash(hotbar, slot)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
-    self.hotbars[hotbar].slot_frame[slot]:hide()
-    self.hotbars[hotbar].slot_icon[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
-    self.hotbars[hotbar].slot_icon[slot]:hide()
     self.hotbars[hotbar].slot_icon[slot]:alpha(255)
     self.hotbars[hotbar].slot_icon[slot]:color(255, 255, 255)
     self.hotbars[hotbar].slot_element[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
@@ -1864,7 +1821,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self.hotbars[h].slot_frame[i]:show()
                 self.hotbars[h].slot_element[i]:show()
                 self.hotbars[h].slot_text[i]:show()
-                self.hotbars[h].slot_cost[i]:show()
 
                 local bar = shoulders.bar(player_hotbar, environment, h)
                 local action = bar and bar['slot_' .. slot]
@@ -1875,6 +1831,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 if self.display_palette and action and (not action.action or action.action == '') then
                     action = nil
                 end
+
+                local inherited_set = dim_default_slots and action and action.source_environment
+                if inherited_set == environment then inherited_set = nil end
 
                 local resolved, unavailable_reason
                 if action and (action.type == 'ma' or action.type == 'ja' or action.type == 'pet') then
@@ -1889,10 +1848,11 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 if resolved and (not previous or previous.type ~= resolved.type or previous.action ~= resolved.action
                     or previous.target ~= resolved.target or previous.alias ~= resolved.alias)
                     or previous and not resolved then
-                    self:load_action(player_hotbar, environment, h, i, resolved or action, player_vitals, true)
+                    self:load_action(player_hotbar, environment, h, i, resolved or action, player_vitals, not inherited_set)
                     self.resolved_slots[slot_key] = resolved
                 end
                 action = resolved or action
+                if not inherited_set then self.hotbars[h].slot_cost[i]:show() end
 
                 local frame = self.hotbars[h].slot_frame[i]
                 if self.display_palette and not action then
@@ -1938,7 +1898,12 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 -- type is e.g. 'ex' (gear-swap command). Without this the gate
                 -- bails before the recast code can look up the linked metadata.
                 local effective_type = action and (action.linked_type or action.type) or nil
-                if action == nil or (effective_type ~= 'ma' and effective_type ~= 'ja' and effective_type ~= 'ws' and effective_type ~= 'pet' and effective_type ~= 'enchanteditem') then
+                -- In binding previews the source badge owns this overlay and
+                -- replaces the cost and recast display for inherited slots.
+                if inherited_set then
+                    self.hotbars[h].slot_warmup[i]:hide()
+                    self:mark_default_set_action(h, i, inherited_set)
+                elseif action == nil or (effective_type ~= 'ma' and effective_type ~= 'ja' and effective_type ~= 'ws' and effective_type ~= 'pet' and effective_type ~= 'enchanteditem') then
                     self:clear_recast(h, i)
                     if observe_recasts then self:clear_recast_flash(h,i) end
                     if (action ~= nil and action.type == 'item') then
@@ -1957,11 +1922,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         else
                             self.hotbars[h].slot_cost[i]:hide()
                         end
-                    end
-
-                    -- Mark which actions came from a default set, if any, when the gamepad assigner is open
-                    if (action ~= nil and action.source_environment ~= environment and dim_default_slots) then
-                        self:mark_default_set_action(h, i, action.source_environment)
                     end
                 else
                     local crossbar_action = nil
@@ -2181,9 +2141,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                             -- register first cooldown to calculate percentage
                             if self.disabled_slots.on_cooldown[action.action] == nil then
                                 self.disabled_slots.on_cooldown[action.action] = self.enchanted_items:get_cooldown_time(action.action)
-
-                                -- setup recast elements
-                                self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
                             end
                         end
 
@@ -2198,9 +2155,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         -- register first cooldown to calculate percentage
                         if self.disabled_slots.on_cooldown[action.action] == nil then
                             self.disabled_slots.on_cooldown[action.action] = skill_recasts[crossbar_action.recast_id]
-
-                            -- setup recast elements
-                            self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
                         end
 
                         in_cooldown = true
@@ -2222,6 +2176,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                             self:toggle_slot(h, i, false)
                         end
 
+                        if self.theme.hide_recast_animation then self.hotbars[h].slot_recast[i]:hide() end
                         -- show recast animation
                         if self.theme.hide_recast_animation == false or self.theme.hide_recast_text == false then
                             local time_remaining = 0
@@ -2240,6 +2195,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
                             -- show recast if settings allow it
                             if self.theme.hide_recast_animation == false then
+                                self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
                                 self.hotbars[h].slot_recast[i]:alpha(150)
                                 self.hotbars[h].slot_recast[i]:size(40, new_height)
                                 self.hotbars[h].slot_recast[i]:pos(self:get_slot_x(h, i), self:get_slot_y(h, i) + (40 - new_height))
@@ -2254,6 +2210,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                             end
                         end
                     elseif in_warmup then
+                        self.hotbars[h].slot_recast[i]:hide()
                         -- show recast animation
                         if self.theme.hide_recast_animation == false then
                             local new_height = 40 * self.enchanted_items:get_warmup_fraction(action.action)
@@ -2354,11 +2311,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         if (action.type == 'ws' or action.linked_type == 'ws' or action.type == "ma" or action.linked_type == "ma") then
                             self.hotbars[h].slot_cost[i]:show()
                         end
-                    end
-
-                    -- Mark which actions came from a default set, if any, when the gamepad assigner is open
-                    if (action ~= nil and action.source_environment ~= environment and dim_default_slots) then
-                        self:mark_default_set_action(h, i, action.source_environment)
                     end
                 end
                 if unavailable_reason then
@@ -2574,7 +2526,7 @@ function ui:set_slot_glow_enabled(enabled)
     elseif self.pulse_views[1] and not self.glow_views[1] then
         for slot=1,8 do
             local view = new_image(images_setup)
-            setup_image(view, windower.addon_path .. 'images/assets/slot-glow.png')
+            prepare_image(view, windower.addon_path .. 'images/assets/slot-glow.png')
             view:size(40+2*slot_glow_padding,40+2*slot_glow_padding)
             view:hide()
             self.glow_views[slot] = view
