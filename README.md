@@ -496,3 +496,9 @@ to add missing editable category sets for the current job combination.
 PS focus switching use `//xb bridge <movement|menu|ps|all> <off|test|on>`.
 They default off. Test mode reports decisions with native input intact.
 Use `//xb bridge status` to check the menu lease and reader decisions.
+
+2026-11-09: Native guard attachment failures now show the failed operation
+and error code in `//xb nativepad status`. DirectInput can recover a failed
+joystick-ID lookup or device open when the selected Windows joystick slot is
+the only responsive slot and DirectInput sees exactly one attached device.
+Use `//xb nativepad auto` to retry with the intended controller connected.

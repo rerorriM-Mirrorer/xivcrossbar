@@ -14,8 +14,10 @@ in-flight callbacks. Restart FFXI to replace the DLL or change input backends.
   profile reserves View/Menu for addon functions. The alternate reserves
   View/RB and leaves Menu available to FFXI.
 - DirectInput uses the Windows joystick ID to choose the instance GUID,
-  with a single-device fallback for Device 1. It filters polled joystick
-  state and supported buffered records. PS5 and F710 share one mapping.
+  with a fallback when the selected Windows joystick slot is the only
+  responsive slot and exactly one DirectInput controller is attached.
+  It filters polled joystick state and supported buffered records.
+  PS5 and F710 share one mapping.
   FightPadPro uses its own face-button order.
 - Bare navigation passes through. A new chord or active addon menu owns
   captured buttons through release, with the existing 120 ms held-direction

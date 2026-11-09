@@ -6,6 +6,8 @@
 
 struct lua_State;
 extern "C" unsigned __cdecl xb_begin(unsigned, unsigned, unsigned, unsigned, const char*);
+const char* xb_attach_operation();
+long xb_attach_code();
 extern "C" void __cdecl xb_off();
 extern "C" unsigned __cdecl xb_detach();
 extern "C" unsigned __cdecl xb_poll(unsigned, int*, unsigned, unsigned*);
@@ -16,6 +18,7 @@ struct Api {
     std::ptrdiff_t (__cdecl* integer)(lua_State*, int);
     const char* (__cdecl* string)(lua_State*, int, size_t*);
     void (__cdecl* push)(lua_State*, std::ptrdiff_t);
+    void (__cdecl* push_string)(lua_State*, const char*);
     void (__cdecl* table)(lua_State*, int, int);
     void (__cdecl* closure)(lua_State*, LuaFunction, int);
     void (__cdecl* field)(lua_State*, int, const char*);
@@ -33,7 +36,11 @@ int begin(lua_State* L) {
         static_cast<unsigned>(api.integer(L, 2)), static_cast<unsigned>(api.integer(L, 3)),
         static_cast<unsigned>(api.integer(L, 4)), api.string(L, 5, nullptr));
     api.push(L, result);
-    return 1;
+    const auto operation = xb_attach_operation();
+    if (!operation) return 1;
+    api.push_string(L, operation);
+    api.push(L, xb_attach_code());
+    return 3;
 }
 int off(lua_State*) { xb_off(); return 0; }
 int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
@@ -83,6 +90,7 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
         const HMODULE host = GetModuleHandleW(name);
         if (!host || !resolve(host, api.integer, "lua_tointeger") ||
             !resolve(host, api.string, "lua_tolstring") || !resolve(host, api.push, "lua_pushinteger") ||
+            !resolve(host, api.push_string, "lua_pushstring") ||
             !resolve(host, api.table, "lua_createtable") || !resolve(host, api.closure, "lua_pushcclosure") ||
             !resolve(host, api.field, "lua_setfield") || !resolve(host, api.index, "lua_rawseti")) continue;
         resolved = true;

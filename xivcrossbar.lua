@@ -2,7 +2,7 @@
 _addon.name = 'XIVCrossbar' -- based on Edeon's XIV Hotbar
 _addon.author = 'Aliekber, various friendly neighborhood modders'
 -- Credit goes to: Aeliya, BlueSummersC, FionaBrightgrass, GrayFox2510, Icydeath, qEagleStrikerp, Sylvebits, XerevNonori
-_addon.version = '0.4.0-beta1.20261107.diagnostics2'
+_addon.version = '0.4.0-beta1.20261109.hook1'
 _addon.language = 'english'
 _addon.commands = {'xivcrossbar', 'xb', 'xcb'}
 
@@ -440,6 +440,7 @@ local controller_switcher
 local message_lease=require('controller_lease').new({clock=profile_clock})
 local message_bridge
 local native_gamepad, native_mode, native_command, native_poll, native_receiving, native_filtering, native_stop
+local native_attach_failure
 local controller_bridge = require('controller_bridge')
 controller_bridge.menu = controller_bridge.new(profile_clock, windower.send_command, function(message)
     chat_format.say(207, '[XIVCrossbar bridge test] '..message)
@@ -463,7 +464,15 @@ local function report_controller_status(embedded)
             ' | Connected: '..chat_format.toggle(status.connected == '1')))
         local route=status.route or 'waiting-lease'
         chat_format.say(0,chat_format.row('Input',route))
-        chat_format.say(0,chat_format.row('Native guard',native_filtering and 'active' or native_receiving and 'waiting for DirectLink' or 'waiting for game polls'))
+        local guard_status = native_attach_failure and 'Hook Unavailable'
+            or native_filtering and 'Filtering'
+            or native_receiving and 'Waiting for DirectLink'
+            or native_mode == 'guard' and 'Waiting for FFXI to Read the Controller'
+            or 'Pass-Through'
+        chat_format.say(0,chat_format.row('Native Guard',guard_status))
+        if native_attach_failure then
+            chat_format.say(0,chat_format.row('Hook Detail',native_attach_failure))
+        end
         if not controller_profiles.matches(status,settings.ControllerProfile,settings.ControllerDevice,controller_modifier)
             and not pending then
             chat_format.say(123,'[XIVCrossbar] Running wrapper differs. Stop it, then start from the client with the desired selection.')
@@ -2288,6 +2297,7 @@ do
         gamepad_state.trust_menu_live=false
         gamepad_state.shoulder_targeting=false
         gamepad_state.shoulder_slots=false
+        native_attach_failure = nil
         if retry then attempted=nil end
         if not native_gamepad then return end
         native_gamepad.stop()
@@ -2305,7 +2315,10 @@ do
             return say(command=='auto' and 'automatic guard enabled' or 'native pass-through enabled')
         end
         if command==nil or command=='status' then
-            if not native_gamepad then return say('pass-through | bridge inactive') end
+            if native_attach_failure then
+                return say('Hook Unavailable. FFXI input is unfiltered. '..native_attach_failure)
+            end
+            if not native_gamepad then return say('Pass-Through | Bridge Inactive') end
             local phase = native_filtering and 'filtering'
                 or native_mode=='probe' and 'probe'
                 or native_mode=='guard' and 'waiting (pass-through)'
@@ -2327,15 +2340,27 @@ do
             local ok, result=pcall(function()
                 return require('native_gamepad').open(windower.addon_path..'native/xb_gamepad_messages.dll')
             end)
-            if not ok then return say(tostring(result)) end
+            if not ok then
+                native_attach_failure = tostring(result)
+                return say('Hook Unavailable. '..native_attach_failure)
+            end
             native_gamepad=result
         end
         if native_mode then native_stop() end
-        local result=native_gamepad.begin(xbox and 1 or 2,device-1,command=='probe' and 1 or 3,layout,module)
+        local result, operation, code = native_gamepad.begin(xbox and 1 or 2,device-1,
+            command=='probe' and 1 or 3,layout,module)
         if result~=1 then
-            return say(result==2 and 'Another hook target is resident. Restart FFXI after changing controller backend or DirectInput device.'
-                or 'Hook unavailable. FFXI input remains native.')
+            if result==2 then
+                native_attach_failure = 'Restart FFXI after changing the controller backend or DirectInput device.'
+            elseif operation and code then
+                native_attach_failure = ('%s failed (0x%08X).'):format(operation, code % 4294967296)
+            else
+                native_attach_failure = 'The native DLL returned no attachment detail. Check that it matches this build.'
+            end
+            return say('Hook Unavailable. FFXI input is unfiltered. '..native_attach_failure)
         end
+        native_attach_failure = nil
+        if operation then say(operation..' for Device '..device..'.') end
         native_mode=command
         generation=nil
         last_polls,last_native_poll,native_receiving,native_filtering=0,nil,false,false

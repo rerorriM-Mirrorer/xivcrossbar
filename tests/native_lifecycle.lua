@@ -7,12 +7,13 @@ local last = assert(source:find('-- ON PRERENDER', first, true))
 local reader = {state='ready', pid=10}
 local clock = 0
 
-local function client()
+local function client(attach_result)
     local calls, notices = {}, {}
     local function record(name)
         return function() calls[#calls+1] = name; return true end
     end
-    local dll = {begin=function() calls[#calls+1]='attach'; return 1 end,
+    local dll = {begin=function() calls[#calls+1]='attach'; return attach_result or 1,
+            attach_result and 'Open the selected DirectInput device', -2147024809 end,
         stop=record('off'), detach=record('detach'), hook_status=function() return 'hooks attached' end,
         poll=function(context) calls[#calls+1]=context; return 1 end, poll_count=function() return 1 end,
         armed=function() return true end, status=function() return 'fixture' end}
@@ -60,14 +61,26 @@ clock=3
 b.native_poll()
 assert(b.native_mode=='guard','logout/login can reuse the same running reader')
 
+local failed, failure_calls, failure_notices = client(0)
+failed.native_poll()
+assert(not failed.native_mode and not failed.native_filtering and failure_calls[1]=='attach')
+failed.native_command('status')
+assert(failure_notices[#failure_notices]:find('Hook Unavailable',1,true))
+assert(failure_notices[#failure_notices]:find('0x80070057',1,true))
+failed.native_command('auto')
+failed.native_command('status')
+assert(not failure_notices[#failure_notices]:find('Hook Unavailable',1,true))
+
 local loader = package.loadlib
 package.loadlib=function()
     return function()
-        return {process_id=17, begin=function() return 1 end, detach=function() return 1 end}
+        return {process_id=17, begin=function() return 1, 'Matched the sole attached controller', 0 end, detach=function() return 1 end}
     end
 end
 local module = require('native_gamepad').open('fixture')
 package.loadlib=loader
-assert(module.begin()==1 and module.hook_status():find('attached',1,true))
+local result, operation, code = module.begin()
+assert(result==1 and operation=='Matched the sole attached controller' and code==0)
+assert(module.hook_status():find(operation,1,true))
 assert(module.detach() and module.hook_status():find('detached',1,true))
 print('Native lifecycle: reader lease, immediate cleanup, independent clients, reload and detach status passed.')

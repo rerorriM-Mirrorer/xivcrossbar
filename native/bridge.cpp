@@ -5,6 +5,7 @@
 #include <dinputd.h>
 #include <xinput.h>
 #include <MinHook.h>
+#include <mmsystem.h>
 #include <array>
 #include <cstddef>
 #include <cstring>
@@ -251,11 +252,33 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
     return result;
 }
 
+// Attachment runs on the Lua thread. Callbacks never read these diagnostics.
+const char* attach_operation;
+long attach_code;
+bool attach_failed(const char* operation, long code) {
+    attach_operation = operation;
+    attach_code = code;
+    return false;
+}
+
 struct Enumeration { GUID instance; unsigned count; };
 BOOL CALLBACK choose_device(const DIDEVICEINSTANCEA* info, void* context) {
     auto& pick = *static_cast<Enumeration*>(context);
     if (!pick.count++) pick.instance = info->guidInstance;
     return pick.count == 1 ? DIENUM_CONTINUE : DIENUM_STOP;
+}
+
+bool sole_reader_device(unsigned index) {
+    JOYINFOEX sample{};
+    sample.dwSize = sizeof sample;
+    sample.dwFlags = JOY_RETURNBUTTONS;
+    if (joyGetPosEx(index, &sample) != JOYERR_NOERROR) return false;
+    // Confirm the reader's numbered device is the only responsive WinMM slot.
+    // An attached DirectInput singleton alone does not establish that.
+    for (unsigned slot = 0; slot < 16; ++slot) {
+        if (slot != index && joyGetPosEx(slot, &sample) == JOYERR_NOERROR) return false;
+    }
+    return true;
 }
 
 void* targets[max_xbox_hooks];
@@ -265,15 +288,19 @@ bool hooks_enabled;
 bool set_hooks(bool enabled) {
     for (unsigned i = 0; i < target_count; ++i) {
         const auto result = enabled ? MH_QueueEnableHook(targets[i]) : MH_QueueDisableHook(targets[i]);
-        if (result != MH_OK) return false;
+        if (result != MH_OK) {
+            return enabled ? attach_failed("Queue native hooks", result) : false;
+        }
     }
-    if (MH_ApplyQueued() != MH_OK) return false;
+    const auto applied = MH_ApplyQueued();
+    if (applied != MH_OK) return enabled ? attach_failed("Enable native hooks", applied) : false;
     hooks_enabled = enabled;
     return true;
 }
 bool install(unsigned kind, unsigned index, const char* module) {
     const auto mh = MH_Initialize();
-    if (mh != MH_OK && mh != MH_ERROR_ALREADY_INITIALIZED) return false;
+    if (mh != MH_OK && mh != MH_ERROR_ALREADY_INITIALIZED)
+        return attach_failed("Initialize MinHook", mh);
     if (kind == 1) {
         for (auto name : xbox_modules) {
             if (strcmp(module, "auto") != 0 && _stricmp(module, name) != 0) continue;
@@ -293,82 +320,113 @@ bool install(unsigned kind, unsigned index, const char* module) {
                 if (created == MH_ERROR_UNSUPPORTED_FUNCTION) continue;
                 if (created != MH_OK) {
                     while (target_count) MH_RemoveHook(targets[--target_count]);
-                    return false;
+                    return attach_failed("Install XInput hook", created);
                 }
                 targets[target_count++] = target;
             }
         }
-        if (!target_count) return false;
+        if (!target_count) return attach_failed("Find a hookable XInput entry point", ERROR_PROC_NOT_FOUND);
     } else {
         const auto loaded = GetModuleHandleA("dinput8.dll");
-        if (!loaded) return false;
+        if (!loaded) return attach_failed("Find dinput8.dll in FFXI", GetLastError());
         using Create = HRESULT (WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
         const auto factory = reinterpret_cast<Create>(GetProcAddress(loaded, "DirectInput8Create"));
+        if (!factory) return attach_failed("Find DirectInput8Create", GetLastError());
         IDirectInput8A* direct = nullptr;
-        if (!factory || FAILED(factory(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-            IID_IDirectInput8A, reinterpret_cast<void**>(&direct), nullptr))) return false;
+        const auto created = factory(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
+            IID_IDirectInput8A, reinterpret_cast<void**>(&direct), nullptr);
+        if (FAILED(created)) return attach_failed("Initialize DirectInput", created);
+
         IDirectInputJoyConfig8* config = nullptr;
         DIJOYCONFIG selected{};
         selected.dwSize = sizeof selected;
-        bool found = false;
-        if (SUCCEEDED(direct->QueryInterface(IID_IDirectInputJoyConfig8,
-            reinterpret_cast<void**>(&config)))) {
-            found = config->GetConfig(index, &selected, DIJC_GUIDINSTANCE) == DI_OK;
+        const char* failed_operation = "Open DirectInput joystick configuration";
+        auto result = direct->QueryInterface(IID_IDirectInputJoyConfig8, reinterpret_cast<void**>(&config));
+        IDirectInputDevice8A* probe = nullptr;
+        if (SUCCEEDED(result)) {
+            failed_operation = "Look up the selected DirectInput joystick ID";
+            result = config->GetConfig(index, &selected, DIJC_GUIDINSTANCE);
             config->Release();
-        }
-        // Enumeration order is not a Windows joystick ID. The only safe
-        // fallback is the single attached controller in the default slot.
-        if (!found && index == 0) {
-            Enumeration pick{};
-            if (SUCCEEDED(direct->EnumDevices(DI8DEVCLASS_GAMECTRL, choose_device, &pick, DIEDFL_ATTACHEDONLY)) &&
-                pick.count == 1) {
-                selected.guidInstance = pick.instance;
-                found = true;
+            if (result == DI_OK) {
+                failed_operation = "Open the selected DirectInput device";
+                result = direct->CreateDevice(selected.guidInstance, &probe, nullptr);
             }
         }
-        IDirectInputDevice8A* probe = nullptr;
-        if (found) direct->CreateDevice(selected.guidInstance, &probe, nullptr);
+
+        if (!probe && sole_reader_device(index)) {
+            Enumeration pick{};
+            const auto enumerated = direct->EnumDevices(DI8DEVCLASS_GAMECTRL, choose_device, &pick, DIEDFL_ATTACHEDONLY);
+            if (FAILED(enumerated)) {
+                failed_operation = "Enumerate attached DirectInput devices";
+                result = enumerated;
+            } else if (pick.count == 1) {
+                failed_operation = "Open the sole attached DirectInput device";
+                result = direct->CreateDevice(pick.instance, &probe, nullptr);
+                if (probe) {
+                    selected.guidInstance = pick.instance;
+                    attach_operation = "Matched the sole attached controller";
+                }
+            }
+        }
         direct->Release();
-        if (!probe) return false;
+        if (!probe) return attach_failed(failed_operation, result);
+
         joystick = selected.guidInstance;
         auto** methods = *reinterpret_cast<void***>(probe);
         targets[0] = methods[9];  // IDirectInputDevice8::GetDeviceState
         targets[1] = methods[10]; // IDirectInputDevice8::GetDeviceData
         probe->Release();
-        if (MH_CreateHook(targets[0], reinterpret_cast<void*>(direct_read),
-            reinterpret_cast<void**>(&direct_original)) != MH_OK) return false;
-        if (MH_CreateHook(targets[1], reinterpret_cast<void*>(direct_buffered),
-            reinterpret_cast<void**>(&buffered_original)) != MH_OK) {
+        const auto state_hook = MH_CreateHook(targets[0], reinterpret_cast<void*>(direct_read),
+            reinterpret_cast<void**>(&direct_original));
+        if (state_hook != MH_OK) return attach_failed("Install DirectInput state hook", state_hook);
+        const auto data_hook = MH_CreateHook(targets[1], reinterpret_cast<void*>(direct_buffered),
+            reinterpret_cast<void**>(&buffered_original));
+        if (data_hook != MH_OK) {
             MH_RemoveHook(targets[0]);
-            return false;
+            return attach_failed("Install DirectInput buffered hook", data_hook);
         }
         target_count = 2;
     }
     // Keep the DLL resident after Lua reload. Dormant detours pass through.
     HMODULE pinned = nullptr;
     if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
-        reinterpret_cast<LPCSTR>(&install), &pinned)) return false;
+        reinterpret_cast<LPCSTR>(&install), &pinned)) {
+        const auto error = GetLastError();
+        while (target_count) MH_RemoveHook(targets[--target_count]);
+        return attach_failed("Keep the native DLL resident", error);
+    }
     return true;
 }
 }
 
+const char* xb_attach_operation() { return attach_operation; }
+long xb_attach_code() { return attach_code; }
+
 extern "C" {
 __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, unsigned experiment,
     unsigned fight, const char* module) {
+    attach_operation = nullptr;
+    attach_code = 0;
     if ((kind != 1 && kind != 2) || (experiment < 1 || experiment > 3) ||
-        index >= (kind == 1 ? 4u : 16u) || !module) return 0;
+        index >= (kind == 1 ? 4u : 16u) || !module) {
+        attach_failed("Validate native hook arguments", ERROR_INVALID_PARAMETER);
+        return 0;
+    }
     // Called only on Windower's Lua thread. Install without holding the
     // callback mutex so suspended input threads cannot deadlock installation.
     static unsigned installed_kind, installed_device;
+    static const char* installed_resolution;
     static std::array<char, 32> installed_module{};
     if (!installed_kind) {
         if (!install(kind, index, module)) return 0;
+        installed_resolution = attach_operation;
         installed_kind = kind;
         installed_device = index;
         strncpy_s(installed_module.data(), installed_module.size(), module, _TRUNCATE);
     } else if (installed_kind != kind || (kind == 2 && installed_device != index) ||
         strcmp(installed_module.data(), module) != 0) return 2;
     if (!hooks_enabled && !set_hooks(true)) return 0;
+    attach_operation = installed_resolution;
     std::lock_guard lock(guard);
     reset();
     backend = kind; device = index; fightpad = fight == 1; r1_chooser = fight == 2;

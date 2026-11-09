@@ -14,9 +14,12 @@ function M.open(path)
     local hooks = 'hook state unknown | DLL loaded'
     return {
         begin = function(...)
-            local result = dll.begin(...)
-            if result == 1 then hooks = 'hooks attached | DLL resident' end
-            return result
+            local result, operation, code = dll.begin(...)
+            if result == 1 then
+                hooks = 'hooks attached | DLL resident'
+                if operation then hooks = hooks .. ' | ' .. operation end
+            end
+            return result, operation, code
         end,
         process_id = dll.process_id,
         stop = dll.off,

@@ -1,3 +1,39 @@
+# Current Development Status — November 9, 2026 — Native attachment recovery
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Starting checkpoint `03aa76ad921dd41b46ff966ba43dc6fc7b931664`.
+Build `0.4.0-beta1.20261109.hook1`, Windower 4 x86 and AutoHotkey v2.
+
+Cioara reported that FFXI read the DualSense over USB and the reader showed
+PlayStation 5, Device 2, Connected and Ready. Profile selection succeeded,
+then the native hook was unavailable and face-button mapping stalled.
+A similar hook failure was reported over Bluetooth. The exact failed
+operation was unavailable in that build.
+
+Install the complete matching x86 build with all FFXI clients and the
+shared reader closed. Keep the existing bindings and controller settings.
+
+1. Connect the DualSense by USB and start Cioara. Leave the reader on Device 2.
+   Check `//xb controller status` and `//xb nativepad status`. If the fallback
+   is used, chat reports the sole-controller match for Device 2. The guard
+   still needs FFXI to poll the selected device and DirectLink to join.
+2. With filtering active, select the layout and map R2 plus a face button.
+   The setup prompt should advance once and FFXI should receive no
+   underlying face-button action. Verify bare native input after setup.
+3. If attachment still fails, copy the full Hook Unavailable line with its
+   operation and hex code. `//xb nativepad status` repeats it. With the
+   intended device connected, `//xb nativepad auto` retries once.
+4. Repeat after a clean Bluetooth launch with its detected reader slot.
+   With two controllers connected, confirm the fallback does not select an
+   arbitrary device. A valid Windows joystick-ID mapping still takes priority.
+
+Local Lua fixtures cover failed status persistence, retry reset and detail
+propagation. The portable C++ input fixture passes. The Windows host fixture
+now checks the DLL's Lua attachment error return. Actual USB and Bluetooth
+attachment in FFXI remains the acceptance check.
+
+---
+
 # November 8, 2026 — Getting started and command help
 
 Branch `integration/shoulder-banks`. Overlay this Lua patch on the
