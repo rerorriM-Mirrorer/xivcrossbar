@@ -24,6 +24,19 @@ local function check_label_anchor(bank)
     assert(m.center_y==ui:get_slot_y(bank,2)+13)
 end
 check_label_anchor(1)
+local function check_stroke(view, r, g, b)
+    local red,green,blue=view:stroke_color()
+    assert(red==r and green==g and blue==b)
+end
+local slot_caption=ui.hotbars[1].slot_text[1]
+local recast_caption=ui.hotbars[1].slot_recast_text[1]
+check_stroke(label,255,216,112)
+check_stroke(slot_caption,20,20,20)
+ui:set_slot_label_stroke('amber')
+check_stroke(slot_caption,255,216,112)
+check_stroke(recast_caption,20,20,20)
+ui:set_slot_label_stroke('black')
+check_stroke(slot_caption,20,20,20)
 local legacy_x,legacy_y=ui:get_slot_x(1,1),ui:get_slot_y(1,4)
 local icon=ui.hotbars[1].slot_icon[1]
 local xi=theme.display_palette('xi')
@@ -47,6 +60,15 @@ local function draw()
 end
 draw()
 assert(label:visible() and ui.bank_labels[2]:visible() and not ui.bank_labels[3]:visible())
+ui.geometry.deferring_hide=true
+ui:set_bank_labels_visible(false)
+assert(not ui.geometry.surfaces[label].defer_visible)
+draw()
+assert(not label:visible() and ui.hotbars[1].slot_icon[1]:visible())
+ui.geometry.deferring_hide=false
+ui:set_bank_labels_visible(true)
+draw()
+assert(label:visible())
 assert(ui.hotbars[1].slot_frame[1]:path()==ui.frame_image_path)
 assert(ui.hotbars[1].slot_frame[2]:path()==ui.empty_frame_image_path)
 ui.theme.hide_empty_slots=true

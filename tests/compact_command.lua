@@ -32,3 +32,24 @@ assert(chooser.x==51 and chooser.y==61 and env.ui_dirty==true)
 ui.is_setup=false
 handler(nil);assert(settings.iscompact)
 print('Compact command toggle, explicit states, validation and state-preservation checks passed.')
+
+local label_block=assert(source:match("(    if command == 'banklabels'.-)    if command == 'textfade'"))
+settings.Texts={BankLabels=true,SlotLabelStroke='black'}
+ui.set_bank_labels_visible=function(self,visible) self.labels=visible end
+ui.set_slot_label_stroke=function(self,stroke) self.stroke=stroke end
+local function label_command(command,...)
+    local handler=assert(load('local command, args = ...\n'..label_block,'label commands','t',env))
+    handler(command,{...})
+end
+local before=saves
+label_command('banklabels')
+assert(not settings.Texts.BankLabels and not theme_options.bank_labels_visible and not ui.labels)
+label_command('banklabels','status')
+assert(saves==before+1)
+label_command('banklabels','on')
+assert(settings.Texts.BankLabels and theme_options.bank_labels_visible and ui.labels)
+label_command('slotlabelstroke','amber')
+assert(settings.Texts.SlotLabelStroke=='amber' and theme_options.slot_label_stroke=='amber' and ui.stroke=='amber')
+label_command('slotlabelstroke','invalid')
+assert(saves==before+3 and ui.stroke=='amber')
+print('Bank label visibility and slot outline commands save and validate independently.')

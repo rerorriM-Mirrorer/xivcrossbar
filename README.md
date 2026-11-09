@@ -545,3 +545,9 @@ the center. A sustained trigger replaces it with the side pair.
 2026-11-09: Visible crossbars have white trigger labels with an amber
 outline between their upper slots. Combined banks show a plus for a shared
 bank or the trigger order for separate banks.
+
+2026-11-09: Bank labels are smaller, use a brighter amber outline, and
+stay anchored while banks slide or change size. Use
+`//xb banklabels [on|off|status]` to control them and
+`//xb slotlabelstroke [black|amber|status]` for slot action names. Bank
+labels default to on and slot captions default to black outlines.

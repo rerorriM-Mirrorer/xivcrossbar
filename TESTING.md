@@ -1,3 +1,27 @@
+# Current Development Status — November 9, 2026 — Bank label styling
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `bcf081d82fa6cadaf7267a170fe4fc38212a4412`.
+The first label pass was larger and darker than desired in FFXI. Slot
+captions continued to inherit the saved theme stroke. The revised bank
+font is 6% smaller before Windower rounds the rendered size to an integer.
+It uses the brighter binding-field gold and stays fixed through bank
+scale and slide while still following bank and HUD fades. Moving or
+scaling the whole HUD still moves or scales the labels.
+
+1. Overlay the patch and run `//xb restart`. Compare labels with
+   TriggerScale on. Check size, contrast and position as banks switch.
+2. Use `//xb banklabels off` during a fade, then `//xb banklabels on`.
+   Check that bank labels alone are hidden and restored.
+3. Try `//xb slotlabelstroke amber` and `//xb slotlabelstroke black`.
+   Check that only slot action names change outline color. Restart to
+   verify both settings persist.
+
+Seven Lua suites with mocked Windower surfaces passed. Live contrast
+and perceived size are pending.
+
+---
+
 # Current Development Status — November 9, 2026 — Crossbar labels
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

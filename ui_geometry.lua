@@ -34,7 +34,7 @@ end
 
 local draw_opacity
 local function draw_position(g, object, m, x, y)
-    local sx, sy = g:point(x, y, m.right, m.bank)
+    local sx, sy = g:point(x, y, m.right, m.pose_bank)
     if sx ~= m.draw_x or sy ~= m.draw_y then
         object:pos(sx, sy)
         m.draw_x, m.draw_y = sx, sy
@@ -43,7 +43,7 @@ local function draw_position(g, object, m, x, y)
 end
 
 local function draw_surface(g, object, m)
-    local scale = g.scale * (m.bank and m.bank.value or 1)
+    local scale = g.scale * (m.pose_bank and m.pose_bank.value or 1)
     if m.width then
         local width, height = m.width*scale, m.height*scale
         if width ~= m.draw_width or height ~= m.draw_height then
@@ -75,13 +75,14 @@ local function draw_surface(g, object, m)
     draw_opacity(g,m)
 end
 
--- A: apply scale in layout coordinates so both centers survive HUD scaling and dragging.
-function geometry:assign_bank(surface, number)
+-- A: a surface can follow a bank's opacity without following its scale or slide.
+function geometry:assign_bank(surface, number, fade_only)
     local m = self.surfaces[surface]
     if not m then return end
     local bank = self.banks[number]
-    if m.bank == bank then return end
-    m.bank = bank
+    local pose_bank = not fade_only and bank or nil
+    if m.bank == bank and m.pose_bank == pose_bank then return end
+    m.bank, m.pose_bank = bank, pose_bank
     draw_surface(self, m.object, m)
 end
 
@@ -435,7 +436,7 @@ function geometry:surface(object, kind, options)
     end
     function methods:extents()
         local width, height = object:extents()
-        local scale = g.scale * (m.bank and m.bank.value or 1)
+        local scale = g.scale * (m.pose_bank and m.pose_bank.value or 1)
         return width / scale, height / scale
     end
     function methods:destroy()

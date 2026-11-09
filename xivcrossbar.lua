@@ -1548,6 +1548,41 @@ windower.register_event('addon command', function(command, ...)
             function() config.save(settings) end,
             function(message) chat_format.say(207,'[XIVCrossbar] '..message) end)
     end
+    if command == 'banklabels' then
+        local mode = args[1] and args[1]:lower()
+        if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb banklabels [on|off|status]')
+            return
+        end
+        if mode ~= 'status' then
+            local enabled = mode == 'on' or (not mode and settings.Texts.BankLabels == false)
+            settings.Texts.BankLabels = enabled
+            theme_options.bank_labels_visible = enabled
+            ui:set_bank_labels_visible(enabled)
+            ui_dirty = true
+            config.save(settings)
+        end
+        chat_format.say(207, '[XIVCrossbar] Bank labels: ' .. (settings.Texts.BankLabels ~= false and 'On' or 'Off'))
+        return
+    end
+
+    if command == 'slotlabelstroke' then
+        local mode = args[1] and args[1]:lower() or 'status'
+        if mode ~= 'black' and mode ~= 'amber' and mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb slotlabelstroke [black|amber|status]')
+            return
+        end
+        if mode ~= 'status' then
+            settings.Texts.SlotLabelStroke = mode
+            theme_options.slot_label_stroke = mode
+            ui:set_slot_label_stroke(mode)
+            config.save(settings)
+        end
+        chat_format.say(207, '[XIVCrossbar] Slot label outline: ' ..
+            (settings.Texts.SlotLabelStroke == 'amber' and 'Amber' or 'Black'))
+        return
+    end
+
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
         local mode = command == 'textfade' and args[1] or args[2]
         mode = mode and mode:lower()

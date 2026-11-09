@@ -106,11 +106,18 @@ ui:setup(options,{})
 assert(ui.hotbars[3] and not ui.hotbars[4] and ui.hotbars[5] and ui.hotbars[6])
 pose(1,true,false)
 step(.10)
+g:set_opacity(1)
+local label_view=ui.bank_labels[1]
+local label=g.surfaces[label_view]
+local label_x,label_y,label_size=label.draw_x,label.draw_y,label.draw_font_size
 pose(3,true,false)
 assert(g.banks[1].slide.target==0 and g.banks[3].slide.target==1)
 step(.045)
 near(g.banks[1].slide.value,.5)
 near(g.banks[3].slide.value,.5)
+assert(label.draw_x==label_x and label.draw_y==label_y and label.draw_font_size==label_size,
+    'label moved or resized during bank travel')
+assert(label.draw_alpha==128,'label should still fade during bank travel')
 pose(1,true,false)
 near(g.banks[1].slide.value,.5)
 assert(g.banks[1].slide.target==1 and g.banks[3].slide.target==0)

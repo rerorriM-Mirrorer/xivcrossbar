@@ -383,6 +383,9 @@ function ui:get_slot_y(h, i)
     return base - (((row - 1) * spacing))
 end
 
+local unpack = unpack or table.unpack
+local amber_stroke = {255, 216, 112}
+local slot_label_strokes = {black={20, 20, 20}, amber=amber_stroke}
 local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1', 'L1+R1'}
 
 local function position_bank_label(self, bank)
@@ -469,6 +472,8 @@ function ui:setup(theme_options, enchanted_items)
     self.UseAltLayout = theme_options.UseAltLayout
 
     self.display_palette = theme_options.display_palette
+    self.bank_labels_visible = theme_options.bank_labels_visible ~= false
+    self.slot_label_stroke = slot_label_strokes[theme_options.slot_label_stroke] or slot_label_strokes.black
     self.theme.mp_cost_color_red = theme_options.mp_cost_color_red
     self.theme.mp_cost_color_green = theme_options.mp_cost_color_green
     self.theme.mp_cost_color_blue = theme_options.mp_cost_color_blue
@@ -604,6 +609,7 @@ function ui:load(theme_options)
             prepare_image(self.hotbars[h].slot_frame[i], self.frame_image_path)
             prepare_image(self.hotbars[h].slot_element[i], windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
             setup_text(self.hotbars[h].slot_text[i], theme_options, true)
+            self.hotbars[h].slot_text[i]:stroke_color(unpack(self.slot_label_stroke))
             setup_text(self.hotbars[h].slot_cost[i], theme_options, true)
             setup_text(self.hotbars[h].slot_recast_text[i], theme_options, true)
 
@@ -634,14 +640,14 @@ function ui:load(theme_options)
         local label = new_text(text_setup)
         self.bank_labels[h] = label
         setup_text(label, theme_options, true)
-        label:size(12)
+        label:size(12 * .94)
         label:bold(true)
         label:color(255, 255, 255)
-        label:stroke_color(143, 89, 30)
+        label:stroke_color(unpack(amber_stroke))
         label:stroke_width(2)
         label:stroke_alpha(255)
         label:text(h == 3 and not ordered and 'R2+L2' or bank_captions[h])
-        geometry:assign_bank(label, h)
+        geometry:assign_bank(label, h, true)
         position_bank_label(self, h)
     end
 
@@ -886,6 +892,20 @@ function ui:hide()
     self.bar_background:hide()
     self.bar_background_left:hide()
     self.bar_background_right:hide()
+end
+
+function ui:set_bank_labels_visible(visible)
+    self.bank_labels_visible = visible
+    if not visible then
+        for _, label in pairs(self.bank_labels or {}) do label:hide(true) end
+    end
+end
+
+function ui:set_slot_label_stroke(mode)
+    self.slot_label_stroke = slot_label_strokes[mode] or slot_label_strokes.black
+    for _, bar in pairs(self.hotbars or {}) do
+        for _, label in ipairs(bar.slot_text) do label:stroke_color(unpack(self.slot_label_stroke)) end
+    end
 end
 
 function ui:layout_button_hints()
@@ -1833,7 +1853,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     if active_bar ~= 0 then
         for _, field in ipairs({self.bar_background, self.bar_background_left, self.bar_background_right}) do
             if menu_open then
-                field:color(255, 216, 112)
+                field:color(unpack(amber_stroke))
                 field:alpha(math.min(self.button_bg_alpha, 140))
             else
                 field:color(255, 255, 255)
@@ -1864,7 +1884,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         self.pulse_visible_bars[h]=shouldDrawThisBar
         local slide = geometry.banks[h].slide
         local outgoing = not menu_open and slide.active and slide.target == 0
-        self.bank_labels[h]:visible(shouldDrawThisBar or outgoing)
+        self.bank_labels[h]:visible(self.bank_labels_visible and (shouldDrawThisBar or outgoing))
         if shouldDrawThisBar or outgoing then
             for i=1,8,1 do
                 local slot = i

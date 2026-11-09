@@ -39,6 +39,8 @@ local topics = {
         {'recastflash [on|off|status]', 'Flash a slot when its recast reaches zero.'},
         {'slotglow [on|off|status]', 'Show a gold slot border while a button is held.'},
         {'triggerscale [on|off|status|0-25]', 'Set the size change when switching trigger banks.'},
+        {'banklabels [on|off|status]', 'Show or hide the trigger labels on crossbars.'},
+        {'slotlabelstroke [black|amber|status]', 'Set the outline color of slot action names.'},
         {'textfade [on|off|status]', 'Fade labels with bars. Defaults to on.'},
         {'textsettle [on|off|status]', 'Prevent caption flicker while widths settle.'},
         {'skillchain [on|off|status|0-255]', 'Set the skillchain strip opacity.'},

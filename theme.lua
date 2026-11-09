@@ -22,6 +22,8 @@ theme.apply = function (settings)
     options.crossbar_scale = settings.CrossbarScale
     options.fade_enabled = settings.Animation.Enabled
     options.text_fade = settings.Animation.TextFade == true
+    options.bank_labels_visible = settings.Texts.BankLabels ~= false
+    options.slot_label_stroke = settings.Texts.SlotLabelStroke
     options.fade_in = settings.Animation.FadeIn
     options.fade_out = settings.Animation.FadeOut
     options.load_fade_in = settings.DisplayPreset == 'legacy' and 0 or settings.Animation.LoadFadeIn
