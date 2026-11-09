@@ -541,3 +541,7 @@ remains accessible in both layouts.
 2026-11-09: Auto keeps the combined trigger bank drawn for a 75 ms visual
 grace period after the first release. A quick second release dismisses only
 the center. A sustained trigger replaces it with the side pair.
+
+2026-11-09: Visible crossbars have white trigger labels with an amber
+outline between their upper slots. Combined banks show a plus for a shared
+bank or the trigger order for separate banks.

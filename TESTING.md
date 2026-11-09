@@ -1,3 +1,29 @@
+# Current Development Status — November 9, 2026 — Crossbar labels
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `c88ac80d4d27491635942ed4a4b7eea2fe32e098`.
+The user reported the combined-bank release patch did the trick in FFXI.
+
+Each visible bank now has a white label with a dark amber outline between its
+two upper slots. The labels follow the bank position, scale, slide, and
+existing text fade policy.
+
+1. Overlay the Lua patch and run `//xb restart`. With both side banks shown,
+   check `L2` and `R2` placement in compact and full layout.
+2. In five-bank mode, hold both triggers to check `R2+L2`, and double-tap
+   each trigger for `L2x2` and `R2x2`. In six-bank mode check both trigger
+   orders, `R2>L2` and `L2>R2`.
+3. Check the shoulder labels `L1`, `R1`, and `L1+R1` when their banks are
+   visible. Move or scale the HUD and verify the labels stay centered.
+4. In Auto, repeat quick paired releases with Fade On and Off and check
+   that the center label disappears with its bank.
+
+Six Lua suites with mocked Windower surfaces cover label text, layout
+anchors, bank ownership, visibility and release/fade behavior. Font
+placement and amber contrast still need a live FFXI check.
+
+---
+
 # Current Development Status — November 9, 2026 — Combined-bank release
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

@@ -150,6 +150,8 @@ for _, fade in ipairs({true,false}) do
 
         local side=g.surfaces[ui.hotbars[1].slot_background[1]]
         local center=g.surfaces[ui.hotbars[center_bank].slot_background[1]]
+        local side_label=g.surfaces[ui.bank_labels[1]]
+        local center_label=g.surfaces[ui.bank_labels[center_bank]]
         assert(draw(1)==1)
         step(.11)
         assert(draw(center_bank)==center_bank and center.visible)
@@ -161,6 +163,7 @@ for _, fade in ipairs({true,false}) do
         assert(draw(0)==0 and not side.draw_visible and not side.defer_visible,
             'the side pair joined a center fade')
         assert((center.defer_visible==true)==fade and center.draw_visible==fade)
+        assert((center_label.defer_visible==true)==fade and not side_label.defer_visible)
         step(.02)
         near(g.banks[center_bank].slide.value,last_pose)
         step(.51)
@@ -172,6 +175,7 @@ for _, fade in ipairs({true,false}) do
         step(.0751)
         assert(draw(1)==1 and side.draw_visible and not center.draw_visible,
             'the side pair should replace the center when the grace expires')
+        assert(side_label.visible and not center_label.visible)
         if scale then near(g.banks[1].value,.90) end
         assert(draw(0)==0 and not center.defer_visible)
         assert((side.defer_visible==true)==fade)

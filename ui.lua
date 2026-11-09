@@ -383,6 +383,14 @@ function ui:get_slot_y(h, i)
     return base - (((row - 1) * spacing))
 end
 
+local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1', 'L1+R1'}
+
+local function position_bank_label(self, bank)
+    local left = self:get_slot_x(bank, 2)
+    local right = self:get_slot_x(bank, 6)
+    self.bank_labels[bank]:center((left + right) / 2 + 20, self:get_slot_y(bank, 2) + 13)
+end
+
 -----------------------------
 -- Setup UI
 -----------------------------
@@ -489,6 +497,7 @@ end
 function ui:load(theme_options)
     geometry:dispose_surfaces({[self.battle_notice]=true})
     self.hotbars = {}
+    self.bank_labels = {}
     self.render_banks = {}
     for h=1,theme_options.hotbar_number do self.render_banks[h] = h end
     if theme_options.hotbar_number == 5 then self.render_banks[4], self.render_banks[5] = 5, 6 end
@@ -620,6 +629,22 @@ function ui:load(theme_options)
         end
     end
 
+    local ordered = theme_options.hotbar_number == 4 or theme_options.hotbar_number == 6
+    for _, h in ipairs(self.render_banks) do
+        local label = new_text(text_setup)
+        self.bank_labels[h] = label
+        setup_text(label, theme_options, true)
+        label:size(12)
+        label:bold(true)
+        label:color(255, 255, 255)
+        label:stroke_color(143, 89, 30)
+        label:stroke_width(2)
+        label:stroke_alpha(255)
+        label:text(h == 3 and not ordered and 'R2+L2' or bank_captions[h])
+        geometry:assign_bank(label, h)
+        position_bank_label(self, h)
+    end
+
     self.binding_tint = new_image(images_setup)
     prepare_image(self.binding_tint, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
     self.binding_tint:size(40, 40)
@@ -705,6 +730,7 @@ function ui:set_display_layout(palette, enabled)
                 if type(objects)=='table' then geometry:move_surface(objects[i],dx,dy) end
             end
         end
+        position_bank_label(self, h)
         if enabled then
             bar.slot_recast[9]:hide(); bar.slot_recast[10]:hide()
         end
@@ -852,6 +878,7 @@ function ui:hide()
         local outgoing = slide.target == 0
         -- Freeze the slide while the selected bank fades.
         slide.active = false
+        self.bank_labels[h]:hide(outgoing)
         for _, slots in pairs(self.hotbars[h]) do
             for _, surface in ipairs(slots) do surface:hide(outgoing) end
         end
@@ -1837,6 +1864,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         self.pulse_visible_bars[h]=shouldDrawThisBar
         local slide = geometry.banks[h].slide
         local outgoing = not menu_open and slide.active and slide.target == 0
+        self.bank_labels[h]:visible(shouldDrawThisBar or outgoing)
         if shouldDrawThisBar or outgoing then
             for i=1,8,1 do
                 local slot = i
