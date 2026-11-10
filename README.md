@@ -551,3 +551,9 @@ stay anchored while banks slide or change size. Use
 `//xb banklabels [on|off|status]` to control them and
 `//xb slotlabelstroke [black|amber|status]` for slot action names. Bank
 labels default to on and slot captions default to black outlines.
+
+2026-11-09: Bank and slot labels have independent offsets through
+`//xb banklabeloffset <x> <y>` and `//xb slotlabeloffset <x> <y>`.
+`//xb slotlabelalign left|center` aligns slot action names.
+`//xb banklabelopacity <0-255>` dims both the bank label fill and outline.
+The amber slot outline uses the original darker amber.

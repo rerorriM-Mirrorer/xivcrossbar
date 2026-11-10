@@ -1,3 +1,28 @@
+# Current Development Status — November 9, 2026 — Label layout controls
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `f4b4c0c862d38b5ba8955f7cf9a299903ab77d65`.
+In the live build the user saw some bank labels overlap slot action names
+and reported that their outlines appeared to change together. The two
+label types have independent outline colors. Slot amber uses the original
+darker amber. The bank outline uses the brighter binding-highlight gold.
+
+1. Overlay the Lua patch and run `//xb restart`.
+2. Try `//xb banklabeloffset 0 -8` and `//xb slotlabeloffset 0 4`.
+   Positive offsets move right and down. `0 0` resets each anchor.
+3. Use `//xb slotlabelalign center`, then `left`. Check captions while
+   switching sets, layouts and banks.
+4. Try `//xb banklabelopacity 160`, `0`, then `255`. The setting affects
+   the bank label's fill and outline. Check it during a fade.
+5. Try `//xb slotlabelstroke amber`, then `black`. Watch that only
+   slot action names change outline color. Restart and check persistence.
+
+Seven Lua suites passed with mocked Windower surfaces, including separate
+outline colors, offset geometry, centered-to-left text settling, and
+bank opacity composed with fades. Live spacing is pending.
+
+---
+
 # Current Development Status — November 9, 2026 — Bank label styling
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

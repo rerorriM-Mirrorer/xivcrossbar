@@ -53,3 +53,19 @@ assert(settings.Texts.SlotLabelStroke=='amber' and theme_options.slot_label_stro
 label_command('slotlabelstroke','invalid')
 assert(saves==before+3 and ui.stroke=='amber')
 print('Bank label visibility and slot outline commands save and validate independently.')
+
+ui.set_bank_label_offset=function(self,x,y) self.bank_x,self.bank_y=x,y end
+ui.set_bank_label_opacity=function(self,opacity) self.bank_opacity=opacity end
+ui.set_slot_label_layout=function(self,align,x,y) self.slot_align,self.slot_x,self.slot_y=align,x,y end
+before=saves
+label_command('banklabeloffset','3','-9')
+assert(settings.Texts.BankLabelOffsetX==3 and settings.Texts.BankLabelOffsetY==-9 and ui.bank_y==-9)
+label_command('slotlabeloffset','0','6')
+label_command('slotlabelalign','center')
+assert(settings.Texts.SlotLabelAlign=='center' and ui.slot_align=='center' and ui.slot_y==6)
+label_command('banklabelopacity','160')
+assert(settings.Texts.BankLabelOpacity==160 and ui.bank_opacity==160)
+label_command('banklabelopacity','256')
+label_command('slotlabeloffset','invalid','4')
+assert(saves==before+4 and ui.slot_y==6 and ui.bank_opacity==160)
+print('Label layout and opacity commands save and validate independently.')

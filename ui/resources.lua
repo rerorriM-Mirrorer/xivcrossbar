@@ -86,18 +86,22 @@ local function new(kind, library, ...)
         function methods:commit_measurement()
             if measurement and measurement.phase~='pending' then hold_opacity(false) end
         end
+        function methods:clear_measurement()
+            measurement=nil
+            hold_opacity(false)
+        end
         function methods:hide()
             assert(not disposed,'UI object used after disposal: text.hide')
             if trace.enabled then trace.call(proxy,'native.hide') end
             object:hide()
-            measurement=nil;hold_opacity(false)
+            self:clear_measurement()
         end
         function methods:visible(value)
             assert(not disposed,'UI object used after disposal: text.visible')
             if value==nil then return object:visible() end
             if trace.enabled then trace.call(proxy,'native.visible',value) end
             object:visible(value)
-            if not value then measurement=nil;hold_opacity(false) end
+            if not value then self:clear_measurement() end
         end
     end
     return setmetatable(proxy, {__index=function(_, key)

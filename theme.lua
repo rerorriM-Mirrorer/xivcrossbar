@@ -24,6 +24,12 @@ theme.apply = function (settings)
     options.text_fade = settings.Animation.TextFade == true
     options.bank_labels_visible = settings.Texts.BankLabels ~= false
     options.slot_label_stroke = settings.Texts.SlotLabelStroke
+    options.slot_label_align = settings.Texts.SlotLabelAlign
+    options.slot_label_offset_x = settings.Texts.SlotLabelOffsetX
+    options.slot_label_offset_y = settings.Texts.SlotLabelOffsetY
+    options.bank_label_offset_x = settings.Texts.BankLabelOffsetX
+    options.bank_label_offset_y = settings.Texts.BankLabelOffsetY
+    options.bank_label_opacity = settings.Texts.BankLabelOpacity
     options.fade_in = settings.Animation.FadeIn
     options.fade_out = settings.Animation.FadeOut
     options.load_fade_in = settings.DisplayPreset == 'legacy' and 0 or settings.Animation.LoadFadeIn

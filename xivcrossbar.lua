@@ -1583,6 +1583,62 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
+    if command == 'banklabeloffset' or command == 'slotlabeloffset' then
+        local bank = command == 'banklabeloffset'
+        local prefix = bank and 'BankLabel' or 'SlotLabel'
+        local x_key, y_key = prefix .. 'OffsetX', prefix .. 'OffsetY'
+        local x, y = tonumber(args[1]), tonumber(args[2])
+        if x and y and math.abs(x) < math.huge and math.abs(y) < math.huge and not args[3] then
+            settings.Texts[x_key], settings.Texts[y_key] = x, y
+            if bank then
+                theme_options.bank_label_offset_x, theme_options.bank_label_offset_y = x, y
+                ui:set_bank_label_offset(x, y)
+            else
+                theme_options.slot_label_offset_x, theme_options.slot_label_offset_y = x, y
+                ui:set_slot_label_layout(settings.Texts.SlotLabelAlign, x, y)
+            end
+            config.save(settings)
+        elseif (args[1] and args[1]:lower() ~= 'status') or args[2] then
+            chat_format.say(123, '[XIVCrossbar] //xb ' .. command .. ' <x> <y> | status')
+            return
+        end
+        chat_format.say(207, ('[XIVCrossbar] %s label offset (X, Y) = %g, %g'):format(
+            bank and 'Bank' or 'Slot', settings.Texts[x_key] or 0, settings.Texts[y_key] or 0))
+        return
+    end
+
+    if command == 'slotlabelalign' then
+        local mode = args[1] and args[1]:lower() or 'status'
+        if mode == 'left' or mode == 'center' then
+            settings.Texts.SlotLabelAlign = mode
+            theme_options.slot_label_align = mode
+            ui:set_slot_label_layout(mode, settings.Texts.SlotLabelOffsetX or 0, settings.Texts.SlotLabelOffsetY or 0)
+            config.save(settings)
+        elseif mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb slotlabelalign [left|center|status]')
+            return
+        end
+        chat_format.say(207, '[XIVCrossbar] Slot label alignment: ' ..
+            (settings.Texts.SlotLabelAlign == 'center' and 'Center' or 'Left'))
+        return
+    end
+
+    if command == 'banklabelopacity' then
+        local opacity = tonumber(args[1])
+        if opacity and opacity >= 0 and opacity <= 255 and opacity % 1 == 0 then
+            settings.Texts.BankLabelOpacity = opacity
+            theme_options.bank_label_opacity = opacity
+            ui:set_bank_label_opacity(opacity)
+            ui_dirty = true
+            config.save(settings)
+        elseif args[1] and args[1]:lower() ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb banklabelopacity [0-255|status]')
+            return
+        end
+        chat_format.say(207, '[XIVCrossbar] Bank label opacity: ' .. (settings.Texts.BankLabelOpacity or 255))
+        return
+    end
+
     if command == 'textfade' or (command == 'ui' and args[1] == 'textfade') then
         local mode = command == 'textfade' and args[1] or args[2]
         mode = mode and mode:lower()

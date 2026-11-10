@@ -384,6 +384,10 @@ function geometry:surface(object, kind, options)
     end
     function methods:pos(x, y)
         if x == nil then return m.x, m.y end
+        if m.center_x then
+            m.center_x, m.center_y = nil, nil
+            object:clear_measurement()
+        end
         m.x, m.y = x, y
         draw_position(g,object,m,x,y)
         draw_opacity(g,m)

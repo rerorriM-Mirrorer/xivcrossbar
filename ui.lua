@@ -385,13 +385,22 @@ end
 
 local unpack = unpack or table.unpack
 local amber_stroke = {255, 216, 112}
-local slot_label_strokes = {black={20, 20, 20}, amber=amber_stroke}
+local slot_label_strokes = {black={20, 20, 20}, amber={143, 89, 30}}
 local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1', 'L1+R1'}
 
 local function position_bank_label(self, bank)
     local left = self:get_slot_x(bank, 2)
     local right = self:get_slot_x(bank, 6)
-    self.bank_labels[bank]:center((left + right) / 2 + 20, self:get_slot_y(bank, 2) + 13)
+    self.bank_labels[bank]:center((left + right) / 2 + 20 + self.bank_label_offset_x,
+        self:get_slot_y(bank, 2) + 13 + self.bank_label_offset_y)
+end
+
+local function position_slot_label(self, bank, slot)
+    local label = self.hotbars[bank].slot_text[slot]
+    local x = self:get_slot_x(bank, slot) + self.slot_label_offset_x
+    local y = self:get_slot_y(bank, slot) + 40 + self.slot_label_offset_y
+    if self.slot_label_align == 'center' then label:center(x + 20, y)
+    else label:pos(x - 2, y) end
 end
 
 -----------------------------
@@ -473,6 +482,12 @@ function ui:setup(theme_options, enchanted_items)
 
     self.display_palette = theme_options.display_palette
     self.bank_labels_visible = theme_options.bank_labels_visible ~= false
+    self.bank_label_offset_x = tonumber(theme_options.bank_label_offset_x) or 0
+    self.bank_label_offset_y = tonumber(theme_options.bank_label_offset_y) or 0
+    self.bank_label_opacity = tonumber(theme_options.bank_label_opacity) or 255
+    self.slot_label_offset_x = tonumber(theme_options.slot_label_offset_x) or 0
+    self.slot_label_offset_y = tonumber(theme_options.slot_label_offset_y) or 0
+    self.slot_label_align = theme_options.slot_label_align
     self.slot_label_stroke = slot_label_strokes[theme_options.slot_label_stroke] or slot_label_strokes.black
     self.theme.mp_cost_color_red = theme_options.mp_cost_color_red
     self.theme.mp_cost_color_green = theme_options.mp_cost_color_green
@@ -621,7 +636,7 @@ function ui:load(theme_options)
             self.hotbars[h].slot_frame[i]:pos(slot_pos_x, slot_pos_y)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
-            self.hotbars[h].slot_text[i]:pos(slot_pos_x - 2, slot_pos_y + 40)
+            position_slot_label(self, h, i)
             self.hotbars[h].slot_cost[i]:pos(right_slot_pos_x + 30, slot_pos_y + 28)
             self.hotbars[h].slot_recast_text[i]:pos(right_slot_pos_x + 20, slot_pos_y + 14)
             self.hotbars[h].slot_recast_text[i]:size(9)
@@ -645,7 +660,8 @@ function ui:load(theme_options)
         label:color(255, 255, 255)
         label:stroke_color(unpack(amber_stroke))
         label:stroke_width(2)
-        label:stroke_alpha(255)
+        label:alpha(self.bank_label_opacity)
+        label:stroke_alpha(self.bank_label_opacity)
         label:text(h == 3 and not ordered and 'R2+L2' or bank_captions[h])
         geometry:assign_bank(label, h, true)
         position_bank_label(self, h)
@@ -898,6 +914,28 @@ function ui:set_bank_labels_visible(visible)
     self.bank_labels_visible = visible
     if not visible then
         for _, label in pairs(self.bank_labels or {}) do label:hide(true) end
+    end
+end
+
+function ui:set_bank_label_offset(x, y)
+    self.bank_label_offset_x, self.bank_label_offset_y = x, y
+    for bank in pairs(self.bank_labels or {}) do position_bank_label(self, bank) end
+end
+
+function ui:set_bank_label_opacity(opacity)
+    self.bank_label_opacity = opacity
+    for _, label in pairs(self.bank_labels or {}) do
+        label:alpha(opacity)
+        label:stroke_alpha(opacity)
+        if opacity == 0 then label:hide(true) end
+    end
+end
+
+function ui:set_slot_label_layout(align, x, y)
+    self.slot_label_align = align
+    self.slot_label_offset_x, self.slot_label_offset_y = x, y
+    for bank, bar in pairs(self.hotbars or {}) do
+        for slot in ipairs(bar.slot_text) do position_slot_label(self, bank, slot) end
     end
 end
 
@@ -1884,7 +1922,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         self.pulse_visible_bars[h]=shouldDrawThisBar
         local slide = geometry.banks[h].slide
         local outgoing = not menu_open and slide.active and slide.target == 0
-        self.bank_labels[h]:visible(self.bank_labels_visible and (shouldDrawThisBar or outgoing))
+        self.bank_labels[h]:visible(self.bank_labels_visible and self.bank_label_opacity > 0 and (shouldDrawThisBar or outgoing))
         if shouldDrawThisBar or outgoing then
             for i=1,8,1 do
                 local slot = i
