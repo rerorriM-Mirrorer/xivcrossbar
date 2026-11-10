@@ -14,6 +14,7 @@ for dll in ["xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll", "xinput1_2.dll"
 }
 if (A_Args.Length && A_Args[1] = "--selftest") {
     ScanDevices()
+    ScanApplications()
     if (A_Args.Length >= 2)
         FileAppend("discovery-ok", A_Args[2], "UTF-8-RAW")
     ExitApp()
@@ -28,6 +29,8 @@ scanOther := 0
 scanReturnArmed := false
 scanOriginPID := 0
 scanOtherPID := 0
+scanOtherPinned := false
+scanApplications := []
 scanWindow := Gui(, "XIVCrossbar controller discovery")
 scanWindow.AddText("w760", "Release all buttons, then press one on your controller. Try PS separately. Select the intended row to confirm.")
 scanList := scanWindow.AddListView("w760 r8", ["API", "Slot", "Controller", "Type", "Last press"])
@@ -35,9 +38,13 @@ scanProfile := scanWindow.AddDropDownList("w280 Choose1", ["ps5", "f710", "fight
 scanWindow.AddButton("x+12", "Confirm selected entry").OnEvent("Click", ScanConfirm)
 scanWindow.AddButton("xm", "Arm selected PS input").OnEvent("Click", ScanArmPS)
 scanWindow.AddButton("x+12", "Disarm PS").OnEvent("Click", (*) => ScanDisarmPS())
+scanApplicationChoice := scanWindow.AddDropDownList("xm w540", [])
+scanWindow.AddButton("x+12", "Refresh applications").OnEvent("Click", ScanRefreshApplications)
+scanWindow.AddButton("xm", "Use selected application").OnEvent("Click", ScanChooseApplication)
 scanLog := scanWindow.AddEdit("xm w760 r14 ReadOnly")
 scanWindow.AddButton(, "Save report").OnEvent("Click", ScanSave)
 scanWindow.OnEvent("Close", (*) => ExitApp())
+ScanRefreshApplications()
 scanWindow.Show()
 ScanTick()
 SetTimer(ScanTick, 40)
@@ -185,14 +192,14 @@ ScanArmPS(*) {
 }
 
 ScanRememberWindows() {
-    global scanOrigin, scanOther, scanWindow, scanOriginPID, scanOtherPID
+    global scanOrigin, scanOther, scanWindow, scanOriginPID, scanOtherPID, scanOtherPinned
     active := WinActive("A")
     if (!active || active = scanWindow.Hwnd)
         return
     try {
         if (WinGetClass("ahk_id " . active) = "FFXiClass")
             scanOrigin := active, scanOriginPID := WinGetPID("ahk_id " . active)
-        else
+        else if (!scanOtherPinned)
             scanOther := active, scanOtherPID := WinGetPID("ahk_id " . active)
     }
 }
@@ -201,6 +208,7 @@ ScanSwitchPS() {
     global scanOrigin, scanOther, scanReturnArmed, scanOriginPID, scanOtherPID
     active := WinActive("A")
     try {
+        ScanAppend("PS observed. Active window [" . WinGetClass("ahk_id " . active) . "] " . WinGetTitle("ahk_id " . active))
         if (WinGetClass("ahk_id " . active) = "FFXiClass") {
             if (!scanOther || !WinExist("ahk_id " . scanOther)
                 || WinGetPID("ahk_id " . scanOther) != scanOtherPID)
@@ -215,8 +223,54 @@ ScanSwitchPS() {
             scanReturnArmed := false
             WinActivate("ahk_id " . scanOrigin)
             ScanAppend("PS returned to the originating FFXI client.")
+        } else {
+            ScanAppend("PS is waiting for a press in FFXI to establish the return client.")
         }
     } catch Error as caught {
         ScanAppend("PS switch failed: " . caught.Message)
+    }
+}
+
+
+ScanApplications() {
+    applications := []
+    ownPID := DllCall("GetCurrentProcessId", "UInt")
+    for hwnd in WinGetList() {
+        try {
+            title := WinGetTitle("ahk_id " . hwnd)
+            if (title = "" || WinGetPID("ahk_id " . hwnd) = ownPID
+                || WinGetClass("ahk_id " . hwnd) = "FFXiClass")
+                continue
+            applications.Push({hwnd:hwnd, pid:WinGetPID("ahk_id " . hwnd), title:title})
+        }
+    }
+    return applications
+}
+
+ScanRefreshApplications(*) {
+    global scanApplications, scanApplicationChoice
+    scanApplications := ScanApplications()
+    labels := []
+    for application in scanApplications
+        labels.Push(application.title)
+    scanApplicationChoice.Delete()
+    scanApplicationChoice.Add(labels)
+    if (labels.Length)
+        scanApplicationChoice.Choose(1)
+}
+
+ScanChooseApplication(*) {
+    global scanApplications, scanApplicationChoice, scanOther, scanOtherPID, scanOtherPinned
+    row := scanApplicationChoice.Value
+    if (!row || row > scanApplications.Length)
+        return MsgBox("Open the destination application, then refresh the list.")
+    selected := scanApplications[row]
+    try {
+        if (!WinExist("ahk_id " . selected.hwnd) || WinGetPID("ahk_id " . selected.hwnd) != selected.pid)
+            return MsgBox("That window closed. Refresh the application list.")
+        scanOther := selected.hwnd, scanOtherPID := selected.pid, scanOtherPinned := true
+        ScanAppend("PS destination selected: " . selected.title)
+    } catch Error as caught {
+        ScanAppend("Could not select destination: " . caught.Message)
     }
 }
