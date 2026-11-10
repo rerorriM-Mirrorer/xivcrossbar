@@ -14,6 +14,8 @@ for dll in ["xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll", "xinput1_2.dll"
 }
 if (A_Args.Length && A_Args[1] = "--selftest") {
     ScanDevices()
+    if (A_Args.Length >= 2)
+        FileAppend("discovery-ok", A_Args[2], "UTF-8-RAW")
     ExitApp()
 }
 scanPrevious := Map()
@@ -214,7 +216,7 @@ ScanSwitchPS() {
             WinActivate("ahk_id " . scanOrigin)
             ScanAppend("PS returned to the originating FFXI client.")
         }
-    } catch Error as error {
-        ScanAppend("PS switch failed: " . error.Message)
+    } catch Error as caught {
+        ScanAppend("PS switch failed: " . caught.Message)
     }
 }
