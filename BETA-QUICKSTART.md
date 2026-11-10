@@ -19,16 +19,18 @@
 | `//xb controller profiles` / `controller status` | Reader choices and current state |
 | `//xb controller profile ps5 [device]` | Select the PlayStation 5 reader and device |
 | `//xb compact [on\|off]` | Change compact/full layout immediately |
-| `//xb autohide [on\|off]` / `hide\|show\|auto` | Trigger visibility ON by default; `//xb show` keeps bars visible. No hold delay yet; current fade-out is 0.5s |
+| `//xb autohide [on\|off]` / `hide\|show\|auto` | Auto shows the bars while a trigger or visible shoulder bank is held. `//xb show` keeps the bars visible during regular gameplay. |
+| `//xb autohold [seconds]` | Keep the last bank visible in Auto after release. Accepts 0–30 seconds and defaults to 0. |
+| `//xb costalign <left\\|center\\|right>` | Align MP, TP, and item counts |
 | `//xb fade [on\|off]` | Enable/disable slot fades |
 | `//xb textfade [on\|off\|status]` | Fade labels with slots (default ON) |
 | `//xb textsettle [on\|off\|status]` | Settle caption widths to avoid flicker (default ON) |
 | `//xb autoattack [on\|off\|status]` | Enable swing-timing estimation independently of opacity (default OFF) |
 | `//xb scale <0.25–2>` | Scale crossbar independently of menus |
 | `//xb resources` | Report owned drawing-object counts |
-| `//xb diagnose` | Capture 30 seconds of input and rendering observations |
+| `//xb diagnose` | Capture 30 seconds of input observations |
 
-**Custom actions:** On Save/Review, use **arrow keys** to move, **Enter** to select, and **Escape** to go back. Choose Edit Name/Alias/Command to type; Enter confirms the text. **Save Only** returns to the catalog; **Save & Bind** selects a slot.
+**Remap and custom actions:** Use **arrow keys** to move, **Enter** to select, and **Escape** to go back. Release each key before pressing it again on the next screen. Choose Edit Name/Alias/Command to type; Enter confirms the text. **Save Only** returns to the catalog; **Save & Bind** selects a slot.
 
 To hide the built-in skillchain timer and its backing, set `SkillchainIndicator.Opacity` to `0` in `data/settings.xml`. `AutoAttackIndicator.Opacity = 0` hides its bar; tracking is OFF by default, and `//xb autoattack on` enables it without changing opacity.
 
