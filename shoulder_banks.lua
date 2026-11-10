@@ -60,26 +60,15 @@ function M.target_action(dik, pressed, chord, down, has_target)
     return has_target and 'tab' or 'targetnpc'
 end
 
--- A gesture owns one uninterrupted tap, ending only when both shoulders are up.
-function M.target_gesture(transport, dik, pressed, chord, eligible, now)
-    if not eligible then transport.target_gesture = nil; return end
-    local down, gesture = transport.down, transport.target_gesture
-    if pressed then
-        if down[67] or down[68] or down[87] or down[88] then
-            transport.target_gesture = nil
-            return
-        end
-        for slot = 59, 66 do
-            if down[slot] then transport.target_gesture = nil; return end
-        end
-        if down[89] and down[90] then
-            if gesture then gesture.action = 'targetnpc' end
-        else
-            transport.target_gesture = {started=now, action=not chord and (dik == 89 and 'shift-tab' or 'tab')}
-        end
-    elseif not down[89] and not down[90] then
-        transport.target_gesture = nil
-        if gesture and now - gesture.started <= .35 then return gesture.action end
+function M.target_press(dik, chord, down, has_target)
+    if down[67] or down[68] or down[87] or down[88] then return end
+    for slot = 59, 66 do
+        if down[slot] then return end
+    end
+    if down[89] and down[90] then
+        if not has_target then return 'targetnpc' end
+    elseif not chord and has_target then
+        return dik == 89 and 'shift-tab' or 'tab'
     end
 end
 

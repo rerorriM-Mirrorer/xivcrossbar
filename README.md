@@ -13,8 +13,8 @@ After the first FFXI restart, use `//xb nativepad logic 2` to try the
 second revision and `//xb nativepad status` to see the active revision.
 Revisions 1 and 2 use the same filtering rules. Revision 3 tests the new
 shoulder targeting gestures. With revision 3 loaded, use `//xb bank targeting on`.
-Tap L1+R1 to acquire an NPC. Tap R1 or L1 to cycle forward or backward
-when a target is already selected. Shoulder bank actions take priority.
+Press L1+R1 to acquire an NPC when you have no target. Press R1 or L1
+alone to cycle forward or backward when a target is already selected.
 
 ## Unified diagnostics
 

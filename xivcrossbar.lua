@@ -2283,9 +2283,6 @@ local function route_controller_message(dik, pressed, chord, seq)
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return 'unmapped-or-held',context end
-    if context ~= 'gameplay' or gamepad_state.trust_menu_live or (pressed and dik ~= 89 and dik ~= 90) then
-        transport.target_gesture = nil
-    end
     if controller_bridge then
         local claimed, decision = controller_bridge.menu:edge(dik, pressed, buttonmapping,gamepad_state.trust_menu_live)
         if claimed then return decision or 'trust-menu-release',context end
@@ -2303,19 +2300,18 @@ local function route_controller_message(dik, pressed, chord, seq)
         local actor = targeting and windower.ffxi.get_player()
         targeting = actor and actor.status ~= 4
         local action
-        if gamepad_state.shoulder_target_gestures then
-            action = shoulder_banks.target_gesture(transport, dik, pressed, chord, targeting, profile_clock())
-        elseif targeting and dik == 90 and pressed then
-            action = shoulder_banks.target_action(dik, pressed, chord, transport.down,
-                not not windower.ffxi.get_mob_by_target('t'))
+        if targeting and pressed then
+            local has_target = not not windower.ffxi.get_mob_by_target('t')
+            if gamepad_state.shoulder_target_gestures then
+                action = shoulder_banks.target_press(dik, chord, transport.down, has_target)
+            else
+                action = shoulder_banks.target_action(dik, pressed, chord, transport.down, has_target)
+            end
         end
         if action == 'targetnpc' then
             windower.send_command('input /targetnpc')
             return 'targeting-acquire-sent',context
         elseif action == 'tab' or action == 'shift-tab' then
-            if gamepad_state.shoulder_target_gestures and not windower.ffxi.get_mob_by_target('t') then
-                return 'targeting-no-current-target',context
-            end
             local sent = native_gamepad.tap_tab(action == 'shift-tab' and 1 or 0) == 1
             return sent and 'targeting-'..action..'-sent' or 'targeting-'..action..'-unavailable',context
         end
@@ -2598,9 +2594,6 @@ do
         gamepad_state.shoulder_targeting = targeting and message_bridge.extended
         gamepad_state.shoulder_target_gestures = native_gamepad.reverse_tab and native_gamepad.policy_revision
             and native_gamepad.policy_revision() >= 3
-        if not gamepad_state.shoulder_targeting or not gamepad_state.shoulder_target_gestures then
-            transport.target_gesture = nil
-        end
         gamepad_state.shoulder_slots = banks ~= 0 and message_bridge.extended
         if diagnostic and diagnostic:input_active() and native_gamepad.snapshot then
             local sample=native_gamepad.snapshot()

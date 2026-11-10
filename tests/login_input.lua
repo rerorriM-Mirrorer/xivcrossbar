@@ -97,42 +97,44 @@ env.settings.ShoulderBanks.Both.Enabled=true
 message(89,true);message(90,true,true);message(59,true)
 message(59,false);message(90,false);message(89,false)
 assert(#fired==3 and fired[3][2]==9,'Event capture dispatches the combined shoulder bank')
--- Revision 3 decides at release. Native slot dispatch takes priority.
+-- Revision 3 acts on press and reads target presence at that edge.
 outputs, target, menu, status = {}, nil, false, 0
 env.gamepad_state.shoulder_target_gestures=true
 env.native_gamepad.tap_tab=function(reverse)
     outputs[#outputs+1]=reverse==1 and 'shift-tab' or 'tab'
     return 1
 end
-local now=0
-env.profile_clock=function() return now end
 t:reset()
 message(89,true);message(89,false)
 message(90,true);message(90,false)
 assert(#outputs==0,'single shoulder requires a target')
 for _, pair in ipairs({{89,90},{90,89}}) do
-    message(pair[1],true,true);message(pair[2],true,true)
-    message(pair[1],false)
-    assert(#outputs==0,'chord waits until both releases')
-    message(pair[2],false)
-    assert(#outputs==1 and outputs[1]=='input /targetnpc','each chord order acquires once')
-    outputs={}
+    for _, simultaneous in ipairs({true,false}) do
+        message(pair[1],true,simultaneous)
+        assert(#outputs==0,'first shoulder cannot acquire alone')
+        message(pair[2],true,simultaneous);message(pair[2],true,simultaneous)
+        assert(#outputs==1 and outputs[1]=='input /targetnpc','chord acquires on second press')
+        message(pair[1],false);message(pair[2],false)
+        assert(#outputs==1,'release does not acquire')
+        outputs={}
+    end
 end
 target={}
 message(89,true);message(89,true)
-assert(#outputs==0,'repeat does not trigger targeting')
-message(89,false);message(90,true);message(90,false)
-assert(table.concat(outputs,',')=='shift-tab,tab','single shoulder taps cycle in the requested direction')
-message(89,true);now=.36;message(89,false)
-message(90,true);target=nil;message(90,false)
-target={}
-message(89,true);message(90,true);message(59,true);message(59,false);message(90,false);message(89,false)
+assert(#outputs==1 and outputs[1]=='shift-tab','L1 cycles once on press')
+message(89,false);message(90,true)
+assert(#outputs==2 and outputs[2]=='tab','R1 cycles on press')
+message(90,false)
+message(89,true,true);message(90,true,true)
+message(59,true);message(59,false);message(90,false);message(89,false)
 assert(#fired==4 and fired[#fired][2]==9,'combined bank slot still dispatches')
-message(90,true);message(87,true);message(87,false);message(90,false)
-message(90,true);menu=true;message(90,false);menu=false
-message(89,true);focus=false;message(89,false);focus=true
-message(89,true);t:reset();message(89,false)
-assert(#outputs==2,'hold, target loss, slot use, triggers, menu, focus and reset cancel targeting')
-print('Revision 3 routing: release-only taps, both chord orders, selected-target gate and cancellation passed.')
+message(87,true);message(90,true);message(90,false);message(87,false)
+menu=true;message(90,true);message(90,false);menu=false
+focus=false;message(89,true);message(89,false);focus=true
+message(59,true);message(89,true);message(89,false);message(59,false)
+assert(#outputs==2,'selected-target chord, triggers, menu, focus and held slots suppress targeting')
+message(90,true);message(89,true);message(89,false);message(90,false)
+assert(#outputs==3 and outputs[3]=='tab','staggered selected-target presses cycle only on the first press')
+print('Revision 3 routing: press-only targeting, both chord orders, selected-target gate and context priority passed.')
 print('Actual routing callback: R1 acquire/cycle, repeats, release, focus, menus and chord priority passed.')
 print('Native login and bare gameplay, guard gate, chord routing, chat release and setup passed.')

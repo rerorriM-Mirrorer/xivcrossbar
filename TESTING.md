@@ -1,3 +1,26 @@
+# Current Development Status — November 10, 2026 — Targeting on press
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `feat/reloadable-controller-logic`.
+Starting checkpoint `7cc8e4ebf9628a4bded5f5d33c95ae8ed9d06224`.
+This overlay uses the matching Windows x86 hook and policy binaries from that
+checkpoint. Close FFXI before replacing the hook. Keep the existing addon data.
+
+1. Wait for the guard, then run `//xb nativepad logic 3` and
+   `//xb bank targeting on`.
+2. With no target, hold one shoulder and press the other. Confirm that
+   `/targetnpc` runs immediately on the second press, in either order.
+   Single presses should leave the target empty.
+3. With a target selected, press L1 and R1 separately. Confirm Shift+Tab and
+   Tab happen on press. A simultaneous chord and all releases send no
+   targeting action. With staggered presses, the first shoulder can cycle
+   immediately and the second does not acquire an NPC.
+4. Check the combined bank, native menus and chat, and switch to revision 1
+   to confirm the previous behavior remains available.
+
+Mocked Lua routing covers these press edges. Live FFXI acceptance is pending.
+
+---
+
 # Current Development Status — November 10, 2026 — Shoulder targeting revision 3
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `feat/reloadable-controller-logic`.

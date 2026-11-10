@@ -28,8 +28,5 @@ function M:edge(dik, pressed, context)
     self.down[dik] = nil
     return signal, 'up', owner
 end
-function M:reset()
-    self.down = {}
-    self.target_gesture = nil
-end
+function M:reset() self.down = {} end
 return M

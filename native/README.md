@@ -24,8 +24,9 @@ neutral input before capturing again. Both the heartbeat and the
 foreground-process check remain enforced by the resident hook.
 
 Revision 3 captures both shoulders when targeting is enabled and the game
-context permits it. Lua resolves short taps on release and cancels them when
-a slot, trigger, or menu takes over. It uses the resident hook's guarded
+context permits it. Lua resolves targeting on the press edge. A two-shoulder chord acquires
+an NPC only when there is no current target. Single shoulders cycle only
+when there is a target. It uses the resident hook's guarded
 Shift+Tab support for reverse cycling. Install the matching resident hook
 with FFXI closed before selecting revision 3. Revisions 1 and 2 still use
 the original R1 targeting behavior.
