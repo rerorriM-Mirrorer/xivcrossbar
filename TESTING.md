@@ -14,7 +14,7 @@ can be installed using a new numbered policy and Lua update.
    its responding row, then choose Arm selected PS input and confirm the
    API, slot and button. Set the addon's PS bridge off during the probe.
 3. Focus a non-FFXI application, return to FFXI, then press PS. Press PS
-   again within 30 seconds to return to that same client. Disarm PS ends
+   again to return to that same client. Disarm PS ends
    the probe. A device-list change disarms it automatically.
 4. Identify a pad with a face-button press, select the desired row/profile,
    and confirm to copy its selection command. Paste in FFXI and check live

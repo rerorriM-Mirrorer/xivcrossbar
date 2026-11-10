@@ -25,6 +25,7 @@ function M.open(path)
         stop = dll.off,
         policy_revision = dll.policy_revision,
         load_policy = dll.load_policy,
+        action = dll.action,
         tap_tab = function(reverse)
             if reverse == 1 and dll.reverse_tab ~= 1 then return 0 end
             return dll.tap_tab(reverse)

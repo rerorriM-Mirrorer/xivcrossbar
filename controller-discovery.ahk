@@ -23,7 +23,7 @@ scanLastButton := Map()
 scanPS := false
 scanOrigin := 0
 scanOther := 0
-scanReturnUntil := 0
+scanReturnArmed := false
 scanOriginPID := 0
 scanOtherPID := 0
 scanWindow := Gui(, "XIVCrossbar controller discovery")
@@ -159,9 +159,9 @@ ScanSave(*) {
 }
 
 ScanDisarmPS() {
-    global scanPS, scanReturnUntil
+    global scanPS, scanReturnArmed
     scanPS := false
-    scanReturnUntil := 0
+    scanReturnArmed := false
 }
 
 ScanArmPS(*) {
@@ -196,7 +196,7 @@ ScanRememberWindows() {
 }
 
 ScanSwitchPS() {
-    global scanOrigin, scanOther, scanReturnUntil, scanOriginPID, scanOtherPID
+    global scanOrigin, scanOther, scanReturnArmed, scanOriginPID, scanOtherPID
     active := WinActive("A")
     try {
         if (WinGetClass("ahk_id " . active) = "FFXiClass") {
@@ -204,13 +204,13 @@ ScanSwitchPS() {
                 || WinGetPID("ahk_id " . scanOther) != scanOtherPID)
                 return ScanAppend("PS observed. Focus a non-FFXI application first so it can be remembered.")
             scanOrigin := active, scanOriginPID := WinGetPID("ahk_id " . active)
-            scanReturnUntil := A_TickCount + 30000
+            scanReturnArmed := true
             WinActivate("ahk_id " . scanOther)
-            ScanAppend("PS switched away from FFXI. Press again within 30 seconds to return.")
-        } else if (scanOrigin && A_TickCount <= scanReturnUntil && WinExist("ahk_id " . scanOrigin)
+            ScanAppend("PS switched away from FFXI. Press again to return.")
+        } else if (scanOrigin && scanReturnArmed && WinExist("ahk_id " . scanOrigin)
             && WinGetPID("ahk_id " . scanOrigin) = scanOriginPID
             && WinGetClass("ahk_id " . scanOrigin) = "FFXiClass") {
-            scanReturnUntil := 0
+            scanReturnArmed := false
             WinActivate("ahk_id " . scanOrigin)
             ScanAppend("PS returned to the originating FFXI client.")
         }

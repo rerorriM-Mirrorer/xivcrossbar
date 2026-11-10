@@ -45,6 +45,10 @@ int begin(lua_State* L) {
     api.push(L, xb_attach_code());
     return 3;
 }
+int policy_action(lua_State* L) {
+    api.push(L, xb_policy_action(static_cast<unsigned>(api.integer(L, 1))));
+    return 1;
+}
 int policy_revision(lua_State* L) { api.push(L, xb_policy_revision()); return 1; }
 int load_policy(lua_State* L) {
     api.push(L, xb_load_policy(static_cast<unsigned>(api.integer(L, 1))));
@@ -89,7 +93,7 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
         break;
     }
     if (!resolved) return 0;
-    api.table(L, 0, 11);
+    api.table(L, 0, 12);
     api.push(L, 1); api.field(L, -2, "trust_menu");
     api.push(L, 1); api.field(L, -2, "shoulder_slots");
     api.push(L, 1); api.field(L, -2, "reverse_tab");
@@ -98,6 +102,7 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
     api.closure(L, off, 0); api.field(L, -2, "off");
     api.closure(L, detach, 0); api.field(L, -2, "detach");
     api.closure(L, tap_tab, 0); api.field(L, -2, "tap_tab");
+    api.closure(L, policy_action, 0); api.field(L, -2, "action");
     api.closure(L, poll, 0); api.field(L, -2, "poll");
     api.closure(L, policy_revision, 0); api.field(L, -2, "policy_revision");
     api.closure(L, load_policy, 0); api.field(L, -2, "load_policy");

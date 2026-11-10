@@ -139,7 +139,7 @@ BridgePoll(states, active) {
         return
     try {
         CB.returnPID := WinGetPID("ahk_id " . active)
-        CB.returnClient := active, CB.returnUntil := A_TickCount + 30000
+        CB.returnClient := active, CB.returnUntil := 0
         ReleaseTransport()
         WinActivate("ahk_id " . target)
         BridgeDecision("ps", "Activated HWND " . target)
@@ -160,7 +160,7 @@ BridgeOutside() {
     }
     if (!CB.returnClient or profile != "ps5-directinput")
         return
-    if (A_TickCount > CB.returnUntil or !WinExist("ahk_id " . CB.returnClient)
+    if (!WinExist("ahk_id " . CB.returnClient)
         or GetKeyState(joystickPrefix . "JoyName") = "") {
         CB.returnClient := 0
         return
