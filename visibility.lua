@@ -1,5 +1,10 @@
 -- A: hiding is presentation only; action execution never consults this.
 local M = {}
+function M.event_mode(mode, in_event, event_bars)
+    if in_event and event_bars and mode == 'always' then return 'oninput' end
+    return mode
+end
+
 function M.should_show(mode, trigger_held, cutscene, startup_reveal)
     if mode == 'hidden' then return false end
     if mode == 'oninput' then

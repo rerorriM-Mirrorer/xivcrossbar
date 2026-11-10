@@ -68,7 +68,16 @@ assert(calls[#calls]==3 and not a.gamepad_state.shoulder_slots,'chat must suppre
 info.chat_open=false
 actor.status=4
 a.native_poll()
-assert(calls[#calls]==1 and not a.gamepad_state.shoulder_slots,'cutscenes must suppress slot capture')
+assert(calls[#calls]==1 and not a.gamepad_state.shoulder_slots,'Event slot capture is opt-in')
+a.settings.EventBars=true
+a.settings.ShoulderBanks.R1.Enabled=true
+a.settings.ShoulderBanks.Both.Enabled=true
+a.native_poll()
+assert(calls[#calls]==1+7*0x200 and a.gamepad_state.shoulder_slots)
+assert(not a.gamepad_state.shoulder_targeting,'an Event bank must not enable the R1 targeting shortcut')
+info.chat_open=true
+a.native_poll()
+assert(calls[#calls]==3 and not a.gamepad_state.shoulder_slots,'chat still owns slot input during Event')
 a.native_stop(true)
 assert(table.concat(calls,','):find('off,clear,detach',1,true))
 assert(a.native_mode==nil and not a.native_filtering and b.native_mode=='guard')

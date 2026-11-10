@@ -1,3 +1,26 @@
+# Current Development Status — November 10, 2026 — Event banks
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `41dd0e319a91cc1da9f8d404b9a0f7d15ee6535b`.
+The user reported losing access to crossbar commands during a warp event.
+
+1. Overlay the patch and run `//xb restart`, then `//xb eventbars on`.
+   In Show, start a dialogue choice or warp event. The bars should tuck
+   away while idle and appear when a trigger or visible shoulder bank
+   is held. Release it, then finish the event and check Show returns.
+2. Repeat in Auto. Try L2/R2, both trigger orders where configured,
+   double taps, and enabled L1/R1/L1+R1 banks. Try a bound NPCMirror
+   command or window-switch action while the choice is open.
+3. Check that chat and addon menus retain input ownership. `//xb hide`
+   keeps gameplay bars hidden. `//xb eventbars off` restores the prior
+   Event behavior. The preference is independent of the display preset.
+
+Six mocked Lua suites passed. They cover Event visibility in both
+modes, restoring Show after Event, native shoulder capture masks, and
+Lua slot dispatch during Event. Live choice and warp checks are pending.
+
+---
+
 # Current Development Status — November 10, 2026 — Shoulder banks in battle
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

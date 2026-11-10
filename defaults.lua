@@ -164,6 +164,7 @@ defaults.Texts.Stroke.Blue = 20
 defaults.InputTest = false
 defaults.InputTrace = false
 defaults.DisplayPreset = 'custom' -- existing installs keep their appearance until a preset is selected
+defaults.EventBars = false
 defaults.VisibilityMode = 'oninput' -- always, oninput, hidden; no hold delay yet
 defaults.CrossbarScale = 1
 -- Fade labels together with artwork by default; text settling protects widths.

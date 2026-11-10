@@ -21,6 +21,16 @@ assert(visibility.should_show('oninput',true,true,false), 'Trigger shows auto ba
 assert(not visibility.should_show('oninput',false,true,true), 'Events suppress startup reveal')
 assert(not visibility.should_show('always',true,true,false), 'Legacy visibility hides during events')
 assert(not visibility.should_show('hidden',true,true,false), 'Explicit hide wins')
+assert(d.EventBars==false)
+for _, mode in ipairs({'always','oninput'}) do
+    local during=visibility.event_mode(mode,true,true)
+    assert(during=='oninput')
+    assert(not visibility.should_show(during,false,true,true),'Event hides idle and startup bars')
+    assert(visibility.should_show(during,true,true,false),'held bank reveals during Event')
+    assert(visibility.event_mode(mode,false,true)==mode,'leaving Event restores selected mode')
+    assert(visibility.event_mode(mode,true,false)==mode,'option off preserves original policy')
+end
+assert(visibility.event_mode('hidden',true,true)=='hidden')
 -- Simulate saved values taking precedence after config has merged settings.
 local previous_fade,previous_tracking=d.Animation.TextFade,d.AutoAttackIndicator.Enabled
 d.Animation.TextFade,d.AutoAttackIndicator.Enabled=false,true

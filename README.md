@@ -574,3 +574,7 @@ are configured during the cooldown before the flash becomes visible.
 2026-11-10: Enabled shoulder banks can draw and dispatch slots under
 FFXI's battle menu flag. Automatic DirectInput matching is quiet.
 `//xb nativepad status` still shows its matching detail.
+
+2026-11-10: `//xb eventbars on` enables held bank access during FFXI
+Event status. Show temporarily uses Auto visibility while the event
+is active. Use `//xb eventbars off` to restore the prior behavior.

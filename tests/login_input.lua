@@ -91,5 +91,11 @@ assert(#fired==2 and fired[2][2]==7,'battle palette must allow an enabled should
 env.gamepad_state.shoulder_slots=false
 message(89,true);message(59,true);message(59,false);message(89,false)
 assert(#fired==2,'dispatch must respect the native capture gate')
+status=4
+env.gamepad_state.shoulder_slots=true
+env.settings.ShoulderBanks.Both.Enabled=true
+message(89,true);message(90,true,true);message(59,true)
+message(59,false);message(90,false);message(89,false)
+assert(#fired==3 and fired[3][2]==9,'Event capture dispatches the combined shoulder bank')
 print('Actual routing callback: R1 acquire/cycle, repeats, release, focus, menus and chord priority passed.')
 print('Native login and bare gameplay, guard gate, chord routing, chat release and setup passed.')

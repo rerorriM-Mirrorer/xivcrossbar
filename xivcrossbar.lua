@@ -541,6 +541,7 @@ diagnostic=require('diagnostic_bridge').new({
                 menu=controller_bridge.mode(settings,'menu'),lease=menu.token and menu.state or 'none',
                 lease_reason=menu.lease_reason,last_menu_action=menu.last,menu_claim=gamepad_state.trust_menu_live},
             hud={compact=ui.is_compact,fade=settings.Animation.Enabled,visibility=settings.VisibilityMode,
+                event_bars=settings.EventBars == true,
                 hint_objects=ui.button_hints ~= nil},
             ui_objects=require('ui/resources').snapshot(),
             viewport={width=viewport.ui_x_res or viewport.x_res,height=viewport.ui_y_res or viewport.y_res},
@@ -1751,6 +1752,21 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
+    if command == 'eventbars' then
+        local mode = args[1] and args[1]:lower() or 'status'
+        if mode == 'on' or mode == 'off' then
+            settings.EventBars = mode == 'on'
+            ui_dirty = true
+            config.save(settings)
+        elseif mode ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb eventbars [on|off|status]')
+            return
+        end
+        chat_format.say(207, '[XIVCrossbar] Event banks: ' ..
+            (settings.EventBars and 'Reveal on hold' or 'Original behavior'))
+        return
+    end
+
     if command == 'autohide' then
         local mode = args[1] and args[1]:lower()
         if mode and mode ~= 'on' and mode ~= 'off' then
@@ -2517,7 +2533,7 @@ do
             and (native_gamepad.shoulder_slots or settings.ShoulderBanks.Targeting) and windower.ffxi.get_player()
         local targeting = native_gamepad.tap_tab and actor and not info.menu_open and actor.status ~= 4
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
-        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor)
+        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor, settings.EventBars)
             and shoulder_banks.capture_mask(settings.ShoulderBanks, settings.ControllerProfile) or 0
         local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
             and action_binder:is_binding_combo()
@@ -2606,7 +2622,8 @@ windower.register_event('prerender',function()
         return
     end
 
-    if ui.is_setup and settings.VisibilityMode ~= 'hidden' and (not xivcrossbar.hide_hotbars or settings.VisibilityMode == 'oninput')
+    local visibility_mode = visibility.event_mode(settings.VisibilityMode, xivcrossbar.hide_hotbars, settings.EventBars)
+    if ui.is_setup and visibility_mode ~= 'hidden' and (not xivcrossbar.hide_hotbars or visibility_mode == 'oninput')
         and (gamepad_state.left_trigger or gamepad_state.right_trigger) then
         ui.geometry:interrupt_startup_reveal()
     end
@@ -2616,14 +2633,14 @@ windower.register_event('prerender',function()
         if ui.geometry.startup_reveal then ui.geometry:interrupt_startup_reveal() end
         ui.geometry.load_fade_state.claimed = true
     end
-    local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(settings.VisibilityMode,
+    local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(visibility_mode,
         gamepad_state.left_trigger or gamepad_state.right_trigger or gamepad_state.shoulder_display ~= nil, xivcrossbar.hide_hotbars,
         ui.is_setup and ui.geometry:is_startup_reveal_pending())
         or action_binder:is_moving_crossbars() or env_chooser:is_showing()
     if not visible then crossbar_drag:finish() end
     local display_bank
     if ui.is_setup then
-        local autohide = settings.VisibilityMode == 'oninput'
+        local autohide = visibility_mode == 'oninput'
         local active_bank = gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0
         local grace_enabled = autohide and not menu_open and gamepad_state.left_trigger ~= gamepad_state.right_trigger
         display_bank = ui:select_display_bank(visible and not menu_open and active_bank or 0, grace_enabled, profile_clock())
@@ -2641,8 +2658,8 @@ windower.register_event('prerender',function()
     end
 
     if ui.is_setup then
-        local lockout_visible = settings.VisibilityMode ~= 'hidden' and
-            (visible or (settings.VisibilityMode == 'oninput' and not xivcrossbar.hide_hotbars))
+        local lockout_visible = visibility_mode ~= 'hidden' and
+            (visible or (visibility_mode == 'oninput' and not xivcrossbar.hide_hotbars))
         ui:display_gcd_indicator(lockout_visible)
     end
 

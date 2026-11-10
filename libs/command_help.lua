@@ -34,6 +34,7 @@ local topics = {
         {'hide', 'Hide bars without disabling actions.'},
         {'show', 'Show bars.'},
         {'auto', 'Show bars on controller trigger.'},
+        {'eventbars [on|off|status]', 'Reveal held banks and allow shoulder slots during FFXI events.'},
         {'autohide [on|off]', 'Set trigger visibility.'},
         {'fade [on|off]', 'Enable/disable fades.'},
         {'recastflash [on|off|status]', 'Flash a slot when its recast reaches zero.'},
