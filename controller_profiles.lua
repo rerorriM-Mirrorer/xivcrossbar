@@ -2,17 +2,21 @@
 local M = {}
 M.order = {'ps5-directinput', 'f710-directinput', 'fightpadpro-directinput', 'xinput', 'xinput-r1-chooser'}
 M.profiles = {
-    ['ps5-directinput'] = {backend='directinput', label='PS5 DirectInput', experimental=false},
-    ['f710-directinput'] = {backend='directinput', label='F710 DirectInput', experimental=true},
-    ['fightpadpro-directinput'] = {backend='directinput', label='FightPadPro DirectInput', experimental=true},
-    ['xinput'] = {backend='xinput', label='XInput', experimental=true},
-    ['xinput-r1-chooser'] = {backend='xinput', label='XInput R1 chooser', experimental=true},
+    ['ps5-directinput'] = {backend='directinput', label='PlayStation 5 / DirectInput', experimental=false},
+    ['f710-directinput'] = {backend='directinput', label='Logitech F710 / DirectInput', experimental=true},
+    ['fightpadpro-directinput'] = {backend='directinput', label='FightPadPro / DirectInput', experimental=true},
+    ['xinput'] = {backend='xinput', label='Xbox / XInput', experimental=true},
+    ['xinput-r1-chooser'] = {backend='xinput', label='Xbox / XInput (RB set chooser)', experimental=true},
 }
 M.aliases = {ps5='ps5-directinput', f710='f710-directinput',
     fightpadpro='fightpadpro-directinput', xinput='xinput', xinputalt='xinput-r1-chooser'}
 function M.short_name(name)
     for short, canonical in pairs(M.aliases) do if canonical == name then return short end end
     return name
+end
+function M.display_name(name)
+    local profile = M.profiles[M.aliases[name] or name]
+    return profile and profile.label or tostring(name or 'Unknown Controller')
 end
 function M.validate(name, device)
     name = type(name) == 'string' and name:lower() or ''

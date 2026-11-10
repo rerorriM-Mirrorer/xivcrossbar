@@ -45,7 +45,7 @@ require('ui/text_measure').enabled=settings.TextSettling~=false
 local controller_profiles = require('controller_profiles')
 local selected_profile, selected_device = controller_profiles.validate(settings.ControllerProfile, settings.ControllerDevice)
 if not selected_profile then
-    chat_format.say(123, '[XIVCrossbar] Invalid controller selection; using PS5 DirectInput device 1.')
+    chat_format.say(123, '[XIVCrossbar] Invalid controller selection; using PlayStation 5 / DirectInput, Device 1.')
     selected_profile, selected_device = 'ps5-directinput', 1
 end
 settings.ControllerProfile, settings.ControllerDevice = selected_profile, selected_device
@@ -463,7 +463,7 @@ local function controller_status()
 end
 local function report_controller_status(embedded)
     chat_format.say(0,chat_format.heading(embedded and 'Controller' or 'XIVcrossbar | Controller'))
-    chat_format.say(0,chat_format.row('Selected',controller_profiles.short_name(settings.ControllerProfile)..
+    chat_format.say(0,chat_format.row('Selected',controller_profiles.display_name(settings.ControllerProfile)..
         ' / Device '..tostring(settings.ControllerDevice)))
     local status=controller_status()
     local pending=controller_switcher and controller_switcher.pending
@@ -471,16 +471,16 @@ local function report_controller_status(embedded)
         chat_format.say(0,chat_format.row('Changing',chat_format.state(pending.phase)))
     end
     if status and status.running then
-        chat_format.say(0,chat_format.row('Running',controller_profiles.short_name(status.profile)..
+        chat_format.say(0,chat_format.row('Running',controller_profiles.display_name(status.profile)..
             ' / Device '..tostring(status.device)))
         chat_format.say(0,chat_format.row('State',chat_format.state(status.state)..
             ' | Connected: '..chat_format.toggle(status.connected == '1')))
         local route=status.route or 'waiting-lease'
-        chat_format.say(0,chat_format.row('Input',route))
+        chat_format.say(0,chat_format.row('Input',chat_format.input_route(route)))
         local guard_status = native_attach_failure and 'Hook Unavailable'
             or native_filtering and 'Filtering'
-            or native_receiving and 'Waiting for DirectLink'
-            or native_mode == 'guard' and 'Waiting for FFXI to Read the Controller'
+            or native_receiving and 'Waiting for the controller reader'
+            or native_mode == 'guard' and 'Waiting for FFXI to read the controller'
             or 'Pass-Through'
         chat_format.say(0,chat_format.row('Native Guard',guard_status))
         if native_attach_failure then
@@ -492,7 +492,7 @@ local function report_controller_status(embedded)
         end
     else
         chat_format.say(0,chat_format.row('State',chat_format.state('stopped')))
-        chat_format.say(0,chat_format.row('Input','Waiting for reader'))
+        chat_format.say(0,chat_format.row('Input','Waiting for the controller reader'))
     end
 end
 -- The one diagnostic owns its output file. AHK contributes only a temporary feed.
@@ -525,6 +525,8 @@ diagnostic=require('diagnostic_bridge').new({
         local menu=controller_bridge.menu
         return {
             version=_addon.version,profile=settings.ControllerProfile,device=settings.ControllerDevice,
+            profile_name=controller_profiles.display_name(settings.ControllerProfile),
+            input_state=chat_format.input_route(status.route),
             ready=xivcrossbar.ready,focus=windower.has_focus(),
             chat_open=info and info.chat_open,menu_open=info and info.menu_open,
             character_status=p and p.status,modifier=controller_modifier,
@@ -601,7 +603,7 @@ function start_controller_wrappers(profile, device, modifier)
             windower.send_command(plan.fallback_command)
         end, 1)
     end
-    chat_format.say(207, '[XIVCrossbar] Wrapper start requested: ' .. controller_profiles.short_name(profile) ..
+    chat_format.say(207, '[XIVCrossbar] Wrapper start requested: ' .. controller_profiles.display_name(profile) ..
         ' / device ' .. device .. ' / ' .. modifier)
     return true
 end
@@ -635,11 +637,11 @@ local function select_controller_profile(name, device, done)
     end
     settings.ControllerProfile, settings.ControllerDevice = profile, result
     config.save(settings)
-    chat_format.say(207, '[XIVCrossbar] Selecting ' .. controller_profiles.short_name(profile) ..
+    chat_format.say(207, '[XIVCrossbar] Selecting ' .. controller_profiles.display_name(profile) ..
         ' / device ' .. result .. (controller_profiles.profiles[profile].experimental and ' (experimental)' or ''))
     return controller_switcher:request(profile, result, controller_modifier, function(ok, detail)
         if ok then
-            chat_format.say(207, '[XIVCrossbar] Controller: ' .. controller_profiles.short_name(profile) .. ' / ' .. detail.state)
+            chat_format.say(207, '[XIVCrossbar] Controller: ' .. controller_profiles.display_name(profile) .. ' / ' .. chat_format.state(detail.state))
         elseif detail ~= 'Controller change cancelled.' and detail ~= 'Replaced by another controller selection.' then
             chat_format.say(123, '[XIVCrossbar] ' .. tostring(detail))
         end
@@ -1378,7 +1380,7 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'profiles' then
             for _, id in ipairs(controller_profiles.order) do
                 local profile = controller_profiles.profiles[id]
-                chat_format.say(207, '[XIVCrossbar] ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
+                chat_format.say(207, '[XIVCrossbar] ' .. controller_profiles.display_name(id) .. ' | ' .. controller_profiles.short_name(id) .. (profile.experimental and ' (experimental)' or ' (default)'))
             end
         else chat_format.say(207, '[XIVCrossbar] //xb controller status|start|stop|profiles|profile <name> [device]') end
         return
@@ -2438,10 +2440,11 @@ do
                 return say('Hook Unavailable. FFXI input is unfiltered. '..native_attach_failure)
             end
             if not native_gamepad then return say('Pass-Through | Bridge Inactive') end
-            local phase = native_filtering and 'filtering'
-                or native_mode=='probe' and 'probe'
-                or native_mode=='guard' and 'waiting (pass-through)'
-                or 'pass-through'
+            local phase = native_filtering and 'Filtering'
+                or native_mode=='probe' and 'Probe active'
+                or native_mode=='guard' and (native_receiving and 'Waiting for the controller reader'
+                    or 'Waiting for FFXI to read the controller')
+                or 'Pass-through'
             return say(phase..' | '..native_gamepad.hook_status()..' | '..native_gamepad.status())
         end
         if command~='probe' and command~='guard' then

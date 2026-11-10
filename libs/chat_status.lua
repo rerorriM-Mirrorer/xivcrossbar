@@ -12,17 +12,27 @@ function M.command(value)
     return tostring(value):gsub('//xb',function() return color('//xb',200) end)
 end
 function M.profile(name)
-    return ({['ps5-extended']='PS5', ['xinput-extended']='Xbox',
-        ['ps5-directinput']='PS5 (Legacy)', xinput='Xbox (Legacy)',
-        ['xinput-r1-chooser']='Xbox RB Chooser', ['f710-directinput']='F710',
-        ['fightpadpro-directinput']='FightPadPro'})[name] or tostring(name or 'Unknown')
+    if name == 'ps5-extended' then name = 'ps5-directinput'
+    elseif name == 'xinput-extended' then name = 'xinput' end
+    return require('controller_profiles').display_name(name)
+end
+function M.input_route(value)
+    local label = ({
+        ['waiting-lease']='Waiting for the focused FFXI client',
+        neutral='Waiting for controller buttons to be released',
+        messages='DirectLink active',
+        backpressure='Waiting for the client to acknowledge input',
+        uncertain='Reconnecting to the client',
+    })[value or 'waiting-lease']
+    return label or M.state(value)
 end
 function M.state(value)
     local key=tostring(value or 'unknown'):lower()
     local text=({ready='Ready',stopped='Stopped',starting='Starting',
         ['waiting-neutral']='Release Controls',unfocused='Waiting for Game Focus',
         disconnected='Disconnected',['xinput-unavailable']='XInput Unavailable',
-        initializing='Initializing'})[key] or key:gsub('(%a)([%w]*)',function(a,b)return a:upper()..b end)
+        initializing='Initializing', stopping='Stopping the reader',
+        ['exit-buffer']='Waiting for the reader to exit'})[key] or key:gsub('(%a)([%w]*)',function(a,b)return a:upper()..b end)
     return color(text,key=='ready' and 158 or 140)
 end
 function M.heading(label)

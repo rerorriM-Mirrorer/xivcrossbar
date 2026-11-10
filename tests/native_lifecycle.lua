@@ -44,7 +44,7 @@ a.message_bridge.last_beat,a.message_bridge.last_seen=1,clock
 a.native_poll()
 assert(a.native_filtering and calls[#calls]==1)
 a.native_command('status')
-assert(notices[#notices]:find('filtering',1,true))
+assert(notices[#notices]:find('Filtering',1,true))
 assert(notices[#notices]:find('Matched the sole attached controller',1,true))
 a.shoulder_banks=require('shoulder_banks')
 a.settings.ShoulderBanks=require('defaults').ShoulderBanks

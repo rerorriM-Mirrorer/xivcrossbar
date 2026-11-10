@@ -1,5 +1,6 @@
 local ui_resources = require('ui/resources')
 local keyboard = require('keyboard_mapper')
+local profiles = require('controller_profiles')
 texts = require('texts')
 
 local gamepad_mapper = {}
@@ -229,26 +230,21 @@ function gamepad_mapper:display_profile_selector(message)
     self.subtitle:text('Use the arrow keys and Enter, or click your controller profile.')
     self.subtitle:pos(self.base_x + 40, self.base_y + 75)
     self.subtitle:show()
-    local options = {
-        {id='ps5-directinput', label='PlayStation 5 - DirectInput'},
-        {id='xinput', label='Xbox / XInput (experimental)'},
-        {id='f710-directinput', label='F710 - DirectInput (experimental)'},
-        {id='fightpadpro-directinput', label='FightPadPro - DirectInput (experimental)'},
-    }
+    local options = {'ps5-directinput', 'xinput', 'f710-directinput', 'fightpadpro-directinput'}
     local width = (self.width - 96) / 2
-    for i, option in ipairs(options) do
+    for i, id in ipairs(options) do
         local choice = self.profile_buttons[i]
         if not choice then
             local background = 'gamepad_profile_' .. i
             windower.prim.create(background)
-            choice = {id=option.id, background=background, caption=self:create_text('', 0, 0)}
+            choice = {id=id, background=background, caption=self:create_text('', 0, 0)}
             choice.caption:size(12)
             self.profile_buttons[i] = choice
         end
         choice.x = self.base_x + 36 + ((i-1) % 2) * (width+24)
         choice.y = self.base_y + 132 + math.floor((i-1)/2) * 88
         choice.width, choice.height = width, 58
-        choice.caption:text(option.label)
+        choice.caption:text(profiles.display_name(id) .. (profiles.profiles[id].experimental and ' (experimental)' or ''))
         choice.caption:pos(choice.x+14, choice.y+19)
         choice.caption:color(255,255,255)
         choice.caption:show()
@@ -331,7 +327,7 @@ function gamepad_mapper:choose_profile(id)
     self.state = states.START_INPUT_PROFILE
     self.profile_generation = self.profile_generation + 1
     local generation = self.profile_generation
-    self:display_profile_selector('Starting the selected reader... release all controller buttons.')
+    self:display_profile_selector('Waiting for the controller reader. Release all buttons.')
     if not self.profile_options or not self.profile_options.select then
         self.state = states.SELECT_INPUT_PROFILE
         self:display_profile_selector('Profile selection is unavailable. Reload XIVCrossbar.')
@@ -346,7 +342,7 @@ function gamepad_mapper:choose_profile(id)
         else
             self.state = states.SELECT_INPUT_PROFILE
             local message = ok and 'No controller detected. Choose another profile, or check //xb controller status.'
-                or tostring(detail)
+                or ('Could not start the controller reader. ' .. tostring(detail))
             self:display_profile_selector(message)
         end
     end)

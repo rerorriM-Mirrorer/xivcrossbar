@@ -79,7 +79,7 @@ function M.new(opts)
             if not path then tell('Diagnostic not started: '..tostring(err));return false end
             if profile~="input" then render.start(true) end
             last_context=nil;last_frame=nil;self.last_native=nil
-            tell('Diagnostic '..profile..' ON (30 seconds). Use //xb diagnose mark, stop or status.')
+            tell('Recording ' .. profile .. ' diagnostics for 30 seconds. Use //xb diagnose mark, stop, or status.')
             tell('Destination: '..path)
             return true
         elseif mode=='mark' then
@@ -90,14 +90,14 @@ function M.new(opts)
             return true
         elseif mode=='stop' or mode=='off' then
             local ok,err=recorder:stop('manual',opts.snapshot())
-            tell(ok and 'Diagnostic capture ending; saving shortly.' or tostring(err))
+            tell(ok and 'Diagnostic capture ended. Saving the log.' or tostring(err))
             return ok
         elseif mode=='status' then
             local status=recorder:status()
             tell(status.active and string.format('Diagnostic ON; %.1fs left; %d Lua events; render=%d events.',
                 status.remaining,status.count,render.enabled and render.status().count or 0)
-                or status.pending and 'Diagnostic finalizing: '..status.path
-                or 'Diagnostic OFF; last: '..tostring(status.path or 'none'))
+                or status.pending and 'Saving diagnostic: '..status.path
+                or 'Diagnostic idle. Last log: '..tostring(status.path or 'none'))
             return true
         elseif mode=='snapshot' then
             local state=opts.snapshot()
