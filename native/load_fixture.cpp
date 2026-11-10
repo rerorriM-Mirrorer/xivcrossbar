@@ -44,9 +44,9 @@ int main() {
     auto revision = reinterpret_cast<unsigned (__cdecl*)()>(GetProcAddress(dll, "xb_policy_revision"));
     if (!load_logic || !revision || revision() != 1) return 14;
     auto initial = GetModuleHandleW(L"xb_controller_logic_1.dll");
-    if (!initial || !CopyFileW(L"LuaCore.dll", L"xb_controller_logic_3.dll", FALSE)) return 15;
-    const auto incompatible = load_logic(3);
-    DeleteFileW(L"xb_controller_logic_3.dll");
+    if (!initial || !CopyFileW(L"LuaCore.dll", L"xb_controller_logic_4.dll", FALSE)) return 15;
+    const auto incompatible = load_logic(4);
+    DeleteFileW(L"xb_controller_logic_4.dll");
     if (incompatible != ERROR_PROC_NOT_FOUND || load_logic(999999) != ERROR_MOD_NOT_FOUND
         || revision() != 1 || GetModuleHandleW(L"xb_controller_logic_1.dll") != initial) return 16;
     auto apply = reinterpret_cast<xb::ApplyLogic>(GetProcAddress(initial, xb::logic_export));
@@ -71,12 +71,24 @@ int main() {
     });
     while (!samples) std::this_thread::yield();
     bool swapped = true;
-    for (unsigned next : {2u, 1u, 2u, 1u}) {
+    unsigned previous = 1;
+    const wchar_t* filenames[] = {L"xb_controller_logic_1.dll", L"xb_controller_logic_2.dll", L"xb_controller_logic_3.dll"};
+    for (unsigned next : {2u, 3u, 1u, 3u, 2u, 1u}) {
         if (load_logic(next) != ERROR_SUCCESS || revision() != next
-            || GetModuleHandleW(next == 1 ? L"xb_controller_logic_2.dll" : L"xb_controller_logic_1.dll")) {
+            || GetModuleHandleW(filenames[previous - 1])) {
             swapped = false;
             break;
         }
+        auto current = GetModuleHandleW(filenames[next - 1]);
+        auto policy = reinterpret_cast<xb::ApplyLogic>(GetProcAddress(current, xb::logic_export));
+        if (!policy) { swapped = false; break; }
+        ownership.reset();
+        input.raw = 0; input.targeting = 1;
+        policy(&ownership, &input, &filtered);
+        input.raw = xb::l1 | xb::r1;
+        policy(&ownership, &input, &filtered);
+        if (filtered.suppressed != (next == 3 ? input.raw : 0u)) { swapped = false; break; }
+        previous = next;
         poll(4, edges, 8, status);
     }
     bool detached = true;

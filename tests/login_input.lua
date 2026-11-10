@@ -97,5 +97,42 @@ env.settings.ShoulderBanks.Both.Enabled=true
 message(89,true);message(90,true,true);message(59,true)
 message(59,false);message(90,false);message(89,false)
 assert(#fired==3 and fired[3][2]==9,'Event capture dispatches the combined shoulder bank')
+-- Revision 3 decides at release. Native slot dispatch takes priority.
+outputs, target, menu, status = {}, nil, false, 0
+env.gamepad_state.shoulder_target_gestures=true
+env.native_gamepad.tap_tab=function(reverse)
+    outputs[#outputs+1]=reverse==1 and 'shift-tab' or 'tab'
+    return 1
+end
+local now=0
+env.profile_clock=function() return now end
+t:reset()
+message(89,true);message(89,false)
+message(90,true);message(90,false)
+assert(#outputs==0,'single shoulder requires a target')
+for _, pair in ipairs({{89,90},{90,89}}) do
+    message(pair[1],true,true);message(pair[2],true,true)
+    message(pair[1],false)
+    assert(#outputs==0,'chord waits until both releases')
+    message(pair[2],false)
+    assert(#outputs==1 and outputs[1]=='input /targetnpc','each chord order acquires once')
+    outputs={}
+end
+target={}
+message(89,true);message(89,true)
+assert(#outputs==0,'repeat does not trigger targeting')
+message(89,false);message(90,true);message(90,false)
+assert(table.concat(outputs,',')=='shift-tab,tab','single shoulder taps cycle in the requested direction')
+message(89,true);now=.36;message(89,false)
+message(90,true);target=nil;message(90,false)
+target={}
+message(89,true);message(90,true);message(59,true);message(59,false);message(90,false);message(89,false)
+assert(#fired==4 and fired[#fired][2]==9,'combined bank slot still dispatches')
+message(90,true);message(87,true);message(87,false);message(90,false)
+message(90,true);menu=true;message(90,false);menu=false
+message(89,true);focus=false;message(89,false);focus=true
+message(89,true);t:reset();message(89,false)
+assert(#outputs==2,'hold, target loss, slot use, triggers, menu, focus and reset cancel targeting')
+print('Revision 3 routing: release-only taps, both chord orders, selected-target gate and cancellation passed.')
 print('Actual routing callback: R1 acquire/cycle, repeats, release, focus, menus and chord priority passed.')
 print('Native login and bare gameplay, guard gate, chord routing, chat release and setup passed.')

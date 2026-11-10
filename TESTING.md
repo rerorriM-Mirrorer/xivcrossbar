@@ -1,3 +1,28 @@
+# Current Development Status — November 10, 2026 — Shoulder targeting revision 3
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `feat/reloadable-controller-logic`.
+Starting checkpoint `c5fc9eb4169c0320fd96b9e34adb993a37541e65`.
+Install the matching resident DLL with FFXI closed. Keep the addon data.
+The resident hook adds guarded Shift+Tab. The ownership ABI is unchanged.
+
+1. Wait for the native guard, then run `//xb nativepad logic 3` and
+   `//xb bank targeting on`. Tap both shoulders, in both orders. The last
+   release should send `/targetnpc` once.
+2. With no target, each shoulder tap alone should leave the target empty.
+   With a target selected, R1 should send Tab and L1 should send Shift+Tab.
+3. Hold a shoulder longer than 350 ms, use a bank slot, press a trigger, or
+   open a menu while held. Confirm the release does not send a shortcut.
+   Verify a bound combined-bank slot still fires once. Try a native menu,
+   chat, and a client switch.
+4. Switch to logic 1 or 2 and confirm the previous R1 behavior returns.
+   The Xbox RB chooser profile retains its chooser assignment.
+
+The routing fixture checks the real Lua callback for both shoulder orders,
+target eligibility, and cancellation. The Windows fixture compares native
+ownership across all three revisions. Live FFXI acceptance is pending.
+
+---
+
 # Current Development Status — November 10, 2026 — Reloadable controller logic
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `feat/reloadable-controller-logic`.

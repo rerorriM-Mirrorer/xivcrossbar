@@ -23,6 +23,13 @@ revisions leave the active policy in place. A successful swap waits for
 neutral input before capturing again. Both the heartbeat and the
 foreground-process check remain enforced by the resident hook.
 
+Revision 3 captures both shoulders when targeting is enabled and the game
+context permits it. Lua resolves short taps on release and cancels them when
+a slot, trigger, or menu takes over. It uses the resident hook's guarded
+Shift+Tab support for reverse cycling. Install the matching resident hook
+with FFXI closed before selecting revision 3. Revisions 1 and 2 still use
+the original R1 targeting behavior.
+
 - XInput auto hooks the loaded system variants of GetState, including ordinal
   100 where exported. It preserves sticks and unowned buttons. The standard
   profile reserves View/Menu for addon functions. The alternate reserves

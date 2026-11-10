@@ -62,7 +62,7 @@ local topics = {
         {'remap', 'Run controller setup.'},
         {'bank status', 'Show shoulder bank preferences.'},
         {'bank <l1|r1|both> <on|off|show|hide>', 'Enable shoulder banks or change their visibility.'},
-        {'bank targeting [on|off|status]', 'Use R1 to acquire or cycle targets on supported profiles.'},
+        {'bank targeting [on|off|status]', 'Enable shoulder targeting on supported profiles.'},
         {'bridge status', 'Show bridge modes and last decisions.'},
         {'bridge <movement|menu|ps|all> <off|test|on>', 'Control optional Trust and PS bridges.'},
     },

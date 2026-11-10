@@ -26,6 +26,7 @@ function M.open(path)
         policy_revision = dll.policy_revision,
         load_policy = dll.load_policy,
         tap_tab = dll.tap_tab,
+        reverse_tab = dll.reverse_tab == 1,
         shoulder_slots = dll.shoulder_slots == 1,
         trust_menu = dll.trust_menu == 1,
         detach = function()

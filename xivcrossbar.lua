@@ -2283,6 +2283,9 @@ local function route_controller_message(dik, pressed, chord, seq)
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return 'unmapped-or-held',context end
+    if context ~= 'gameplay' or gamepad_state.trust_menu_live or (pressed and dik ~= 89 and dik ~= 90) then
+        transport.target_gesture = nil
+    end
     if controller_bridge then
         local claimed, decision = controller_bridge.menu:edge(dik, pressed, buttonmapping,gamepad_state.trust_menu_live)
         if claimed then return decision or 'trust-menu-release',context end
@@ -2295,20 +2298,26 @@ local function route_controller_message(dik, pressed, chord, seq)
             ui_dirty = true
         end
         local eligible = context == 'gameplay' and info and not info.menu_open and windower.has_focus()
-        if gamepad_state.shoulder_targeting and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, eligible)
-            and dik == 90 and pressed then
-            local actor = windower.ffxi.get_player()
-            if actor and actor.status ~= 4 then
-                local action = shoulder_banks.target_action(dik, pressed, chord, transport.down,
-                    not not windower.ffxi.get_mob_by_target('t'))
-                if action == 'tab' then
-                    local sent = native_gamepad.tap_tab() == 1
-                    return sent and 'targeting-tab-sent' or 'targeting-tab-unavailable',context
-                elseif action == 'targetnpc' then
-                    windower.send_command('input /targetnpc')
-                    return 'targeting-acquire-sent',context
-                end
+        local targeting = gamepad_state.shoulder_targeting
+            and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, eligible)
+        local actor = targeting and windower.ffxi.get_player()
+        targeting = actor and actor.status ~= 4
+        local action
+        if gamepad_state.shoulder_target_gestures then
+            action = shoulder_banks.target_gesture(transport, dik, pressed, chord, targeting, profile_clock())
+        elseif targeting and dik == 90 and pressed then
+            action = shoulder_banks.target_action(dik, pressed, chord, transport.down,
+                not not windower.ffxi.get_mob_by_target('t'))
+        end
+        if action == 'targetnpc' then
+            windower.send_command('input /targetnpc')
+            return 'targeting-acquire-sent',context
+        elseif action == 'tab' or action == 'shift-tab' then
+            if gamepad_state.shoulder_target_gestures and not windower.ffxi.get_mob_by_target('t') then
+                return 'targeting-no-current-target',context
             end
+            local sent = native_gamepad.tap_tab(action == 'shift-tab' and 1 or 0) == 1
+            return sent and 'targeting-'..action..'-sent' or 'targeting-'..action..'-unavailable',context
         end
         if chord then return 'shoulder-chord',context end
         if context == 'crossbar' then return 'trigger-priority',context,gamepad_state.active_bar end
@@ -2448,6 +2457,7 @@ do
         native_mode,native_receiving,native_filtering=nil,false,false
         gamepad_state.trust_menu_live=false
         gamepad_state.shoulder_targeting=false
+        gamepad_state.shoulder_target_gestures=false
         gamepad_state.shoulder_slots=false
         native_attach_failure = nil
         if retry then attempted=nil end
@@ -2473,6 +2483,9 @@ do
             end
             if not native_gamepad or not native_gamepad.load_policy or not native_mode then
                 return say('Start the reloadable native hook before switching controller logic.')
+            end
+            if revision >= 3 and not native_gamepad.reverse_tab then
+                return say('Restart FFXI with the updated hook before loading shoulder targeting logic.')
             end
             if native_gamepad.policy_revision()==revision then
                 return say(('Controller logic revision %d is already active.'):format(revision))
@@ -2583,6 +2596,11 @@ do
             if generation and message_bridge.token then clear_controller_input() end
         end, function() end, generation)
         gamepad_state.shoulder_targeting = targeting and message_bridge.extended
+        gamepad_state.shoulder_target_gestures = native_gamepad.reverse_tab and native_gamepad.policy_revision
+            and native_gamepad.policy_revision() >= 3
+        if not gamepad_state.shoulder_targeting or not gamepad_state.shoulder_target_gestures then
+            transport.target_gesture = nil
+        end
         gamepad_state.shoulder_slots = banks ~= 0 and message_bridge.extended
         if diagnostic and diagnostic:input_active() and native_gamepad.snapshot then
             local sample=native_gamepad.snapshot()

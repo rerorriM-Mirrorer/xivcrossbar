@@ -29,7 +29,8 @@ public:
 
     // mode 1 is the isolated Up and Circle probe. Mode 2 routes the normal crossbar.
     Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu, unsigned passthrough = 0,
-        std::uint64_t now = 0, bool targeting = false, unsigned banks = 0, bool binding = false, unsigned trust_slots = 0) {
+        std::uint64_t now = 0, bool targeting = false, unsigned banks = 0, bool binding = false, unsigned trust_slots = 0,
+        bool shoulder_gestures = false) {
         if (!armed_) {
             armed_ = !(raw & controls);
             previous_ = raw;
@@ -55,8 +56,10 @@ public:
                 capture |= shoulders | slots;
                 shoulder_directions_ |= down & directions;
             }
-            if (targeting && !menu && !(raw & (l1 | triggers | share | chooser)))
-                capture |= r1;
+            if (targeting && !menu && !(raw & (triggers | share | chooser))) {
+                if (shoulder_gestures) capture |= l1 | r1;
+                else if (!(raw & l1)) capture |= r1;
+            }
             if (menu || ((owned_ | down) & (triggers | share | chooser)))
                 capture |= slots & ~passthrough;
         }

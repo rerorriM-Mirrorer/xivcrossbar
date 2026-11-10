@@ -11,7 +11,10 @@ complete test folder with its matching `native/xb_gamepad_messages.dll`.
 The reloadable hook trial also requires `native/xb_controller_logic_1.dll`.
 After the first FFXI restart, use `//xb nativepad logic 2` to try the
 second revision and `//xb nativepad status` to see the active revision.
-Both trial revisions use the same filtering rules.
+Revisions 1 and 2 use the same filtering rules. Revision 3 tests the new
+shoulder targeting gestures. With revision 3 loaded, use `//xb bank targeting on`.
+Tap L1+R1 to acquire an NPC. Tap R1 or L1 to cycle forward or backward
+when a target is already selected. Shoulder bank actions take priority.
 
 ## Unified diagnostics
 

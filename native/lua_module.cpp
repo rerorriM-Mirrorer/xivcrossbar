@@ -62,14 +62,25 @@ int tap_tab(lua_State* L) {
         api.push(L, 0);
         return 1;
     }
-    INPUT keys[2]{};
-    keys[0].type = keys[1].type = INPUT_KEYBOARD;
-    keys[0].ki.wScan = keys[1].ki.wScan = static_cast<WORD>(MapVirtualKeyW(VK_TAB, MAPVK_VK_TO_VSC));
-    keys[0].ki.dwFlags = KEYEVENTF_SCANCODE;
-    keys[1].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-    const UINT sent = SendInput(2, keys, sizeof(INPUT));
-    if (sent == 1) SendInput(1, &keys[1], sizeof(INPUT));
-    api.push(L, sent == 2 ? 1 : 0);
+    const bool reverse = api.integer(L, 1) == 1;
+    INPUT keys[4]{};
+    auto set_key = [&](unsigned index, UINT key, bool release) {
+        keys[index].type = INPUT_KEYBOARD;
+        keys[index].ki.wScan = static_cast<WORD>(MapVirtualKeyW(key, MAPVK_VK_TO_VSC));
+        keys[index].ki.dwFlags = KEYEVENTF_SCANCODE | (release ? KEYEVENTF_KEYUP : 0);
+    };
+    const unsigned tab = reverse ? 1u : 0u;
+    const unsigned count = reverse ? 4u : 2u;
+    set_key(tab, VK_TAB, false);
+    set_key(tab + 1, VK_TAB, true);
+    if (reverse) {
+        set_key(0, VK_LSHIFT, false);
+        set_key(3, VK_LSHIFT, true);
+    }
+    const UINT sent = SendInput(count, keys, sizeof(INPUT));
+    if (sent == tab + 1) SendInput(1, &keys[tab + 1], sizeof(INPUT));
+    if (reverse && sent > 0 && sent < count) SendInput(1, &keys[3], sizeof(INPUT));
+    api.push(L, sent == count ? 1 : 0);
     return 1;
 }
 int poll(lua_State* L) {
@@ -104,9 +115,10 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
         break;
     }
     if (!resolved) return 0;
-    api.table(L, 0, 10);
+    api.table(L, 0, 11);
     api.push(L, 1); api.field(L, -2, "trust_menu");
     api.push(L, 1); api.field(L, -2, "shoulder_slots");
+    api.push(L, 1); api.field(L, -2, "reverse_tab");
     api.closure(L, begin, 0); api.field(L, -2, "begin");
     api.push(L, GetCurrentProcessId()); api.field(L, -2, "process_id");
     api.closure(L, off, 0); api.field(L, -2, "off");

@@ -24,7 +24,7 @@ local function client(attach_result)
         controller_profiles={profiles={xinput={backend='xinput'}},matches=function() return true end},
         controller_status=function() return reader end, settings={ControllerProfile='xinput',ControllerDevice=1},
         profile_clock=function() return clock end,
-        clear_controller_input=record('clear'), message_bridge={}, gamepad_state={},
+        clear_controller_input=record('clear'), message_bridge={}, gamepad_state={}, transport={},
         config={save=function() end}, xivcrossbar={ready=true}, gamepad_mapper={},
         crossbar_menu_open=function() return false end,
         chat_format={say=function(_, text) notices[#notices+1]=text end},

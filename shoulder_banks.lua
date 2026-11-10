@@ -60,6 +60,29 @@ function M.target_action(dik, pressed, chord, down, has_target)
     return has_target and 'tab' or 'targetnpc'
 end
 
+-- A gesture owns one uninterrupted tap, ending only when both shoulders are up.
+function M.target_gesture(transport, dik, pressed, chord, eligible, now)
+    if not eligible then transport.target_gesture = nil; return end
+    local down, gesture = transport.down, transport.target_gesture
+    if pressed then
+        if down[67] or down[68] or down[87] or down[88] then
+            transport.target_gesture = nil
+            return
+        end
+        for slot = 59, 66 do
+            if down[slot] then transport.target_gesture = nil; return end
+        end
+        if down[89] and down[90] then
+            if gesture then gesture.action = 'targetnpc' end
+        else
+            transport.target_gesture = {started=now, action=not chord and (dik == 89 and 'shift-tab' or 'tab')}
+        end
+    elseif not down[89] and not down[90] then
+        transport.target_gesture = nil
+        if gesture and now - gesture.started <= .35 then return gesture.action end
+    end
+end
+
 function M.command(settings, profile, section, option, value, save, say)
     section = section and section:lower() or 'status'
     option, value = option and option:lower(), value and value:lower()
@@ -69,7 +92,7 @@ function M.command(settings, profile, section, option, value, save, say)
             settings.Targeting = option == 'on'
             save()
         end
-        say('R1 targeting '..(settings.Targeting and 'ON' or 'OFF')..
+        say('Shoulder targeting '..(settings.Targeting and 'ON' or 'OFF')..
             (supported(profile, 'R1') and '' or ' | RB is reserved for the chooser on this profile.'))
     elseif bank and not value and (option == 'on' or option == 'off' or option == 'show' or option == 'hide') then
         if option == 'on' or option == 'off' then settings[bank].Enabled = option == 'on'
