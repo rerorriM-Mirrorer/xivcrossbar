@@ -36,7 +36,7 @@ function M.resolve(action,state,spells)
     local out={};for k,v in pairs(action)do out[k]=v end
     out.type,out.action,out.target='ct','refa "'..present..'"',nil
     out.alias='Return'
-    out.icon=action.icon and action.icon~='' and action.icon or 'trust/'..require('libs/kebab_casify')((spell.en or spell.name):gsub('%s*%(UC%)',''):gsub('%s*%[S%]',''))
+    out.trust_spell_name=action.action
     out.linked_action,out.linked_type=nil,nil
     out.trust_dismiss=true
     return out

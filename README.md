@@ -566,3 +566,7 @@ timers are centered, white, size 10, with a black outline. Use
 2026-11-10: Centered captions wait for native width after they become
 drawable and can recover from a late measurement. Recast timer anchors
 are nudged two pixels right.
+
+2026-11-10: A dismissible Trust keeps its portrait and shows a pink X in
+the recast timer position while its slot says Return. Recast flash textures
+are configured during the cooldown before the flash becomes visible.

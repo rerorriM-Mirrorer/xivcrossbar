@@ -15,7 +15,7 @@ local geometry = require('ui_geometry').new()
 local prim = geometry:prim()
 ui.geometry = geometry
 local function new_image(options)
-    return geometry:surface(ui_resources.image(options), 'image', options)
+    return geometry:surface(ui_resources.image({draggable=options.draggable}), 'image', options)
 end
 local function new_text(options)
     -- Windower mutates the supplied settings in place on every text setter.
@@ -387,6 +387,7 @@ end
 
 local unpack = unpack or table.unpack
 local amber_stroke = {255, 216, 112}
+local return_color = require('theme').display_palette('xi').insufficient
 local slot_label_strokes = {black={20, 20, 20}, amber={143, 89, 30}}
 local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1', 'L1+R1'}
 
@@ -1182,8 +1183,8 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
     -- cost, element indicator, and recast timer render as if the linked
     -- spell/ability was directly bound, while the actual command that
     -- fires (action.action) remains the user's raw command.
-    local lookup_type = action.linked_type or action.type
-    local lookup_name = action.linked_action or action.action
+    local lookup_type = action.trust_dismiss and 'ma' or action.linked_type or action.type
+    local lookup_name = action.trust_spell_name or action.linked_action or action.action
 
     if lookup_type == 'ma' or lookup_type == 'ja' or lookup_type == 'ws' or lookup_type == 'enchanteditem' or lookup_type == 'pet' then
         local crossbar_action = nil
@@ -1203,7 +1204,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
                 icon_path, icon_overridden = maybe_get_custom_icon(crossbar_action.default_icon, crossbar_action.custom_icon)
 
                 -- display element
-                if self:should_show_element(crossbar_action.element) then
+                if not action.trust_dismiss and self:should_show_element(crossbar_action.element) then
                     self.hotbars[hotbar].slot_element[slot]:path(windower.addon_path .. '/images/icons/elements/' .. crossbar_action.element .. '.png')
                     if (show_when_ready) then
                         self.hotbars[hotbar].slot_element[slot]:show()
@@ -1212,7 +1213,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
 
                 local mp_cost = tonumber(crossbar_action.mp_cost) or 0
                 local tp_cost = tonumber(crossbar_action.tp_cost) or 0
-                if mp_cost > 0 or tp_cost > 0 then
+                if not action.trust_dismiss and (mp_cost > 0 or tp_cost > 0) then
                     local kind = mp_cost > 0 and 'mp' or 'tp'
                     local cost = mp_cost > 0 and mp_cost or tp_cost
                     local insufficient = player_vitals[kind] < cost
@@ -1324,6 +1325,7 @@ end
 -- reset slot
 function ui:clear_slot(hotbar, slot)
     self:clear_recast_flash(hotbar, slot)
+    self:clear_recast(hotbar, slot)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
     self.hotbars[hotbar].slot_icon[slot]:alpha(255)
     self.hotbars[hotbar].slot_icon[slot]:color(255, 255, 255)
@@ -1836,6 +1838,16 @@ function ui:observe_recast(hotbar, slot, action, remaining)
         return
     end
     local key = (hotbar-1)*8+slot
+    if remaining > 0 and not self.recast_flash_views[key] then
+        -- Give Windower the texture while the slot is still cooling, so its
+        -- first visible frame can start with the intended glow.
+        local view = new_image(images_setup)
+        view:alpha(0)
+        view:path(windower.addon_path .. 'images/assets/recast-glow.png')
+        view:size(40+2*slot_glow_padding,40+2*slot_glow_padding)
+        geometry:assign_bank(view, hotbar)
+        self.recast_flash_views[key] = view
+    end
     local previous = self.recast_samples[key]
     if not previous or previous.action ~= action then
         if self.recast_flashes[key] then self:clear_recast_flash(hotbar,slot) end
@@ -1853,13 +1865,6 @@ function ui:observe_recast(hotbar, slot, action, remaining)
     if not previous.cooling then return end
     previous.cooling = false
     local view = self.recast_flash_views[key]
-    if not view then
-        view = new_image(images_setup)
-        view:path(windower.addon_path .. 'images/assets/recast-glow.png')
-        view:size(40+2*slot_glow_padding,40+2*slot_glow_padding)
-        geometry:assign_bank(view, hotbar)
-        self.recast_flash_views[key] = view
-    end
     view:pos(self:get_slot_x(hotbar,slot)-slot_glow_padding,
         self:get_slot_y(hotbar,slot)-slot_glow_padding)
     view:alpha(recast_flash_alpha)
@@ -2036,7 +2041,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     self.hotbars[h].slot_warmup[i]:hide()
                     self:mark_default_set_action(h, i, inherited_set)
                 elseif action == nil or (effective_type ~= 'ma' and effective_type ~= 'ja' and effective_type ~= 'ws' and effective_type ~= 'pet' and effective_type ~= 'enchanteditem') then
-                    self:clear_recast(h, i)
+                    self:clear_recast(h, i, action and action.trust_dismiss)
                     if observe_recasts then self:clear_recast_flash(h,i) end
                     if (action ~= nil and action.type == 'item') then
                         local item_count = consumables:get_item_count_by_name(action.action)
@@ -2549,12 +2554,21 @@ function ui:hide_controller_icons(h)
 end
 
 -- clear recast from a slot
-function ui:clear_recast(hotbar, slot)
-    self.hotbars[hotbar].slot_warmup[slot]:hide()
-    self.hotbars[hotbar].slot_recast[slot]:hide()
-    self.hotbars[hotbar].slot_recast_text[slot]:alpha(255)
-    self.hotbars[hotbar].slot_recast_text[slot]:color(255, 255, 255)
-    self.hotbars[hotbar].slot_recast_text[slot]:text('')
+function ui:clear_recast(hotbar, slot, returnable)
+    local bar = self.hotbars[hotbar]
+    bar.slot_warmup[slot]:hide()
+    bar.slot_recast[slot]:hide()
+    local timer = bar.slot_recast_text[slot]
+    timer:alpha(255)
+    if returnable then
+        timer:color(unpack(return_color))
+        timer:text('X')
+        timer:show()
+    else
+        timer:hide()
+        timer:color(255, 255, 255)
+        timer:text('')
+    end
 end
 
 -- calculate recast time

@@ -1,3 +1,27 @@
+# Current Development Status — November 10, 2026 — Trust Return and recast glow
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `cefdd12ca00c655cc6947529979e88fa2e109511`.
+The user confirmed cost offsets felt good and reported Moogle's portrait
+turning into a white square on Return. They also saw a bright white square
+on the first recast-ready flash.
+
+1. Apply the patch and run `//xb restart`. Summon Moogle from a typed Trust
+   slot. It should keep its summon portrait, change its name to Return,
+   and show a pink X at the recast timer position.
+2. Press the Return slot and watch the party list. Once Moogle is gone,
+   the X should clear and the summon label should return. Repeat with
+   a Trust whose slot has a custom portrait.
+3. With Recast Flash on, check the first recast-ready flash after restart
+   and compare it to later flashes. The texture is now configured at
+   zero opacity during the cooldown. Native image settings are isolated
+   per surface. The first visible FFXI frame still needs confirmation.
+
+Six mocked Lua suites passed, including native and custom portrait
+preservation, the Return-to-summon transition, and early glow setup.
+
+---
+
 # Current Development Status — November 10, 2026 — Bank caption centering
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
