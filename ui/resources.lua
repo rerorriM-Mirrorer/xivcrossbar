@@ -63,7 +63,7 @@ local function new(kind, library, ...)
                 return object[name](object,actual)
             end
         end
-        function methods:measure_width()
+        function methods:measure_width(drawable)
             assert(not disposed,'UI object used after disposal: text.measure_width')
             if not measurement then measurement={} end
             if not style_key then
@@ -78,7 +78,7 @@ local function new(kind, library, ...)
                 local w,h=object:extents()
                 if trace.enabled then trace.call(proxy,'extents',w,h) end
                 return w
-            end,style.text==encode(''))
+            end,style.text==encode(''),drawable)
             if phase=='pending' then hold_opacity(true) end
             if trace.enabled then trace.call(proxy,'text-settle',phase,width or '-') end
             return width

@@ -32,6 +32,24 @@ for i=1,8 do
     width,phase=measure.width(never,'never-settles',function() return nil end,false)
 end
 assert(width==0 and phase=='fallback','bounded fallback must eventually release a caption')
+for _=1,2 do
+    measure.begin_frame()
+    width,phase=measure.width(never,'never-settles',function() return 42 end,false)
+end
+assert(width==42 and phase=='ready','visible fallback should recover a late native width')
+local cold={}
+for _=1,20 do
+    measure.begin_frame()
+    width,phase=measure.width(cold,'cold-bank',function() error('hidden text measured') end,false,false)
+    assert(width==nil and phase=='pending')
+end
+width,phase=measure.width(cold,'cold-bank',function() return 52 end,false,true)
+assert(width==nil and phase=='pending','hidden time consumed the measurement budget')
+for _=1,2 do
+    measure.begin_frame()
+    width,phase=measure.width(cold,'cold-bank',function() return 52 end,false,true)
+end
+assert(width==52 and phase=='ready')
 local original_frame=measure.frame
 local raw_objects={}
 local function native()

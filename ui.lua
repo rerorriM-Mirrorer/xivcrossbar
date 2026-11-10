@@ -650,7 +650,7 @@ function ui:load(theme_options)
             timer:size(10)
             timer:color(255, 255, 255)
             timer:stroke_color(0, 0, 0)
-            timer:center(slot_pos_x + 20, slot_pos_y + 13)
+            timer:center(slot_pos_x + 22, slot_pos_y + 13)
         end
 
         -- special stuff for dpad and face buttons icons

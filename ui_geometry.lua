@@ -67,7 +67,7 @@ local function draw_surface(g, object, m)
     if m.center_x then
         -- Width can be stale for one or more native draw frames. Keep the
         -- previous position/opacity gated until a verified width is ready.
-        local width=object:measure_width()
+        local width=object:measure_width(m.draw_visible == true)
         if trace.enabled then trace.call(object,'center-measure',m.center_x,m.center_y,width,scale) end
         if width~=nil then
             m.x,m.y=m.center_x-width/scale/2,m.center_y

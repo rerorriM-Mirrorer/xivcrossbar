@@ -1,3 +1,23 @@
+# Current Development Status — November 10, 2026 — Bank caption centering
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `56d752211935051ebdf38653e3d5ecea8c324e7d`.
+The user confirmed independent outline colors and liked the recast timers.
+Several rarely shown banks still appeared right of center. A hidden
+caption could spend the full width-settling window without drawing,
+and a zero-width fallback could persist after native extents recovered.
+
+1. Apply the patch and run `//xb restart`. Wait before first showing
+   `R2x2`, `L2x2`, the combined bank, and `L1+R1`. Compare each label
+   with its own bank at a horizontal bank label offset of zero.
+2. Check a recast timer. It is nudged 2 layout pixels right, with
+   its vertical anchor still 13 pixels below the top of the 40-pixel slot.
+
+Five mocked Lua suites passed, including hidden captions and recovery
+after a zero-width fallback. Live centering is pending.
+
+---
+
 # Current Development Status — November 10, 2026 — HUD text rendering
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

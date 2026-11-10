@@ -35,8 +35,9 @@ local function remember(key,width)
 end
 
 -- nil means keep transparent. Zero is a bounded, fixed-position fallback;
--- callers still position before committing opacity. A fallback is not cached.
-function M.width(state,key,read,blank)
+-- callers still position before committing opacity. Visible fallbacks keep
+-- sampling until a native width is ready.
+function M.width(state,key,read,blank,drawable)
     if not M.enabled then
         state.phase='bypass';state.key=nil
         return read() or 0,'bypass'
@@ -46,7 +47,18 @@ function M.width(state,key,read,blank)
         local known=blank and 0 or cache[key]
         if known~=nil then state.width=known;state.phase='ready' end
     end
-    if state.phase=='ready' or state.phase=='fallback' then return state.width,state.phase end
+    if state.phase=='ready' then return state.width,state.phase end
+    -- Hidden text can return zero extents for arbitrarily many frames.
+    -- Start the settling budget when the native object can draw.
+    if drawable==false then
+        state.waiting_to_draw=true
+        return nil,'pending'
+    end
+    if state.waiting_to_draw then
+        M.invalidate(state)
+        state.key=key
+        state.waiting_to_draw=nil
+    end
     if M.frame>state.changed and state.sample_frame~=M.frame then
         state.sample_frame=M.frame
         local width=read()

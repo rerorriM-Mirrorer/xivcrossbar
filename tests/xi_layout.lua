@@ -76,7 +76,7 @@ assert(not slot_surface.center_x and slot_surface.x==ui:get_slot_x(1,1)+2
     and slot_surface.y==ui:get_slot_y(1,1)+46)
 ui:set_slot_label_layout('left',0,0)
 local timer=ui.geometry.surfaces[recast_caption]
-assert(timer.center_x==ui:get_slot_x(1,1)+20 and timer.center_y==ui:get_slot_y(1,1)+13)
+assert(timer.center_x==ui:get_slot_x(1,1)+22 and timer.center_y==ui:get_slot_y(1,1)+13)
 local cost=ui.hotbars[1].slot_cost[1]
 local cost_x,cost_y=cost:pos()
 ui:set_cost_offset(-8,-24)

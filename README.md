@@ -562,3 +562,7 @@ The amber slot outline uses the original darker amber.
 Centered captions keep stable font metrics through TriggerScale. Recast
 timers are centered, white, size 10, with a black outline. Use
 `//xb costoffset <x> <y>` to move MP, TP, and item counts.
+
+2026-11-10: Centered captions wait for native width after they become
+drawable and can recover from a late measurement. Recast timer anchors
+are nudged two pixels right.
