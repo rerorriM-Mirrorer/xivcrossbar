@@ -42,6 +42,8 @@ int main() {
     if (begin(1, 0, 3, 0, "auto") != 1) return 8;
     auto load_logic = reinterpret_cast<unsigned (__cdecl*)(unsigned)>(GetProcAddress(dll, "xb_load_policy"));
     auto revision = reinterpret_cast<unsigned (__cdecl*)()>(GetProcAddress(dll, "xb_policy_revision"));
+    auto action = reinterpret_cast<unsigned (__cdecl*)(unsigned)>(GetProcAddress(dll, "xb_policy_action"));
+    if (!action || action(99) != 0) return 20;
     if (!load_logic || !revision || revision() != 1) return 14;
     auto initial = GetModuleHandleW(L"xb_controller_logic_1.dll");
     if (!initial || !CopyFileW(L"LuaCore.dll", L"xb_controller_logic_4.dll", FALSE)) return 15;
@@ -88,6 +90,7 @@ int main() {
         input.raw = xb::l1 | xb::r1;
         policy(&ownership, &input, &filtered);
         if (filtered.suppressed != (next == 3 ? input.raw : 0u)) { swapped = false; break; }
+        if (action(99) != 0) { swapped = false; break; }
         previous = next;
         poll(4, edges, 8, status);
     }

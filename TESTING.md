@@ -1,3 +1,32 @@
+# Current Development Status — November 10, 2026 — Reloadable actions and armed PS probe
+
+Branch `feat/reloadable-controller-logic`. Starting checkpoint
+`ceeb3a599123fddb2ab7b1b6ab490a684b2b9adf`.
+
+Close FFXI before installing this matching hook and policies. The hook dispatches
+numbered actions to the loaded policy under its callback mutex. Tab/Shift+Tab
+implementation is now inside each policy DLL. Future compatible action changes
+can be installed using a new numbered policy and Lua update.
+
+1. Load logic 3 and enable bank targeting. Check targetless L1+R1 acquisition
+   and selected-target L1/R1 cycling on press. Switch policies live.
+2. Run `controller-discovery.ahk`, release controls, and press PS. Select
+   its responding row, then choose Arm selected PS input and confirm the
+   API, slot and button. Set the addon's PS bridge off during the probe.
+3. Focus a non-FFXI application, return to FFXI, then press PS. Press PS
+   again within 30 seconds to return to that same client. Disarm PS ends
+   the probe. A device-list change disarms it automatically.
+4. Identify a pad with a face-button press, select the desired row/profile,
+   and confirm to copy its selection command. Paste in FFXI and check live
+   polls with `//xb nativepad status`.
+
+The scanner retains duplicate entries and logs the visible inventory.
+Automatic persistent reconnect identity and matching against FFXI's polled
+device remain future work. PS requires an exposed button event in this probe.
+Physical acceptance is pending.
+
+---
+
 # Current Development Status — November 10, 2026 — Controller discovery diagnostic
 
 Branch `feat/reloadable-controller-logic`. Starting checkpoint

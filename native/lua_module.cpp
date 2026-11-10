@@ -10,6 +10,7 @@ const char* xb_attach_operation();
 long xb_attach_code();
 extern "C" void __cdecl xb_off();
 extern "C" unsigned __cdecl xb_policy_revision();
+extern "C" unsigned __cdecl xb_policy_action(unsigned);
 extern "C" unsigned __cdecl xb_load_policy(unsigned);
 extern "C" unsigned __cdecl xb_detach();
 extern "C" unsigned __cdecl xb_poll(unsigned, int*, unsigned, unsigned*);
@@ -52,37 +53,10 @@ int load_policy(lua_State* L) {
 int off(lua_State*) { xb_off(); return 0; }
 int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
 int tap_tab(lua_State* L) {
-    DWORD pid = 0;
-    GetWindowThreadProcessId(GetForegroundWindow(), &pid);
-    // Never turn an unmodified controller tap into Alt+Tab or a modified key.
-    if (pid != GetCurrentProcessId() || (GetAsyncKeyState(VK_MENU) & 0x8000) ||
-        (GetAsyncKeyState(VK_CONTROL) & 0x8000) || (GetAsyncKeyState(VK_SHIFT) & 0x8000) ||
-        (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000) ||
-        (GetAsyncKeyState(VK_TAB) & 0x8000)) {
-        api.push(L, 0);
-        return 1;
-    }
-    const bool reverse = api.integer(L, 1) == 1;
-    INPUT keys[4]{};
-    auto set_key = [&](unsigned index, UINT key, bool release) {
-        keys[index].type = INPUT_KEYBOARD;
-        keys[index].ki.wScan = static_cast<WORD>(MapVirtualKeyW(key, MAPVK_VK_TO_VSC));
-        keys[index].ki.dwFlags = KEYEVENTF_SCANCODE | (release ? KEYEVENTF_KEYUP : 0);
-    };
-    const unsigned tab = reverse ? 1u : 0u;
-    const unsigned count = reverse ? 4u : 2u;
-    set_key(tab, VK_TAB, false);
-    set_key(tab + 1, VK_TAB, true);
-    if (reverse) {
-        set_key(0, VK_LSHIFT, false);
-        set_key(3, VK_LSHIFT, true);
-    }
-    const UINT sent = SendInput(count, keys, sizeof(INPUT));
-    if (sent == tab + 1) SendInput(1, &keys[tab + 1], sizeof(INPUT));
-    if (reverse && sent > 0 && sent < count) SendInput(1, &keys[3], sizeof(INPUT));
-    api.push(L, sent == count ? 1 : 0);
+    api.push(L, xb_policy_action(api.integer(L, 1) == 1 ? 2 : 1));
     return 1;
 }
+
 int poll(lua_State* L) {
     int edges[256]{};
     unsigned status[8]{};

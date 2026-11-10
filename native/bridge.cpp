@@ -36,6 +36,8 @@ DirectBuffered buffered_original;
 std::mutex guard;
 HMODULE policy_module;
 xb::ApplyLogic apply_logic;
+using PolicyAction = unsigned (__cdecl*)(unsigned);
+PolicyAction policy_action;
 unsigned policy_revision;
 bool waiting_for_neutral, discard_buffered_batch;
 xb::Ownership ownership, buffered_ownership;
@@ -428,6 +430,11 @@ const char* xb_attach_operation() { return attach_operation; }
 long xb_attach_code() { return attach_code; }
 
 extern "C" {
+__declspec(dllexport) unsigned __cdecl xb_policy_action(unsigned action) {
+    std::lock_guard lock(guard);
+    return policy_action ? policy_action(action) : 0;
+}
+
 __declspec(dllexport) unsigned __cdecl xb_policy_revision() {
     std::lock_guard lock(guard);
     return policy_revision;
@@ -468,6 +475,7 @@ __declspec(dllexport) unsigned __cdecl xb_load_policy(unsigned revision) {
         previous = policy_module;
         policy_module = next;
         apply_logic = apply;
+        policy_action = reinterpret_cast<PolicyAction>(GetProcAddress(next, "xb_logic_v1_action"));
         policy_revision = revision;
         reset();
         waiting_for_neutral = discard_buffered_batch = true;

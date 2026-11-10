@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0.19+
 #SingleInstance Force
 
-; Diagnostic only. Read all slots exposed by the existing readers.
+; Read every exposed slot. Window switching is armed by explicit confirmation.
 scanXInput := 0
 for dll in ["xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll", "xinput1_2.dll", "xinput1_1.dll"] {
     library := DllCall("LoadLibraryExW", "WStr", dll, "Ptr", 0, "UInt", 0x800, "Ptr")
@@ -19,11 +19,20 @@ if (A_Args.Length && A_Args[1] = "--selftest") {
 scanPrevious := Map()
 scanReport := "XIVCrossbar discovery " . A_Now . Chr(13) . Chr(10)
 scanDevicesNow := []
+scanLastButton := Map()
+scanPS := false
+scanOrigin := 0
+scanOther := 0
+scanReturnUntil := 0
+scanOriginPID := 0
+scanOtherPID := 0
 scanWindow := Gui(, "XIVCrossbar controller discovery")
 scanWindow.AddText("w760", "Release all buttons, then press one on your controller. Try PS separately. Select the intended row to confirm.")
 scanList := scanWindow.AddListView("w760 r8", ["API", "Slot", "Controller", "Type", "Last press"])
 scanProfile := scanWindow.AddDropDownList("w280 Choose1", ["ps5", "f710", "fightpadpro", "xinput", "xinputalt"])
 scanWindow.AddButton("x+12", "Confirm selected entry").OnEvent("Click", ScanConfirm)
+scanWindow.AddButton("xm", "Arm selected PS input").OnEvent("Click", ScanArmPS)
+scanWindow.AddButton("x+12", "Disarm PS").OnEvent("Click", (*) => ScanDisarmPS())
 scanLog := scanWindow.AddEdit("xm w760 r14 ReadOnly")
 scanWindow.AddButton(, "Save report").OnEvent("Click", ScanSave)
 scanWindow.OnEvent("Close", (*) => ExitApp())
@@ -73,12 +82,12 @@ ScanDevices() {
 }
 
 ScanTick() {
-    global scanPrevious, scanList, scanDevicesNow
+    global scanPrevious, scanList, scanDevicesNow, scanLastButton, scanPS
     devices := ScanDevices()
     signature := ""
     for device in devices
         signature .= device.key . ":" . device.name . "|"
-    static previousSignature := ""
+    static previousSignature := "<initial>"
     if (signature != previousSignature) {
         scanList.Delete()
         for device in devices
@@ -86,19 +95,27 @@ ScanTick() {
         ScanAppend("Device list changed. Release buttons and identify your controller again.")
         previousSignature := signature
         scanPrevious := Map()
+        scanLastButton := Map()
+        ScanDisarmPS()
+        for device in devices
+            ScanAppend(device.api . " slot " . device.slot . " [" . device.name . "] " . device.kind)
     }
     for row, device in devices {
         current := Map()
         for button in device.buttons {
             current[button] := true
             if (scanPrevious.Has(device.key) && !scanPrevious[device.key].Has(button)) {
+                scanLastButton[device.key] := button
                 scanList.Modify(row, , device.api, device.slot, device.name, device.kind, "Button " . button)
                 ScanAppend(device.api . " slot " . device.slot . " [" . device.name . "] button " . button)
+                if (IsObject(scanPS) && scanPS.key = device.key && scanPS.button = button)
+                    ScanSwitchPS()
             }
         }
         scanPrevious[device.key] := current
     }
     scanDevicesNow := devices
+    ScanRememberWindows()
 }
 
 ScanAppend(line) {
@@ -139,4 +156,65 @@ ScanSave(*) {
     file := FileOpen(path, "w", "UTF-8")
     file.Write(scanReport)
     file.Close()
+}
+
+ScanDisarmPS() {
+    global scanPS, scanReturnUntil
+    scanPS := false
+    scanReturnUntil := 0
+}
+
+ScanArmPS(*) {
+    global scanList, scanDevicesNow, scanLastButton, scanPS
+    row := scanList.GetNext()
+    if (!row || row > scanDevicesNow.Length)
+        return MsgBox("Press PS, then select its responding controller row.")
+    device := scanDevicesNow[row]
+    if (!scanLastButton.Has(device.key))
+        return MsgBox("No button event has been observed on this entry. Press PS first.")
+    button := scanLastButton[device.key]
+    if (MsgBox("Arm " . device.api . " slot " . device.slot . " button " . button
+        . " for switching between FFXI and the remembered application?"
+        . Chr(10) . "Confirm only if this was the PS button. Disable the addon's PS bridge while testing.",
+        "Confirm PS input", "YesNo") != "Yes")
+        return
+    scanPS := {key:device.key, button:button}
+    ScanAppend("PS switching armed on " . device.key . " button " . button . ". Release before testing.")
+}
+
+ScanRememberWindows() {
+    global scanOrigin, scanOther, scanWindow, scanOriginPID, scanOtherPID
+    active := WinActive("A")
+    if (!active || active = scanWindow.Hwnd)
+        return
+    try {
+        if (WinGetClass("ahk_id " . active) = "FFXiClass")
+            scanOrigin := active, scanOriginPID := WinGetPID("ahk_id " . active)
+        else
+            scanOther := active, scanOtherPID := WinGetPID("ahk_id " . active)
+    }
+}
+
+ScanSwitchPS() {
+    global scanOrigin, scanOther, scanReturnUntil, scanOriginPID, scanOtherPID
+    active := WinActive("A")
+    try {
+        if (WinGetClass("ahk_id " . active) = "FFXiClass") {
+            if (!scanOther || !WinExist("ahk_id " . scanOther)
+                || WinGetPID("ahk_id " . scanOther) != scanOtherPID)
+                return ScanAppend("PS observed. Focus a non-FFXI application first so it can be remembered.")
+            scanOrigin := active, scanOriginPID := WinGetPID("ahk_id " . active)
+            scanReturnUntil := A_TickCount + 30000
+            WinActivate("ahk_id " . scanOther)
+            ScanAppend("PS switched away from FFXI. Press again within 30 seconds to return.")
+        } else if (scanOrigin && A_TickCount <= scanReturnUntil && WinExist("ahk_id " . scanOrigin)
+            && WinGetPID("ahk_id " . scanOrigin) = scanOriginPID
+            && WinGetClass("ahk_id " . scanOrigin) = "FFXiClass") {
+            scanReturnUntil := 0
+            WinActivate("ahk_id " . scanOrigin)
+            ScanAppend("PS returned to the originating FFXI client.")
+        }
+    } catch Error as error {
+        ScanAppend("PS switch failed: " . error.Message)
+    }
 }

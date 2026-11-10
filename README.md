@@ -600,3 +600,9 @@ is active. Use `//xb eventbars off` to restore the prior behavior.
 and button edges. Confirm a row and profile to copy a selection command.
 Save its report after pressing PS. This diagnostic retains duplicate entries
 and resets observation when the connected-device list changes.
+
+
+2026-11-10: Targeting key injection now lives in the numbered controller policy.
+The discovery utility can explicitly arm its observed PS button for application
+switching and a 30-second return to the originating client. Device-list changes
+disarm the probe. Set the addon's PS bridge off when testing the probe.
