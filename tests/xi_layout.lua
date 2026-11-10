@@ -58,6 +58,18 @@ ui:set_slot_label_stroke('black')
 check_stroke(slot_caption,20,20,20)
 local legacy_x,legacy_y=ui:get_slot_x(1,1),ui:get_slot_y(1,4)
 local icon=ui.hotbars[1].slot_icon[1]
+local cost=ui.hotbars[1].slot_cost[1]
+local cost_surface=ui.geometry.surfaces[cost]
+local cost_x,cost_y=cost:pos()
+ui:set_cost_offset(5,-7)
+ui:set_cost_alignment('left')
+assert(not cost:right_justified() and cost_surface.x==legacy_x+7 and cost_surface.y==cost_y-7)
+ui:set_cost_alignment('center')
+assert(cost_surface.center_x==legacy_x+25 and cost_surface.center_y==cost_y-7)
+ui:set_cost_alignment('right')
+ui:set_cost_offset(0,0)
+assert(cost:right_justified() and not cost_surface.center_x
+    and cost_surface.x==cost_x and cost_surface.y==cost_y)
 local xi=theme.display_palette('xi')
 ui:set_display_layout(xi,true)
 assert(ui.bank_labels[1]==label)

@@ -1,3 +1,39 @@
+# Current Development Status — November 10, 2026 — Keyboard ownership and HUD controls
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `83af1ec65ff72eab5d5e601965a61b51839ebb09`.
+Windower 4 public beta, using the matching Event banks build as the overlay base.
+The user reported keyboard navigation reaching FFXI beneath remap and custom-action screens.
+
+1. With a native menu underneath, open `//xb remap` and try the arrows, Enter,
+   keypad Enter, and Escape. Hold Enter from profile selection into the next
+   page. Hold Escape as the addon screen closes. Release each before trying
+   a fresh key. The native menu should only receive the fresh press after
+   the addon gives up keyboard ownership.
+2. Repeat through Create Custom Action, its text fields, icon picker, and
+   review. A physical arrow press should move one step. Enter should commit
+   or advance once. Back out with Escape and check the native menu and camera.
+3. Check setup and `//xb controller status`, `//xb nativepad status`,
+   `//xb diagnose status`, and `//xb help`. Check the PlayStation 5 label,
+   waiting for client focus or game polls, and an actual hook failure.
+4. Run `//xb auto` and `//xb autohold 1.5`. Release a single trigger,
+   a centered bank, or a visible shoulder bank. The last displayed bank
+   should stay briefly before fading. Native controls should resume on
+   release according to the existing controller rules. The 75 ms center
+   handoff still applies while a trigger stays held. Repeat with fades off,
+   and check `//xb show`, `//xb hide`, focus loss, and Event bars.
+5. With trigger scaling on, try both slot name alignments. Text should
+   retain its size while following the bank. Try `//xb costalign left`,
+   `center`, and `right` with changing MP, TP, and quantities, then add a
+   `//xb costoffset <x> <y>` and restart to confirm persistence.
+
+All 37 mocked Lua suites passed and 109 sources parsed under the test runner's
+Lua 5.4 syntax normalization. The starting branch had a stale lockout visibility
+test fixture. Its input now supplies the effective visibility mode. Live
+keyboard propagation, controller status, and visual checks remain pending.
+
+---
+
 # Current Development Status — November 10, 2026 — Event banks
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

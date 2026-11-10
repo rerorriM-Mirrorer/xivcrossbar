@@ -40,6 +40,11 @@ near(left.value,1.05); near(right.value,.95)
 near(icon.draw_width,40*g.scale*1.05)
 assert(centered_label.draw_font_size==centered_size and centered_label.draw_stroke==centered_stroke,
     'bank scaling must not invalidate centered caption measurement')
+ui:set_slot_label_layout('left',0,0)
+local left_size,left_stroke=centered_label.draw_font_size,centered_label.draw_stroke
+step(.005)
+assert(centered_label.draw_font_size==left_size and centered_label.draw_stroke==left_stroke)
+assert(centered_label.draw_x % 1==0 and centered_label.draw_y % 1==0)
 local x,y=g:point(left.x,left.y)
 local sx,sy=g:point(left.x,left.y,false,left)
 near(x,sx); near(y,sy)

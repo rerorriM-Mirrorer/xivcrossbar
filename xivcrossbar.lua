@@ -1753,6 +1753,36 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
+    if command == 'autohold' then
+        local seconds = tonumber(args[1])
+        if seconds and seconds >= 0 and seconds <= 30 then
+            settings.AutoHold = seconds
+            if ui.is_setup then ui.auto_hold = {} end
+            ui_dirty = true
+            config.save(settings)
+        elseif args[1] and args[1]:lower() ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb autohold [0-30|status]')
+            return
+        end
+        chat_format.say(207, ('[XIVCrossbar] Auto hold: %g seconds'):format(settings.AutoHold or 0))
+        return
+    end
+
+    if command == 'costalign' then
+        local align = args[1] and args[1]:lower() or 'status'
+        if align == 'left' or align == 'center' or align == 'right' then
+            settings.Texts.CostAlign = align
+            theme_options.cost_align = align
+            ui:set_cost_alignment(align)
+            config.save(settings)
+        elseif align ~= 'status' then
+            chat_format.say(123, '[XIVCrossbar] //xb costalign [left|center|right|status]')
+            return
+        end
+        chat_format.say(207, '[XIVCrossbar] Cost alignment: ' .. (settings.Texts.CostAlign or 'right'))
+        return
+    end
+
     if command == 'eventbars' then
         local mode = args[1] and args[1]:lower() or 'status'
         if mode == 'on' or mode == 'off' then
@@ -2386,6 +2416,7 @@ local frame = 0
 -- Clear local controller ownership without submitting or discarding menu drafts.
 local function clear_controller_input()
     ui:clear_slot_pulses()
+    ui.auto_hold = {}
     set_chooser_button_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
     transport:reset()
@@ -2621,9 +2652,16 @@ windower.register_event('prerender',function()
         if ui.geometry.startup_reveal then ui.geometry:interrupt_startup_reveal() end
         ui.geometry.load_fade_state.claimed = true
     end
+    local held = gamepad_state.left_trigger or gamepad_state.right_trigger or gamepad_state.shoulder_display ~= nil
+    local now = profile_clock()
+    local hold_seconds = tonumber(settings.AutoHold) or 0
+    local can_hold = hold_seconds > 0 and visibility_mode == 'oninput' and focused
+        and not menu_open and not xivcrossbar.hide_hotbars
+    local info = can_hold and windower.ffxi.get_info()
+    local holding = ui.is_setup and visibility.update_hold(ui.auto_hold, held, hold_seconds, now,
+        info and not info.chat_open)
     local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(visibility_mode,
-        gamepad_state.left_trigger or gamepad_state.right_trigger or gamepad_state.shoulder_display ~= nil, xivcrossbar.hide_hotbars,
-        ui.is_setup and ui.geometry:is_startup_reveal_pending())
+        held or holding, xivcrossbar.hide_hotbars, ui.is_setup and ui.geometry:is_startup_reveal_pending())
         or action_binder:is_moving_crossbars() or env_chooser:is_showing()
     if not visible then crossbar_drag:finish() end
     local display_bank
@@ -2631,7 +2669,8 @@ windower.register_event('prerender',function()
         local autohide = visibility_mode == 'oninput'
         local active_bank = gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0
         local grace_enabled = autohide and not menu_open and gamepad_state.left_trigger ~= gamepad_state.right_trigger
-        display_bank = ui:select_display_bank(visible and not menu_open and active_bank or 0, grace_enabled, profile_clock())
+        display_bank = ui:select_display_bank(visible and not menu_open
+            and (holding and ui.display_bank or active_bank) or 0, grace_enabled, now)
         ui:update_trigger_scale(settings.Animation.TriggerScale, settings.Animation.SmallScale,
             display_bank, visible, autohide, menu_open)
     end

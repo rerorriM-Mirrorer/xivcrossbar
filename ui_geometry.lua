@@ -35,6 +35,7 @@ end
 local draw_opacity
 local function draw_position(g, object, m, x, y)
     local sx, sy = g:point(x, y, m.right, m.pose_bank)
+    if m.stable_text then sx, sy = math.floor(sx+.5), math.floor(sy+.5) end
     if sx ~= m.draw_x or sy ~= m.draw_y then
         object:pos(sx, sy)
         m.draw_x, m.draw_y = sx, sy
@@ -46,7 +47,7 @@ local function draw_surface(g, object, m)
     local scale = g.scale * (m.pose_bank and m.pose_bank.value or 1)
     -- Keep centered text metrics steady while a bank animates. Its position
     -- still follows the bank, and the HUD scale still controls the font.
-    local style_scale = m.center_x and g.scale or scale
+    local style_scale = (m.center_x or m.stable_text) and g.scale or scale
     if m.width then
         local width, height = m.width*scale, m.height*scale
         if width ~= m.draw_width or height ~= m.draw_height then
@@ -349,7 +350,8 @@ end
 function geometry:surface(object, kind, options)
     local g = self
     local m = {object = object, kind=kind, visible=false, alpha=255,
-        right = options and options.flags and options.flags.right}
+        right = options and options.flags and options.flags.right,
+        stable_text = options and options.stable_text}
     local proxy = {}
     local methods = {}
     function methods:alpha(value)
@@ -384,6 +386,14 @@ function geometry:surface(object, kind, options)
     function methods:visible(value)
         if value == nil then return m.visible end
         if value then self:show() else self:hide() end
+    end
+    function methods:right_justified(value)
+        if value == nil then return m.right == true end
+        if (m.right == true) ~= value then
+            object:right_justified(value)
+            m.right = value
+            m.draw_x = nil
+        end
     end
     function methods:pos(x, y)
         if x == nil then return m.x, m.y end

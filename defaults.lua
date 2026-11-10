@@ -143,6 +143,7 @@ defaults.Texts.SlotLabelOffsetY = 0
 defaults.Texts.BankLabelOffsetX = 0
 defaults.Texts.BankLabelOffsetY = 0
 defaults.Texts.BankLabelOpacity = 255
+defaults.Texts.CostAlign = 'right'
 defaults.Texts.CostOffsetX = 0
 defaults.Texts.CostOffsetY = 0
 defaults.Texts.OffsetX = 0
@@ -165,7 +166,8 @@ defaults.InputTest = false
 defaults.InputTrace = false
 defaults.DisplayPreset = 'custom' -- existing installs keep their appearance until a preset is selected
 defaults.EventBars = false
-defaults.VisibilityMode = 'oninput' -- always, oninput, hidden; no hold delay yet
+defaults.AutoHold = 0
+defaults.VisibilityMode = 'oninput' -- always, oninput, hidden
 defaults.CrossbarScale = 1
 -- Fade labels together with artwork by default; text settling protects widths.
 -- Previously live-tested in personal: settle centered native captions before reveal.

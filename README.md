@@ -42,6 +42,15 @@ controller and render trace commands remain available as capture aliases.
 
 ## Appearance and visibility
 
+In Auto, `//xb autohold 1.5` keeps the last bank visible for 1.5 seconds
+after releasing the final trigger or visible shoulder. Set any duration
+from 0 to 30 seconds. The default, 0, starts the fade immediately. Hold
+is independent of the center-bank handoff and applies during regular
+gameplay. Slot names keep a fixed font size while banks animate.
+Use `//xb costalign left`, `center`, or `right` to set the anchor for
+costs and item counts. `//xb costoffset <x> <y>` applies to each anchor.
+
+
 `//xb display xi` tightens compact spacing, uses a recessed frame for
 empty slots, and fits a warm-white trigger field behind the active bank.
 `//xb display legacy` restores the original spacing, field and frame
@@ -203,7 +212,7 @@ across clients sharing a controller.
 
 | Profile command | Controller mapping | Test status |
 | --- | --- | --- |
-| `ps5` | PS5 DirectInput, DirectLink | Live retest pending |
+| `ps5` | PlayStation 5 DirectInput, DirectLink | Live retest pending |
 | `f710` | Logitech F710 DirectInput | Experimental |
 | `fightpadpro` | FightPadPro DirectInput | Experimental |
 | `xinput` | Xbox-style XInput; Start opens the chooser | Experimental |

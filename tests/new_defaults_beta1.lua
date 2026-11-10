@@ -39,7 +39,16 @@ assert(theme.apply(d).text_fade==false and theme.apply(d).aa_enabled==true,
 d.Animation.TextFade,d.AutoAttackIndicator.Enabled=previous_fade,previous_tracking
 assert(visibility.should_show('always',false,false,false),
     'User-selected always-visible mode must remain supported')
--- No timer has yet been added: this regression deliberately documents the
--- current immediate hide after trigger release (plus existing fade-out).
-assert(not visibility.should_show('oninput',false,false,false))
+assert(d.AutoHold==0 and theme.apply(d).cost_align=='right')
+local hold={}
+local update=visibility.update_hold
+assert(not update(hold,true,0,0,true) and not update(hold,false,0,1,true))
+assert(not update(hold,false,1.5,2,true),'idle startup must not begin a hold')
+assert(not update(hold,true,1.5,3,true))
+assert(update(hold,false,1.5,4,true) and update(hold,false,1.5,5.49,true))
+assert(not update(hold,false,1.5,5.5,true))
+assert(not update(hold,true,30,6,true) and update(hold,false,30,7,true))
+assert(not update(hold,true,30,8,true),'repress cancels the previous hold')
+assert(update(hold,false,30,9,true) and not update(hold,false,30,10,false))
+assert(not update(hold,false,30,11,true),'context exit must not revive an old hold')
 print('Beta defaults: native D-pad, oninput, text fade ON, swing tracking OFF, override modes and old fade durations passed.')

@@ -17,7 +17,7 @@
 | Command | Effect |
 | --- | --- |
 | `//xb controller profiles` / `controller status` | Reader choices and current state |
-| `//xb controller profile ps5 [device]` | Select PS5 reader/device |
+| `//xb controller profile ps5 [device]` | Select the PlayStation 5 reader and device |
 | `//xb compact [on\|off]` | Change compact/full layout immediately |
 | `//xb autohide [on\|off]` / `hide\|show\|auto` | Trigger visibility ON by default; `//xb show` keeps bars visible. No hold delay yet; current fade-out is 0.5s |
 | `//xb fade [on\|off]` | Enable/disable slot fades |

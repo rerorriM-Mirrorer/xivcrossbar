@@ -17,10 +17,11 @@ ui.geometry = geometry
 local function new_image(options)
     return geometry:surface(ui_resources.image({draggable=options.draggable}), 'image', options)
 end
-local function new_text(options)
+local function new_text(options, stable_text)
     -- Windower mutates the supplied settings in place on every text setter.
     local flags = options.flags
-    return geometry:surface(ui_resources.text({flags={draggable=flags.draggable, right=flags.right}}), 'text', options)
+    return geometry:surface(ui_resources.text({flags={draggable=flags.draggable, right=flags.right}}),
+        'text', {flags=flags,stable_text=stable_text})
 end
 
 local text_setup = {
@@ -406,9 +407,17 @@ local function position_slot_label(self, bank, slot)
 end
 
 local function position_slot_cost(self, bank, slot)
-    local x = self:get_slot_x(bank, slot) - windower.get_windower_settings().ui_x_res + 46
-    local y = self:get_slot_y(bank, slot) + 28
-    self.hotbars[bank].slot_cost[slot]:pos(x + self.cost_offset_x, y + self.cost_offset_y)
+    local label = self.hotbars[bank].slot_cost[slot]
+    local x = self:get_slot_x(bank, slot) + self.cost_offset_x
+    local y = self:get_slot_y(bank, slot) + 28 + self.cost_offset_y
+    label:right_justified(self.cost_align == 'right')
+    if self.cost_align == 'center' then
+        label:center(x + 20, y)
+    elseif self.cost_align == 'left' then
+        label:pos(x + 2, y)
+    else
+        label:pos(x + 46 - windower.get_windower_settings().ui_x_res, y)
+    end
 end
 
 -----------------------------
@@ -496,6 +505,7 @@ function ui:setup(theme_options, enchanted_items)
     self.slot_label_offset_x = tonumber(theme_options.slot_label_offset_x) or 0
     self.slot_label_offset_y = tonumber(theme_options.slot_label_offset_y) or 0
     self.slot_label_align = theme_options.slot_label_align
+    self.cost_align = theme_options.cost_align or 'right'
     self.cost_offset_x = tonumber(theme_options.cost_offset_x) or 0
     self.cost_offset_y = tonumber(theme_options.cost_offset_y) or 0
     self.slot_label_stroke = slot_label_strokes[theme_options.slot_label_stroke] or slot_label_strokes.black
@@ -540,6 +550,7 @@ function ui:load(theme_options)
     self.recast_flash_clock = require('socket').gettime
     self.scale_visible, self.scale_active_bar = false, 0
     self.display_bank, self.center_release_deadline = 0, nil
+    self.auto_hold = {}
     -- load battle notice
     prepare_image(self.battle_notice, windower.addon_path .. '/themes/' .. (theme_options.battle_notice_theme:lower()) .. '/notice.png')
     self.battle_notice:pos(self.pos_x + self.hotbar_width - 90, self.pos_y - (theme_options.hotbar_spacing * (theme_options.hotbar_number)) - 24)
@@ -623,7 +634,7 @@ function ui:load(theme_options)
             self.hotbars[h].slot_recast[i] = new_image(images_setup)
             self.hotbars[h].slot_frame[i] = new_image(images_setup)
             self.hotbars[h].slot_element[i] = new_image(images_setup)
-            self.hotbars[h].slot_text[i] = new_text(text_setup)
+            self.hotbars[h].slot_text[i] = new_text(text_setup, true)
             self.hotbars[h].slot_cost[i] = new_text(right_text_setup)
             self.hotbars[h].slot_recast_text[i] = new_text(text_setup)
             self.hotbars[h].slot_icon[i]:size(40, 40)
@@ -949,6 +960,11 @@ function ui:set_slot_label_layout(align, x, y)
     for bank, bar in pairs(self.hotbars or {}) do
         for slot in ipairs(bar.slot_text) do position_slot_label(self, bank, slot) end
     end
+end
+
+function ui:set_cost_alignment(align)
+    self.cost_align = align
+    self:set_cost_offset(self.cost_offset_x or 0, self.cost_offset_y or 0)
 end
 
 function ui:set_cost_offset(x, y)

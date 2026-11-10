@@ -135,14 +135,14 @@ local draw_start=assert(code:find('    if ui.is_setup then\n        local lockou
 local draw_end=assert(code:find('    if visible and ui.is_setup then',draw_start,true))
 local allowed
 local display_env={ui={is_setup=true,display_gcd_indicator=function(_,value) allowed=value end},
-    settings={VisibilityMode='oninput'},visible=false,xivcrossbar={hide_hotbars=false}}
+    visibility_mode='oninput',visible=false,xivcrossbar={hide_hotbars=false}}
 local draw=assert(load(code:sub(draw_start,draw_end-1),'actual lockout visibility','t',display_env))
 draw();assert(allowed,'autohide must allow the lockout strip with no trigger held')
 display_env.xivcrossbar.hide_hotbars=true
 draw();assert(not allowed,'no ambient strip during status 4')
 display_env.visible=true
 draw();assert(allowed,'a visible trigger-held bar can show the strip')
-display_env.settings.VisibilityMode='hidden'
+display_env.visibility_mode='hidden'
 draw();assert(not allowed,'explicit hide suppresses the strip')
 local old_windower=windower
 local colors={}
