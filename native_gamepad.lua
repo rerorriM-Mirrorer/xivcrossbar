@@ -25,7 +25,10 @@ function M.open(path)
         stop = dll.off,
         policy_revision = dll.policy_revision,
         load_policy = dll.load_policy,
-        tap_tab = dll.tap_tab,
+        tap_tab = function(reverse)
+            if reverse == 1 and dll.reverse_tab ~= 1 then return 0 end
+            return dll.tap_tab(reverse)
+        end,
         reverse_tab = dll.reverse_tab == 1,
         shoulder_slots = dll.shoulder_slots == 1,
         trust_menu = dll.trust_menu == 1,
@@ -37,7 +40,7 @@ function M.open(path)
         hook_status = function()
             if not dll.policy_revision then return hooks end
             local revision = dll.policy_revision()
-            return hooks .. (revision > 0 and (' | logic revision %d'):format(revision) or ' | logic inactive')
+            return hooks .. (dll.reverse_tab == 1 and ' | reverse Tab supported' or ' | OLD HOOK: restart FFXI with the matching DLL') .. (revision > 0 and (' | logic revision %d'):format(revision) or ' | logic inactive')
         end,
         poll = function(context, reset, deliver, previous)
             local edges
