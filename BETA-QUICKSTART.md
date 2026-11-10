@@ -21,7 +21,7 @@
 | `//xb compact [on\|off]` | Change compact/full layout immediately |
 | `//xb autohide [on\|off]` / `hide\|show\|auto` | Auto shows the bars while a trigger or visible shoulder bank is held. `//xb show` keeps the bars visible during regular gameplay. |
 | `//xb autohold [seconds]` | Keep the last bank visible in Auto after release. Accepts 0–30 seconds and defaults to 0. |
-| `//xb costalign <left\\|center\\|right>` | Align MP, TP, and item counts |
+| `//xb costalign <alignment>` | Align MP, TP, and item counts to `left`, `center`, or `right` |
 | `//xb fade [on\|off]` | Enable/disable slot fades |
 | `//xb textfade [on\|off\|status]` | Fade labels with slots (default ON) |
 | `//xb textsettle [on\|off\|status]` | Settle caption widths to avoid flicker (default ON) |
