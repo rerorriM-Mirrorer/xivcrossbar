@@ -1,3 +1,27 @@
+# Current Development Status — November 10, 2026 — Shoulder banks in battle
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `f792bcd385da400b780f83782eed2b1c87eaeb83`.
+The user confirmed the bank labels now center correctly. They reported
+shoulder-bank slots and drawing being suppressed in battle and requested
+a silent automatic DirectInput match.
+
+1. Overlay the patch and run `//xb restart`. Automatic success is quiet.
+   `//xb nativepad status` still includes the match when the single-device
+   fallback was used. An attachment failure still reports itself.
+2. With shoulder banks enabled and visible, engage and hold L1, R1, and
+   L1+R1. Confirm each bank appears and a bound slot dispatches once with
+   the battle palette open. Check normal trigger priority.
+3. Outside combat, confirm a native menu retains shoulder-slot ownership.
+   Check chat, cutscenes and addon menus. R1 targeting still respects the
+   native menu flag.
+
+Six mocked Lua suites passed, including capture masks, actual Lua
+dispatch under the native battle menu flag, and quiet automatic matching.
+Live combat and DirectInput startup confirmation are pending.
+
+---
+
 # Current Development Status — November 10, 2026 — Trust Return and recast glow
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

@@ -9,12 +9,14 @@ local clock = 0
 
 local function client(attach_result)
     local calls, notices = {}, {}
+    local info, actor = {}, {status=0}
+    local match = 'Matched the sole attached controller'
     local function record(name)
         return function() calls[#calls+1] = name; return true end
     end
     local dll = {begin=function() calls[#calls+1]='attach'; return attach_result or 1,
-            attach_result and 'Open the selected DirectInput device', -2147024809 end,
-        stop=record('off'), detach=record('detach'), hook_status=function() return 'hooks attached' end,
+            attach_result and 'Open the selected DirectInput device' or match, -2147024809 end,
+        stop=record('off'), detach=record('detach'), hook_status=function() return 'hooks attached | '..match end,
         poll=function(context) calls[#calls+1]=context; return 1 end, poll_count=function() return 1 end,
         armed=function() return true end, status=function() return 'fixture' end}
     local env = setmetatable({
@@ -26,21 +28,47 @@ local function client(attach_result)
         config={save=function() end}, xivcrossbar={ready=true}, gamepad_mapper={},
         crossbar_menu_open=function() return false end,
         chat_format={say=function(_, text) notices[#notices+1]=text end},
-        windower={addon_path='',has_focus=function() return true end,ffxi={get_info=function() return {} end}},
+        windower={addon_path='',has_focus=function() return true end,
+            ffxi={get_info=function() return info end,get_player=function() return actor end}},
     }, {__index=_G})
     assert(load(source:sub(first,last-1), 'native lifecycle', 't', env))()
-    return env, calls, notices
+    return env, calls, notices, dll, info, actor
 end
 
-local a, calls, notices = client()
+local a, calls, notices, dll, info, actor = client()
 local b = client()
 a.native_poll(); b.native_poll()
 assert(a.native_mode=='guard' and b.native_mode=='guard' and calls[2]==4)
+assert(#notices==0,'automatic device match should be silent')
 a.message_bridge.last_beat,a.message_bridge.last_seen=1,clock
 a.native_poll()
 assert(a.native_filtering and calls[#calls]==1)
 a.native_command('status')
 assert(notices[#notices]:find('filtering',1,true))
+assert(notices[#notices]:find('Matched the sole attached controller',1,true))
+a.shoulder_banks=require('shoulder_banks')
+a.settings.ShoulderBanks=require('defaults').ShoulderBanks
+a.settings.ShoulderBanks.L1.Enabled=true
+a.settings.ShoulderBanks.Targeting=true
+a.message_bridge.extended=true
+dll.shoulder_slots=true
+dll.tap_tab=function() return 1 end
+info.menu_open=true
+a.native_poll()
+assert(calls[#calls]==1 and not a.gamepad_state.shoulder_slots,'idle native menu keeps ownership')
+for _, status in ipairs({1,3}) do
+    actor.status=status
+    a.native_poll()
+    assert(calls[#calls]==1+0x200 and a.gamepad_state.shoulder_slots,'battle menu bit must permit slot capture')
+    assert(not a.gamepad_state.shoulder_targeting,'targeting remains disabled under the native menu bit')
+end
+info.chat_open=true
+a.native_poll()
+assert(calls[#calls]==3 and not a.gamepad_state.shoulder_slots,'chat must suppress slot capture')
+info.chat_open=false
+actor.status=4
+a.native_poll()
+assert(calls[#calls]==1 and not a.gamepad_state.shoulder_slots,'cutscenes must suppress slot capture')
 a.native_stop(true)
 assert(table.concat(calls,','):find('off,clear,detach',1,true))
 assert(a.native_mode==nil and not a.native_filtering and b.native_mode=='guard')

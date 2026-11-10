@@ -2295,7 +2295,7 @@ local function route_controller_message(dik, pressed, chord, seq)
     if context == 'login' or (pressed and context == 'native-chat') then return 'native-context',context end
     if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return 'release-context-changed',context end
     if item.logical <= 66 and context == 'gameplay' and pressed and gamepad_state.shoulder_slots
-        and info and not info.menu_open and windower.has_focus() then
+        and info and windower.has_focus() then
         local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true)
         local slot = gamepad.crossbar_slot(dik)
         if bank and slot then
@@ -2477,7 +2477,6 @@ do
             return say('Hook Unavailable. FFXI input is unfiltered. '..native_attach_failure)
         end
         native_attach_failure = nil
-        if operation then say(operation..' for Device '..device..'.') end
         native_mode=command
         generation=nil
         last_polls,last_native_poll,native_receiving,native_filtering=0,nil,false,false
@@ -2514,11 +2513,11 @@ do
         if native_filtering and context==4 then clear_controller_input() end
         local trust_slots = context == 1 and native_mode == 'guard' and native_gamepad.trust_menu
             and controller_bridge and controller_bridge.menu:mask(buttonmapping) or 0
-        local actor = context == 1 and trust_slots == 0 and message_bridge.extended and not info.menu_open
+        local actor = context == 1 and trust_slots == 0 and message_bridge.extended
             and (native_gamepad.shoulder_slots or settings.ShoulderBanks.Targeting) and windower.ffxi.get_player()
-        local targeting = native_gamepad.tap_tab and actor and actor.status ~= 4
+        local targeting = native_gamepad.tap_tab and actor and not info.menu_open and actor.status ~= 4
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
-        local banks = actor and actor.status ~= 4 and native_gamepad.shoulder_slots
+        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor)
             and shoulder_banks.capture_mask(settings.ShoulderBanks, settings.ControllerProfile) or 0
         local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
             and action_binder:is_binding_combo()
@@ -2574,7 +2573,7 @@ windower.register_event('prerender',function()
     local bank, bank_visible
     if gamepad_state.shoulder_slots and native_filtering then
         local info = windower.ffxi.get_info()
-        local eligible = info and not info.chat_open and not info.menu_open and input_context() == 'gameplay'
+        local eligible = info and not info.chat_open and input_context() == 'gameplay'
         bank, bank_visible = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile,
             transport.down, eligible)
     end

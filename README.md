@@ -570,3 +570,7 @@ are nudged two pixels right.
 2026-11-10: A dismissible Trust keeps its portrait and shows a pink X in
 the recast timer position while its slot says Return. Recast flash textures
 are configured during the cooldown before the flash becomes visible.
+
+2026-11-10: Enabled shoulder banks can draw and dispatch slots under
+FFXI's battle menu flag. Automatic DirectInput matching is quiet.
+`//xb nativepad status` still shows its matching detail.

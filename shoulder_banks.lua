@@ -26,6 +26,13 @@ function M.requested(settings, profile)
     return false
 end
 
+function M.slot_context(info, actor)
+    if not info or info.chat_open or not actor or actor.status == 4 then return false end
+    -- FFXI also marks its battle palette as a native menu. In battle, use
+    -- the same slot ownership as the trigger crossbars.
+    return not info.menu_open or actor.status == 1 or actor.status == 3
+end
+
 function M.capture_mask(settings, profile)
     local mask = 0
     for index, bank in ipairs(banks) do
