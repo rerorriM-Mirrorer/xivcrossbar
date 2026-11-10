@@ -3804,12 +3804,18 @@ function action_binder:update_text_entry_display()
     self:show_exit_hint()
 end
 
--- Physical keyboard navigation is only accepted on review/confirmation
--- screens, never during inline typing, set selection or ordinary gameplay.
+-- Own physical navigation across the custom-action workflow. Inline
+-- fields have their own Enter and Escape behavior in the root router.
 function action_binder:is_keyboard_review()
-    return not self.is_hidden and not self.chooser_active and not self.capturing_text
-        and (self.state==states.EDIT_CUSTOM_ACTION_REVIEW or self.state==states.CONFIRM_CUSTOM_ACTION
-            or (self.state==states.DELETE_CUSTOM_ACTION_CONFIRM and self.custom_action_delete_from_review))
+    if self.is_hidden or self.chooser_active or self.capturing_text then return false end
+    local state = self.state
+    return state==states.EDIT_CUSTOM_ACTION_REVIEW or state==states.CONFIRM_CUSTOM_ACTION
+        or state==states.EDIT_CUSTOM_ACTION_PICK or state==states.DELETE_CUSTOM_ACTION_PICK
+        or state==states.DELETE_CUSTOM_ACTION_CONFIRM
+        or state==states.ENTER_CUSTOM_ACTION_ALIAS or state==states.ENTER_CUSTOM_ACTION_NAME
+        or state==states.ENTER_CUSTOM_ACTION_COMMAND or state==states.SELECT_CUSTOM_ACTION_ICON_CHOICE
+        or (self.custom_action_draft ~= nil and (state==states.SELECT_ICON
+            or state==states.SELECT_LINKED_TYPE or state==states.SELECT_ACTION))
 end
 
 function action_binder:set_capturing_text(enabled)

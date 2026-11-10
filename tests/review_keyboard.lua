@@ -7,7 +7,7 @@ for _,method in ipairs({'dpad_up','dpad_down','dpad_left','dpad_right','submit_s
   if pressed~=false then calls[#calls+1]=method end
  end
 end
-for _,key in ipairs({200,208,203,205,28,1})do
+for _,key in ipairs({200,208,203,205,28,156,1})do
  local before=#calls;assert(helper:edge(key,true,binder,true))
  assert(helper:edge(key,true,binder,true) and #calls==before+1,'held key repeated action')
  assert(not binder.repeat_active,'keyboard tap left controller repeat armed')
@@ -26,7 +26,8 @@ assert(not helper:edge(200,true,binder,false));helper:edge(200,false,binder,fals
 -- Actual binder predicate, including both review variants and field exclusion.
 local f=assert(io.open('action_binder.lua'));local source=f:read('*a');f:close()
 local predicate=assert(source:match('(function action_binder:is_keyboard_review%(%).-\nend)'))
-local env=setmetatable({action_binder=binder,states={EDIT_CUSTOM_ACTION_REVIEW=17,CONFIRM_CUSTOM_ACTION=15}},{__index=_G})
+local states=assert(load("return "..assert(source:match("local states = (%b{})"))))()
+local env=setmetatable({action_binder=binder,states=states},{__index=_G})
 assert(load(predicate,'actual review predicate','t',env))()
 binder.is_hidden=false;binder.state=17;assert(binder:is_keyboard_review())
 binder.state=15;assert(binder:is_keyboard_review())
@@ -34,31 +35,54 @@ binder.capturing_text=true;assert(not binder:is_keyboard_review());binder.captur
 binder.chooser_active=true;assert(not binder:is_keyboard_review());binder.chooser_active=false
 binder.state=1;assert(not binder:is_keyboard_review());binder.state=17
 
--- Execute the real public keyboard-router prefix with a stub game environment.
+for _, state in ipairs({10,11,12,13,16,18,19}) do
+    binder.state=state
+    assert(binder:is_keyboard_review(),'custom workflow page does not claim keys')
+end
+binder.state=8;binder.custom_action_draft={}
+assert(binder:is_keyboard_review())
+binder.custom_action_draft=nil
+assert(not binder:is_keyboard_review())
+
+-- Execute the real router across review, text entry, and closing a modal.
 f=assert(io.open('xivcrossbar.lua'));source=f:read('*a');f:close()
 local start=assert(source:find('local function controller_keyboard(dik, pressed, flags, blocked)',1,true))
-local stop=assert(source:find('    -- Own Escape through key-up',start,true))
-local prefix=source:sub(start,stop-1):gsub('^local function controller_keyboard','return function',1)
+local stop=assert(source:find("windower.register_event('keyboard', controller_keyboard)",start,true))
+local prefix=source:sub(start,stop-1)..'return controller_keyboard'
+local sent, closed = {}, 0
+function binder:is_capturing_text() return self.capturing_text end
 local rootenv=setmetatable({
- review_keyboard=require('libs/controller/review_keyboard').new(),
- action_binder=binder,keyboard={enter=28},
- text_input_guard={enter_down=false},restart_pending=false,
- env_chooser={capturing=false,is_showing=function()return false end},
- windower={has_focus=function()return true end}
+    review_keyboard=require('libs/controller/review_keyboard').new(),
+    action_binder=binder,keyboard={enter=28,esc=1},transport={signals={}},
+    text_input_guard={update=function() end},restart_pending=false,
+    env_chooser={capturing=false,is_showing=function()return false end},
+    crossbar_menu_open=function()return not binder.is_hidden end,
+    close_addon_menus=function() closed=closed+1;binder.is_hidden=true end,
+    handle_controller_key=function(dik,pressed)
+        if pressed then sent[#sent+1]=dik;binder.capturing_text=false end
+        return false
+    end,
+    windower={has_focus=function()return true end,send_command=function() end}
 },{__index=_G})
-local dispatch=assert(load(prefix..'    return false\nend','actual review key prefix','t',rootenv))()
-binder.is_hidden=false;binder.chooser_active=false;binder.capturing_text=false;binder.state=17
+local dispatch=assert(load(prefix,'actual review router','t',rootenv))()
+binder.is_hidden=false;binder.chooser_active=false;binder.capturing_text=false;binder.state=13
 assert(dispatch(200,true,0,false) and calls[#calls]=='dpad_up')
 binder.state=1;assert(dispatch(200,false,0,false))
-assert(not dispatch(28,true,0,false),'Enter outside review consumed')
-dispatch(28,false,0,false)
-binder.state=17;rootenv.text_input_guard.enter_down=true
-assert(not dispatch(28,true,0,false),'field-owned Enter stolen')
-dispatch(28,false,0,false);rootenv.text_input_guard.enter_down=false
-assert(dispatch(28,true,0,false) and calls[#calls]=='submit_selected_option')
 binder.capturing_text=true
-assert(dispatch(28,false,0,false),'Enter release escaped into text field')
-binder.capturing_text=false
+assert(dispatch(156,true,0,false) and sent[#sent]==28 and not binder.capturing_text)
+binder.state=17
+local count=#calls
+assert(dispatch(156,true,0,false) and #calls==count)
+assert(dispatch(156,false,0,false))
+binder.capturing_text=true
+assert(dispatch(1,true,0,false) and sent[#sent]==1 and closed==0)
+assert(dispatch(1,false,0,false))
+binder.state=1
+assert(dispatch(1,true,0,false) and closed==1)
+assert(dispatch(1,true,0,false) and dispatch(1,false,0,false) and closed==1)
+binder.is_hidden=false;binder.state=17
+assert(not dispatch(28,true,0,true),'preblocked Enter must not submit')
+dispatch(28,false,0,false)
 local guard=require('text_input_guard')
 local commands={}
 local function send(command) commands[#commands+1]=command end

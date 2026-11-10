@@ -9,7 +9,7 @@ local routed, released = {}, {}
 local context,chat='login',false
 local env=setmetatable({keyboard={esc=1,enter=28},review_keyboard={edge=function()return false end},
     env_chooser={is_showing=function()return false end},
-    text_input_guard={enter_edge=function()return false end},settings={},gamepad_state={},
+    action_binder={is_capturing_text=function()return false end},settings={},gamepad_state={},
     ui={release_slot_pulse=function(_,slot) released[#released+1]=slot end},
     transport=t,gamepad=require('gamepad'),native_mode='guard',native_filtering=true,input_context=function()return context end,
     windower={has_focus=function()return true end,ffxi={get_info=function()return {chat_open=chat}end}},

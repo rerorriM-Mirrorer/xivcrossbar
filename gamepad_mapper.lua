@@ -740,7 +740,7 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
         return owned == true
     end
     if owned ~= nil then return owned end
-    owned = not blocked and selection_visible() or false
+    owned = not blocked and gamepad_mapper.is_showing or false
     keys[dik] = owned
     if not owned then return end
 

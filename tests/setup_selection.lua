@@ -81,8 +81,9 @@ local xbox = mapper.controller_choices[3]
 assert(mouse(0,xbox.x+10,xbox.y+10,0,false) and mapper.layout_index==3)
 assert(key(28,true,0,false))
 assert(mapper.button_layout=='xbox' and not shown and not visible.gamepad_layout_selection)
+tap(200); tap(208)
 assert(key(28,true,0,false) and key(28,false,0,false), 'Enter release stays with setup')
-assert(not key(28,true,0,false) and not key(28,false,0,false))
+tap(28) -- remap prompt consumes Enter without treating it as a controller button
 
 mapper:show(false)
 tap(28)

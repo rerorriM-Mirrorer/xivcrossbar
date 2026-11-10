@@ -98,7 +98,6 @@ gamepad_state.right_trigger = false
 gamepad_state.right_trigger_doublepress = false
 gamepad_state.active_bar = 0
 local shift_pressed = false
-local menu_escape_down = false
 local shift_keys_down = {}
 local ui_dirty = false
 local restart_pending = false
@@ -1263,7 +1262,7 @@ local function graceful_restart(unload)
         action_binder:reset_state()
     end
     if gamepad_mapper.is_showing then gamepad_mapper:hide() end
-    text_input_guard:reset_confirmation()
+    review_keyboard:reset()
     text_input_guard:update(false, windower.send_command, false)
     if ui.is_setup then ui:hide() end
     local delay = theme_options.fade_enabled and math.max(0, tonumber(theme_options.fade_out) or 0) or 0
@@ -1336,7 +1335,7 @@ windower.register_event('unload',function()
     if message_bridge then message_bridge:reset('unload') end
     message_lease:close()
     crossbar_drag:finish()
-    text_input_guard:reset_confirmation()
+    review_keyboard:reset()
     text_input_guard:update(false, windower.send_command, false)
     -- No broad killahk.bat: the wrapper is shared across FFXI clients.
     if ui.geometry then ui.geometry:shutdown() end
@@ -2216,38 +2215,27 @@ local function input_context()
     return 'gameplay'
 end
 local function controller_keyboard(dik, pressed, flags, blocked)
-    -- Physical keyboard review controls are owned through release. Enter
-    -- confirming a text field belongs to text_input_guard, not this handler.
-    if review_keyboard:edge(dik,pressed,action_binder,
+    local modal_action
+    local field = (not action_binder.chooser_active and action_binder:is_capturing_text()) or env_chooser.capturing
+    if field then
+        modal_action = function()
+            text_input_guard:update(true, windower.send_command, true)
+            if dik == keyboard.enter or dik == 156 or dik == keyboard.esc then
+                handle_controller_key(dik == 156 and keyboard.enter or dik, true, flags, blocked)
+            end
+        end
+    elseif dik == keyboard.esc and crossbar_menu_open() and not action_binder:is_keyboard_review() then
+        modal_action = function()
+            text_input_guard:update(false, windower.send_command, true)
+            close_addon_menus()
+        end
+    end
+    if review_keyboard:edge(dik, pressed, action_binder,
         not restart_pending and windower.has_focus() and not blocked
-        and not env_chooser:is_showing() and not env_chooser.capturing
-        and not (dik==keyboard.enter and text_input_guard.enter_down)) then
+            and (modal_action or not env_chooser:is_showing()), modal_action) then
         return true
     end
-    -- Own Escape through key-up after closing: neither repeats nor release
-    -- may cancel a native FFXI menu underneath the addon.
-    if dik == keyboard.esc then
-        if menu_escape_down then
-            if not pressed then menu_escape_down = false end
-            return true
-        end
-        if pressed and (gamepad_mapper.is_showing or action_binder.is_hidden == false or
-            env_chooser:is_showing() or env_chooser.capturing) then
-            menu_escape_down = true
-            close_addon_menus()
-            return true
-        end
-    end
-    -- A: the field may close on key-down. Own its confirming Enter until
-    -- release; normal keyboard Enter outside text entry remains untouched.
-    if dik == keyboard.enter then
-        local consumed, commit = text_input_guard:enter_edge(pressed,
-            (not action_binder.chooser_active and action_binder:is_capturing_text()) or env_chooser.capturing)
-        if consumed then
-            if commit then handle_controller_key(dik, pressed, flags, blocked) end
-            return true
-        end
-    end
+    if blocked then return false end
     -- Internal logical DIKs never claim the physical keyboard equivalents.
     if transport.signals[dik] then return false end
     return handle_controller_key(dik, pressed, flags, blocked)
@@ -2397,9 +2385,7 @@ local frame = 0
 local function clear_controller_input()
     ui:clear_slot_pulses()
     set_chooser_button_down=false
-    menu_escape_down=false
     if action_binder.chooser_active then finish_set_chooser(true) end
-    text_input_guard:reset_confirmation()
     transport:reset()
     if message_bridge then message_bridge:reset('focus') end
     message_lease:close()
@@ -2603,8 +2589,7 @@ windower.register_event('prerender',function()
     action_binder:tick_navigation(profile_clock(), focused)
     local keyboard_context = focused and not restart_pending
     local navigation = keyboard_context and (gamepad_mapper.is_showing or action_binder:is_keyboard_review()
-        or gamepad_mapper:has_owned_key() or review_keyboard:has_owned_key()
-        or (menu_escape_down and text_input_guard.navigation)) or false
+        or gamepad_mapper:has_owned_key() or review_keyboard:has_owned_key()) or false
     text_input_guard:update(keyboard_context and (action_binder:is_capturing_text() or env_chooser.capturing),
         windower.send_command, navigation)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
