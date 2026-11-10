@@ -8,6 +8,10 @@ buttons in the focused client. FFXI handles ordinary gamepad input.
 Keep your native Gamepad Config assignments. Switch profiles with buttons
 released and use the same reader profile/device across clients. Install the
 complete test folder with its matching `native/xb_gamepad_messages.dll`.
+The reloadable hook trial also requires `native/xb_controller_logic_1.dll`.
+After the first FFXI restart, use `//xb nativepad logic 2` to try the
+second revision and `//xb nativepad status` to see the active revision.
+Both trial revisions use the same filtering rules.
 
 ## Unified diagnostics
 

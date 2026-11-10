@@ -6,8 +6,22 @@ lease receives a heartbeat. Filters expire when the reader or Lua stops.
 `//xb nativepad off` returns controls to FFXI. Use `//xb nativepad auto`
 to restore the guard. Wrapper stop suspends filtering. Addon unload releases
 that client's lease and detaches its hooks by default, even when another
-client keeps the reader running. The DLL and trampolines remain pinned for
-in-flight callbacks. Restart FFXI to replace the DLL or change input backends.
+client keeps the reader running. The hook DLL and trampolines remain pinned for in-flight callbacks.
+Restart FFXI to install a different hook DLL or change input backends.
+
+The resident hook loads `native/xb_controller_logic_1.dll` at first attach.
+This trial also ships revision 2 with identical filtering rules. With the
+guard active and the pad released, run `//xb nativepad logic 2` and confirm
+the revision with `//xb nativepad status`. Use `//xb nativepad logic 1` to
+switch back. This switches the focused client's hook only. A new process
+starts on revision 1. For another test revision, place its versioned DLL
+in the same folder before selecting it. Keep revision 1 installed.
+
+The hook checks the versioned export before swapping policies under its
+callback mutex, then releases the previous DLL. Missing and incompatible
+revisions leave the active policy in place. A successful swap waits for
+neutral input before capturing again. Both the heartbeat and the
+foreground-process check remain enforced by the resident hook.
 
 - XInput auto hooks the loaded system variants of GetState, including ordinal
   100 where exported. It preserves sticks and unowned buttons. The standard

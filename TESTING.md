@@ -1,3 +1,27 @@
+# Current Development Status — November 10, 2026 — Reloadable controller logic
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `feat/reloadable-controller-logic`.
+Starting checkpoint `162efaeab0931d928236c6f11721c5b803962cd5`.
+The x86 hook remains resident and loads its ownership policy from a numbered
+DLL. Both trial revisions implement the current shoulder and trigger rules.
+
+1. Back up the installed addon and data, close all FFXI clients, and overlay
+   the matching test build. Keep the existing data. Start FFXI, wait for the
+   guard, and confirm that `//xb nativepad status` shows revision 1.
+2. Release the pad and run `//xb nativepad logic 2`. Confirm the status shows
+   revision 2 and that trigger banks, shoulder banks, and native menu input
+   behave as before. Repeat with revision 1, without closing FFXI.
+3. Try `//xb nativepad logic 999999`. The current revision should remain active.
+   On a second client, verify the first client's swap did not change its revision.
+4. Hold a shoulder or trigger across a swap. A fresh press after releasing the
+   pad should work. Check both XInput and DirectInput, including a native menu.
+
+The Windows fixture checks the ABI, rejection of missing and incompatible
+modules, revision swaps while polling, and cleanup of the previous module.
+The actual controller and FFXI checks above require a live session.
+
+---
+
 # Current Development Status — November 10, 2026 — Keyboard ownership and HUD controls
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

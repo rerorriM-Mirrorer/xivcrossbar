@@ -2466,6 +2466,27 @@ do
             attempted=nil
             return say(command=='auto' and 'automatic guard enabled' or 'native pass-through enabled')
         end
+        if command=='logic' then
+            local revision=tonumber(dll_name)
+            if not revision or revision%1~=0 or revision<1 or revision>999999 then
+                return say('Usage: //xb nativepad logic <revision>')
+            end
+            if not native_gamepad or not native_gamepad.load_policy or not native_mode then
+                return say('Start the reloadable native hook before switching controller logic.')
+            end
+            if native_gamepad.policy_revision()==revision then
+                return say(('Controller logic revision %d is already active.'):format(revision))
+            end
+            local code=native_gamepad.load_policy(revision)
+            if code~=0 then
+                return say(('Could not load controller logic revision %d (0x%08X). Revision %d remains active.')
+                    :format(revision, code % 4294967296, native_gamepad.policy_revision()))
+            end
+            clear_controller_input()
+            generation=nil
+            native_receiving,native_filtering,last_native_poll=false,false,nil
+            return say(('Controller logic revision %d loaded. Release controller buttons to resume filtering.'):format(revision))
+        end
         if command==nil or command=='status' then
             if native_attach_failure then
                 return say('Hook Unavailable. FFXI input is unfiltered. '..native_attach_failure)
@@ -2479,7 +2500,7 @@ do
             return say(phase..' | '..native_gamepad.hook_status()..' | '..native_gamepad.status())
         end
         if command~='probe' and command~='guard' then
-            return say('//xb nativepad [status|auto|off|probe [XInput DLL] [device]]')
+            return say('//xb nativepad [status|auto|off|logic <revision>|probe [XInput DLL] [device]]')
         end
         local profile=settings.ControllerProfile
         local xbox=controller_profiles.profiles[profile].backend=='xinput'

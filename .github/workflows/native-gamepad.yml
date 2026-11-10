@@ -1,7 +1,7 @@
 name: Experimental native gamepad bridge
 on:
   push:
-    branches: [experiment/native-gamepad-bridge, experiment/messages-native-all-profiles, integration/shoulder-banks]
+    branches: [experiment/native-gamepad-bridge, experiment/messages-native-all-profiles, integration/shoulder-banks, feat/reloadable-controller-logic]
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,6 +34,7 @@ jobs:
           python packaging/beta1_make.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item "$env:RUNNER_TEMP/xb/Release/xb_gamepad_messages.dll" dist/xivcrossbar/native/
+          Copy-Item "$env:RUNNER_TEMP/xb/Release/xb_controller_logic_*.dll" dist/xivcrossbar/native/
           Copy-Item "$env:RUNNER_TEMP/xb/_deps/minhook-src/LICENSE.txt" dist/xivcrossbar/native/MinHook-LICENSE.txt
       - uses: actions/upload-artifact@v4
         with:

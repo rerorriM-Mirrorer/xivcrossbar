@@ -19,11 +19,11 @@ struct Sample {
 };
 
 class Ownership {
-    unsigned previous_ = 0;
-    unsigned owned_ = 0;
-    unsigned shoulder_directions_ = 0;
     std::uint64_t direction_resume_at_ = 0;
-    bool armed_ = false;
+    std::uint32_t previous_ = 0;
+    std::uint32_t owned_ = 0;
+    std::uint32_t shoulder_directions_ = 0;
+    std::uint32_t armed_ = 0;
 public:
     void reset() { previous_ = owned_ = shoulder_directions_ = 0; armed_ = false; direction_resume_at_ = 0; }
 

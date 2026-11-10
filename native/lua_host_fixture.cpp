@@ -38,7 +38,7 @@ __declspec(dllexport) void __cdecl lua_rawseti(State*, int, int) {}
 
 __declspec(dllexport) bool __cdecl verify_messages_module(LuaFunction open) {
     State state;
-    return open(&state) == 1 && state.table && state.callbacks == 5 && state.tap_tab && state.shoulder_slots == 1 && state.trust_menu == 1 &&
+    return open(&state) == 1 && state.table && state.callbacks == 7 && state.tap_tab && state.shoulder_slots == 1 && state.trust_menu == 1 &&
         state.process_id == GetCurrentProcessId() && state.begin && state.begin(&state) == 3 &&
         state.detail && strcmp(state.detail, "Validate native hook arguments") == 0 &&
         state.value == ERROR_INVALID_PARAMETER;

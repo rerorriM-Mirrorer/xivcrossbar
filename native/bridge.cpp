@@ -11,7 +11,8 @@
 #include <cstring>
 #include <mutex>
 #include <utility>
-#include "ownership.hpp"
+#include <string>
+#include "controller_logic.hpp"
 #include "pad_state.hpp"
 
 static_assert(sizeof(void*) == 4, "Windower 4 requires an x86 DLL");
@@ -33,6 +34,10 @@ thread_local bool xbox_nested;
 DirectRead direct_original;
 DirectBuffered buffered_original;
 std::mutex guard;
+HMODULE policy_module;
+xb::ApplyLogic apply_logic;
+unsigned policy_revision;
+bool waiting_for_neutral, discard_buffered_batch;
 xb::Ownership ownership, buffered_ownership;
 unsigned buffered_raw;
 DIDEVICEOBJECTDATA buffered_hat{};
@@ -53,6 +58,16 @@ void reset() {
     head = count = raw = suppressed = 0;
     ++generation;
 }
+xb::Sample apply_policy(xb::Ownership& state, unsigned buttons, unsigned policy_mode,
+    ULONGLONG now = 0, bool use_targeting = false, unsigned use_banks = 0,
+    bool use_binding = false, unsigned use_trust_slots = 0) {
+    const xb::LogicInput input{now, buttons, policy_mode, menu, native_menu,
+        use_targeting, use_banks, use_binding, use_trust_slots};
+    xb::Sample result{};
+    apply_logic(&state, &input, &result);
+    return result;
+}
+
 void enqueue(int edge) {
     if (count == events.size()) { overflow = true; return; }
     events[(head + count++) % events.size()] = edge;
@@ -65,7 +80,7 @@ unsigned observe(unsigned buttons) {
     last_sample = now;
     DWORD foreground = 0;
     GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
-    if (!mode || !heartbeat || foreground != GetCurrentProcessId() || now - heartbeat > 500 ||
+    if (!apply_logic || !mode || !heartbeat || foreground != GetCurrentProcessId() || now - heartbeat > 500 ||
         (mode == 2 && buffered_seen) || overflow) {
         if (suppressed || count) reset();
         ownership.reset();
@@ -76,11 +91,16 @@ unsigned observe(unsigned buttons) {
         suppressed = 0;
         return 0;
     }
+    if (waiting_for_neutral) {
+        if (buttons & (xb::controls | xb::l1 | xb::r1)) return 0;
+        waiting_for_neutral = false;
+    }
     if ((mode == 1 || mode == 3) && !probe_ready && !(buttons & xb::controls)) {
         probe_ready = true;
-        buffered_ownership.apply(0, 2, menu, native_menu);
+        apply_policy(buffered_ownership, 0, 2);
     }
-    const auto result = ownership.apply(buttons, mode == 3 ? 2 : mode, menu, native_menu, 0, mode == 3 ? now : 0, mode == 3 && targeting, mode == 3 ? banks : 0, mode == 3 && binding, mode == 3 ? trust_slots : 0);
+    const auto result = apply_policy(ownership, buttons, mode == 3 ? 2 : mode, mode == 3 ? now : 0,
+        mode == 3 && targeting, mode == 3 ? banks : 0, mode == 3 && binding, mode == 3 ? trust_slots : 0);
     suppressed = result.suppressed;
     if (mode == 3) return suppressed;
     // Releases precede presses; simultaneous triggers precede face/D-pad.
@@ -175,24 +195,29 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
     const DWORD capacity = entries ? *entries : 0;
     const HRESULT result = buffered_original(object, size, data, entries, flags);
     std::lock_guard lock(guard);
-    if (backend == 2 && mode && is_selected(object)) {
+    if (backend == 2 && mode && apply_logic && is_selected(object)) {
         ++buffered_calls;
         if (!buffered_seen) {
             buffered_seen = true;
             if (mode == 2) reset();
         }
+        const bool rearming = waiting_for_neutral || discard_buffered_batch;
         if (!probe_ready && heartbeat && SUCCEEDED(result)) {
             DIJOYSTATE2 current{};
             auto hr = direct_original(object, sizeof current, &current);
             if (FAILED(hr)) hr = direct_original(object, sizeof(DIJOYSTATE), &current);
             if (SUCCEEDED(hr)) observe(xb::read_joystick(current.rgdwPOV[0], current.rgbButtons, fightpad));
         }
+        if (discard_buffered_batch && !waiting_for_neutral && SUCCEEDED(result)
+            && entries && data && !(flags & DIGDD_PEEK) && *entries <= capacity
+            && result != DI_BUFFEROVERFLOW && *entries < capacity)
+            discard_buffered_batch = false;
         // Neutralize matching records, retaining timestamps,
         // sequence numbers, queue lengths and DIGDD_PEEK semantics.
         constexpr DWORD legacy_size = offsetof(DIDEVICEOBJECTDATA, uAppData);
         DWORD foreground = 0;
         GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
-        if ((mode != 1 && mode != 3) || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
+        if (rearming || (mode != 1 && mode != 3) || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
             foreground != GetCurrentProcessId() || FAILED(result) || !data || !entries ||
             *entries > capacity || (size != legacy_size && size != sizeof(DIDEVICEOBJECTDATA)))
             return result;
@@ -217,7 +242,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             if ((type & DIDFT_POV) && instance == 0) {
                 const std::uint8_t neutral[32]{};
                 state = (state & ~0xfu) | xb::read_joystick(value, neutral, fightpad);
-                const auto mask = mode == 1 ? xb::up : stream.apply(state, 2, menu, native_menu, 0, now, targeting, banks, binding, trust_slots).suppressed;
+                const auto mask = mode == 1 ? xb::up : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).suppressed;
                 if (mode == 3) memcpy(&hat, record, size);
                 const auto filtered = xb::filter_hat(value, mask);
                 hat_pending = mode == 3 && filtered != value;
@@ -229,13 +254,13 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
-                const auto mask = mode == 1 ? xb::circle : stream.apply(state, 2, menu, native_menu, 0, now, targeting, banks, binding, trust_slots).buffered_mask();
+                const auto mask = mode == 1 ? xb::circle : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).buffered_mask();
                 if (mask & bit) value &= ~0x80u;
             } else continue;
             memcpy(record + sizeof offset, &value, sizeof value);
         }
         if (mode == 3 && hat_pending && *entries < capacity && result == DI_OK) {
-            const auto mask = stream.apply(state, 2, menu, native_menu, 0, now, targeting, banks, binding, trust_slots).suppressed;
+            const auto mask = apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).suppressed;
             if (!(mask & state & xb::directions)) {
                 hat.dwTimeStamp = GetTickCount();
                 memcpy(bytes + (*entries)++ * size, &hat, size);
@@ -403,6 +428,54 @@ const char* xb_attach_operation() { return attach_operation; }
 long xb_attach_code() { return attach_code; }
 
 extern "C" {
+__declspec(dllexport) unsigned __cdecl xb_policy_revision() {
+    std::lock_guard lock(guard);
+    return policy_revision;
+}
+
+__declspec(dllexport) unsigned __cdecl xb_load_policy(unsigned revision) {
+    if (revision < 1 || revision > 999999) return ERROR_INVALID_PARAMETER;
+    if (xb_policy_revision() == revision) return ERROR_SUCCESS;
+
+    HMODULE host{};
+    wchar_t filename[32768]{};
+    if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<LPCWSTR>(&xb_load_policy), &host)) return GetLastError();
+    const auto length = GetModuleFileNameW(host, filename, static_cast<DWORD>(std::size(filename)));
+    if (!length) return GetLastError();
+    if (length == std::size(filename)) return ERROR_INSUFFICIENT_BUFFER;
+    std::wstring path(filename, length);
+    const auto separator = path.find_last_of(L"\\/");
+    if (separator == std::wstring::npos) return ERROR_BAD_PATHNAME;
+    path.resize(separator + 1);
+    path += L"xb_controller_logic_" + std::to_wstring(revision) + L".dll";
+    HMODULE next = LoadLibraryExW(path.c_str(), nullptr,
+        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!next) return GetLastError();
+
+    const auto apply = reinterpret_cast<xb::ApplyLogic>(GetProcAddress(next, xb::logic_export));
+    if (!apply) {
+        const auto error = GetLastError();
+        FreeLibrary(next);
+        return error;
+    }
+
+    HMODULE previous;
+    {
+        // Detours invoke policy only under guard. The old image is safe to
+        // release once this exchange completes.
+        std::lock_guard lock(guard);
+        previous = policy_module;
+        policy_module = next;
+        apply_logic = apply;
+        policy_revision = revision;
+        reset();
+        waiting_for_neutral = discard_buffered_batch = true;
+    }
+    if (previous) FreeLibrary(previous);
+    return ERROR_SUCCESS;
+}
+
 __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, unsigned experiment,
     unsigned fight, const char* module) {
     attach_operation = nullptr;
@@ -425,6 +498,13 @@ __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, u
         strncpy_s(installed_module.data(), installed_module.size(), module, _TRUNCATE);
     } else if (installed_kind != kind || (kind == 2 && installed_device != index) ||
         strcmp(installed_module.data(), module) != 0) return 2;
+    if (!xb_policy_revision()) {
+        const auto error = xb_load_policy(1);
+        if (error != ERROR_SUCCESS) {
+            attach_failed("Load controller logic revision 1", error);
+            return 0;
+        }
+    }
     if (!hooks_enabled && !set_hooks(true)) return 0;
     attach_operation = installed_resolution;
     std::lock_guard lock(guard);

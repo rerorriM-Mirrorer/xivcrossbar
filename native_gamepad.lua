@@ -23,6 +23,8 @@ function M.open(path)
         end,
         process_id = dll.process_id,
         stop = dll.off,
+        policy_revision = dll.policy_revision,
+        load_policy = dll.load_policy,
         tap_tab = dll.tap_tab,
         shoulder_slots = dll.shoulder_slots == 1,
         trust_menu = dll.trust_menu == 1,
@@ -31,7 +33,11 @@ function M.open(path)
             hooks = detached and 'hooks detached | DLL resident' or 'detach failed | DLL resident'
             return detached
         end,
-        hook_status = function() return hooks end,
+        hook_status = function()
+            if not dll.policy_revision then return hooks end
+            local revision = dll.policy_revision()
+            return hooks .. (revision > 0 and (' | logic revision %d'):format(revision) or ' | logic inactive')
+        end,
         poll = function(context, reset, deliver, previous)
             local edges
             edges, status = dll.poll(context)

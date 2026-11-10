@@ -3,7 +3,9 @@
 #include <xinput.h>
 #include <atomic>
 #include <cstdio>
+#include <initializer_list>
 #include <thread>
+#include "controller_logic.hpp"
 
 int main() {
     HMODULE dll = LoadLibraryW(L"xb_gamepad_messages.dll");
@@ -38,6 +40,24 @@ int main() {
     XINPUT_STATE gamepad{};
     const auto disconnected = state(0, &gamepad) == ERROR_DEVICE_NOT_CONNECTED;
     if (begin(1, 0, 3, 0, "auto") != 1) return 8;
+    auto load_logic = reinterpret_cast<unsigned (__cdecl*)(unsigned)>(GetProcAddress(dll, "xb_load_policy"));
+    auto revision = reinterpret_cast<unsigned (__cdecl*)()>(GetProcAddress(dll, "xb_policy_revision"));
+    if (!load_logic || !revision || revision() != 1) return 14;
+    auto initial = GetModuleHandleW(L"xb_controller_logic_1.dll");
+    if (!initial || !CopyFileW(L"LuaCore.dll", L"xb_controller_logic_3.dll", FALSE)) return 15;
+    const auto incompatible = load_logic(3);
+    DeleteFileW(L"xb_controller_logic_3.dll");
+    if (incompatible != ERROR_PROC_NOT_FOUND || load_logic(999999) != ERROR_MOD_NOT_FOUND
+        || revision() != 1 || GetModuleHandleW(L"xb_controller_logic_1.dll") != initial) return 16;
+    auto apply = reinterpret_cast<xb::ApplyLogic>(GetProcAddress(initial, xb::logic_export));
+    if (!apply) return 17;
+    xb::Ownership ownership;
+    xb::Sample filtered;
+    xb::LogicInput input{1, 0, 2, 0, 0, 0, 0, 0, 0};
+    apply(&ownership, &input, &filtered);
+    input.raw = 0x400 | xb::up;
+    apply(&ownership, &input, &filtered);
+    if (filtered.suppressed != input.raw || filtered.down != input.raw) return 18;
     if (disconnected && state(0, &gamepad) != ERROR_DEVICE_NOT_CONNECTED) return 9;
     // Keep polling while the addon releases and reacquires the entry points.
     std::atomic<bool> running{true};
@@ -50,6 +70,15 @@ int main() {
         }
     });
     while (!samples) std::this_thread::yield();
+    bool swapped = true;
+    for (unsigned next : {2u, 1u, 2u, 1u}) {
+        if (load_logic(next) != ERROR_SUCCESS || revision() != next
+            || GetModuleHandleW(next == 1 ? L"xb_controller_logic_2.dll" : L"xb_controller_logic_1.dll")) {
+            swapped = false;
+            break;
+        }
+        poll(4, edges, 8, status);
+    }
     bool detached = true;
     for (unsigned i = 0; i < 8 && detached; ++i) {
         detached = detach() == 1 && begin(1, i % 2, 3, i % 2 ? 2 : 0, "auto") == 1;
@@ -57,6 +86,7 @@ int main() {
     }
     running = false;
     reader.join();
+    if (!swapped) return 19;
     if (!detached || detach() != 1 || detach() != 1) return 10;
     // Drop the caller's reference. The pin retains executable code and
     // trampolines until FFXI exits.

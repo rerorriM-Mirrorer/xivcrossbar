@@ -9,6 +9,8 @@ extern "C" unsigned __cdecl xb_begin(unsigned, unsigned, unsigned, unsigned, con
 const char* xb_attach_operation();
 long xb_attach_code();
 extern "C" void __cdecl xb_off();
+extern "C" unsigned __cdecl xb_policy_revision();
+extern "C" unsigned __cdecl xb_load_policy(unsigned);
 extern "C" unsigned __cdecl xb_detach();
 extern "C" unsigned __cdecl xb_poll(unsigned, int*, unsigned, unsigned*);
 
@@ -41,6 +43,11 @@ int begin(lua_State* L) {
     api.push_string(L, operation);
     api.push(L, xb_attach_code());
     return 3;
+}
+int policy_revision(lua_State* L) { api.push(L, xb_policy_revision()); return 1; }
+int load_policy(lua_State* L) {
+    api.push(L, xb_load_policy(static_cast<unsigned>(api.integer(L, 1))));
+    return 1;
 }
 int off(lua_State*) { xb_off(); return 0; }
 int detach(lua_State* L) { api.push(L, xb_detach()); return 1; }
@@ -97,7 +104,7 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
         break;
     }
     if (!resolved) return 0;
-    api.table(L, 0, 8);
+    api.table(L, 0, 10);
     api.push(L, 1); api.field(L, -2, "trust_menu");
     api.push(L, 1); api.field(L, -2, "shoulder_slots");
     api.closure(L, begin, 0); api.field(L, -2, "begin");
@@ -106,5 +113,7 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
     api.closure(L, detach, 0); api.field(L, -2, "detach");
     api.closure(L, tap_tab, 0); api.field(L, -2, "tap_tab");
     api.closure(L, poll, 0); api.field(L, -2, "poll");
+    api.closure(L, policy_revision, 0); api.field(L, -2, "policy_revision");
+    api.closure(L, load_policy, 0); api.field(L, -2, "load_policy");
     return 1;
 }
