@@ -30,7 +30,7 @@ scanReturnArmed := false
 scanOriginPID := 0
 scanOtherPID := 0
 scanOtherPinned := false
-scanApplications := []
+scanApplicationRows := []
 scanWindow := Gui(, "XIVCrossbar controller discovery")
 scanWindow.AddText("w760", "Release all buttons, then press one on your controller. Try PS separately. Select the intended row to confirm.")
 scanList := scanWindow.AddListView("w760 r8", ["API", "Slot", "Controller", "Type", "Last press"])
@@ -248,10 +248,10 @@ ScanApplications() {
 }
 
 ScanRefreshApplications(*) {
-    global scanApplications, scanApplicationChoice
-    scanApplications := ScanApplications()
+    global scanApplicationRows, scanApplicationChoice
+    scanApplicationRows := ScanApplications()
     labels := []
-    for application in scanApplications
+    for application in scanApplicationRows
         labels.Push(application.title)
     scanApplicationChoice.Delete()
     scanApplicationChoice.Add(labels)
@@ -260,11 +260,11 @@ ScanRefreshApplications(*) {
 }
 
 ScanChooseApplication(*) {
-    global scanApplications, scanApplicationChoice, scanOther, scanOtherPID, scanOtherPinned
+    global scanApplicationRows, scanApplicationChoice, scanOther, scanOtherPID, scanOtherPinned
     row := scanApplicationChoice.Value
-    if (!row || row > scanApplications.Length)
+    if (!row || row > scanApplicationRows.Length)
         return MsgBox("Open the destination application, then refresh the list.")
-    selected := scanApplications[row]
+    selected := scanApplicationRows[row]
     try {
         if (!WinExist("ahk_id " . selected.hwnd) || WinGetPID("ahk_id " . selected.hwnd) != selected.pid)
             return MsgBox("That window closed. Refresh the application list.")
