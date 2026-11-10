@@ -1,3 +1,32 @@
+# Current Development Status — November 10, 2026 — HUD text rendering
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.
+Source checkpoint `e55e9a7018652d8adc7e9a8b36417a891b433b54`.
+
+The user reported outline color changes after bank opacity updates and
+restart, blinking centered slot names during TriggerScale, and uneven
+bank-label placement. The saved XML has black slot outlines and centered
+slot names. The supplied diagnostic is input-only and predates the report.
+Windower retains the supplied text options table, so HUD text objects now
+receive independent native settings. Centered text keeps stable font metrics
+during bank scaling. Bank labels anchor to the full width of their own bank.
+
+1. Apply the patch and run `//xb restart`. Set `//xb slotlabelstroke black`
+   and `//xb banklabelopacity 60`. The bank outline should stay gold.
+   Restart and check both again.
+2. With `//xb slotlabelalign center`, rapidly switch trigger banks and look
+   for caption blinking. With horizontal bank offset zero, compare the
+   `R2x2` and `L1+R1` labels with the actual widths of their own banks.
+3. Use an action with a recast. Check the centered white size-10 timer
+   with a black outline. Try `//xb costoffset -8 -24` to move costs and
+   item counts toward the top-right. `0 0` restores the old anchor.
+
+Seven mocked Lua suites passed, including a Windower-style shared-settings
+regression, stationary font metrics during trigger scaling, timer placement,
+and cost offset application. In-game alignment and readability are pending.
+
+---
+
 # Current Development Status — November 9, 2026 — Label layout controls
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `integration/shoulder-banks`.

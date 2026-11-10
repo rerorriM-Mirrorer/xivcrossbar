@@ -1583,9 +1583,10 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
-    if command == 'banklabeloffset' or command == 'slotlabeloffset' then
+    if command == 'banklabeloffset' or command == 'slotlabeloffset' or command == 'costoffset' then
         local bank = command == 'banklabeloffset'
-        local prefix = bank and 'BankLabel' or 'SlotLabel'
+        local cost = command == 'costoffset'
+        local prefix = bank and 'BankLabel' or cost and 'Cost' or 'SlotLabel'
         local x_key, y_key = prefix .. 'OffsetX', prefix .. 'OffsetY'
         local x, y = tonumber(args[1]), tonumber(args[2])
         if x and y and math.abs(x) < math.huge and math.abs(y) < math.huge and not args[3] then
@@ -1593,6 +1594,9 @@ windower.register_event('addon command', function(command, ...)
             if bank then
                 theme_options.bank_label_offset_x, theme_options.bank_label_offset_y = x, y
                 ui:set_bank_label_offset(x, y)
+            elseif cost then
+                theme_options.cost_offset_x, theme_options.cost_offset_y = x, y
+                ui:set_cost_offset(x, y)
             else
                 theme_options.slot_label_offset_x, theme_options.slot_label_offset_y = x, y
                 ui:set_slot_label_layout(settings.Texts.SlotLabelAlign, x, y)
@@ -1602,8 +1606,8 @@ windower.register_event('addon command', function(command, ...)
             chat_format.say(123, '[XIVCrossbar] //xb ' .. command .. ' <x> <y> | status')
             return
         end
-        chat_format.say(207, ('[XIVCrossbar] %s label offset (X, Y) = %g, %g'):format(
-            bank and 'Bank' or 'Slot', settings.Texts[x_key] or 0, settings.Texts[y_key] or 0))
+        chat_format.say(207, ('[XIVCrossbar] %s offset (X, Y) = %g, %g'):format(
+            bank and 'Bank label' or cost and 'Cost text' or 'Slot label', settings.Texts[x_key] or 0, settings.Texts[y_key] or 0))
         return
     end
 

@@ -44,17 +44,20 @@ end
 
 local function draw_surface(g, object, m)
     local scale = g.scale * (m.pose_bank and m.pose_bank.value or 1)
+    -- Keep centered text metrics steady while a bank animates. Its position
+    -- still follows the bank, and the HUD scale still controls the font.
+    local style_scale = m.center_x and g.scale or scale
     if m.width then
         local width, height = m.width*scale, m.height*scale
         if width ~= m.draw_width or height ~= m.draw_height then
             object:size(width,height);m.draw_width,m.draw_height=width,height;m.draw_alpha=nil
         end
     elseif m.font_size then
-        local size=math.max(1,math.floor(m.font_size*scale+.5))
+        local size=math.max(1,math.floor(m.font_size*style_scale+.5))
         if size ~= m.draw_font_size then object:size(size);m.draw_font_size=size;m.draw_alpha=nil end
     end
     if m.stroke then
-        local stroke=m.stroke*scale
+        local stroke=m.stroke*style_scale
         if stroke ~= m.draw_stroke then object:stroke_width(stroke);m.draw_stroke=stroke end
     end
     if m.padding then
@@ -389,8 +392,7 @@ function geometry:surface(object, kind, options)
             object:clear_measurement()
         end
         m.x, m.y = x, y
-        draw_position(g,object,m,x,y)
-        draw_opacity(g,m)
+        draw_surface(g,object,m)
     end
     -- Store the tile center, not a fixed left edge. Recalculate after font or
     -- caption changes so short and long aliases share the same visual center.

@@ -26,6 +26,9 @@ local function near(a,b)
 end
 pose(0, false, true)
 near(left.value,1); near(right.value,1)
+ui:set_slot_label_layout('center',0,0)
+local centered_label=g.surfaces[ui.hotbars[1].slot_text[1]]
+local centered_size,centered_stroke=centered_label.draw_font_size,centered_label.draw_stroke
 pose(1, true, true)
 near(left.value,1); near(right.value,1)
 assert(left.active and right.active)
@@ -35,6 +38,8 @@ assert(field.bank==left and timer.bank==left and special.bank==g.banks[5])
 step(.03)
 near(left.value,1.05); near(right.value,.95)
 near(icon.draw_width,40*g.scale*1.05)
+assert(centered_label.draw_font_size==centered_size and centered_label.draw_stroke==centered_stroke,
+    'bank scaling must not invalidate centered caption measurement')
 local x,y=g:point(left.x,left.y)
 local sx,sy=g:point(left.x,left.y,false,left)
 near(x,sx); near(y,sy)

@@ -18,7 +18,9 @@ local function new_image(options)
     return geometry:surface(ui_resources.image(options), 'image', options)
 end
 local function new_text(options)
-    return geometry:surface(ui_resources.text(options), 'text', options)
+    -- Windower mutates the supplied settings in place on every text setter.
+    local flags = options.flags
+    return geometry:surface(ui_resources.text({flags={draggable=flags.draggable, right=flags.right}}), 'text', options)
 end
 
 local text_setup = {
@@ -389,9 +391,8 @@ local slot_label_strokes = {black={20, 20, 20}, amber={143, 89, 30}}
 local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1', 'L1+R1'}
 
 local function position_bank_label(self, bank)
-    local left = self:get_slot_x(bank, 2)
-    local right = self:get_slot_x(bank, 6)
-    self.bank_labels[bank]:center((left + right) / 2 + 20 + self.bank_label_offset_x,
+    local left, right = self:get_slot_x(bank, 1), self:get_slot_x(bank, 7) + 40
+    self.bank_labels[bank]:center((left + right) / 2 + self.bank_label_offset_x,
         self:get_slot_y(bank, 2) + 13 + self.bank_label_offset_y)
 end
 
@@ -401,6 +402,12 @@ local function position_slot_label(self, bank, slot)
     local y = self:get_slot_y(bank, slot) + 40 + self.slot_label_offset_y
     if self.slot_label_align == 'center' then label:center(x + 20, y)
     else label:pos(x - 2, y) end
+end
+
+local function position_slot_cost(self, bank, slot)
+    local x = self:get_slot_x(bank, slot) - windower.get_windower_settings().ui_x_res + 46
+    local y = self:get_slot_y(bank, slot) + 28
+    self.hotbars[bank].slot_cost[slot]:pos(x + self.cost_offset_x, y + self.cost_offset_y)
 end
 
 -----------------------------
@@ -488,6 +495,8 @@ function ui:setup(theme_options, enchanted_items)
     self.slot_label_offset_x = tonumber(theme_options.slot_label_offset_x) or 0
     self.slot_label_offset_y = tonumber(theme_options.slot_label_offset_y) or 0
     self.slot_label_align = theme_options.slot_label_align
+    self.cost_offset_x = tonumber(theme_options.cost_offset_x) or 0
+    self.cost_offset_y = tonumber(theme_options.cost_offset_y) or 0
     self.slot_label_stroke = slot_label_strokes[theme_options.slot_label_stroke] or slot_label_strokes.black
     self.theme.mp_cost_color_red = theme_options.mp_cost_color_red
     self.theme.mp_cost_color_green = theme_options.mp_cost_color_green
@@ -606,7 +615,6 @@ function ui:load(theme_options)
         for i=1,8,1 do
             local slot_pos_x = self:get_slot_x(h, i)
             local slot_pos_y = self:get_slot_y(h, i)
-            local right_slot_pos_x = slot_pos_x - windower.get_windower_settings().ui_x_res + 16
 
             self.hotbars[h].slot_background[i] = new_image(images_setup)
             self.hotbars[h].slot_warmup[i] = new_image(images_setup)
@@ -616,7 +624,7 @@ function ui:load(theme_options)
             self.hotbars[h].slot_element[i] = new_image(images_setup)
             self.hotbars[h].slot_text[i] = new_text(text_setup)
             self.hotbars[h].slot_cost[i] = new_text(right_text_setup)
-            self.hotbars[h].slot_recast_text[i] = new_text(right_text_setup)
+            self.hotbars[h].slot_recast_text[i] = new_text(text_setup)
             self.hotbars[h].slot_icon[i]:size(40, 40)
 
             prepare_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
@@ -637,9 +645,12 @@ function ui:load(theme_options)
             self.hotbars[h].slot_element[i]:pos(slot_pos_x + 28, slot_pos_y - 4)
 
             position_slot_label(self, h, i)
-            self.hotbars[h].slot_cost[i]:pos(right_slot_pos_x + 30, slot_pos_y + 28)
-            self.hotbars[h].slot_recast_text[i]:pos(right_slot_pos_x + 20, slot_pos_y + 14)
-            self.hotbars[h].slot_recast_text[i]:size(9)
+            position_slot_cost(self, h, i)
+            local timer = self.hotbars[h].slot_recast_text[i]
+            timer:size(10)
+            timer:color(255, 255, 255)
+            timer:stroke_color(0, 0, 0)
+            timer:center(slot_pos_x + 20, slot_pos_y + 13)
         end
 
         -- special stuff for dpad and face buttons icons
@@ -936,6 +947,13 @@ function ui:set_slot_label_layout(align, x, y)
     self.slot_label_offset_x, self.slot_label_offset_y = x, y
     for bank, bar in pairs(self.hotbars or {}) do
         for slot in ipairs(bar.slot_text) do position_slot_label(self, bank, slot) end
+    end
+end
+
+function ui:set_cost_offset(x, y)
+    self.cost_offset_x, self.cost_offset_y = x, y
+    for bank, bar in pairs(self.hotbars or {}) do
+        for slot in ipairs(bar.slot_cost) do position_slot_cost(self, bank, slot) end
     end
 end
 

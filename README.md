@@ -557,3 +557,8 @@ labels default to on and slot captions default to black outlines.
 `//xb slotlabelalign left|center` aligns slot action names.
 `//xb banklabelopacity <0-255>` dims both the bank label fill and outline.
 The amber slot outline uses the original darker amber.
+
+2026-11-10: HUD text objects keep independent outline colors and opacity.
+Centered captions keep stable font metrics through TriggerScale. Recast
+timers are centered, white, size 10, with a black outline. Use
+`//xb costoffset <x> <y>` to move MP, TP, and item counts.

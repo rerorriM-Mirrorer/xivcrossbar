@@ -9,6 +9,23 @@ options.slot_spacing=6
 options.hotbar_spacing=56
 options.hotbar_number=6
 options.UseAltLayout=false
+-- Windower retains the options table and stroke alpha reuses its RGB.
+local native_new=texts.new
+texts.new=function(settings)
+    local object=native_new()
+    settings.stroke={20,20,20}
+    function object:stroke_color(r,g,b)
+        if not r then return table.unpack(settings.stroke) end
+        settings.stroke={r,g,b}
+        self.values.applied_stroke=settings.stroke
+    end
+    function object:stroke_alpha(a)
+        if not a then return self.values.stroke_alpha or 255 end
+        self.values.stroke_alpha=a
+        self.values.applied_stroke=settings.stroke
+    end
+    return object
+end
 local ui=require('ui')
 ui:setup(options,{})
 local expected={'L2','R2','R2>L2','L2>R2','L2x2','R2x2'}
@@ -35,7 +52,8 @@ check_stroke(slot_caption,20,20,20)
 ui:set_slot_label_stroke('amber')
 check_stroke(slot_caption,143,89,30)
 check_stroke(label,255,216,112)
-check_stroke(recast_caption,20,20,20)
+check_stroke(recast_caption,0,0,0)
+assert(recast_caption:size()==10)
 ui:set_slot_label_stroke('black')
 check_stroke(slot_caption,20,20,20)
 local legacy_x,legacy_y=ui:get_slot_x(1,1),ui:get_slot_y(1,4)
@@ -44,6 +62,7 @@ local xi=theme.display_palette('xi')
 ui:set_display_layout(xi,true)
 assert(ui.bank_labels[1]==label)
 check_label_anchor(1)
+check_label_anchor(6)
 local bank_surface=ui.geometry.surfaces[label]
 local slot_surface=ui.geometry.surfaces[slot_caption]
 local bank_x,bank_y=bank_surface.center_x,bank_surface.center_y
@@ -56,6 +75,14 @@ ui:set_slot_label_layout('left',4,6)
 assert(not slot_surface.center_x and slot_surface.x==ui:get_slot_x(1,1)+2
     and slot_surface.y==ui:get_slot_y(1,1)+46)
 ui:set_slot_label_layout('left',0,0)
+local timer=ui.geometry.surfaces[recast_caption]
+assert(timer.center_x==ui:get_slot_x(1,1)+20 and timer.center_y==ui:get_slot_y(1,1)+13)
+local cost=ui.hotbars[1].slot_cost[1]
+local cost_x,cost_y=cost:pos()
+ui:set_cost_offset(-8,-24)
+local x,y=cost:pos()
+assert(x==cost_x-8 and y==cost_y-24)
+ui:set_cost_offset(0,0)
 assert(ui:get_slot_x(1,2)-ui:get_slot_x(1,1)==40)
 assert(ui:get_slot_x(2,1)-ui:get_slot_x(1,7)-40==16)
 assert(ui:get_slot_y(1,2)-ui:get_slot_y(1,4)-40==4)
@@ -86,6 +113,9 @@ ui:set_bank_label_opacity(160)
 assert(bank_surface.alpha==160 and bank_surface.stroke_alpha==160)
 ui.geometry:set_opacity(.5)
 assert(bank_surface.draw_alpha==80 and bank_surface.draw_stroke_alpha==80)
+local stroke=bank_surface.object.values.applied_stroke
+assert(stroke[1]==255 and stroke[2]==216 and stroke[3]==112,
+    'native opacity update borrowed a slot caption stroke')
 ui:set_bank_label_opacity(0)
 draw()
 assert(not label:visible() and ui.hotbars[1].slot_icon[1]:visible())

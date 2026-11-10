@@ -30,6 +30,8 @@ theme.apply = function (settings)
     options.bank_label_offset_x = settings.Texts.BankLabelOffsetX
     options.bank_label_offset_y = settings.Texts.BankLabelOffsetY
     options.bank_label_opacity = settings.Texts.BankLabelOpacity
+    options.cost_offset_x = settings.Texts.CostOffsetX
+    options.cost_offset_y = settings.Texts.CostOffsetY
     options.fade_in = settings.Animation.FadeIn
     options.fade_out = settings.Animation.FadeOut
     options.load_fade_in = settings.DisplayPreset == 'legacy' and 0 or settings.Animation.LoadFadeIn

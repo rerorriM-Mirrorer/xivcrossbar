@@ -69,3 +69,7 @@ label_command('banklabelopacity','256')
 label_command('slotlabeloffset','invalid','4')
 assert(saves==before+4 and ui.slot_y==6 and ui.bank_opacity==160)
 print('Label layout and opacity commands save and validate independently.')
+
+ui.set_cost_offset=function(self,x,y) self.cost_x,self.cost_y=x,y end
+label_command('costoffset','-8','-24')
+assert(settings.Texts.CostOffsetX==-8 and settings.Texts.CostOffsetY==-24 and ui.cost_y==-24)

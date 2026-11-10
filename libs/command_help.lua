@@ -43,6 +43,7 @@ local topics = {
         {'banklabeloffset <x> <y>', 'Move bank labels in layout pixels.'},
         {'banklabelopacity [0-255|status]', 'Set the opacity of bank label text and outlines.'},
         {'slotlabeloffset <x> <y>', 'Move slot action names in layout pixels.'},
+        {'costoffset <x> <y>', 'Move the slot cost and quantity text.'},
         {'slotlabelalign [left|center|status]', 'Align slot action names.'},
         {'slotlabelstroke [black|amber|status]', 'Set the outline color of slot action names.'},
         {'textfade [on|off|status]', 'Fade labels with bars. Defaults to on.'},
