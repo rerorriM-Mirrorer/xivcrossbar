@@ -28,8 +28,15 @@ jobs:
       - name: Parse and smoke test controller discovery
         shell: pwsh
         run: |
-          & "$env:RUNNER_TEMP/ahk/AutoHotkey32.exe" /ErrorStdOut controller-discovery.ahk --selftest
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $witness = "$env:RUNNER_TEMP/discovery-ok.txt"
+          Remove-Item $witness -ErrorAction SilentlyContinue
+          $script = (Resolve-Path controller-discovery.ahk).Path
+          $process = Start-Process "$env:RUNNER_TEMP/ahk/AutoHotkey32.exe" -ArgumentList @('/ErrorStdOut', ('"{0}"' -f $script), '--selftest', ('"{0}"' -f $witness)) -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/discovery-out.txt" -RedirectStandardError "$env:RUNNER_TEMP/discovery-err.txt"
+          if (-not $process.WaitForExit(15000)) { $process.Kill(); throw 'Discovery smoke test timed out' }
+          $process.Refresh()
+          Get-Content "$env:RUNNER_TEMP/discovery-out.txt", "$env:RUNNER_TEMP/discovery-err.txt"
+          if ($process.ExitCode -ne 0 -or -not (Test-Path $witness)) { throw 'Discovery did not complete its smoke test' }
+          if ((Get-Content $witness -Raw) -ne 'discovery-ok') { throw 'Invalid discovery test completion' }
       - name: Verify native reader startup, profiles and lifecycle
         shell: pwsh
         run: ./tests/public_ahk_v2.ps1 -Interpreter "$env:RUNNER_TEMP\ahk\AutoHotkey32.exe"
