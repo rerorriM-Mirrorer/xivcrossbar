@@ -594,3 +594,9 @@ FFXI's battle menu flag. Automatic DirectInput matching is quiet.
 2026-11-10: `//xb eventbars on` enables held bank access during FFXI
 Event status. Show temporarily uses Auto visibility while the event
 is active. Use `//xb eventbars off` to restore the prior behavior.
+
+
+2026-11-10: Added `controller-discovery.ahk` for inspecting all reader slots
+and button edges. Confirm a row and profile to copy a selection command.
+Save its report after pressing PS. This diagnostic retains duplicate entries
+and resets observation when the connected-device list changes.

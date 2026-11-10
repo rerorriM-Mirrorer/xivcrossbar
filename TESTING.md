@@ -1,3 +1,26 @@
+# Current Development Status — November 10, 2026 — Controller discovery diagnostic
+
+Branch `feat/reloadable-controller-logic`. Starting checkpoint
+`1b83d8312d7f13a0fc51794246ba34ea497f99c2`.
+
+Run `controller-discovery.ahk` with AutoHotkey v2. Release all buttons,
+press a face button, then PS separately. The utility enumerates all 16 WinMM
+slots used by the current DirectInput reader and all four XInput slots.
+It shows every responding entry. Select a row and profile, then confirm to
+copy the existing profile-selection command. Paste it into FFXI and inspect
+`//xb nativepad status` for game polls. Save the report after testing PS.
+
+Controller type detection uses the reported name and requires confirmation.
+This diagnostic cannot prove two API entries represent the same physical pad,
+or establish persistent identity across a reconnect. Device list changes
+reset its button baseline. Guard matching and reconnect identity work remain
+pending the physical-device report.
+
+The Windows workflow parses the script and exercises enumeration without
+controllers. Hardware selection and PS detection require live testing.
+
+---
+
 # Current Development Status — November 10, 2026 — Targeting on press
 
 Repository `rerorriM-Mirrorer/xivcrossbar`, branch `feat/reloadable-controller-logic`.
