@@ -741,7 +741,7 @@ function initialize(server_id, expected_name, expected_id)
         config.save(settings)
     end)
 
-    local default_active_environment = env_chooser:get_default_active_environment(player.hotbar)
+    local default_active_environment = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment)
     if not default_active_environment then
         chat_format.say(123, '[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.')
         xivcrossbar.ready = false
@@ -873,7 +873,7 @@ function reload_hotbar()
     -- Keep a valid shared/current set; otherwise choose from the newly loaded
     -- job, not the previous job's table. This does not rename or save any set.
     if not player:is_valid_environment(player.hotbar_settings.active_environment) then
-        local selected = env_chooser:get_default_active_environment(player.hotbar)
+        local selected = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment)
         if not selected then
             chat_format.say(123, '[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.')
             ui:hide()
@@ -1251,7 +1251,7 @@ function delete_environment_command(args)
     -- If the deleted env was active, switch to a safe fallback computed
     -- by env_chooser (same path as the addon's normal startup recovery).
     if (player.hotbar_settings.active_environment == target_key) then
-        local fallback = env_chooser:get_default_active_environment(player.hotbar)
+        local fallback = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment)
         set_active_environment(fallback)
     end
 
@@ -1393,7 +1393,17 @@ end)
 -- ON COMMAND
 windower.register_event('addon command', function(command, ...)
     command = command and command:lower() or 'help'
-    if command == 'rendertrace' then
+    if command == 'legacy' or command == 'default' or command == 'me' then
+        if select('#',...) > 0 then
+            chat_format.say(123,'[XIVCrossbar] //xb '..command..' takes no arguments.')
+            return
+        end
+        require('libs/settings_presets').apply(settings,command)
+        config.save(settings)
+        chat_format.say(207,'[XIVCrossbar] Settings: '..command..' — reloading.')
+        graceful_restart(false)
+        return
+    elseif command == 'rendertrace' then
         local mode = (...) or 'start'
         return diagnostic:command(mode=='save' and 'stop' or mode, mode=='mark' and table.concat({...},' ',2) or 'render')
     elseif command == 'diagnose' or command == 'diagnostics' then

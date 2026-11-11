@@ -203,7 +203,8 @@ function env_chooser:position_tooltip()
     self.tooltip:pos(x+10,y+5)
 end
 
-function env_chooser:get_default_active_environment(player_hotbar)
+function env_chooser:get_default_active_environment(player_hotbar, startup)
+    if startup=='job-sub' and player_hotbar.default then return 'default' end
     local names = L{}
     for environment_name, environment in pairs(player_hotbar) do
         names:append(environment_name)

@@ -27,6 +27,9 @@ local topics = {
     },
     display = {
         title = 'Display',
+        {'legacy', 'Apply legacy settings and reload; bindings and device selection are preserved.'},
+        {'default', 'Apply public default settings and reload.'},
+        {'me', 'Apply the personal gameplay preset and reload.'},
         {'display [legacy|xi|status]', 'Apply a saved appearance preset. XI also selects compact layout, trigger visibility and fades.'},
         {'status', 'Show current state and settings.'},
         {'scale <0.25-2>', 'Scale crossbar independently of menus.'},

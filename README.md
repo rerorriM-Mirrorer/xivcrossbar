@@ -4,6 +4,13 @@ The current test adds a 0.4-second gold-white success flash for confirmed typed
 combat/spell actions, separate from the existing recast-ready flash. See the
 current entry in [TESTING.md](TESTING.md) for installation and live checks.
 
+Switch complete settings with `//xb legacy`, `//xb default`, or `//xb me`.
+Each saves for the current character and reloads the addon, preserving bindings
+and controller selection. Default is the fresh-install public configuration;
+Legacy restores original presentation, and Me applies the personal snapshot.
+The optional global settings XML in the test package is separate from the code
+patch; see TESTING.md before replacing an existing settings.xml.
+
 Start with [BETA-QUICKSTART.md](BETA-QUICKSTART.md) and [TESTING.md](TESTING.md).
 This isolated Windower 4 build uses AutoHotkey v2 DirectLink messages for
 all supported Windows profiles. An x86 bridge filters only the addon-owned
@@ -648,3 +655,7 @@ attachment; automatic native matching is separate. See TESTING.md for limits.
 2026-11-11: Blood Pact Rage/Ward slots display base MP costs from installed
 Windower resources, including with older generated metadata. Ready charges are
 not treated as MP. Reload the addon after applying the MP-cost patch.
+
+2026-11-11: Added repeatable Legacy, Default and Me behavior/appearance presets,
+job/subjob startup selection, aligned legacy extra banks and optional personal
+global settings delivery. Preserved hardware selection and saved bindings.

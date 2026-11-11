@@ -15,6 +15,7 @@ end
 
 theme.apply = function (settings)
     local options = {}
+    options.legacy_extra_bars = settings.LegacyExtraBars == true
     options.display_palette = theme.display_palette(settings.DisplayPreset)
     options.slot_pulse_enabled = settings.DisplayPreset == 'xi'
     options.slot_glow_enabled = settings.Animation.SlotGlow == true

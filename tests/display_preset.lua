@@ -7,7 +7,8 @@ local function extract(source,first,last,result,env)
     return assert(load(source:sub(a,b-1)..'\nreturn '..result,result,'t',env))()
 end
 local theme=require('theme')
-local settings=require('defaults')
+-- The display-only toggle still starts from its historical custom layout.
+local settings=require('libs/preset_base')
 local saves, refreshes=0,0
 local options=theme.apply(settings)
 local ui={is_setup=true,geometry={interrupt_startup_reveal=function() end,

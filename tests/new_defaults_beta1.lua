@@ -21,7 +21,7 @@ assert(visibility.should_show('oninput',true,true,false), 'Trigger shows auto ba
 assert(not visibility.should_show('oninput',false,true,true), 'Events suppress startup reveal')
 assert(not visibility.should_show('always',true,true,false), 'Legacy visibility hides during events')
 assert(not visibility.should_show('hidden',true,true,false), 'Explicit hide wins')
-assert(d.EventBars==false)
+assert(d.EventBars==true,'Public Default allows held bars during events')
 for _, mode in ipairs({'always','oninput'}) do
     local during=visibility.event_mode(mode,true,true)
     assert(during=='oninput')

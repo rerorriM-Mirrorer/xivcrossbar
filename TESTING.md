@@ -1,3 +1,75 @@
+# Current Development Status — Legacy / Default / Me settings presets
+
+2026-11-11. Repository rerorriM-Mirrorer/xivcrossbar, branch
+fix/settings-inheritance. Starting local checkpoint cda8a49 is source-identical
+to published 2d78c17. Current GitHub AGENTS.md, WORKFLOW.md and TESTING.md read
+before edits. User confirmed the gold success flash looks great. Publication
+permission was explicitly granted; the earlier push block is superseded.
+
+Commands: //xb legacy, //xb default, //xb me. Each applies a complete owned
+settings snapshot, saves for the current character and gracefully reloads Lua.
+Controller profile/device and input-test/trace selections are preserved. Saved
+hotbar bindings, custom actions and XML set names are never rewritten. Existing
+//xb new <name> still creates a named set. //xb display retains its existing display/visibility behavior.
+Fresh-install defaults now come from the Default preset; existing saved settings
+continue to override missing-value defaults normally. Presets explicitly reset
+the fields they own, so personal values cannot leak into another preset.
+
+Legacy: original full layout and original trigger artwork; Show visibility;
+extra double-tap pair aligned above regular bars, 180 logical pixels higher;
+Shared on; shoulders/targeting off; event bars off; original set names. Upstream
+master xivcrossbar.lua explicitly hides at status 4. Upstream chooser selects
+the alphabetically first non-fallback set (usually Basic), not a hardcoded Main.
+That startup rule is retained, with our existing safe fallback for sparse files.
+Five trigger banks are used so the requested always-visible extra pair exists.
+This is an intentional presentation exception to upstream's three-bank default.
+
+Default: XI compact, On Input, Auto hold 0, Shared on; same legacy startup rule;
+shoulders and shoulder targeting off; held bars available during events; extra
+bars hidden until used; trigger scaling and slot glow on. Me: uploaded global
+snapshot plus Cioara overrides, XI compact/Always, Auto hold 3, Shared off,
+job/subjob fallback set (internal default) selected on reload, shoulders and
+targeting enabled, event bars available, skillchain/lockout indicators hidden.
+If the job/subjob fallback is absent, safe legacy selection is used.
+Default/Me use newer display labels; named-set XML content is preserved.
+All three keep subdued bank labels, recast-ready flash and gold success flash.
+Slot rumble and L2/R2-to-L1/R1 navigation changes remain deferred.
+
+The separately supplied optional-settings/settings-me-global.xml is NOT an
+automatic install payload. It contains one global section with Cioara overrides
+folded in, Shared off and job/subjob startup; no character sections. It retains
+the uploaded PlayStation 5 DirectInput / Device 2 selection. To use it, unload
+XIVCrossbar on every client sharing this folder, back up data/settings.xml, copy
+this file there as settings.xml, then load. This deliberately replaces existing
+character overrides. The normal //xb me command preserves hardware selection.
+
+Source for personal values: settings(20261111-220202).xml (uploaded this chat).
+No hotbar/custom-action user data are included. Testing package: incremental
+code patch over current development build; WORKFLOW.md, TESTING.md and README.md
+inside xivcrossbar; optional settings kept outside the installable addon folder.
+Back up replaced code before overlay. Preset commands reload the addon; no FFXI
+or AHK restart is needed. Rollback: unload and restore code/settings backups.
+
+Verification: across the full-suite run and targeted reruns, all 48 regression
+suites passed; all 130 Lua sources parsed through temporary Windower syntax
+normalization under Lua 5.4. Checks include all nine preset transitions,
+controlled resets, hardware preservation, actual chooser startup selection,
+legacy extra-bank coordinates/artwork and updated fresh defaults. Five existing
+fixtures now explicitly specify old starting layouts, disabled glow, event-bar
+expectations or configured label opacity instead of assuming old defaults.
+Standalone XML parsed and checked for global-only scope, folded overrides and
+requested Me values. Git diff whitespace checks pass. No Windows, AHK, Lua 5.1
+or live FFXI preset test is claimed.
+
+Live acceptance: switch legacy -> default -> me -> legacy; verify labels,
+startup set after reload, Shared chooser visibility, shoulders,
+event behavior, extra-bank separation, both flashes, animations and indicators.
+Verify existing bindings are intact, controller selection unchanged, and test
+small windows/HUD scale. Independently try the optional global settings copy
+with backups and confirm no previous character overrides remain active.
+
+---
+
 # Current Development Status — Gold-white confirmed-action flash
 
 2026-11-11. Repository rerorriM-Mirrorer/xivcrossbar, branch

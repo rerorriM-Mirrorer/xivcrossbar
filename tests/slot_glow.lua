@@ -7,6 +7,7 @@ local options = require('theme').apply(defaults)
 options.button_layout = 'playstation'
 options.fade_enabled = false
 options.slot_pulse_enabled = true
+options.slot_glow_enabled = false -- Exercise disabled -> enabled regardless of fresh defaults.
 local ui = require('ui')
 ui:setup(options, {})
 local g = ui.geometry

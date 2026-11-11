@@ -1,5 +1,6 @@
 dofile('tests/compact.lua')
-local defaults=require('defaults')
+-- Exercise the legacy-to-XI layout transition from the original baseline.
+local defaults=require('libs/preset_base')
 local theme=require('theme')
 local options=theme.apply(defaults)
 options.button_layout='playstation'

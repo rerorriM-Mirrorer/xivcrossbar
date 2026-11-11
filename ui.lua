@@ -260,6 +260,9 @@ function ui:get_slot_x(h, i)
     if shoulders.labels[h] then h = 3 end
     if not self.UseAltLayout then
         local base = self.pos_x - 50
+        -- Legacy extra banks reuse the regular pair's horizontal cross layout.
+        if self.legacy_extra_bars and h==5 then h=1
+        elseif self.legacy_extra_bars and h==6 then h=2 end
         if (h == 2) then
             base = base + 300
         elseif (h == 3 or h == 4) then
@@ -431,6 +434,7 @@ end
 -- setup ui
 function ui:setup(theme_options, enchanted_items)
     self.public_visible = nil
+    self.legacy_extra_bars = theme_options.legacy_extra_bars
     geometry:configure_fade(theme_options.fade_enabled, theme_options.fade_in,
         theme_options.fade_out, theme_options.load_fade_in, {claimed=false})
     geometry:set_text_fade(theme_options.text_fade)

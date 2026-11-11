@@ -127,7 +127,8 @@ near(g.banks[1].slide.value,.5)
 near(g.banks[3].slide.value,.5)
 assert(label.draw_x==label_x and label.draw_y==label_y and label.draw_font_size==label_size,
     'label moved or resized during bank travel')
-assert(label.draw_alpha==128,'label should still fade during bank travel')
+assert(label.draw_alpha==math.floor(defaults.Texts.BankLabelOpacity*.5+.5),
+    'label should still fade from its configured opacity during bank travel')
 pose(1,true,false)
 near(g.banks[1].slide.value,.5)
 assert(g.banks[1].slide.target==1 and g.banks[3].slide.target==0)
