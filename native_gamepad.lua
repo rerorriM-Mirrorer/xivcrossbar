@@ -12,10 +12,23 @@ function M.open(path)
     end
     local status = {0, 0, 0, 0, 0, 0, 0, 0}
     local hooks = 'hook state unknown | DLL loaded'
+    local default_logic_loaded = false
     return {
         begin = function(...)
             local result, operation, code = dll.begin(...)
             if result == 1 then
+                if not default_logic_loaded then
+                    if not dll.load_policy or not dll.policy_revision or dll.reverse_tab ~= 1 then
+                        dll.off()
+                        return 0, 'Initialize revision 3 with the matching native hook', 127
+                    end
+                    local load_error = dll.load_policy(3)
+                    if load_error ~= 0 then
+                        dll.off()
+                        return 0, 'Load default controller logic revision 3', load_error
+                    end
+                    default_logic_loaded = true
+                end
                 hooks = 'hooks attached | DLL resident'
                 if operation then hooks = hooks .. ' | ' .. operation end
             end
