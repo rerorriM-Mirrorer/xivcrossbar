@@ -659,3 +659,7 @@ not treated as MP. Reload the addon after applying the MP-cost patch.
 2026-11-11: Added repeatable Legacy, Default and Me behavior/appearance presets,
 job/subjob startup selection, aligned legacy extra banks and optional personal
 global settings delivery. Preserved hardware selection and saved bindings.
+
+2026-11-11: Preset reload confirmations now use capitalized ASCII text. Legacy
+extra banks spread outward and adapt their height in compact mode; compact
+headers match the XI gap while full Legacy labels retain their placement.

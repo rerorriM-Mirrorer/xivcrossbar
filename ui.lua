@@ -260,7 +260,10 @@ function ui:get_slot_x(h, i)
     if shoulders.labels[h] then h = 3 end
     if not self.UseAltLayout then
         local base = self.pos_x - 50
-        -- Legacy extra banks reuse the regular pair's horizontal cross layout.
+        -- Keep the regular cross layout, but fan the extra pair outwards.
+        if self.legacy_extra_bars and (h==5 or h==6) then
+            base=base+(h==5 and -90 or 90)
+        end
         if self.legacy_extra_bars and h==5 then h=1
         elseif self.legacy_extra_bars and h==6 then h=2 end
         if (h == 2) then
@@ -376,7 +379,10 @@ function ui:get_slot_y(h, i)
     if h == 3 or h == 4 then
         base = base + self.theme.alternate_press_offset_y
     elseif h == 5 or h == 6 then
-        base = base + self.theme.double_press_offset_y
+        local offset=self.theme.double_press_offset_y
+        -- Full layout keeps its height; compact brings extras closer to the pair.
+        if self.legacy_extra_bars and self.is_compact then offset=offset*.6 end
+        base = base + offset
     end
 
     -- move the second icon in each group of 4 to the top and move the
@@ -401,8 +407,13 @@ local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1',
 
 local function position_bank_label(self, bank)
     local left, right = self:get_slot_x(bank, 1), self:get_slot_x(bank, 7) + 40
-    self.bank_labels[bank]:center((left + right) / 2 + self.bank_label_offset_x,
-        self:get_slot_y(bank, 2) + 13 + self.bank_label_offset_y)
+    local y=self:get_slot_y(bank,2)+13+self.bank_label_offset_y
+    if self.legacy_extra_bars and self.is_compact then
+        -- XI labels sit six pixels above the actual top of the compact bar.
+        -- Legacy has a different row order, so anchor to its top, not slot 2.
+        y=math.min(self:get_slot_y(bank,2),self:get_slot_y(bank,4))-6+self.bank_label_offset_y
+    end
+    self.bank_labels[bank]:center((left + right) / 2 + self.bank_label_offset_x,y)
 end
 
 local function position_slot_label(self, bank, slot)

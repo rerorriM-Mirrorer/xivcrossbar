@@ -24,7 +24,7 @@ function M.values(name)
         out.AutoHideExtraBars=false;out.EventBars=false
         out.AllowSTPCForSelfTargetedActions=false
         out.Animation.Enabled=false;out.Animation.TextFade=false
-        -- Keep the extra pair directly above its regular banks, with label room.
+        -- Full-layout height; the renderer adapts its spread and compact spacing.
         out.HotbarOffsets.DoublePress={X=0,Y=-180}
         out.LegacyExtraBars=true
     else

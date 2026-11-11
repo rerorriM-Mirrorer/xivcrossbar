@@ -1400,7 +1400,7 @@ windower.register_event('addon command', function(command, ...)
         end
         require('libs/settings_presets').apply(settings,command)
         config.save(settings)
-        chat_format.say(207,'[XIVCrossbar] Settings: '..command..' — reloading.')
+        chat_format.say(207,'[XIVCrossbar] '..command:sub(1,1):upper()..command:sub(2)..' reloading')
         graceful_restart(false)
         return
     elseif command == 'rendertrace' then

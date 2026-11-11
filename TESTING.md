@@ -1,3 +1,55 @@
+# Current Development Status — ASCII reload feedback and Legacy bank spacing
+
+2026-11-11. Repository rerorriM-Mirrorer/xivcrossbar, branch
+fix/settings-inheritance. Starting local checkpoint cb77d9d is source-identical
+to published 89bec17. Current GitHub AGENTS.md, WORKFLOW.md and TESTING.md read
+before editing. User live report: preset reload feedback rendered the UTF-8
+em dash as an unwanted Japanese character. Requested capitalized plain messages,
+Legacy compact bank labels matching Default/Me placement, extra bars farther
+outward, and smaller vertical separation in compact only. Full Legacy labels
+were reported good and their relative placement is retained.
+
+Feedback is now exactly [XIVCrossbar] Default reloading, Legacy reloading,
+or Me reloading. No dash or other non-ASCII character is emitted by these
+three preset confirmations. Other existing messages are outside this change.
+
+Legacy's extra banks retain regular cross geometry and move 90 logical pixels
+outward on each side. Full layout retains the configured -180 vertical offset;
+compact uses 60% of that offset (-108 with current Legacy settings), reducing
+the gap while keeping the pair above and outside the regular bars. Switching
+compact/full recalculates all slot surfaces and labels through existing layout
+machinery. No extra offset accumulation or new saved-setting fields are added.
+Legacy compact headers anchor six pixels above the actual top of each bank,
+matching Default/Me's compact gap despite Legacy's different slot row order.
+Full Legacy header placement and regular bar positions remain unchanged.
+
+Targeted checks pass: actual command branch emits exact ASCII captions and
+saves/reloads once; invalid arguments cannot reload. Legacy geometry checks
+cover both extra banks/all slots, three full/compact round trips, preserved
+full labels/artwork and matching Default/Me header gaps. All 49 regression
+suites passed in one complete run; all 131 Lua sources parsed with temporary
+Windower syntax normalization under Lua 5.4. Git diff whitespace checks pass.
+No Windows, Lua 5.1 or live FFXI fix confirmation
+is claimed. The prior diagnostic also identified timer text-settling blinks;
+that is a separate pending repair and is not changed in this batch.
+
+Install: incremental patch over the Settings Presets build. Unload XIVCrossbar
+on each client, back up replaced code, overlay the xivcrossbar folder, and load.
+No settings/hotbar data or AHK/native files are supplied; no controller or FFXI
+restart is needed. Existing Legacy settings are adapted at render time, so
+there is no need to replace settings.xml or reapply the preset to get spacing.
+Rollback by unloading and restoring the backed-up code. WORKFLOW.md, TESTING.md
+and README.md accompany the payload inside the addon folder.
+
+Live acceptance: invoke //xb default, //xb legacy and //xb me and check the
+capitalized readable messages. In Legacy compare full and compact, including
+several toggles: unchanged full labels, compact labels above their bars, extra
+pair wider than the main pair and closer vertically when compact. Check normal
+HUD scale and small windows, captions/recasts remaining attached to their slots,
+and no drift after repeated toggles. Verify Default/Me appearance is unchanged.
+
+---
+
 # Current Development Status — Legacy / Default / Me settings presets
 
 2026-11-11. Repository rerorriM-Mirrorer/xivcrossbar, branch
