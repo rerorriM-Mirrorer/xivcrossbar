@@ -1,3 +1,18 @@
+# Current Development Status — Auto hold keeps the idle layout visible
+
+Baseline `5fb06921a0a9a8f86c26320da9f6f16ec7881671`.
+Auto hold now extends visibility after release while the displayed bank follows
+the current input. Releasing the last trigger or shoulder restores the normal
+Show-mode idle layout during the hold. The 75 ms two-trigger handoff is unchanged.
+
+Run `//xb auto` and `//xb autohold 1.5`. Release each regular trigger,
+combined trigger, double-tap and shoulder bank. The ordinary layout should remain
+visible briefly, then fade. Press another trigger during the hold and verify it
+takes priority immediately. Check scaling and fades both on and off.
+Live visual confirmation is pending.
+
+---
+
 # Current Development Status — Settings inheritance
 
 The uploaded working build remains the runtime baseline, with revision 3 default.

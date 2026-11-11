@@ -49,8 +49,8 @@ controller and render trace commands remain available as capture aliases.
 
 ## Appearance and visibility
 
-In Auto, `//xb autohold 1.5` keeps the last bank visible for 1.5 seconds
-after releasing the final trigger or visible shoulder. Set any duration
+In Auto, `//xb autohold 1.5` keeps the ordinary crossbars visible for 1.5 seconds
+after releasing the final trigger or visible shoulder. Released banks return to the normal idle layout. Set any duration
 from 0 to 30 seconds. The default, 0, starts the fade immediately. Hold
 is independent of the center-bank handoff and applies during regular
 gameplay. Slot names keep a fixed font size while banks animate.

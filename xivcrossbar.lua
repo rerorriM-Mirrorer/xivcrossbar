@@ -2702,7 +2702,7 @@ windower.register_event('prerender',function()
         local active_bank = gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0
         local grace_enabled = autohide and not menu_open and gamepad_state.left_trigger ~= gamepad_state.right_trigger
         display_bank = ui:select_display_bank(visible and not menu_open
-            and (holding and ui.display_bank or active_bank) or 0, grace_enabled, now)
+            and active_bank or 0, grace_enabled, now)
         ui:update_trigger_scale(settings.Animation.TriggerScale, settings.Animation.SmallScale,
             display_bank, visible, autohide, menu_open)
     end
