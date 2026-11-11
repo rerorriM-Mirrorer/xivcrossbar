@@ -1,3 +1,26 @@
+# Current Development Status — Settings inheritance
+
+The uploaded working build remains the runtime baseline, with revision 3 default.
+The user confirmed recurring Cioara overrides resembling addon defaults.
+
+A reproduction executed the Windower config.lua source and supporting libraries
+through Lua 5.4 with syntax-only compatibility normalization. Myrr saving a file
+with global compact=true, five bars, and only a Cioara opacity override produced
+Cioara compact=false and three bars. The addon-local library copy instead
+preserved only Cioara's explicit opacity override. The shared Windower library
+is not modified. Original library license is retained in the local copy.
+
+Install this patch and reload XIVCrossbar on all clients using this addon.
+Test one client saving a preference, then reload another and check its global
+inheritance and explicit character preferences. Existing explicit overrides,
+including previously manufactured overrides, are preserved.
+
+This fixes the reproduced inheritance defect. Concurrent saves and malformed
+XML remain under investigation. This simulated result does not establish which
+Windower library version is installed on the user's PC.
+
+---
+
 # Current Development Status — November 10, 2026 — Reloadable actions and armed PS probe
 
 Branch `feat/reloadable-controller-logic`. Starting checkpoint

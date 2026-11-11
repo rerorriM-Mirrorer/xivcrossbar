@@ -606,3 +606,9 @@ and resets observation when the connected-device list changes.
 The discovery utility can explicitly arm its observed PS button for application
 switching and a return to the originating client. Device-list changes
 disarm the probe. Set the addon's PS bridge off when testing the probe.
+
+
+Settings inheritance fix: character sections inherit omitted values from global
+settings. XIVCrossbar uses an addon-local Windower config copy with its original
+license retained. Reload the addon on every client after installation. Existing
+explicit overrides retain their values.

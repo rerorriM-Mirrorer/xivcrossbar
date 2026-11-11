@@ -24,7 +24,7 @@ end
 
 -- Libs
 res = require 'resources'
-config = require('config')
+config = require('libs/settings_config')
 file = require('files')
 texts = require('texts')
 images = require('images')
