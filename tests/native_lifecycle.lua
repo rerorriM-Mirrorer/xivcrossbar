@@ -108,15 +108,20 @@ failed.native_command('auto')
 failed.native_command('status')
 assert(not failure_notices[#failure_notices]:find('Hook Unavailable',1,true))
 
+local selected_revision
 local loader = package.loadlib
 package.loadlib=function()
     return function()
-        return {process_id=17, begin=function() return 1, 'Matched the sole attached controller', 0 end, detach=function() return 1 end}
+        return {process_id=17, reverse_tab=1, off=function() end,
+            load_policy=function(revision) selected_revision=revision; return 0 end,
+            policy_revision=function() return selected_revision or 1 end,
+            begin=function() return 1, 'Matched the sole attached controller', 0 end, detach=function() return 1 end}
     end
 end
 local module = require('native_gamepad').open('fixture')
 package.loadlib=loader
 local result, operation, code = module.begin()
+assert(selected_revision==3,'native startup selects revision 3')
 assert(result==1 and operation=='Matched the sole attached controller' and code==0)
 assert(module.hook_status():find(operation,1,true))
 assert(module.detach() and module.hook_status():find('detached',1,true))
