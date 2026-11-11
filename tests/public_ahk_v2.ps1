@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $env:RUNNER_TEMP ('xivcrossbar public v2 ' + [Guid]::NewGuid())
 $data = Join-Path $stage 'data'
 [void][IO.Directory]::CreateDirectory($data)
-foreach ($name in @('ffxi_directinput.ahk','controller_messages.ahk','controller_bridge.ahk','controller_diagnostics.ahk','controller_clients.ahk','controller_mappings.ahk','launch-controller.cmd','launch-controller.ps1','tests/public_ahk_v2.ahk')) {
+foreach ($name in @('ffxi_directinput.ahk','controller_messages.ahk','controller_bridge.ahk','controller_diagnostics.ahk','controller_clients.ahk','controller_mappings.ahk','controller_slots.ahk','launch-controller.cmd','launch-controller.ps1','tests/public_ahk_v2.ahk')) {
     Copy-Item (Join-Path $root $name) $stage
 }
 $status = Join-Path $data 'controller-status.ini'
@@ -36,6 +36,9 @@ try {
         $first -notmatch 'device=2' -or $first -notmatch 'modifier=messages' -or $first -notmatch 'ahk=2\.') {
         throw "Incorrect fallback selection: $first"
     }
+    if ($first -notmatch '(?m)^scan_mode=all-profile-slots$' -or $first -notmatch '(?m)^reader_build=profile-slots2$') {
+        throw "Normal launcher did not retain all-slot scope: $first"
+    }
     $readerPid = [int][regex]::Match($first, '(?m)^pid=(\d+)').Groups[1].Value
     $duplicate = Start-Reader 'messages ps5-directinput 1'
     if (!$duplicate.WaitForExit(5000) -or $duplicate.ExitCode -ne 0) { throw 'Duplicate reader did not exit cleanly' }
@@ -49,7 +52,7 @@ try {
     foreach ($profile in @('ps5-directinput','f710-directinput','fightpadpro-directinput','xinput','xinput-r1-chooser')) {
         $reader = Start-Reader "messages $profile 1"
         $selection = Await-Status "(?m)^pid=$($reader.Id)$"
-        if ($selection -notmatch "(?m)^profile=$profile$" -or $selection -notmatch 'origin=arguments') {
+        if ($selection -notmatch "(?m)^profile=$profile$" -or $selection -notmatch 'origin=arguments' -or $selection -notmatch '(?m)^scan_mode=all-profile-slots$') {
             throw "Wrong explicit profile: $selection"
         }
         Set-Content $stop 'stop'

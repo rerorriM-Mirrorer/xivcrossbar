@@ -162,6 +162,9 @@ local generate_crossbar_abilities = function()
         local recast_id = ability.recast_id
         local ja_type = JOB_ABILITY_TYPE_LOOKUP[ability.type]
         local category = JOB_ABILITY_CATEGORY_LOOKUP[ability.type]
+        -- Monster.mp_cost can represent Ready charges; only pacts spend MP.
+        local mp_cost = (ability.type == 'BloodPactRage' or ability.type == 'BloodPactWard')
+            and (tonumber(ability.mp_cost) or 0) or 0
         local tp_cost = ability.tp_cost
         local element = res.elements[ability.element].en
 
@@ -173,7 +176,7 @@ local generate_crossbar_abilities = function()
         end
         local custom_icon = kebab_casify(category) .. '/' ..  key .. '.png'
 
-        abilities_by_name[key] = string.format('["%s"] = { id = %d, en = "%s", res_key = "job_abilities", type = "%s", recast_id = %d, category = "%s", element = "%s", default_icon = "%s", custom_icon = "%s", mp_cost = %d, tp_cost = %d }', key, id, ability.en, ja_type, recast_id, category, element, default_icon, custom_icon, 0, tp_cost)
+        abilities_by_name[key] = string.format('["%s"] = { id = %d, en = "%s", res_key = "job_abilities", type = "%s", recast_id = %d, category = "%s", element = "%s", default_icon = "%s", custom_icon = "%s", mp_cost = %d, tp_cost = %d }', key, id, ability.en, ja_type, recast_id, category, element, default_icon, custom_icon, mp_cost, tp_cost)
     end
 
     for id, ws in pairs(res.weapon_skills) do

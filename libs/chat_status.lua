@@ -26,6 +26,9 @@ function M.input_route(value)
     })[value or 'waiting-lease']
     return label or M.state(value)
 end
+function M.visibility(value)
+    return ({oninput='On Input',always='Always',hidden='Hidden'})[value] or tostring(value or 'Unknown')
+end
 function M.state(value)
     local key=tostring(value or 'unknown'):lower()
     local text=({ready='Ready',stopped='Stopped',starting='Starting',
@@ -69,7 +72,7 @@ function M.legacy(tone,message)
         else v=color(M.command(value),0) end
         return prefix..color(label..':',tone==123 and 167 or 207)..' '..v
     end
-    return prefix..color(M.command(body),tone==123 and 167 or tone==140 and 140 or tone==0 and 0 or 207)
+    return prefix..color(M.command(body),tone==123 and 167 or tone==140 and 140 or tone==158 and 158 or tone==0 and 0 or 207)
 end
 function M.say(tone,message)
     windower.add_to_chat(0,M.legacy(tone,message))

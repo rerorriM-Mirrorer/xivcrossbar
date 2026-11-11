@@ -65,7 +65,9 @@ assert(root:find("windower.register_event('keyboard', controller_keyboard)",1,tr
 assert(ahk:find('#Requires AutoHotkey v2.0.19+',1,true))
 assert(ahk:find('ControllerMessagePoll(states, active)',1,true))
 assert(receiver:find('WinGetPID',1,true))
-assert(receiver:find('number[1] + 0 != device',1,true))
+-- All-slot readers retain profile ownership but no longer reject client slot numbers.
+assert(receiver:find('selected[1] != profile',1,true))
+assert(not receiver:find('number[1] + 0 != device',1,true))
 assert(not ahk:find('SendEvent',1,true) and not ahk:find('ControlSend',1,true))
 assert(not root:find('inputconsume',1,true) and not root:find('setkey',1,true))
 assert(not receiver:find('bank_protocol',1,true))

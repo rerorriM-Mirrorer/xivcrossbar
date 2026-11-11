@@ -39,6 +39,7 @@ package.loaded['resources/crossbar_spells']={}
 package.loaded['player']={}
 package.loaded['socket']={gettime=function() return 5 end}
 config={load=function(value) return value end}
+package.preload['libs/settings_config']=function() return config end
 math.round=function(n) return math.floor(n+.5) end
 local defaults=require('defaults')
 local theme=require('theme')

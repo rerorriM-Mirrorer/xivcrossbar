@@ -13,11 +13,12 @@ ControllerMessageContext(hwnd) {
     } catch Error {
         return
     }
+    ; Device remains a compatibility field; all-profile-slot routing owns the
+    ; mapping, while the native guard tracks its attachment separately.
     if (!RegExMatch(lease, "m)^timestamp=(\d+)\r?$", &stamp)
         or !RegExMatch(lease, "m)^profile=([a-z0-9-]+)\r?$", &selected)
         or selected[1] != profile
         or !RegExMatch(lease, "m)^device=(\d+)\r?$", &number)
-        or number[1] + 0 != device
         or !RegExMatch(lease, "m)^button_mode=messages\r?$")
         or !RegExMatch(lease, "m)^button_token=([A-Za-z0-9-]+)\r?$", &token)
         or !RegExMatch(lease, "m)^button_ack=(\d+)\r?$", &ack)

@@ -1,5 +1,9 @@
 # XIVCrossbar — Native Blocking and DirectLink test
 
+The current test adds a 0.4-second gold-white success flash for confirmed typed
+combat/spell actions, separate from the existing recast-ready flash. See the
+current entry in [TESTING.md](TESTING.md) for installation and live checks.
+
 Start with [BETA-QUICKSTART.md](BETA-QUICKSTART.md) and [TESTING.md](TESTING.md).
 This isolated Windower 4 build uses AutoHotkey v2 DirectLink messages for
 all supported Windows profiles. An x86 bridge filters only the addon-owned
@@ -612,3 +616,35 @@ Settings inheritance fix: character sections inherit omitted values from global
 settings. XIVCrossbar uses an addon-local Windower config copy with its original
 license retained. Reload the addon on every client after installation. Existing
 explicit overrides retain their values.
+
+2026-11-11: Isolate private and shared config registries. Addon modules keep
+explicit local imports so later shared-library loads cannot redirect settings
+saves. Reload every client after applying the config ownership patch.
+
+2026-11-11: During Level Sync/Level Restriction, known job abilities and WS
+missing from the game's available-action lists use dim red icons and labels.
+Normal appearance returns as availability changes; bindings remain intact.
+
+2026-11-11: Use grey for known unavailable JA/WS inside and outside level sync.
+Visibility captions now read On Input/Always/Hidden. Controller startup uses
+short feedback and confirms connected reader readiness before showing green Ready.
+
+2026-11-11: Avoid availability flicker by applying each slot's final colour once,
+instead of briefly restoring white before reapplying grey on every frame.
+
+2026-11-11: Black Magic now sorts by ID. Summoning lists regular summons before
+spirits. Rage/Ward binding lists use SMN level and learned avatars independently
+of the active pet/Astral Flow, sorted by level, avatar and ID, with icon fallbacks.
+
+2026-11-11: Optional controller-all-slots.ahk experiment scans every address of
+the saved profile's backend with that mapping. Normal startup stays single-device.
+See TESTING.md for launch, logging, native-guard limits and rollback.
+
+2026-11-11: Normal reader startup now scans every slot of the selected profile's
+backend. Profile commands/reloads preserve scanning, and same-profile clients
+may use different saved device numbers. The number still selects the native guard
+attachment; automatic native matching is separate. See TESTING.md for limits.
+
+2026-11-11: Blood Pact Rage/Ward slots display base MP costs from installed
+Windower resources, including with older generated metadata. Ready charges are
+not treated as MP. Reload the addon after applying the MP-cost patch.

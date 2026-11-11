@@ -66,12 +66,21 @@ env.shoulders=require('shoulder_banks')
 ui.disabled_slots={no_vitals={},actions={},on_cooldown={},on_warmup={}}
 ui.toggle_slot=function() end
 env.maybe_get_default_action=function() end
+env.action_costs=require('libs/action_costs')
+env.res={job_abilities={}}
 env.crossbar_abilities={['test-ws']={tp_cost=1000}}
 env.kebab_casify=function(name) return name end
 extract(code,'function ui:check_vitals','gcd_start_time = 0','ui',env)
 local bars={basic={hotbar_1={slot_1={type='ws',action='test-ws'}}}}
 ui:check_vitals(bars,{mp=0,tp=999},'basic');assert(captured[1]==255 and captured[2]==149)
 ui:check_vitals(bars,{mp=0,tp=1000},'basic');assert(captured[1]==151 and captured[2]==211)
+env.res.job_abilities[513]={type='BloodPactRage',mp_cost=11}
+env.crossbar_abilities['test-pact']={id=513,res_key='job_abilities',mp_cost=0,tp_cost=0}
+bars.basic.hotbar_1.slot_1={type='pet',action='test-pact'}
+ui:check_vitals(bars,{mp=10,tp=0},'basic')
+assert(captured[1]==255 and captured[2]==149 and ui.disabled_slots.no_vitals['test-pact'])
+ui:check_vitals(bars,{mp=11,tp=0},'basic')
+assert(captured[1]==194 and captured[2]==253 and not ui.disabled_slots.no_vitals['test-pact'])
 ui.display_palette=nil
 ui:set_action_cost_color(1,1,'mp',false);assert(captured[1]==230 and captured[2]==91)
 local round=math.round

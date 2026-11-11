@@ -12,17 +12,17 @@ try {
     isXInput := false
     joystickPrefix := ""
     joys := ControllerDirectInputButtons(profile)
-    states := ReadTransportStates(FakeJoystick.Bind(9000))
+    states := ReadTransportSlot(FakeJoystick.Bind(9000))
     Check(states.Length = 14 && states[2] && states[5] && !states[6] && states[12] && states[13] && !states[14], "connected DirectInput maps base inputs and both shoulders")
-    Check(!ReadTransportStates(FakeJoystick.Bind("")), "missing POV invalidates the DirectInput sample")
-    states := ReadTransportStates(FakeJoystick.Bind(-1))
+    Check(!ReadTransportSlot(FakeJoystick.Bind("")), "missing POV invalidates the DirectInput sample")
+    states := ReadTransportSlot(FakeJoystick.Bind(-1))
     Check(states.Length = 14 && !states[1] && !states[2] && !states[3] && !states[4] && states[5],
         "centered POV preserves face input")
-    states := ReadTransportStates(FakeJoystick.Bind(31500))
+    states := ReadTransportSlot(FakeJoystick.Bind(31500))
     Check(states[1] && !states[2] && !states[3] && states[4], "diagonal POV maps Up and Left")
     for profile in ["ps5-directinput", "f710-directinput", "fightpadpro-directinput"] {
         joys := ControllerDirectInputButtons(profile)
-        states := ReadTransportStates(FakeJoystick.Bind(9000))
+        states := ReadTransportSlot(FakeJoystick.Bind(9000))
         Check(states[2] && states[12] && states[profile = "fightpadpro-directinput" ? 6 : 5], "DirectInput profile mapping")
     }
     packet := Buffer(16, 0)
@@ -102,6 +102,7 @@ try {
         try FileDelete(spool)
         try FileDelete(spool . ".tmp")
     }
+    ProfileSlotChecks()
     FileAppend("Public native DirectLink checks passed.", "*")
     ExitApp(0)
 } catch Error as failure {
@@ -120,6 +121,49 @@ FakeJoystick(pov, key) {
 Check(condition, description) {
     if (!condition)
         throw Error(description)
+}
+
+ProfileSlotChecks() {
+    fixtures := Map(1, SlotSample())
+    scan := {armed:Map(),signature:"",connected:"",active:""}
+    reader := (slot) => fixtures.Has(slot) ? fixtures[slot] : false
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(IsObject(states) && !states[5] && scan.connected = "1", "all-slot neutral discovery")
+    fixtures[1][5] := true
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(states[5] && scan.active = "1", "slot 1 press")
+    fixtures[2] := SlotSample()
+    ReadProfileSlots(reader,16,scan,NoSlotLog)
+    fixtures[2][5] := true
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(states[5] && scan.active = "1,2", "duplicate source yields one logical held state")
+    fixtures[1][5] := false
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(states[5], "one source release cannot release another held source")
+    fixtures.Delete(2)
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(!states[5] && !scan.armed.Has(2), "disconnect releases final held source")
+    fixtures[16] := SlotSample()
+    fixtures[16][11] := true
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(!states[11] && !scan.armed[16], "new held source waits for release")
+    fixtures[16][11] := false
+    ReadProfileSlots(reader,16,scan,NoSlotLog)
+    fixtures[16][11] := true
+    states := ReadProfileSlots(reader,16,scan,NoSlotLog)
+    Check(states[11] && scan.active = "16", "highest DirectInput address participates")
+    states := ReadProfileSlots(reader,4,scan,NoSlotLog)
+    Check(!states[11] && scan.connected = "1", "XInput scans only its four addresses")
+    fixtures.Clear()
+    Check(!ReadProfileSlots(reader,16,scan,NoSlotLog), "all disconnected produces no sample")
+}
+SlotSample() {
+    result := []
+    Loop 14
+        result.Push(false)
+    return result
+}
+NoSlotLog(connected,active,signature) {
 }
 
 #Include %A_ScriptDir%\ffxi_directinput.ahk

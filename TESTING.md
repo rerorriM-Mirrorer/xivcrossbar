@@ -1,3 +1,446 @@
+# Current Development Status — Gold-white confirmed-action flash
+
+2026-11-11. Repository rerorriM-Mirrorer/xivcrossbar, branch
+fix/settings-inheritance, starting source checkpoint 729bb68. Lua-only visual
+batch; existing AHK/native companion versions are unchanged. Current GitHub
+AGENTS.md, WORKFLOW.md and TESTING.md were read before this work. The final
+local commit is identified in the delivery; it is not a published remote head.
+
+Requested: a white outer glow with a slightly more opaque golden-white center,
+about 2–3 times slower than recast-ready feedback, on confirmed Attack/Disengage,
+Summon/Release, Assault/Retreat, Trust/Return, weaponskill execution and completed
+uninterrupted spells. Implemented 0.4 s fade (ready flash remains 0.15 s), white
+border alpha 156, center RGB 255/235/174 alpha 184. Existing textures are reused;
+success and ready animations have independent lifetimes. New cooldowns cannot
+cancel the success fade. The overlay follows bank scale, position and opacity.
+
+One pending request is armed from the actual accepted typed slot action,
+resolved against the pre-press pet/trust state. Another press replaces it.
+Own spell/WS/JA completion packets are matched by category and resource ID;
+WS misses and spell resists still count as execution. Cast interruption cancels.
+Requests expire after 3 s unless a matching spell-start packet extends the cast
+window to 30 s. Other actors, custom macros, items and unrequested actions do
+not independently start this feedback. Attack, Assault/Retreat and Return use
+observed player/pet/party transitions; Release also accepts its own action packet.
+Confirmation is queued through the next render tick so an automatic summon or
+Release environment reload does not erase it before it can be drawn. Hidden
+banks, menus, slot reloads, zones, jobs, logout and unload clear stale feedback.
+
+Packet/state correlation is bounded and intentionally conservative, not a new
+action scheduler: changing sets or pressing another action can discard an older
+pending result. A delayed avatar-swap sequence can outlive its initial request
+window; do not infer a failed summon merely from absence of this visual.
+Arbitrary macros and other pet abilities are outside this first success batch.
+
+Verification: all 46 regression suites passed in the temporary Windower-syntax-
+normalized Lua 5.4 harness; all 125 Lua sources parsed. The new tracker/UI tests
+cover actor/ID matching, interruption, expiry, duplicates, state transitions,
+independent cooldown timing and hidden/rebound cleanup. After inspecting the
+existing textures, the success border uses the original recast-glow asset; the
+tracker, success UI and recast suites were rerun after that final texture choice.
+Two existing event-extraction fixtures gained mocks for the new tracker.
+Git diff whitespace checks pass.
+No live FFXI, Windows renderer or Lua 5.1 pass is claimed. Last user-confirmed
+behavior remains stable current play and the earlier grey availability feedback.
+
+Install this incremental patch over the current public development installation
+(including the previous Blood Pact MP patch). Unload XIVCrossbar, back up the
+replaced files, overlay the xivcrossbar folder, then load it on each client.
+Do not replace data/hotbar/settings folders. No FFXI or AHK restart is required.
+Rollback: unload, restore those files, remove libs/action_success.lua if newly
+added, then load again. WORKFLOW.md and this cumulative record accompany the
+payload inside the addon folder. Public directory restructuring remains deferred.
+
+Live acceptance: try Attack then Disengage; summon then Release (including an
+automatic pet-set switch); Assault then Retreat; summon/return a Trust; a WS
+that hits and one that misses; a normal completed spell, a resist and an
+interrupted cast. Verify the gold center fading over the start of recast,
+white border, hidden-bank/menu behavior, compact/full layout, HUD scale/fades,
+and no flash from party actions or a rejected command. Check a long cast and
+fast consecutive presses. Report timing, opacity and whether the border reads
+clearly at normal playing scale before extending to other pet actions/items.
+
+Publication remains local: an earlier automatic approval review rejected the
+GitHub push because the destination/private-source publication was unverified.
+No push is retried in this batch.
+
+---
+
+# Current Development Status — Personal three-character hotbar data overlay
+
+2026-11-11. Code baseline fe2a2b9 on fix/settings-inheritance; no runtime code change.
+User-provided hotbar(1).zip SHA256 736e71c87d33246561c4ee7a74bc0422463af61d9b13643259bde34e7a1acefd.
+Data-only payload: Shared.xml, CustomActions.xml and WHM-DEFAULT.xml for Cioara,
+Myrr and Clairvaux. L1 Down stop-follow; Circle trust pauseall; Triangle explicit
+stopall/echo/follow-me sequence. Both banks based on Cioara, R1 Up mount-all.
+Remove only the three WHM L2-double-press NPC overrides. Preserve Ready, All Jobs
+Default and unrelated job bindings/catalog entries. Corresponding catalog records
+updated alongside inline commands. No mount/follow coupling in this batch.
+
+Nine XML parse/roundtrip and structural checks passed; shoulder banks identical;
+non-targeted Shared/catalog content unchanged; WHM changes exactly the requested
+removals. Trust command source on test/party-stealth checked for native pauseall
+IPC; follow stopall/mount-all source inspected. No FFXI live pass is claimed.
+Install precautions and rollback are in INSTALL-HOTBAR.md inside the payload.
+Unload XIVCrossbar on all three clients before overlay, preserve current folders
+as backup, then load again. No FFXI/reader restart. Personal data is delivered
+as a separate artifact, not added to repository defaults or public runtime.
+This documentation commit remains local pending earlier publication approval.
+
+---
+
+# Current Development Status — Blood Pact MP display
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `53074ee`. User reports missing MP costs on Blood Pacts.
+
+2026-11-11 delivery: `XIVCrossbar-Blood-Pact-MP-Patch.zip`.
+The resource generator hardcoded every job ability's MP cost to zero. Generate
+Windower MP values for BloodPactRage/BloodPactWard only; preserve zero for Monster
+entries whose mp_cost represents Ready charges. The crossbar's initial cost
+label and ongoing affordability checks now resolve pact MP directly from installed
+Windower job_abilities, so old generated caches work immediately without deletion
+or a forced regeneration. Existing MP colours, hide-cost settings and insufficient
+MP treatment are retained. Spell/WS and arbitrary macro behavior stay unchanged.
+These are resource/base MP costs; dynamic/gear-adjusted costs are not calculated.
+
+Validation: 44 mocked Lua suites passed; 122 Lua sources parsed under Lua 5.4
+with temporary Windower syntax normalization. New tests cover Rage and Ward,
+legacy cached zero values, zero-base-cost entries, Ready-charge exclusion and
+spell/ability ID collisions. Existing UI/layout/cost regression suites pass.
+No in-game FFXI confirmation or Windows/Lua 5.1 execution is claimed.
+
+Overlay on current build, reload XIVCrossbar on every client. No FFXI or reader
+restart, and no user-data files are supplied. Live: check one Rage and one Ward
+with a positive base MP cost; verify normal MP colour and insufficient-MP state,
+Hide Action Cost, and existing recast behavior. Zero-base/dynamic pacts should
+not receive an invented cost. Source checked: Windower/Resources job_abilities;
+restore code/layout and controller behavior otherwise unchanged. Local publication
+only pending the earlier GitHub push approval. Directory restructure remains deferred.
+
+---
+
+# Current Development Status — All-profile-slot reading survives normal commands
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `77bcfcc`. User observed normal input with the opt-in reader
+but no scan row; uploaded controller-all-slots.log proves slot-2 scans between
+10:55:28 and 10:59:36 UTC. Uploaded controller-status(1).ini has no scan markers,
+so it cannot establish the same writer. User then changed PS5 device to 1, which
+could restart the old single-device reader. User now authorizes all backend slots
+regardless of selected device number, including normal startup/profile commands.
+
+2026-11-11 delivery: `XIVCrossbar-All-Slots-Integrated-Patch.zip`.
+Normal ffxi_directinput.ahk always scans the selected profile's backend. The
+controller-all-slots.ahk entry remains a compatible alias, no longer required.
+Status always publishes scan_mode and reader_build=profile-slots2, reader script
+and connected/active slots. The source log includes PID/script to correlate
+writers. All-slot Lua status matching ignores device-number differences, while
+profile/protocol/liveness remain mandatory. Reader leases also retain profile
+validation but no longer reject a client because its saved device differs.
+Device-only selection therefore preserves a matching all-slot reader. Profile
+changes may restart it but always return to full backend scanning. Legacy readers
+without scan_mode retain strict number matching and must be stopped for upgrade.
+
+IMPORTANT: this removes reader/lease number gating, not native guard attachment
+selection. Status labels the saved number Guard Device, with Running / All Slots
+and Reader Slots showing the sampling scope. Device 1 can still affect the native
+hook's attachment even while the reader gets input from physical slot 2. Automatic
+native matching/multi-device filtering is NOT implemented. Check native leakage
+when testing additional pads; do not interpret reader acceptance as proof that
+all game-side devices are intercepted. Each profile still uses one mapping and
+one backend. Same-profile multi-source held states retain any-down/all-up logic.
+
+Install: `//xb controller stop`, wait for exit, overlay ZIP, then reload
+XIVCrossbar on clients and run `//xb controller start` if needed. Normal startup
+now starts the scanning reader. No manual AHK test launch or FFXI restart.
+Check `//xb controller status` for Reader Slots / All profile slots. Try selecting
+PS5 device 1 while the pad remains in slot 2: input sampling should continue,
+with connected slot 2 reported. Check other clients with differing saved numbers,
+reconnect, duplicate presses, holds and native leakage. If status is odd, send the
+new controller-status.ini and controller-all-slots.log; marker/PID/script fields
+now permit correlation. Rollback requires restoring prior reader and messages
+files plus controller_profiles.lua/xivcrossbar.lua from the preceding test ZIP,
+stopping and restarting the reader. That restores opt-in behavior.
+
+Verification: 43 mocked Lua suites and 120 normalized Lua 5.4 parse checks. New
+runtime profile-matching test proves an all-slot reader accepts numbers 1/16 when
+status says 2, rejects a different profile/protocol, preserves the running process
+for a device-only request, and retains legacy/stopped-reader rules. Existing
+DirectLink source expectations updated to require profile ownership without
+number gating. Windows harness now requires all-slot/build markers for ordinary
+launches and profile restarts; single-slot decode fixtures call the single-slot
+reader directly. Windows/AHK tests remain unexecuted (no interpreter available).
+No new live/hardware pass is claimed. Mapping generation check passed.
+Publication remains local pending earlier GitHub push approval.
+
+---
+
+# Current Development Status — Selected-profile all-slot reader experiment
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `149b10e`. User authorizes scanning all addresses for the
+selected profile/backend, without cross-profile mapping detection or mixing.
+
+2026-11-11 delivery: `XIVCrossbar-All-Profile-Slots-Test.zip`.
+Normal launcher remains single-device. Optional `controller-all-slots.ahk`
+starts the same shared reader with all-slot mode enabled. It retains the saved
+profile, reads only that backend (WinMM/DirectInput addresses 1–16 or XInput 1–4),
+and applies the unchanged profile mapping to every address. Raw per-source input
+is combined into one logical stream after mapping: any-source down, all-sources
+up. There is no per-source profile inference or PS/Xbox mapping combination.
+Newly connected sources must release all mapped buttons and PS before acceptance.
+Disconnected sources drop their held state. Movement uses the strongest single
+source vector rather than adding axes; PS retains correct pressed/released edges.
+
+The same existing mutex prevents competing readers. Existing focus, DirectLink,
+menu/Trust and last-client lifecycle paths remain. Test startup clears a stale
+stop marker only after acquiring the mutex. Status and unified diagnostics add
+scan mode/connected/active slot fields. Source changes go to
+`data/controller-all-slots.log` (bounded at 2 MiB). Entries contain profile,
+connected/active slots and per-slot 14-button bitmasks/PS state; they do not prove
+physical identity or distinguish virtual duplicates automatically.
+
+IMPORTANT: saved device number/status matching and the native guard attachment
+remain unchanged for compatibility. Reader sampling ignores that number in test
+mode. Another pad may still leak native input because the game/guard attachment
+has not been redesigned. This experiment measures overlap and input acceptance;
+it does not establish automatic native matching. Near-simultaneous duplicate
+sources may still produce extra edges if their reported holds do not overlap.
+
+## Install and try (FFXI may remain open)
+1. Run `//xb controller stop`, wait for the current reader to exit (about 2s).
+2. Overlay this ZIP's xivcrossbar folder on the current installation. Keep data.
+3. Run `controller-all-slots.ahk` from inside the xivcrossbar folder with AHK v2.
+   It reads the saved profile from data/controller-launch.ini. Do not change
+   profiles during this run: the addon's profile switch starts the normal reader.
+4. Reload XIVCrossbar on clients for the added status/diagnostic fields. A running
+   test reader already matches the saved profile and is retained by startup.
+5. Release controls, focus FFXI, run `//xb controller status`; Reader Slots should
+   say All profile slots (test). Device number still describes the saved/native
+   selection; it is not the test reader's input gate.
+6. Try one controller, reconnect it, then additional compatible controllers over
+   USB/Bluetooth. Check buttons, trigger banks, menus, holds, client switching,
+   duplicate actions and native leakage. All addresses use the selected profile:
+   a different-model pad is not automatically assigned a different mapping.
+7. Send data/controller-all-slots.log plus a unified diagnostic if anything is odd.
+Rollback: `//xb controller stop`, wait for exit, then `//xb controller start`.
+That starts the regular single-device reader again. No FFXI restart is required.
+To restore original files entirely, restore ffxi_directinput.ahk from the previous
+build; the optional extra scripts can remain unused.
+
+## Verification and limits
+Five mocked Lua suites passed (diagnostics, runtime launch planning, startup
+notices, client registry and profile lifecycle); all 119 Lua files parsed after
+temporary Windower normalization. Mapping generation check and include closure
+checks passed. Normal and test entry points resolve their seven/eight script
+include closures respectively. Python packager compiles. Windows AHK regression
+fixture extended for overlap, final-source release/disconnect, neutral arming,
+slot 16, XInput range restriction and no-device behavior. Its staging harness now
+copies controller_slots.ahk. THESE AHK TESTS WERE NOT EXECUTED: no Windows/AHK
+runtime is available here. No controller or live FFXI acceptance is claimed.
+Run tests/public_ahk_v2.ps1 with an AHK v2 interpreter on Windows for those checks.
+This is an opt-in experiment, not the public beta release default. Earlier
+settings write-path/release packaging work remains pending. Commits remain local
+pending the earlier GitHub publication approval.
+
+---
+
+# Current Development Status — Black Magic and Summoner binder restoration
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `3cfe04b`; GitHub head remains the older published baseline
+pending the previous push approval. User reports Black Magic alphabetic ordering,
+unorganized/unfiltered Blood Pacts, and spirits mixed into the summon list.
+
+2026-11-11 delivery: `XIVCrossbar-Binder-Magic-Pacts-Patch.zip`.
+Black Magic joins White Magic/Bard songs in ascending resource-ID order.
+SummonerPact entries put all regular summons before spirits, with ascending ID
+inside each group. Blood Pact Rage/Ward now use the prior Pact Binding 1 helper
+and level catalog from published source `9f6eac6`: current main/sub SMN level
+plus learned, level-eligible summon spells determine binding eligibility.
+No pet or active Astral Flow is required to list/bind those pacts. Sort eligible
+pacts by required level, then avatar name, then ID. Preserve entry IDs/targets,
+custom artwork and generic/shipped Rage/Ward fallback icons. Missing JP data in
+the shared spell chooser now defaults to zero. Existing binding assignments and
+execution requirements are unchanged.
+
+Catalog provenance: `libs/blood_pact_levels.lua` restored verbatim from
+`9f6eac6` (GitHub blob `21160111d73b499b0b0b4278aebfbf2b095c8ddb`). Original
+level data derives from LandSandBoat abilities.sql plus official Siren Ward
+levels, as documented in the prior personal Pact Binding 1 delivery. This batch
+restores that catalog rather than claiming a new current-data audit. Unmapped
+pacts remain omitted; merits/JP/Astral Flow remain game-use restrictions, not
+additional binding filters. Wyvern/other pet actions do not enter SMN lists.
+
+Validation: 42 mocked Lua suites passed; 119 sources parsed under Lua 5.4 after
+temporary Windower syntax normalization. New test executes the actual Rage/Ward,
+Black Magic and summoning chooser functions with mocked UI/game data; exercises
+main/sub SMN levels, learned/unlearned avatars, above-level exclusion, no native
+pet-availability dependency, summon group order, missing JP data, targets and
+icon fallback. Existing Trust/White Magic/Song sorts and UI regressions pass.
+No live FFXI, Windows or Lua 5.1 execution is claimed.
+
+Install as an overlay on the current build, then reload XIVCrossbar on every
+client. No FFXI restart or reader change. Cumulative payload includes preceding
+config/availability/flicker changes plus two Rage/Ward fallback icons. User data
+is not supplied. Live: check Black Magic order, both pact lists without a pet,
+with/without Astral Flow, and the summons/spirit boundary. Verify learned avatars
+and level-eligible pacts, then bind one entry and check its target/label/icon.
+Flicker-fix live confirmation and all-address reader experiment remain pending.
+
+---
+
+# Current Development Status — Availability colour flicker repair
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `3b4d954`. User reports flickering on Cioara and supplied
+`client-20261111-090448-656456-2-client.log` (Library source
+`libfile_8eb5eb0983548191b76aaead5e2f284a`). Read the attached copy directly.
+
+2026-11-11 evidence: 30-second diagnostic, 1715 frames, full render ring had
+51108 overwritten records. Retained drawing entries span the tail of the capture
+and contain 5999 native.color calls, with 2999 object/frame pairs containing
+both 255/255/255 and 130/130/130. Visibility is Always at both endpoints.
+This proves repeated opposing drawing calls, not which pixels Windows displayed;
+it does not establish the absence of earlier visibility transitions.
+
+The preceding availability change reset icon/label colours before applying grey
+on each frame. Windower may draw between setters. Remove the early icon reset
+and choose the final icon/label colours once at the end of each slot update.
+Keep normal/menu shades, grey availability, original label colours on recovery,
+existing pet/trust cues and geometry/fades unchanged.
+
+Validation: 41 mocked Lua suites and 115 Lua source parse checks under Lua 5.4
+with temporary Windower syntax normalization. The availability test executes
+the actual final-colour block, requires one write per icon/label, checks recovery
+and menu shading, and rejects the original early reset. UI regression suites
+cover existing layouts and fades. No live FFXI confirmation or GPU capture.
+
+Delivery: `XIVCrossbar-Availability-Flicker-Patch.zip`; overlay current build and
+reload XIVCrossbar on every client. No FFXI restart or native/reader update.
+Includes current companion/config files for consistency. Live: leave the same
+unavailable slots visible on Cioara; confirm stable grey, then change availability
+and open/close the binder to check normal/menu colours. If flicker persists,
+repeat the diagnostic while it occurs. All-address AHK experiment remains deferred.
+Local commit only: GitHub publication remains pending earlier push approval.
+
+---
+
+# Current Development Status — Grey availability and controller wording
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `e47d8e0`. User confirmed synced red tint worked, then chose
+the original grey for all availability causes; pink is deferred.
+
+2026-11-11 delivery: `XIVCrossbar-Grey-Controller-Messages-Patch.zip`.
+Known JA/WS availability now uses the game's lists regardless of Level Sync;
+missing known actions use grey (130/130/130) instead of red. Ordinary pet-command
+and existing pet/trust availability rules remain. No bindings are rewritten.
+Spell eligibility and arbitrary macro interpretation are not expanded here.
+
+Visibility feedback and status display `On Input`, `Always`, or `Hidden` while
+saved values remain unchanged. Normal startup feedback is `Starting controller...`,
+`Controller ready.` (green after a matching connected ready heartbeat), and
+`Controller already running.` A cancelled launch cannot announce ready. A bounded
+10-second readiness check reports a missing controller or incomplete readiness
+with `//xb controller status` as the next step. Normal startup no longer includes
+the device/modifier string; detailed status retains profile and device selection.
+
+Checks: 41 mocked Lua suites and 115 temporarily normalized Lua 5.4 source parse
+checks. New tests exercise actual startup code with observed heartbeat, duplicate
+start, selection mismatch, cancellation, missing device and absent heartbeat;
+formatting checks verify green survives chat formatting and visibility captions.
+Availability tests cover both synced and unrestricted characters. No Windows,
+Lua 5.1 or live FFXI validation is claimed for this batch.
+
+Install over the current working build; reload XIVCrossbar on every client.
+No FFXI restart. Prior config ownership changes are included for a coherent overlay.
+Live checks: show/auto/hide feedback, startup with pad connected/disconnected,
+and JA/WS grey/restoration inside and outside sync. Last user-confirmed visual
+checkpoint is the preceding red availability build; grey revision is pending.
+GitHub publication remains blocked pending the earlier explicit push approval.
+
+Message audit proposals (not changed in this batch): replace shared-wrapper stop
+request with `Stopping controller for all clients...`; make selection mismatch
+feedback name a corrective command; reduce repeated selected/running fields in
+normal status while retaining diagnostics; make native-hook failures state the
+specific recovery action. Preserve diagnostic detail rather than hiding faults.
+Next separate experiment: all-address input aggregation in the AHK reader.
+That experiment is not included in this payload.
+
+---
+
+# Current Development Status — Synced action availability tint
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Starting checkpoint `6960169` includes the prior config ownership repair; that
+commit remains local because automatic approval review rejected its GitHub push.
+User approved dimming/red treatment for abilities and WS unavailable under sync.
+
+2026-11-11 delivery: `XIVCrossbar-Synced-Actions-Patch.zip`.
+While buff 269 (Level Sync) or 143 (Level Restriction) is active, sample
+`windower.ffxi.get_abilities()` every 250 ms. Known job abilities (including
+job-ability-backed pet actions) and weaponskills absent from their respective
+lists receive a dim red icon tint and muted red label. Linked custom actions
+use their linked metadata; arbitrary macros, spells, unknown actions and ordinary
+pet commands are unchanged. No bindings or action dispatch are altered.
+Availability restoration resets the tint; unavailable slots do not advertise
+skillchain opportunities or recast-ready flashes. Missing API/list data leaves
+the availability cue inactive rather than guessing. The game's lists can reflect
+weapon/unlock restrictions as well as levels; red means unavailable under the
+current restriction, not proof of a specific level requirement.
+
+Validation: 40 mocked Lua suites passed. 114 Lua sources parsed under Lua 5.4
+with temporary Windower syntax normalization. New tests cover list membership,
+JA/WS ID separation, learned pet actions versus pet commands, linked actions,
+unknown metadata, empty/missing lists, sync/restriction removal, tint restoration
+and the actual UI sampling block. Full existing UI, Auto hold and config registry
+regressions passed. No live FFXI or Lua 5.1 execution was available for this batch.
+
+Install over the current working build and reload XIVCrossbar on every client;
+no client restart or native/reader update. Package includes the earlier config
+ownership files to keep this overlay coherent. No data/settings are supplied.
+Live check: bind one low-level and one higher-level JA/WS, enter sync, verify
+only unavailable actions tint, change synced level, then remove sync and verify
+normal colors return. Check a bound WS after a weapon change while synced and
+confirm recast dimming, compact/full layouts and fades remain readable.
+
+References checked: Windower/Lua wiki FFXI-Functions (`get_abilities`) and
+Windower/Resources `resources_data/buffs.lua`; existing GearSwap consumers use
+these numeric ID lists. Current installed game-list refresh timing needs live
+confirmation. Prior malformed XML/concurrent saves investigation remains open.
+
+---
+
+# Current Development Status — Config registry ownership repair
+
+Repository `rerorriM-Mirrorer/xivcrossbar`, branch `fix/settings-inheritance`.
+Source checkpoint: `c01ba0db0d71c3ee38dcff0c24f095e2998bda71` (same tree as local
+Auto hold checkpoint `7bbf996`). User reports Auto hold now behaves as intended,
+but shared `libs/config.lua:339` raises `meta` nil.
+
+The private config copy advertised itself as `_libs.config`, while addon modules
+also used a mutable global `config` reference. Private and shared config copies
+have separate settings registries; a shared save cannot own a private table.
+The private module now leaves the shared singleton intact and explicitly loads
+it for companion libraries. All five addon config consumers keep a local import
+of the private module. Global inheritance and Auto hold behavior remain intact.
+
+Validation: 39 mocked Lua suites passed and 112 Lua sources parsed under Lua 5.4
+with temporary Windower syntax normalization. New ownership test executes private
+load/save with stubbed parsing, serialization, collections and I/O, verifies both
+registries save independently after global replacement, and checks all consumers
+import explicitly. UI fixtures now mock that explicit import. This is not live
+Windower/FFXI verification, nor a reproduction using the user's installed library.
+
+Install `XIVCrossbar-Config-Ownership-Patch.zip` over the current patched build;
+reload XIVCrossbar on every client. No native DLL/reader change or FFXI restart.
+Change Auto hold, reload, and check it persists without the config error. Then
+continue normal multibox play. Malformed XML/concurrent writes remain unresolved.
+
+---
+
 # Current Development Status — Auto hold keeps the idle layout visible
 
 Baseline `5fb06921a0a9a8f86c26320da9f6f16ec7881671`.

@@ -17,7 +17,10 @@ local json = require('json')
 
 local config = {}
 
-_libs.config = config
+-- Keep Windower's shared config singleton and its settings registry intact.
+-- Shared libraries (including logger/texts) use it independently of our copy.
+-- Every XIVCrossbar consumer imports this module explicitly instead.
+require('config')
 
 local error = error or print+{'Error:'}
 local warning = warning or print+{'Warning:'}

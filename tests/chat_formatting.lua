@@ -40,3 +40,7 @@ for _,path in ipairs({'action_binder.lua','player.lua'}) do
     assert(source:find("require('libs/chat_status')",1,true),'No shared formatter in '..path)
 end
 print('Color formatting: headings, command syntax, values, green ON, error, binding, field rows and chat-only output passed.')
+assert(status.visibility('oninput')=='On Input' and status.visibility('always')=='Always')
+assert(status.visibility('hidden')=='Hidden')
+status.say(158,'[XIVCrossbar] Controller ready.')
+assert(logs[#logs]:find('{158}Controller ready.',1,true),'Ready message must retain green')

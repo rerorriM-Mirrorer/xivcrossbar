@@ -83,6 +83,7 @@ source:gsub("windower%.register_event%('action'", function() count = count + 1 e
 assert(count == 1, 'action must have exactly one registered handler')
 local on_action, refreshes = nil, 0
 player.update_current_spells = function() refreshes = refreshes + 1 end
+env.action_success = {action=function()end}
 env.xivcrossbar = {ready = true}
 env.resources = {spells = {}}
 env.ui = {autoattack = {enabled = false}}

@@ -1,3 +1,4 @@
+local config = require('libs/settings_config')
 local chat_format = require('libs/chat_status')
 local res = require('resources')
 -- Windower's logger exports a non-raising error(). Guards need Lua's exception.
@@ -699,7 +700,7 @@ function player:execute_action(slot, bank_override)
         self.pending_env_switch = self.temp_switch_previous_env
         self.temp_switch_previous_env = nil
     end
-    return true
+    return true, action
 end
 
 function player:cancel_summon_swap()

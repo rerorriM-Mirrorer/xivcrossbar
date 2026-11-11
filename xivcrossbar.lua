@@ -24,7 +24,7 @@ end
 
 -- Libs
 res = require 'resources'
-config = require('libs/settings_config')
+local config = require('libs/settings_config')
 file = require('files')
 texts = require('texts')
 images = require('images')
@@ -77,6 +77,16 @@ local visibility = require('visibility')
 local player = require('player')
 local storage = require('storage')
 local ui = require('ui')
+local success_confirmed
+local success_policy = require('libs/pet_actions')
+local action_success = require('libs/action_success').new({
+    clock=require('socket').gettime, resources=res,
+    context=function() return player.hotbar_settings.active_environment end,
+    resolve=function(action,state)
+        return success_policy.resolve(action,state,require('resources/crossbar_spells'))
+    end,
+    emit=function(bar,slot) success_confirmed={bar,slot} end,
+})
 local env_chooser = require('environment_chooser')
 local action_binder = require('action_binder')
 local enchanted_items = require('enchanted_items')
@@ -464,7 +474,7 @@ end
 local function report_controller_status(embedded)
     chat_format.say(0,chat_format.heading(embedded and 'Controller' or 'XIVcrossbar | Controller'))
     chat_format.say(0,chat_format.row('Selected',controller_profiles.display_name(settings.ControllerProfile)..
-        ' / Device '..tostring(settings.ControllerDevice)))
+        ' / Guard Device '..tostring(settings.ControllerDevice)))
     local status=controller_status()
     local pending=controller_switcher and controller_switcher.pending
     if pending then
@@ -472,9 +482,13 @@ local function report_controller_status(embedded)
     end
     if status and status.running then
         chat_format.say(0,chat_format.row('Running',controller_profiles.display_name(status.profile)..
-            ' / Device '..tostring(status.device)))
+            (status.scan_mode == 'all-profile-slots' and ' / All Slots' or ' / Device '..tostring(status.device))))
         chat_format.say(0,chat_format.row('State',chat_format.state(status.state)..
             ' | Connected: '..chat_format.toggle(status.connected == '1')))
+        if status.scan_mode == 'all-profile-slots' then
+            chat_format.say(0,chat_format.row('Reader Slots','All profile slots | Connected: '..
+                ((status.scan_connected and status.scan_connected~='') and status.scan_connected or 'None')))
+        end
         local route=status.route or 'waiting-lease'
         chat_format.say(0,chat_format.row('Input',chat_format.input_route(route)))
         local guard_status = native_attach_failure and 'Hook Unavailable'
@@ -518,7 +532,8 @@ diagnostic=require('diagnostic_bridge').new({
         local reader={}
         for _,key in ipairs({'profile','device','state','connected','ready','route','ahk','running','fresh',
             'clients_reason','clients_loaded','clients_locked','clients_owner_errors','clients_invalid_records',
-            'clients_records','clients_seen','clients_last_kill','bridge_movement','bridge_ps'}) do
+            'clients_records','clients_seen','clients_last_kill','bridge_movement','bridge_ps',
+            'scan_mode','scan_connected','scan_active','reader_build','reader_script'}) do
             reader[key]=status[key]
         end
         if reader.bridge_ps then reader.bridge_ps=reader.bridge_ps:gsub(' HWND %d+',' [window]') end
@@ -563,9 +578,10 @@ function start_controller_wrappers(profile, device, modifier)
     local status = controller_status()
     if status and status.running then
         if not controller_profiles.matches(status, profile, device, modifier) then
-            chat_format.say(123, '[XIVCrossbar] Shared wrapper already uses another profile/device/modifier. Use //xb controller profile <name>.')
+            chat_format.say(123, '[XIVCrossbar] Controller is running with a different selection. Use //xb controller profile <name>.')
             return false
         end
+        chat_format.say(207, '[XIVCrossbar] Controller already running.')
         return true
     end
     -- Do not cancel a stop request before the existing process has consumed it.
@@ -584,12 +600,12 @@ function start_controller_wrappers(profile, device, modifier)
     local written, err = controller_profiles.write_launch(windower.addon_path .. 'data/controller-launch.ini',
         profile, device, modifier)
     if not written then
-        chat_format.say(123, '[XIVCrossbar] Could not save wrapper startup selection: ' .. tostring(err))
+        chat_format.say(123, '[XIVCrossbar] Could not save controller selection: ' .. tostring(err))
         return false
     end
     local plan, launch_error = controller_runtime:plan(windower.addon_path, profile, device, modifier)
     if not plan then
-        chat_format.say(123, '[XIVCrossbar] Could not start wrapper: ' .. tostring(launch_error))
+        chat_format.say(123, '[XIVCrossbar] Could not start controller: ' .. tostring(launch_error))
         return false
     end
     local attempt = {}
@@ -603,8 +619,26 @@ function start_controller_wrappers(profile, device, modifier)
             windower.send_command(plan.fallback_command)
         end, 1)
     end
-    chat_format.say(207, '[XIVCrossbar] Wrapper start requested: ' .. controller_profiles.display_name(profile) ..
-        ' / device ' .. device .. ' / ' .. modifier)
+    chat_format.say(207, '[XIVCrossbar] Starting controller...')
+    local checks = 0
+    local function observe_start()
+        if launch_attempt ~= attempt then return end
+        local current = controller_status()
+        local matched = controller_profiles.matches(current, profile, device, modifier)
+        if matched and current.state == 'ready' and current.connected == '1' then
+            chat_format.say(158, '[XIVCrossbar] Controller ready.')
+            return
+        end
+        checks = checks + 1
+        if checks >= 40 then
+            chat_format.say(123, '[XIVCrossbar] ' .. (matched and current.connected ~= '1'
+                and 'Controller not detected. Check //xb controller status.'
+                or 'Controller is not ready. Check //xb controller status.'))
+            return
+        end
+        coroutine.schedule(observe_start, 0.25)
+    end
+    coroutine.schedule(observe_start, 0.25)
     return true
 end
 local function stop_controller_wrapper()
@@ -772,6 +806,8 @@ function trigger_action(slot, bank, input_seq)
     local bar = bank or player.hotbar_settings.active_hotbar
     ui:press_slot_pulse(bar, slot)
     if ui.slot_glow_enabled then ui_dirty = true end
+    action_success:cancel()
+    success_confirmed=nil
     if settings.InputTest then
         if diagnostic and diagnostic.input_active and diagnostic:input_active() then
             diagnostic:record('ACTION',('seq=%s bank=%d slot=%d result=dummy'):format(tostring(input_seq),bar,slot))
@@ -780,7 +816,10 @@ function trigger_action(slot, bank, input_seq)
         ui:trigger_feedback(bar, slot)
         return
     end
-    local accepted = player:execute_action(slot, bank)
+    local before = success_policy.snapshot(windower.ffxi)
+    local context = player.hotbar_settings.active_environment
+    local accepted, action = player:execute_action(slot, bank)
+    if accepted then action_success:request(action,before,bar,slot,context) end
     if diagnostic and diagnostic.input_active and diagnostic:input_active() then
         diagnostic:record('ACTION',('seq=%s bank=%d slot=%d result=%s')
             :format(tostring(input_seq),bar,slot,accepted and 'accepted' or 'empty-or-rejected'))
@@ -1252,6 +1291,8 @@ end
 local function graceful_restart(unload)
     if restart_pending then return end
     restart_pending = true
+    success_confirmed=nil
+    action_success:cancel()
     xivcrossbar.ready = false
     crossbar_drag:finish()
     controller_switcher:cancel()
@@ -1306,6 +1347,8 @@ end)
 
 -- ON LOGOUT
 windower.register_event('logout', function()
+    success_confirmed=nil
+    action_success:cancel()
     if player.cancel_summon_swap then player:cancel_summon_swap() end
     profile_gate:reset()
     xivcrossbar.ready = false
@@ -1329,6 +1372,8 @@ end)
 
 -- ON UNLOAD
 windower.register_event('unload',function()
+    success_confirmed=nil
+    action_success:cancel()
     if player.cancel_summon_swap then player:cancel_summon_swap() end
     launch_attempt = nil
     native_stop(settings.NativeDetachOnUnload~=false)
@@ -1478,7 +1523,7 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(0,chat_format.heading('Crossbars'))
         chat_format.say(0,chat_format.row('Layout',
             (settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)))
-        chat_format.say(0,chat_format.row('Visibility',settings.VisibilityMode..' | Display: '..settings.DisplayPreset:upper()))
+        chat_format.say(0,chat_format.row('Visibility',chat_format.visibility(settings.VisibilityMode)..' | Display: '..settings.DisplayPreset:upper()))
         chat_format.say(0,chat_format.row('Animation',
             'Fades: '..chat_format.toggle(settings.Animation.Enabled)..
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
@@ -1807,13 +1852,13 @@ windower.register_event('addon command', function(command, ...)
             settings.VisibilityMode = 'always'
         else settings.VisibilityMode = 'oninput' end
         config.save(settings)
-        chat_format.say(207, '[XIVCrossbar] Visibility: ' .. settings.VisibilityMode)
+        chat_format.say(207, '[XIVCrossbar] Visibility: ' .. chat_format.visibility(settings.VisibilityMode))
         return
     elseif command == 'ui' and (args[1] == 'hide' or args[1] == 'show' or args[1] == 'auto') then
         settings.VisibilityMode = ({hide='hidden',show='always',auto='oninput'})[args[1]]
         ui.public_visible = nil
         config.save(settings)
-        chat_format.say(207, '[XIVCrossbar] Visibility: ' .. settings.VisibilityMode)
+        chat_format.say(207, '[XIVCrossbar] Visibility: ' .. chat_format.visibility(settings.VisibilityMode))
         return
     end
 
@@ -2661,7 +2706,15 @@ windower.register_event('prerender',function()
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
     -- Elapsed-time fades must keep progressing even when recast frames skip.
     if ui.geometry then ui.geometry:tick() end
-    if ui.is_setup then ui:tick_recast_flashes() end
+    if ui.is_setup then
+        if action_success.pending then action_success:tick(success_policy.snapshot(windower.ffxi)) end
+        ui:tick_recast_flashes()
+        ui:tick_action_success()
+        if success_confirmed then
+            ui:flash_action_success(success_confirmed[1],success_confirmed[2])
+            success_confirmed=nil
+        end
+    end
     -- allow settings to skip rendering frames
     frame = (frame + 1)  % (theme_options.frame_skip + 1)
     if (frame > 0 and not ui_dirty) then
@@ -2806,6 +2859,8 @@ end)
 
 -- ON JOB CHANGE
 windower.register_event('job change',function(main_job, main_job_level, sub_job, sub_job_level)
+    success_confirmed=nil
+    action_success:cancel()
     -- skillchains has its own internal state and is fine pre-init, so it
     -- runs unconditionally. Everything below it depends on initialize().
     skillchains.job_change(main_job, main_job_level)
@@ -2830,6 +2885,7 @@ local no_pet_environment = nil
 
 windower.register_event('action', function(act)
     if (not xivcrossbar.ready) then return end
+    action_success:action(act)
     -- Don't swap crossbars when someone *else* summons or uses Light/Dark Arts
     local windower_player = windower.ffxi.get_player()
     if (act.actor_id ~= windower_player.id) then
@@ -2910,6 +2966,8 @@ windower.register_event('incoming chunk', function(id, data)
 end)
 
 windower.register_event('zone change', function()
+    success_confirmed=nil
+    action_success:cancel()
     if player.cancel_summon_swap then player:cancel_summon_swap() end
     skillchains.zone_change()
 end)

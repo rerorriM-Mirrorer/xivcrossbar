@@ -15,7 +15,7 @@ end
 function player:load_hotbar()loads=loads+1;return true end
 local ui={setup=function()end,load_player_hotbar=function()end,
     get_set_chooser_anchor=function()end,hide=function()hidden=hidden+1 end}
-local env=setmetatable({xivcrossbar=state,storage=storage,player=player,ui=ui,
+local env=setmetatable({action_success={cancel=function()end},xivcrossbar=state,storage=storage,player=player,ui=ui,
     chat_format={say=function()end},
     character_identity=require('character_identity'),profile_gate=require('profile_gate').new(function()return 0 end),
     resources={servers={[1]={en='Asura'},[2]={en='Fenrir'}}},

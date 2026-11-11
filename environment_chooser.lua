@@ -1,3 +1,4 @@
+local config = require('libs/settings_config')
 local ui_resources = require('ui/resources')
 local env_chooser = {}
 local geometry = require('ui_geometry').new()

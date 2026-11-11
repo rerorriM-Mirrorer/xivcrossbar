@@ -38,6 +38,7 @@ package.loaded.player=player
 package.loaded['text_input_guard']={update=function()end}
 package.loaded.socket={gettime=function()return 1 end}
 config={load=function(d)return d end}
+package.preload['libs/settings_config']=function() return config end
 local prim_values,events={},{}
 local screen={ui_x_res=1280,ui_y_res=720}
 windower={addon_path='addon/',register_event=function(name,callback)

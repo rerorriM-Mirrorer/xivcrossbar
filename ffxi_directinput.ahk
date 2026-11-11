@@ -7,11 +7,19 @@
 #Include %A_ScriptDir%\controller_diagnostics.ahk
 #Include %A_ScriptDir%\controller_clients.ahk
 #Include %A_ScriptDir%\controller_mappings.ahk
+#Include %A_ScriptDir%\controller_slots.ahk
+allSlotsTest := true ; All slots of the selected profile backend, including normal startup.
+slotScan := {armed:Map(), signature:"unobserved", connected:"", active:""}
 SetWorkingDir(A_ScriptDir)
 instanceMutex := AcquireWrapperMutex()
 if (!instanceMutex)
     ExitApp()
 DirCreate(A_ScriptDir . "\data")
+; Manual test launch owns the same mutex, so it can clear a stale stop marker
+; only after the old reader has actually exited.
+if (allSlotsTest) {
+    try FileDelete(A_ScriptDir . "\data\input-stop.request")
+}
 ; A: one shared process; select transport only at startup, never mid-hold.
 profileArgument := A_Args.Length >= 2 ? A_Args[2] : ""
 deviceArgument := A_Args.Length >= 3 ? A_Args[3] : ""
@@ -139,11 +147,17 @@ ReleaseTransport() {
 
 ; A: read hardware only. Output, focus cleanup and rearming remain shared.
 ReadTransportStates(readKey := GetKeyState, observeBridge := false) {
+    global allSlotsTest, isXInput, slotScan
+    return ReadProfileSlots(ReadTransportSlot.Bind(readKey, observeBridge), isXInput ? 4 : 16, slotScan)
+}
+
+ReadTransportSlot(readKey := GetKeyState, observeBridge := false, slot := 0) {
     global isXInput, profile, device, joystickPrefix, joys, xinputGetState
     if (!isXInput) {
-        if (readKey(joystickPrefix . "JoyName") = "")
+        prefix := slot ? (slot = 1 ? "" : String(slot)) : joystickPrefix
+        if (readKey(prefix . "JoyName") = "")
             return false
-        pov := readKey(joystickPrefix . "JoyPOV")
+        pov := readKey(prefix . "JoyPOV")
         ; A controller can disappear between the name and POV reads.
         if (!IsNumber(pov))
             return false
@@ -155,19 +169,19 @@ ReadTransportStates(readKey := GetKeyState, observeBridge := false) {
             states.Push(pov >= 0 && (delta = 0 || delta = 4500 || delta = 31500))
         }
         for _, joy in joys
-            states.Push(readKey(joystickPrefix . "Joy" . joy) ? true : false)
+            states.Push(readKey(prefix . "Joy" . joy) ? true : false)
         if (observeBridge) {
-            x := readKey(joystickPrefix . "JoyX"), y := readKey(joystickPrefix . "JoyY")
+            x := readKey(prefix . "JoyX"), y := readKey(prefix . "JoyY")
             if (IsNumber(x) and IsNumber(y))
                 states.moveX := (x - 50) / 50, states.moveY := (y - 50) / 50
-            states.ps := profile = "ps5-directinput" and readKey(joystickPrefix . "Joy13") ? true : false
+            states.ps := profile = "ps5-directinput" and readKey(prefix . "Joy13") ? true : false
         }
         return states
     }
     if (!xinputGetState)
         return false
     state := Buffer(16, 0)
-    if (DllCall(xinputGetState, "UInt", device - 1, "Ptr", state, "UInt") != 0)
+    if (DllCall(xinputGetState, "UInt", (slot ? slot : device) - 1, "Ptr", state, "UInt") != 0)
         return false
     return DecodeXInputState(state, profile)
 }
@@ -204,7 +218,7 @@ InitXInput() {
 }
 
 WriteTransportStatus(force := false) {
-    global profile, device, phase, connected, ready, lastStatusTick, origin, CM, CB
+    global profile, device, phase, connected, ready, lastStatusTick, origin, CM, CB, allSlotsTest, slotScan
     if (!force and A_TickCount - lastStatusTick < 1000)
         return
     lastStatusTick := A_TickCount
@@ -217,6 +231,8 @@ WriteTransportStatus(force := false) {
     temporary := A_ScriptDir . "\data\controller-status.tmp"
     destination := A_ScriptDir . "\data\controller-status.ini"
     contents .= "bridge_movement=" . CB.lastMovement . "`nbridge_ps=" . CB.lastPS . "`n"
+    contents .= "scan_mode=all-profile-slots`nscan_connected=" . slotScan.connected . "`nscan_active=" . slotScan.active . "`n"
+    contents .= "reader_build=profile-slots2`nreader_script=" . A_ScriptName . "`n"
     contents .= WrapperClientsStatus()
     WriteControllerFile(temporary, destination, contents)
 }

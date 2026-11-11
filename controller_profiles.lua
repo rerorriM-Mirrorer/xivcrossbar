@@ -59,6 +59,7 @@ function M.read_status(path, now)
 end
 function M.matches(status, profile, device, modifier)
     return status and status.running and status.profile == profile
-        and tonumber(status.device) == tonumber(device) and status.modifier == modifier
+        and (status.scan_mode == 'all-profile-slots' or tonumber(status.device) == tonumber(device))
+        and status.modifier == modifier
 end
 return M

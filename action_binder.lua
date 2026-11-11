@@ -1,3 +1,4 @@
+local config = require('libs/settings_config')
 local shoulders = require('shoulder_banks')
 local chat_format = require('libs/chat_status')
 local ui_resources = require('ui/resources')
@@ -2511,7 +2512,7 @@ end
 function action_binder:display_magic_selector_internal(magic_type)
     local player = windower.ffxi.get_player()
     local main_job = player.main_job:lower()
-    local jp_spent = player.job_points[main_job].jp_spent
+    local jp_spent = player.job_points and player.job_points[main_job] and player.job_points[main_job].jp_spent or 0
     local level = player.main_job_level
 
     -- JP gift spells have a "level" requirement equivalent to their JP spend requirement
@@ -2557,9 +2558,11 @@ function action_binder:display_magic_selector_internal(magic_type)
         end
     end
 
-    -- ID order for White Magic and Bard songs; Trusts get portrait and role priority.
-    if magic_type == 'WhiteMagic' or magic_type == 'BardSong' then
+    -- Magic IDs preserve spell-family/tier order; summons put avatars before spirits.
+    if magic_type == 'WhiteMagic' or magic_type == 'BardSong' or magic_type == 'BlackMagic' then
         spell_list:sort(function(a, b) return a.id < b.id end)
+    elseif magic_type == 'SummonerPact' then
+        spell_list:sort(require('libs/binder_sort').summons)
     elseif magic_type == 'Trust' then
         spell_list:sort(sortTrusts)
     else
@@ -2637,64 +2640,29 @@ function action_binder:display_summoning_selector()
     self:show_control_hints('Confirm', 'Go Back')
 end
 
-function action_binder:display_bp_rage_selector()
-    self.title:text('Select Blood Pact: Rage')
+-- Binding eligibility is persistent level/avatar knowledge, not the current
+-- pet-command list. Inactive Astral Flow must not hide a bindable pact.
+function action_binder:display_blood_pact_selector(kind)
+    local ward=kind=='BloodPactWard'
+    self.title:text(ward and 'Select Blood Pact: Ward' or 'Select Blood Pact: Rage')
     self.title:show()
-
-    local ability_list = L{}
-
-    for id, ability in pairs(res.job_abilities) do
-        local name = ability.name
-        local target_type = ability.targets
-        local blood_pact = crossbar_abilities[kebab_casify(name)]
-
-        -- TODO: Change this to Set:contains() for better readability
-        if (blood_pact.category == 'blood-pacts/rage' and WYVERN_ABILITIES_TO_FILTER[blood_pact.id] == nil) then
-            local icon_path, icon_overridden = maybe_get_custom_icon(blood_pact.default_icon, blood_pact.custom_icon)
-            local icon_offset = 4
-            if (icon_overridden) then
-                icon_offset = 0
-            end
-
-            ability_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
-        end
+    local pacts=require('libs/blood_pacts')
+    local ability_list=L{}
+    local function exists(path)
+        return file.new(path:gsub('^/','')):exists()
     end
-
-    ability_list:sort(sortByName)
-
-    self.selector:display_options(ability_list)
-    self:show_control_hints('Confirm', 'Go Back')
-end
-
-function action_binder:display_bp_ward_selector()
-    self.title:text('Select Blood Pact: Ward')
-    self.title:show()
-
-    local ability_list = L{}
-
-    for id, ability in pairs(res.job_abilities) do
-        local name = ability.name
-        local target_type = ability.targets
-        local blood_pact = crossbar_abilities[kebab_casify(name)]
-
-        -- TODO: Icydeath had the WYVERN_ABILITIES_TO_FILTER on both BP Rage and BP Ward, but Aliekber only on Ward. Which is correct?
-        -- TODO: Change this to Set:contains() for better readability
-        if (blood_pact.category == 'blood-pacts/ward' and WYVERN_ABILITIES_TO_FILTER[blood_pact.id] == nil) then
-            local icon_path, icon_overridden = maybe_get_custom_icon(blood_pact.default_icon, blood_pact.custom_icon)
-            local icon_offset = 4
-            if (icon_overridden) then
-                icon_offset = 0
-            end
-
-            ability_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = target_type}})
-        end
+    for _,ability in ipairs(pacts.available(res.job_abilities,windower.ffxi.get_player(),res.spells,windower.ffxi.get_spells(),kind)) do
+        local name=ability.name or ability.en
+        local metadata=crossbar_abilities[kebab_casify(name)]
+        local icon,custom=pacts.icon(ability,metadata,get_icon_pathbase(),exists)
+        ability_list:append({id=ability.id,name=name,icon=icon,icon_offset=custom and 0 or 4,
+            data={target_type=ability.targets}})
     end
-
-    ability_list:sort(sortByName)
-
     self.selector:display_options(ability_list)
-    self:show_control_hints('Confirm', 'Go Back')
+    self:show_control_hints('Confirm','Go Back')
 end
+function action_binder:display_bp_rage_selector() self:display_blood_pact_selector('BloodPactRage') end
+function action_binder:display_bp_ward_selector() self:display_blood_pact_selector('BloodPactWard') end
 
 function action_binder:display_blue_magic_selector()
     self.title:text('Select Blue Magic Spell')

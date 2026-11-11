@@ -1,3 +1,4 @@
+local config = require('libs/settings_config')
 local shoulders = require('shoulder_banks')
 local pet_policy = require('libs/pet_actions')
 local trust_policy = require('libs/trust_actions')
@@ -5,6 +6,8 @@ local ui_resources = require('ui/resources')
 local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
 local crossbar_abilities = require('resources/crossbar_abilities')
+local action_costs = require('libs/action_costs')
+local synced_actions = require('libs/synced_actions')
 local crossbar_spells = require('resources/crossbar_spells')
 local defaults = require('defaults')
 settings = config.load(defaults)
@@ -77,6 +80,7 @@ ui.pulse_tracks = {}
 ui.pulse_visible_bars = {}
 ui.slot_pulse = nil
 ui.recast_samples, ui.recast_flashes, ui.recast_flash_views = {}, {}, {}
+ui.success_flashes, ui.success_views = {}, {}
 
 ui.disabled_slots = {}
 ui.disabled_slots.actions = {}
@@ -493,6 +497,7 @@ function ui:setup(theme_options, enchanted_items)
 
     self.theme.slot_opacity = theme_options.slot_opacity
     self.theme.disabled_slot_opacity = theme_options.disabled_slot_opacity
+    self.slot_label_color = {theme_options.font_color_red, theme_options.font_color_green, theme_options.font_color_blue}
     self.theme.hotbar_number = theme_options.hotbar_number
     self.AutoHideExtraBars = theme_options.AutoHideExtraBars
     self.UseAltLayout = theme_options.UseAltLayout
@@ -546,6 +551,7 @@ function ui:load(theme_options)
     end
     geometry:setup_bank_scales(theme_options.shoulder_banks and 9 or self.render_banks[#self.render_banks])
     self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
+    self.success_flashes, self.success_views = {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
     self.scale_visible, self.scale_active_bar = false, 0
@@ -906,6 +912,7 @@ end
 function ui:hide()
     self.display_bank, self.center_release_deadline = 0, nil
     self:clear_recast_flashes()
+    self:clear_action_success()
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
         'gcd_indicator_bg','gcd_indicator','aa_indicator_bg','aa_indicator_red','aa_indicator_green'}) do
@@ -1135,6 +1142,7 @@ end
 function ui:load_player_hotbar(player_hotbar, player_vitals, environment)
     self.resolved_slots = {}
     self:clear_recast_flashes()
+    self:clear_action_success()
     if environment == 'battle' and self.theme.hide_battle_notice == false then
         self.battle_notice:show()
     else
@@ -1227,7 +1235,7 @@ function ui:load_action(player_hotbar, environment, hotbar, slot, action, player
                     end
                 end
 
-                local mp_cost = tonumber(crossbar_action.mp_cost) or 0
+                local mp_cost = action_costs.mp(crossbar_action, res and res.job_abilities)
                 local tp_cost = tonumber(crossbar_action.tp_cost) or 0
                 if not action.trust_dismiss and (mp_cost > 0 or tp_cost > 0) then
                     local kind = mp_cost > 0 and 'mp' or 'tp'
@@ -1340,6 +1348,7 @@ end
 
 -- reset slot
 function ui:clear_slot(hotbar, slot)
+    self:clear_action_success(hotbar,slot)
     self:clear_recast_flash(hotbar, slot)
     self:clear_recast(hotbar, slot)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
@@ -1404,7 +1413,7 @@ function ui:check_vitals(player_hotbar, player_vitals, environment)
                 end
 
                 if (crossbar_action ~= nil) then
-                    local mp_cost = tonumber(crossbar_action.mp_cost) or 0
+                    local mp_cost = action_costs.mp(crossbar_action, res and res.job_abilities)
                     local tp_cost = tonumber(crossbar_action.tp_cost) or 0
                     local short_mp = mp_cost > 0 and player_vitals.mp < mp_cost
                     local short_tp = tp_cost > 0 and player_vitals.tp < tp_cost
@@ -1847,6 +1856,49 @@ function ui:clear_recast_flashes()
     self.recast_samples, self.recast_flashes = {}, {}
 end
 
+-- Success is separate from ready feedback: a fresh cooldown must not erase it.
+function ui:clear_action_success(hotbar,slot)
+    local target=hotbar and ((hotbar-1)*8+slot)
+    for key,views in pairs(self.success_views) do
+        if not target or target==key then
+            views.center:hide();views.border:hide();self.success_flashes[key]=nil
+        end
+    end
+end
+
+function ui:flash_action_success(hotbar,slot)
+    if not self.pulse_visible_bars[hotbar] then return end
+    local key=(hotbar-1)*8+slot
+    local views=self.success_views[key]
+    if not views then
+        views={center=new_image(images_setup),border=new_image(images_setup)}
+        views.center:path(windower.addon_path..'images/icons/iconpacks/default/ui/square.png')
+        views.center:size(40,40);views.center:color(255,235,174)
+        views.border:path(windower.addon_path..'images/assets/recast-glow.png')
+        views.border:size(48,48)
+        geometry:assign_bank(views.center,hotbar);geometry:assign_bank(views.border,hotbar)
+        self.success_views[key]=views
+    end
+    self.success_flashes[key]={hotbar=hotbar,slot=slot,started=self.recast_flash_clock()}
+    self:tick_action_success()
+end
+
+function ui:tick_action_success()
+    for key,flash in pairs(self.success_flashes) do
+        local views=self.success_views[key]
+        local left=1-(self.recast_flash_clock()-flash.started)/.4
+        if left<=0 or not self.pulse_visible_bars[flash.hotbar] then
+            self:clear_action_success(flash.hotbar,flash.slot)
+        else
+            local x,y=self:get_slot_x(flash.hotbar,flash.slot),self:get_slot_y(flash.hotbar,flash.slot)
+            views.center:pos(x,y);views.border:pos(x-4,y-4)
+            views.center:alpha(math.floor(184*left*left+.5))
+            views.border:alpha(math.floor(156*left*left+.5))
+            views.center:show();views.border:show()
+        end
+    end
+end
+
 -- A newly visible or rebound slot must first be observed on cooldown.
 function ui:observe_recast(hotbar, slot, action, remaining)
     if type(remaining) ~= 'number' then
@@ -1911,6 +1963,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     end
 
     dim_default_slots = dim_default_slots or false
+    if menu_open then self:clear_action_success() end
     local observe_recasts = self.recast_flash_enabled and not menu_open
     if menu_open and next(self.recast_samples) then self:clear_recast_flashes() end
 
@@ -1944,6 +1997,14 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         self.bar_background_right:hide()
     end
 
+    -- Cache for 250 ms; every rendered slot shares the same availability snapshot.
+    local availability_now = require('socket').gettime()
+    if not self.sync_checked_at or availability_now < self.sync_checked_at
+        or availability_now - self.sync_checked_at >= 0.25 then
+        self.sync_availability = synced_actions.snapshot(windower.ffxi)
+        self.sync_checked_at = availability_now
+    end
+    local sync_state = self.sync_availability or {}
     local pet_state
     self.resolved_slots = self.resolved_slots or {}
     for _, h in ipairs(self.render_banks) do
@@ -1969,7 +2030,6 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
                 self.hotbars[h].slot_background[i]:show()
                 local shade = menu_open and 205 or 255
-                self.hotbars[h].slot_icon[i]:color(shade, shade, shade)
                 self.hotbars[h].slot_icon[i]:show()
                 self.hotbars[h].slot_frame[i]:show()
                 self.hotbars[h].slot_element[i]:show()
@@ -2044,7 +2104,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 local glow = self.slot_glow_enabled and self.pulse_tracks[i]
                 if glow and glow.hotbar ~= h then glow = nil end
                 local occupied = action and action.action and action.action ~= ''
-                local unavailable = unavailable_reason or (glow and occupied and not action.type)
+                local availability_unavailable = synced_actions.unavailable(action, sync_state, crossbar_abilities)
+                local unavailable = availability_unavailable or unavailable_reason or (glow and occupied and not action.type)
 
                 -- Honor linked_type so an action that LINKS to a spell/ability/WS
                 -- enters the recast-tracking branch below even though its own
@@ -2314,7 +2375,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     end
 
                     if observe_recasts then
-                        self:observe_recast(h,i,action,has_spell and not in_warmup and remaining or nil)
+                        self:observe_recast(h,i,action,not availability_unavailable and has_spell and not in_warmup and remaining or nil)
                     end
 
                     if glow and (in_cooldown or in_warmup or not has_spell or not crossbar_action) then
@@ -2407,6 +2468,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
                     end
 
+                    if availability_unavailable then skillchain_prop = nil end
                     -- Restore base frame even with a warmup or missing metadata;
                     -- never leave the prior skillchain animation attached to this slot.
                     if skillchain_prop == nil then
@@ -2466,8 +2528,17 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
                     end
                 end
-                if unavailable_reason then
+                -- Submit only the final colour. White-then-grey writes on the
+                -- same surface can be rendered between Lua calls by Windower.
+                if availability_unavailable then
                     self.hotbars[h].slot_icon[i]:color(130, 130, 130)
+                    self.hotbars[h].slot_text[i]:color(130, 130, 130)
+                elseif unavailable_reason then
+                    self.hotbars[h].slot_icon[i]:color(130, 130, 130)
+                    self.hotbars[h].slot_text[i]:color(unpack(self.slot_label_color))
+                else
+                    self.hotbars[h].slot_icon[i]:color(shade, shade, shade)
+                    self.hotbars[h].slot_text[i]:color(unpack(self.slot_label_color))
                 end
                 if glow then
                     if not occupied then glow.brightness = 145
