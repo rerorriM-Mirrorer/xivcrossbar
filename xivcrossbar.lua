@@ -1895,18 +1895,25 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
-    if command == 'eventbars' then
+    if command == 'cutscene' or command == 'eventbars' then
         local mode = args[1] and args[1]:lower() or 'status'
+        local old_alias = command == 'eventbars'
         if mode == 'on' or mode == 'off' then
-            settings.EventBars = mode == 'on'
+            -- Old //xb eventbars on meant "permit bars in events".
+            -- Cutscene is the inverse, and ONLY changes Show's presentation.
+            settings.Cutscene = old_alias and mode == 'off' or
+                (not old_alias and mode == 'on')
+            settings.EventBars = not settings.Cutscene
             ui_dirty = true
             config.save(settings)
         elseif mode ~= 'status' then
-            chat_format.say(123, '[XIVCrossbar] //xb eventbars [on|off|status]')
+            chat_format.say(123, '[XIVCrossbar] //xb cutscene [on|off|status]')
             return
         end
-        chat_format.say(207, '[XIVCrossbar] Event banks: ' ..
-            (settings.EventBars and 'Reveal on hold' or 'Original behavior'))
+        chat_format.say(207, '[XIVCrossbar] Cutscene hiding in Show: ' ..
+            (settings.Cutscene and 'ON' or 'OFF') ..
+            ' | Auto is always available.' ..
+            (old_alias and ' //xb eventbars is a legacy alias.' or ''))
         return
     end
 
@@ -2392,7 +2399,8 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
     if restart_pending or native_mode ~= 'guard' or (not native_filtering and not handoff_press) then return 'guard-inactive' end
     local context = input_context()
     local info = windower.ffxi.get_info()
-    if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
+    -- Chat belongs to FFXI for bare buttons. Holding a crossbar modifier
+    -- explicitly transfers its eight slots to XIVCrossbar even during chat.
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return 'unmapped-or-held',context end
     if controller_bridge then
@@ -2430,11 +2438,11 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
             action_binder:set_shoulder_combo(shoulder_banks.ids[bank])
             ui_dirty = true
         end
-        local eligible = context == 'gameplay' and info and not info.menu_open and windower.has_focus()
+        local eligible = context == 'gameplay' and info and windower.has_focus()
         local targeting = gamepad_state.shoulder_targeting
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, eligible)
         local actor = targeting and windower.ffxi.get_player()
-        targeting = actor and actor.status ~= 4
+        targeting = actor ~= nil
         local action
         if targeting and pressed then
             local has_target = not not windower.ffxi.get_mob_by_target('t')
@@ -2469,8 +2477,8 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
     if settings.InputTrace then
         chat_format.say(207, '[XIVCrossbar test] '..item.name..' '..edge..' | '..tostring(owner or context))
     end
-    if context == 'login' or (pressed and context == 'native-chat') then return 'native-context',context end
-    if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return 'release-context-changed',context end
+    if context == 'login' then return 'native-context',context end
+    if not pressed and (not owner or (owner ~= context and not transition)) then return 'release-context-changed',context end
     if item.logical <= 66 and context == 'gameplay' and pressed and gamepad_state.shoulder_slots
         and info and windower.has_focus() then
         local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true)
@@ -2480,7 +2488,7 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
             return 'shoulder-slot',context,shoulder_banks.ids[bank],slot
         end
     end
-    if item.logical <= 66 and (context == 'gameplay' or context == 'native-chat') then return 'no-addon-claim',context end
+    if item.logical <= 66 and context == 'gameplay' then return 'no-addon-claim',context end
     if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return 'set-chooser-ignored',context end
     local captured = gamepad_state.capturing
     gamepad_state.capturing = true
@@ -2498,7 +2506,7 @@ message_bridge=require('controller_messages').new({
     adopt=function(mask,bank)
         local info=windower.ffxi.get_info()
         if not windower.has_focus() or not xivcrossbar.ready or crossbar_menu_open()
-            or not info or info.chat_open then return false end
+            or not info then return false end
         -- Re-enter through normal trigger-down handling so press-dependent bank
         -- selection/animation runs on the destination. Do not replay slot actions
         -- or shoulder tap/set-cycle shortcuts merely because focus changed.
@@ -2735,7 +2743,10 @@ do
             if native_mode=='guard' and not lease_alive then
                 context=4 -- observe only until the reader has joined this PID
             else
-                context=(gamepad_mapper.is_showing or crossbar_menu_open()) and 2 or (info.chat_open and 3 or 1)
+                -- Native mode 3 suppresses addon capture. Chat and FFXI menus
+                -- must not force it: held modifiers own their bound slots,
+                -- while ordinary unmodified buttons stay native.
+                context=(gamepad_mapper.is_showing or crossbar_menu_open()) and 2 or 1
             end
         end
         if native_filtering and context==4 then clear_controller_input() end
@@ -2743,14 +2754,14 @@ do
             and controller_bridge and controller_bridge.menu:mask(buttonmapping) or 0
         local actor = context == 1 and trust_slots == 0 and message_bridge.extended
             and (native_gamepad.shoulder_slots or settings.ShoulderBanks.Targeting) and windower.ffxi.get_player()
-        local targeting = native_gamepad.tap_tab and actor and not info.menu_open and actor.status ~= 4
+        local targeting = native_gamepad.tap_tab and actor
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
-        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor, settings.EventBars)
+        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor)
             and shoulder_banks.capture_mask(settings.ShoulderBanks, settings.ControllerProfile) or 0
         local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
             and action_binder:is_binding_combo()
         local handoff = native_gamepad.handoff_revision==1 and (context==1 or context==4)
-            and xivcrossbar.ready and info and not info.chat_open and not crossbar_menu_open()
+            and xivcrossbar.ready and info and not crossbar_menu_open()
         local personal_sets=native_gamepad.personal_revision==1 and require('libs/personal_controls').options(settings).SetCycling
         if native_gamepad.extra_capture then
             local personal=require('libs/personal_controls').options(settings)
@@ -2813,7 +2824,7 @@ windower.register_event('prerender',function()
     local bank, bank_visible
     if gamepad_state.shoulder_slots and native_filtering then
         local info = windower.ffxi.get_info()
-        local eligible = info and not info.chat_open and input_context() == 'gameplay'
+        local eligible = info and input_context() == 'gameplay'
         bank, bank_visible = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile,
             transport.down, eligible)
     end
@@ -2853,8 +2864,16 @@ windower.register_event('prerender',function()
         return
     end
 
-    local visibility_mode = visibility.event_mode(settings.VisibilityMode, xivcrossbar.hide_hotbars, settings.EventBars)
-    if ui.is_setup and visibility_mode ~= 'hidden' and (not xivcrossbar.hide_hotbars or visibility_mode == 'oninput')
+    local visibility_mode = settings.VisibilityMode
+    local info = windower.ffxi.get_info()
+    local actor = windower.ffxi.get_player()
+    local hp = actor and tonumber(actor.hpp)
+    local stored_hp = player.vitals and tonumber(player.vitals.hp)
+    if (actor and actor.status == 2) or hp == 0 or stored_hp == 0 then hp = 0
+    elseif hp == nil then hp = stored_hp end
+    local cutscene_hidden = visibility.cutscene_hidden(visibility_mode, settings.Cutscene,
+        xivcrossbar.hide_hotbars, hp, info)
+    if ui.is_setup and visibility_mode ~= 'hidden'
         and (gamepad_state.left_trigger or gamepad_state.right_trigger) then
         ui.geometry:interrupt_startup_reveal()
     end
@@ -2868,13 +2887,13 @@ windower.register_event('prerender',function()
     local now = profile_clock()
     local hold_seconds = tonumber(settings.AutoHold) or 0
     local can_hold = hold_seconds > 0 and visibility_mode == 'oninput' and focused
-        and not menu_open and not xivcrossbar.hide_hotbars
-    local info = can_hold and windower.ffxi.get_info()
+        and not menu_open
     local holding = ui.is_setup and visibility.update_hold(ui.auto_hold, held, hold_seconds, now,
-        info and not info.chat_open)
-    local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(visibility_mode,
-        held or holding, xivcrossbar.hide_hotbars, ui.is_setup and ui.geometry:is_startup_reveal_pending())
-        or action_binder:is_moving_crossbars() or env_chooser:is_showing()
+        can_hold)
+    local visible = (menu_open or visibility.should_show(visibility_mode,
+        held or holding, cutscene_hidden, ui.is_setup and ui.geometry:is_startup_reveal_pending())
+        or action_binder:is_moving_crossbars() or env_chooser:is_showing())
+        and not cutscene_hidden
     if not visible then crossbar_drag:finish() end
     local display_bank
     if ui.is_setup then
@@ -2899,7 +2918,7 @@ windower.register_event('prerender',function()
 
     if ui.is_setup then
         local lockout_visible = visibility_mode ~= 'hidden' and
-            (visible or (visibility_mode == 'oninput' and not xivcrossbar.hide_hotbars))
+            (visible or visibility_mode == 'oninput')
         ui:display_gcd_indicator(lockout_visible)
     end
 
@@ -2937,8 +2956,8 @@ end)
 windower.register_event('status change', function(new_status_id)
     if (not xivcrossbar.ready) then return end
     ui.public_visible = nil
-    -- Presentation is resolved on render so held triggers can override Event
-    -- hiding in Auto without showing inactive bars on a status transition.
+    -- Event status feeds only the optional Cutscene hide in Show.
+    -- Auto never hides or disables crossbar input because of status 4.
     xivcrossbar.hide_hotbars = new_status_id == 4
     ui_dirty = true
 
