@@ -1,3 +1,45 @@
+# Current Development Status - Deferred fixes and test-package register
+
+2026-11-12, rerorriM-Mirrorer/xivcrossbar, fix/settings-inheritance.
+Documentation-only update after published 0a5540b; no runtime changes/tests.
+User confirms restored permissive PS behavior is the desired behavior.
+Held-trigger/client switching works well enough for now; defer further work.
+
+Deferred correctness fixes:
+- Shared settings.xml corruption after //all xb me. Uploaded settings(20261112-142343).xml
+  has a complete document followed by a partial Clairvaux tail and second root
+  ending. Direct shared-file writes in libs/settings_config.lua have no cross-client
+  lock; overlapping writes are strongly supported, exact live interleaving unproven.
+  Recovered global/Cioara and surviving Clairvaux content into a separate valid XML.
+  Plan: coordinate cross-process read/merge/write, preserve other character sections,
+  atomically replace, validate and retain a recoverable known-good copy. Reducing
+  settings count alone will not fix concurrent writes. Avoid broadcast settings
+  changes pending repair; user explicitly defers implementation.
+- Intermittent native D-pad targeting leak on held-modifier client switch.
+  Fresh destination modifier presses and permissive PS are delivered; native focus
+  quarantine/join timing needs separate diagnosis. Do not claim fixed by fresh presses.
+
+User testing register:
+- Extra Controls 462002c (new routing/right-stick zoom/touchpad): not installed at
+  last explicit report; movement/camera controls still pending acceptance.
+- Permissive PS/Fresh Press 0a5540b: PS behavior confirmed good by user.
+- Uploaded XIVCrossbar_SetName_UI_Overlay_20261112(1).zip: active UI test,
+  branch test/set-name-hud-20261112 based on 0a5540b. Seven Lua runtime files,
+  no AHK/DLL. Retains fresh-modifier route and extra native capability. Do not
+  overwrite its xivcrossbar.lua with older controller overlays afterward.
+- If combining these exact packages: Extra Controls, then PS/Fresh Press, then
+  this SetName UI overlay LAST. Extra Controls DLL install requires all clients
+  closed; later Lua/AHK-only overlays need addon reload/reader restart. A newer
+  UI package may supersede the uploaded snapshot; do not claim it includes later
+  label requests. No automatic installation or repository merge performed here.
+
+Public beta preparation: review obsolete/internal/personal-only settings for
+clear defaults and opt-in behavior; retain user preference compatibility. Settings
+storage race is a higher priority correctness issue than trimming XML. Alpha is
+still-shaping functionality; beta is intended-scope feature/stability testing.
+
+---
+
 # Current Development Status - Permissive PS and fresh modifier arrival
 
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar, branch
