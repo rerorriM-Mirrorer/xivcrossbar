@@ -1,3 +1,36 @@
+# Current Development Status - Persistent double-tap captions and menu-visible set name
+
+2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar,
+branch test/set-name-hud-20261112. Starting published source:
+79f832454bedc3cbc7279aba9d6bcf2f87c69843.
+Read current GitHub AGENTS.md, WORKFLOW.md, TESTING.md.
+User confirmed Default Compact and Full trigger captions and set name
+look excellent with //xb banklabeloffset 0 3. Legacy Compact appearance
+may prefer 0 9. Future layout naming proposal: Full, Compact, Tight.
+These are observed tuning references, not new automatic mode-specific
+offset settings; the existing position controls and settings are unchanged.
+
+AutoHideExtraBars=false is the Legacy preset setting that keeps double-
+tap banks visible. The set-name caption and, in full mode, Share/Options
+hints now remain shown while selecting double-tap banks 5/6 only if
+AutoHideExtraBars=false. Combined banks 3/4 and shoulders 7/8/9
+still hide them immediately. When AutoHideExtraBars=true, double-tap
+banks still hide them. The set-name caption remains visible whenever
+the binder or set chooser is open, regardless of the preview bank,
+and retains live set name updates; full-layout hints stay hidden in
+menus. Normal whole-HUD autohide/fade remains owned by geometry.
+
+Changed runtime: ui.lua only. Changed mocked regression:
+tests/set_name_label.lua. README and cumulative TESTING.md are updated.
+Existing saved offsets, controller bridge, AHK, DLL, other presets,
+and binding XML remain untouched. Testing: please exercise persistent
+and autohidden extra bank options, combo/shoulder precedence, binder
+and Options chooser open/close, immediate title change, both compact/
+full, fade/autohold. CI/static status to follow; no live FFXI execution
+has been carried out by the assistant.
+
+---
+
 # Current Development Status - Set-name HUD offset command verification
 
 2026-11-12 (America/Chicago), repository rerorriM-Mirrorer/xivcrossbar,

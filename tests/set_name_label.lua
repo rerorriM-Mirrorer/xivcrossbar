@@ -18,10 +18,10 @@ for _,preset in ipairs({'legacy','default','me'}) do
         ui:update_context_labels(h,true,false)
         assert(ui.set_name_label:visible(),preset..' idle/single trigger')
     end
-    for _,h in ipairs({3,4,5,6,7,8,9}) do
+    for _,h in ipairs({3,4,7,8,9}) do
         ui.geometry.deferring_hide=true
         ui:update_context_labels(h,true,false)
-        assert(not ui.set_name_label:visible(),preset..' special bank hidden')
+        assert(not ui.set_name_label:visible(),preset..' combined/shoulder bank hidden')
         assert(not m.defer_visible,'special bank must hide immediately')
         if not ui.is_compact then
             assert(not ui.button_hints.binder_icon:visible() and
@@ -29,12 +29,44 @@ for _,preset in ipairs({'legacy','default','me'}) do
         end
         ui.geometry.deferring_hide=false
     end
+    for _,h in ipairs({5,6}) do
+        ui.geometry.deferring_hide=true
+        ui:update_context_labels(h,true,false)
+        local expected = not options.AutoHideExtraBars
+        assert(ui.set_name_label:visible()==expected,preset..' double-tap respects extra bar setting')
+        assert(not m.defer_visible,'double-tap context switch must be immediate')
+        if not ui.is_compact then
+            assert(ui.button_hints.binder_icon:visible()==expected,'full double-tap hint rule')
+            assert(ui.button_hints.chooser_text:visible()==expected,'full double-tap hint text rule')
+        end
+        ui.geometry.deferring_hide=false
+    end
+    -- The display rule follows the live option, not the preset name.
+    ui.AutoHideExtraBars = not ui.AutoHideExtraBars
+    ui:update_context_labels(5,true,false)
+    assert(ui.set_name_label:visible()==(not ui.AutoHideExtraBars),
+        'changing persistent-extra setting changes double-tap caption policy')
+    ui.AutoHideExtraBars = options.AutoHideExtraBars
+    ui:update_context_labels(1,true,false)
     ui:update_context_labels(1,true,false)
     assert(ui.set_name_label:visible(),'single trigger returns')
     if not ui.is_compact then assert(ui.button_hints.chooser_icon:visible(),'full hint returns') end
     ui:update_context_labels(1,true,true)
-    assert(not ui.set_name_label:visible(),'menu hides set name')
+    assert(ui.set_name_label:visible(),'binder menu keeps set name')
+    if not ui.is_compact then
+        assert(not ui.button_hints.binder_text:visible(),'menu still hides hint text')
+        assert(not ui.button_hints.chooser_icon:visible(),'menu still hides hint icons')
+    end
+    ui:set_chooser_open(true)
+    ui:update_context_labels(3,true,true)
+    assert(ui.set_name_label:visible(),'set chooser keeps name even over combined preview')
+    ui:set_set_name('New set from chooser')
+    assert(ui.set_name_label:text()=='NEW SET FROM CHOOSER'
+        and ui.set_name_label:visible(),'chooser selection refreshes visible caption')
+    ui:set_chooser_open(false)
     ui:update_context_labels(0,true,false)
+    assert(ui.set_name_label:visible(),'set name returns to idle after menus')
+    ui:set_set_name('Travel / Tools')
     ui:set_set_name_visible(false);assert(not ui.set_name_label:visible())
     ui:set_set_name_visible(true);assert(ui.set_name_label:visible())
     ui:set_bank_label_opacity(80)

@@ -1037,17 +1037,24 @@ function ui:set_set_name_visible(enabled)
     else self.set_name_label:hide(true) end
 end
 
--- Hide special-bank captions immediately, but leave HUD-wide fade ownership
--- with ui:hide() for normal autohide and autohold transitions.
+-- The ordinary caption rail remains when an already-displayed double-tap
+-- bank is selected. Combined and shoulder banks still replace that rail.
+-- Addon menus keep the set name visible independently of their bank preview,
+-- while Share/Options hints retain the existing menu suppression.
+-- Context hides are immediate; normal HUD autohide still fades through ui:hide.
 function ui:update_context_labels(bank, visible, menu_open)
     if not visible then return end
-    local ordinary=not menu_open and (bank==0 or bank==1 or bank==2)
-    self.context_labels_visible=ordinary
-    if ordinary and not self.is_compact then self:show_button_hints()
+    local normal_bank = bank == 0 or bank == 1 or bank == 2
+    local persistent_double = not self.AutoHideExtraBars and (bank == 5 or bank == 6)
+    local normal_caption = normal_bank or persistent_double
+    local show_hints = normal_caption and not menu_open
+    local show_name = menu_open or normal_caption
+    self.context_labels_visible = show_hints
+    if show_hints and not self.is_compact then self:show_button_hints()
     else self:hide_button_hints(true) end
     if self.set_name_label then
-        if ordinary and self.set_name_enabled and self.bank_label_opacity>0
-            and self.set_name_text and self.set_name_text~='' then
+        if show_name and self.set_name_enabled and self.bank_label_opacity > 0
+            and self.set_name_text and self.set_name_text ~= '' then
             self.set_name_label:show()
         else self.set_name_label:hide(true) end
     end
