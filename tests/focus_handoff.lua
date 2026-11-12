@@ -20,22 +20,24 @@ end
 m:context('invalid',true,true)
 assert(not accept('1,resume,16,5\n'))
 assert(not accept('1,resume,1,7\n'))
--- Execute the actual adoption callback. It restores state without routing a press.
+-- Execute the production callback and verify fresh destination modifier presses.
 local f=assert(io.open('xivcrossbar.lua'));local s=f:read('*a');f:close()
 local a=assert(s:find('    adopt=function(mask,bank)',1,true))
 local b=assert(s:find('    event=route_controller_message,',a,true))
-local state,transport={},{down={}}
-local closed,selected=0,0
+local pressed,closed={},0
+local transport={reset=function()end}
 local env=setmetatable({windower={has_focus=function()return true end,ffxi={get_info=function()return {}end}},
     xivcrossbar={ready=true},crossbar_menu_open=function()return false end,
-    gamepad_state=state,transport=transport,theme_options={hotbar_number=6},
+    gamepad_state={},transport=transport,
     close_left_doublepress_window=function()closed=closed+1 end,
     close_right_doublepress_window=function()closed=closed+1 end,
-    change_active_hotbar=function(bank)selected=bank end},{__index=_G})
-local callback=assert(load('return {'..s:sub(a,b-1)..'}','real adoption','t',env))().adopt
-assert(callback(1,5) and selected==5 and state.left_trigger_doublepress)
-assert(callback(2,6) and selected==6 and state.right_trigger_doublepress)
-assert(callback(3,4) and selected==4 and state.left_trigger and state.right_trigger)
-assert(callback(12,0) and state.active_bar==0 and transport.down[89] and transport.down[90])
-assert(closed==8,'handoff closes gesture windows without opening a new one')
-print('Focus handoff: modifier masks, bank preservation, no action replay, fresh actions, invalid/duplicate packets and real adoption passed.')
+    route_controller_message=function(dik,down,chord,seq,handoff)
+        assert(down and handoff and not chord);pressed[#pressed+1]=dik
+    end},{__index=_G})
+local callback=assert(load('return {'..s:sub(a,b-1)..'}','fresh handoff','t',env))().adopt
+assert(callback(1,5) and pressed[1]==87,'held L2 gets a fresh trigger press, not a restored double bank')
+pressed={};assert(callback(2,6) and pressed[1]==88)
+pressed={};assert(callback(3,4) and pressed[1]==88 and pressed[2]==87,'combined trigger order retained')
+pressed={};assert(callback(12,0) and pressed[1]==89 and pressed[2]==90)
+assert(closed==8)
+print('Focus handoff: consume held actions, fresh destination modifier presses, combo order and duplicate rejection passed.')

@@ -52,3 +52,13 @@ assert(#outputs==1,'bare touchpad remains observation only')
 env.native_gamepad.extra_revision=nil
 route(89,true);route(203,true);route(203,false);route(89,false)
 assert(#outputs==1,'old native hook cannot enable an unblocked shortcut')
+
+-- Handoff modifier presses can initialize before the first ordinary message heartbeat.
+env.native_filtering=false
+context='gameplay'
+route(87,true,false,nil,true)
+assert(context=='crossbar','handoff runs the actual trigger press route during receiver join')
+route(89,true,false,nil,true)
+assert(#changes==2,'handoff shoulders never replay previous-set shortcut')
+env.native_filtering=true
+route(89,false);route(87,false)

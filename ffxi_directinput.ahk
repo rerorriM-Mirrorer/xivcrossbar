@@ -107,6 +107,14 @@ TransportPoll() {
         WriteTransportStatus()
         return
     }
+    ; PS is a window shortcut, independent of crossbar rearming/message readiness.
+    PersonalPSPoll(states,active,CB.ps,false)
+    if (WinActive("ahk_class FFXiClass") != active) {
+        BridgeRelease()
+        ReleaseTransport()
+        ready := false
+        return
+    }
     neutral := true
     Loop 12 {
         if (states[A_Index])

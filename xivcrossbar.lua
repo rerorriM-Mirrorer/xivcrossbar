@@ -2337,8 +2337,8 @@ windower.register_event('keyboard', controller_keyboard)
 
 -- DirectLink routes addon input only. FFXI receives untouched native
 -- gameplay/navigation, including dialogue and the login screens.
-local function route_controller_message(dik, pressed, chord, seq)
-    if restart_pending or native_mode ~= 'guard' or not native_filtering then return 'guard-inactive' end
+local function route_controller_message(dik, pressed, chord, seq, handoff_press)
+    if restart_pending or native_mode ~= 'guard' or (not native_filtering and not handoff_press) then return 'guard-inactive' end
     local context = input_context()
     local info = windower.ffxi.get_info()
     if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
@@ -2363,7 +2363,7 @@ local function route_controller_message(dik, pressed, chord, seq)
         end
         return 'extra-observe',context
     end
-    if pressed and windower.has_focus() and context=='crossbar' and personal.SetCycling and native_gamepad.personal_revision==1 and (dik==89 or dik==90)
+    if not handoff_press and pressed and windower.has_focus() and context=='crossbar' and personal.SetCycling and native_gamepad.personal_revision==1 and (dik==89 or dik==90)
         and ((dik==89 and transport.down[87] and not transport.down[88] and not transport.down[90])
         or (dik==90 and transport.down[88] and not transport.down[87] and not transport.down[89])) then
         for slot_dik=59,68 do if transport.down[slot_dik] then return 'set-cycle-blocked',context end end
@@ -2373,6 +2373,7 @@ local function route_controller_message(dik, pressed, chord, seq)
         return 'personal-set-cycle',context
     end
     if dik == 89 or dik == 90 then
+        if handoff_press then return 'handoff-shoulder-press',context end
         if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
             local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
             action_binder:set_shoulder_combo(shoulder_banks.ids[bank])
@@ -2447,23 +2448,20 @@ message_bridge=require('controller_messages').new({
         local info=windower.ffxi.get_info()
         if not windower.has_focus() or not xivcrossbar.ready or crossbar_menu_open()
             or not info or info.chat_open then return false end
-        local held={}
-        for bit,dik in ipairs({87,88,89,90})do
-            if math.floor(mask/2^(bit-1))%2==1 then held[dik]='gameplay' end
-        end
-        transport.down=held
-        gamepad_state.left_trigger=held[87]~=nil
-        gamepad_state.right_trigger=held[88]~=nil
-        gamepad_state.left_trigger_doublepress=bank==5 and gamepad_state.left_trigger and not gamepad_state.right_trigger
-        gamepad_state.right_trigger_doublepress=bank==6 and gamepad_state.right_trigger and not gamepad_state.left_trigger
+        -- Re-enter through normal trigger-down handling so press-dependent bank
+        -- selection/animation runs on the destination. Do not replay slot actions
+        -- or shoulder tap/set-cycle shortcuts merely because focus changed.
+        transport:reset()
+        gamepad_state.left_trigger=false;gamepad_state.right_trigger=false
+        gamepad_state.left_trigger_doublepress=false;gamepad_state.right_trigger_doublepress=false
         close_left_doublepress_window();close_right_doublepress_window()
-        local selected=0
-        if gamepad_state.left_trigger and gamepad_state.right_trigger then
-            selected=(theme_options.hotbar_number==4 or theme_options.hotbar_number==6) and bank==4 and 4 or 3
-        elseif gamepad_state.left_trigger then selected=gamepad_state.left_trigger_doublepress and theme_options.hotbar_number>=5 and 5 or 1
-        elseif gamepad_state.right_trigger then selected=gamepad_state.right_trigger_doublepress and theme_options.hotbar_number>=5 and 6 or 2 end
-        gamepad_state.active_bar=selected
-        if selected~=0 then change_active_hotbar(selected) end
+        local order=bank==4 and {88,87,89,90} or {87,88,89,90}
+        for _,dik in ipairs(order) do
+            local bit=({[87]=0,[88]=1,[89]=2,[90]=3})[dik]
+            if math.floor(mask/2^bit)%2==1 then
+                route_controller_message(dik,true,false,nil,true)
+            end
+        end
         ui_dirty=true
         return true
     end,

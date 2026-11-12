@@ -1,3 +1,41 @@
+# Current Development Status - Permissive PS and fresh modifier arrival
+
+2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar, branch
+fix/settings-inheritance. Starting published source 462002c. Read current
+GitHub AGENTS.md, WORKFLOW.md and TESTING.md before editing. Compared old
+personal AHK v1 source 52bfa1d directly. User reports restrictive PS behavior
+and requests held triggers read as new presses on the destination.
+
+PS: last non-FFXI application with suitable window fallback; last FFXI client
+with existing-client fallback on return. No 30-second timer, gameplay/chat/
+menu/event gate, recent-PS-departure requirement, or live message-ready gate.
+Retains Me PS setting, on/test/off, valid HWND/PID checks, fresh-edge latch,
+and old shoulder/trigger chord exclusion. Face buttons and stick motion no
+longer block PS. Minimized targets are restored. Hardware must still expose
+PS and the selected profile must be PS5 DirectInput.
+
+Held-modifier handoff now routes fresh trigger downs on the destination instead
+of directly seeding state flags. Existing combined trigger order is retained.
+An imported held double-tap bank starts with a fresh single trigger press;
+no double tap is synthesized. Shoulders enter transport as fresh held presses
+without firing targeting/set-cycle shortcuts. Already-held switching slot
+buttons remain consumed until release; handoff packet sequence dedup remains.
+Internal handoff presses may initialize during receiver join before ordinary
+message filtering is ready. Focus/readiness/chat/menu guards still apply.
+
+This change does NOT claim to fix the independently reported intermittent
+native-targeting leak. Native hook/foreground-quarantine changes are deferred;
+no DLL or timeout values change. Test fresh modifier arrival and native blocking
+as separate observations. Current automated checks are pending below; live
+FFXI tests remain. Next: PS and handoff acceptance, then native leak capture.
+
+INSTALL: //xb controller stop, overlay Lua/AHK files, //lua r xivcrossbar on
+each client, then //xb controller start. No full client restart; keep existing
+matching extra-controls DLLs. Existing //xb me settings apply, with //xb me ps
+on to enable if needed. No personal data/settings shipped.
+
+---
+
 # Current Development Status - Extra controls routing and Me shortcut tests
 
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar, branch

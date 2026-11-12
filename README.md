@@ -688,3 +688,14 @@ directions, preserving unassigned native functions. Me adds L1 + right-stick
 Up/Down period/comma zoom and L1 + touchpad toggle ffxidb. Use //xb me zoom
 on|off and //xb me map on|off for live switches. Install matching DLLs with
 all FFXI processes closed once; see TESTING.md for driver limitations and tests.
+
+
+### 2026-11-12 Permissive PS and fresh held-trigger arrival
+PS again switches to the remembered other application (or a suitable fallback),
+and returns to the last FFXI client without a timer or gameplay/lease readiness
+gate. Shoulder/trigger PS chords remain excluded, matching the old personal
+AHK v1 behavior. Held modifiers enter the destination through fresh press
+handling; the switching D-pad/face press remains consumed until release.
+Source double-tap banks are not silently restored as a destination double tap.
+This Lua/AHK patch requires addon reload and reader restart, no client restart.
+The separately reported intermittent native targeting leak still needs testing.

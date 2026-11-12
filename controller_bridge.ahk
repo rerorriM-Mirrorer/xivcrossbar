@@ -98,7 +98,6 @@ BridgePoll(states, active) {
     }
     zoomEligible := CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.gameplay && CB.zoom && CM.count=23
     ZoomPoll(states,active,zoomEligible)
-    PersonalPSPoll(states,active,CB.ps,CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.gameplay)
     if (!CM.requested or CM.phase != "messages" or A_TickCount - CM.seen > 350)
         return
     if (CB.movement != "off" and states.HasOwnProp("moveX")) {

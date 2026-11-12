@@ -199,7 +199,9 @@ PersonalControlChecks() {
     PersonalPSDecision(s,false,1,true,false,"on",1060)
     Check(!PersonalPSDecision(s,true,1,true,true,"on",1070),"PS chord is blocked")
     PersonalPSDecision(s,false,0,false,false,"on",33000)
-    Check(!PersonalPSDecision(s,true,0,false,false,"on",33010),"expired return cannot activate a window")
+    Check(IsObject(PersonalPSDecision(s,true,0,false,false,"on",33010)),"return remains available without expiration")
+    PersonalPSDecision(s,false,1,false,false,"on",33100)
+    Check(IsObject(PersonalPSDecision(s,true,1,false,false,"on",33110)),"PS works without gameplay eligibility")
     PersonalPSDecision(s,false,1,true,false,"off",34000)
     Check(!PersonalPSDecision(s,true,1,true,false,"off",34010),"disabled PS remains inactive")
 }
