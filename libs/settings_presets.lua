@@ -32,7 +32,7 @@ function M.values(name)
         out.DisplayPreset='xi';out.iscompact=true;out.EventBars=true
         out.Animation.TriggerScale=true;out.Animation.SlotGlow=true
         out.Texts.SlotLabelAlign='center';out.Texts.SlotLabelOffsetY=-6
-        out.Texts.BankLabelOffsetY=-63
+        out.Texts.BankLabelOffsetY=0 -- Shared compact/full anchor, no preset-specific shift.
         out.Texts.CostOffsetX=-6;out.Texts.CostOffsetY=-28
         if name=='me' then
             merge(out,require('libs/personal_preset'))

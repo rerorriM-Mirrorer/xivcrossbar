@@ -405,15 +405,23 @@ local return_color = require('theme').display_palette('xi').insufficient
 local slot_label_strokes = {black={20, 20, 20}, amber={143, 89, 30}}
 local bank_captions = {'L2', 'R2', 'R2>L2', 'L2>R2', 'L2x2', 'R2x2', 'L1', 'R1', 'L1+R1'}
 
-local function position_bank_label(self, bank)
-    local left, right = self:get_slot_x(bank, 1), self:get_slot_x(bank, 7) + 40
-    local y=self:get_slot_y(bank,2)+13+self.bank_label_offset_y
-    if self.legacy_extra_bars and self.is_compact then
-        -- XI labels sit six pixels above the actual top of the compact bar.
-        -- Legacy has a different row order, so anchor to its top, not slot 2.
-        y=math.min(self:get_slot_y(bank,2),self:get_slot_y(bank,4))-6+self.bank_label_offset_y
+-- One shared anchor across presets, with an additive user offset.
+local function bank_label_y(self, bank)
+    local y=self:get_slot_y(bank,2)+13
+    if self.is_compact then
+        y=math.min(self:get_slot_y(bank,2),self:get_slot_y(bank,4))-6
     end
-    self.bank_labels[bank]:center((left + right) / 2 + self.bank_label_offset_x,y)
+    return y+self.bank_label_offset_y
+end
+local function position_bank_label(self, bank)
+    local left,right=self:get_slot_x(bank,1),self:get_slot_x(bank,7)+40
+    self.bank_labels[bank]:center((left+right)/2+self.bank_label_offset_x,bank_label_y(self,bank))
+end
+-- Share the trigger-caption rail, halfway between the L2 and R2 halves.
+local function position_set_name(self)
+    if not self.set_name_label then return end
+    self.set_name_label:center((self:get_slot_x(1,7)+40+self:get_slot_x(2,1))/2,
+        bank_label_y(self,1))
 end
 
 local function position_slot_label(self, bank, slot)
@@ -519,6 +527,8 @@ function ui:setup(theme_options, enchanted_items)
 
     self.display_palette = theme_options.display_palette
     self.bank_labels_visible = theme_options.bank_labels_visible ~= false
+    self.set_name_enabled = theme_options.set_name_visible ~= false
+    self.context_labels_visible = nil
     self.bank_label_offset_x = tonumber(theme_options.bank_label_offset_x) or 0
     self.bank_label_offset_y = tonumber(theme_options.bank_label_offset_y) or 0
     self.bank_label_opacity = tonumber(theme_options.bank_label_opacity) or 255
@@ -711,6 +721,19 @@ function ui:load(theme_options)
         position_bank_label(self, h)
     end
 
+    self.set_name_label = new_text(text_setup, true)
+    setup_text(self.set_name_label, theme_options, true)
+    self.set_name_label:size(11 * .94) -- Trigger labels use 12 * .94.
+    self.set_name_label:bold(true)
+    self.set_name_label:color(255,255,255)
+    self.set_name_label:stroke_color(unpack(amber_stroke))
+    self.set_name_label:stroke_width(2)
+    self.set_name_label:alpha(self.bank_label_opacity)
+    self.set_name_label:stroke_alpha(self.bank_label_opacity)
+    self.set_name_label:text(self.set_name_text or '')
+    position_set_name(self)
+    self.set_name_label:hide(true)
+
     self.binding_tint = new_image(images_setup)
     prepare_image(self.binding_tint, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
     self.binding_tint:size(40, 40)
@@ -801,6 +824,7 @@ function ui:set_display_layout(palette, enabled)
             bar.slot_recast[9]:hide(); bar.slot_recast[10]:hide()
         end
     end
+    position_set_name(self)
     local dx,dy = self:get_slot_x(1,1)-old_x, self:get_slot_y(1,4)-old_y
     for name,p in pairs(geometry.primitives) do
         if p.x then prim.set_position(name,p.x+dx,p.y+dy) end
@@ -818,7 +842,7 @@ function ui:set_display_layout(palette, enabled)
     end
     self:update_trigger_field_art()
     self:layout_button_hints()
-    if self.public_visible then self:show_button_hints() end
+    if self.public_visible and self.context_labels_visible ~= false then self:show_button_hints() end
     -- Background visibility is decided by the normal render; only move it now.
     local h = self.background_hotbar or 1
     self.bar_background:pos(self:get_slot_x(h,1)-30,self:get_slot_y(h,4)-35)
@@ -938,7 +962,9 @@ function ui:hide()
     self.feedback_icon:hide()
     self:clear_slot_pulses()
 
+    self.context_labels_visible = false
     self:hide_button_hints()
+    if self.set_name_label then self.set_name_label:hide() end
 
     for _, h in ipairs(self.render_banks) do
         local slide = geometry.banks[h].slide
@@ -965,6 +991,7 @@ end
 function ui:set_bank_label_offset(x, y)
     self.bank_label_offset_x, self.bank_label_offset_y = x, y
     for bank in pairs(self.bank_labels or {}) do position_bank_label(self, bank) end
+    position_set_name(self)
 end
 
 function ui:set_bank_label_opacity(opacity)
@@ -973,6 +1000,47 @@ function ui:set_bank_label_opacity(opacity)
         label:alpha(opacity)
         label:stroke_alpha(opacity)
         if opacity == 0 then label:hide(true) end
+    end
+    if self.set_name_label then
+        self.set_name_label:alpha(opacity)
+        self.set_name_label:stroke_alpha(opacity)
+        if opacity == 0 then self.set_name_label:hide(true)
+        elseif self.context_labels_visible and self.set_name_enabled and self.set_name_text ~= '' then
+            self.set_name_label:show()
+        end
+    end
+end
+
+function ui:set_set_name(name)
+    local text=tostring(name or ''):upper()
+    self.set_name_text=text
+    if self.set_name_label then
+        self.set_name_label:text(text)
+        if text == '' then self.set_name_label:hide(true) end
+    end
+end
+
+function ui:set_set_name_visible(enabled)
+    self.set_name_enabled=enabled ~= false
+    if not self.set_name_label then return end
+    if self.set_name_enabled and self.context_labels_visible and self.bank_label_opacity > 0
+        and self.set_name_text and self.set_name_text ~= '' then self.set_name_label:show()
+    else self.set_name_label:hide(true) end
+end
+
+-- Hide special-bank captions immediately, but leave HUD-wide fade ownership
+-- with ui:hide() for normal autohide and autohold transitions.
+function ui:update_context_labels(bank, visible, menu_open)
+    if not visible then return end
+    local ordinary=not menu_open and (bank==0 or bank==1 or bank==2)
+    self.context_labels_visible=ordinary
+    if ordinary and not self.is_compact then self:show_button_hints()
+    else self:hide_button_hints(true) end
+    if self.set_name_label then
+        if ordinary and self.set_name_enabled and self.bank_label_opacity>0
+            and self.set_name_text and self.set_name_text~='' then
+            self.set_name_label:show()
+        else self.set_name_label:hide(true) end
     end
 end
 
@@ -1041,10 +1109,10 @@ function ui:layout_button_hints()
     hints.chooser_text:pos(chooser_x+40,y-15)
 end
 
-function ui:hide_button_hints()
+function ui:hide_button_hints(immediate)
     self.button_hints_visible = false
     if self.button_hints then
-        for _, view in pairs(self.button_hints) do view:hide() end
+        for _, view in pairs(self.button_hints) do view:hide(immediate) end
     end
 end
 
@@ -1062,6 +1130,7 @@ function ui:show(player_hotbar, environment)
 end
 
 function ui:show_button_hints()
+    if self.context_labels_visible == false then return end
     local hints = self.button_hints
     if not hints then return end
     self.button_hints_visible = true

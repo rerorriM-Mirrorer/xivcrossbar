@@ -1,3 +1,42 @@
+# Current Development Status - Set-name caption and shared label anchors
+
+2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar,
+branch test/set-name-hud-20261112. Starting published source:
+0a5540bcdfc829b533393fd3d314180bfdde4d4f (fix/settings-inheritance).
+Read current AGENTS.md, WORKFLOW.md and TESTING.md from GitHub before editing.
+Isolated UI test only; existing personal controller baseline is untouched.
+
+Requested: Full Legacy/Default/Me labels share the old Legacy (0,0) baseline;
+compact labels align six pixels above the actual bank top regardless of preset.
+Current set caption: all uppercase, one font-size smaller than trigger captions,
+matching amber stroke and alpha, centered between L2 and R2 on caption rail.
+It follows UI scale, fade and set/job changes. It and full-mode Share/Options
+hints are visible only when no bank or single L2/R2 is selected; immediately
+hidden on combined/double/shoulder banks or addon menus. //xb setname toggles
+bare/on/off/status. No clickable chooser entry point is added in this test.
+
+Runtime overlay files: ui.lua, xivcrossbar.lua, theme.lua,
+libs/preset_base.lua, libs/personal_preset.lua, libs/settings_presets.lua,
+libs/command_help.lua. Back up existing files; keep directory paths, overlay
+only the seven Lua files, then //lua r xivcrossbar. No controller-reader restart,
+AHK replacement, DLL change, data XML replacement or full client restart.
+Preset definitions now use zero offset. Existing saved character settings may
+still carry -63; //xb banklabeloffset 0 0 normalizes the position without
+resetting other Me settings or bindings. Reapplying Default/Me also resets it,
+but may reset other preset preferences.
+
+Mock checks: tests/set_name_label.lua, tests/legacy_extra_bars.lua and
+modified tests/xi_layout.lua cover centered caption geometry, visibility and
+compact/full switches. Run all Lua suites, parse Lua 5.1 syntax, and inspect
+CI before accepting. Live FFXI remains UNTESTED: inspect Full and Compact,
+Legacy/Default/Me, 3-6 trigger banks, idle/L2/R2/combined/double/shoulder,
+menu open/close, no-trigger AutoHold, autohide and fade transitions; compare
+4K and laptop widths and very long set names. Switch/rename sets and jobs;
+verify matching alpha/stroke and //xb setname bare/on/off/status, including
+opacity 0. Do not claim tests are in-game until user confirms.
+
+---
+
 # Current Development Status - Permissive PS and fresh modifier arrival
 
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar, branch

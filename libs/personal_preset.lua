@@ -151,7 +151,7 @@ return {
     TextSettling = true,
     Texts = {
         BankLabelOffsetX = 0,
-        BankLabelOffsetY = -63,
+        BankLabelOffsetY = 0,
         BankLabelOpacity = 60,
         BankLabels = true,
         Color = {

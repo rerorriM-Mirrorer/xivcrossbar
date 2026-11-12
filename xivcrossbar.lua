@@ -180,7 +180,16 @@ local function set_display_preset(mode)
             ui.recast_flash_enabled = true
         end
         ui:set_display_layout(theme_options.display_palette, xi or ui.is_compact)
-        if ui.is_setup then env_chooser:set_anchor(ui:get_set_chooser_anchor()) end
+        if ui.is_setup then
+            env_chooser:set_anchor(ui:get_set_chooser_anchor())
+            local key=player.hotbar_settings and player.hotbar_settings.active_environment
+            local bar=key and player.hotbar and player.hotbar[key]
+            if key then
+                local name=bar and (bar.name or key) or key
+                ui:set_set_name(xi and require('crossbar_destinations').xi_label(
+                    key,name,player.main_job,player.sub_job) or name)
+            end
+        end
         ui:set_slot_pulse_enabled(xi)
         ui.geometry.deferring_hide = false
         ui.geometry:configure_fade(xi, settings.Animation.FadeIn, settings.Animation.FadeOut)
@@ -845,7 +854,10 @@ end
 function set_active_environment(environment_name)
     player:set_active_environment(environment_name)
     action_binder:refresh_set_title()
-    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+    local key=player.hotbar_settings.active_environment
+    local bar=key and player.hotbar and player.hotbar[key]
+    ui:set_set_name(key and set_display_name(key,bar and (bar.name or key) or key) or '')
+    ui:load_player_hotbar(player.hotbar,player.vitals,key)
 end
 
 -- The chooser's Add New Set row is UI state, never an executable hotbar.
@@ -881,7 +893,10 @@ function reload_hotbar()
         end
         player:set_active_environment(selected)
     end
-    ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+    local key=player.hotbar_settings.active_environment
+    local bar=key and player.hotbar and player.hotbar[key]
+    ui:set_set_name(key and set_display_name(key,bar and (bar.name or key) or key) or '')
+    ui:load_player_hotbar(player.hotbar,player.vitals,key)
     return true
 end
 
@@ -1626,6 +1641,24 @@ windower.register_event('addon command', function(command, ...)
             config.save(settings)
         end
         chat_format.say(207, '[XIVCrossbar] Bank labels: ' .. (settings.Texts.BankLabels ~= false and 'On' or 'Off'))
+        return
+    end
+
+    if command == 'setname' then
+        local mode=args[1] and args[1]:lower()
+        if (mode and mode~='on' and mode~='off' and mode~='status') or args[2] then
+            chat_format.say(123,'[XIVCrossbar] //xb setname [on|off|status]')
+            return
+        end
+        if mode~='status' then
+            local enabled=mode=='on' or (not mode and settings.Texts.SetName==false)
+            settings.Texts.SetName=enabled
+            theme_options.set_name_visible=enabled
+            ui:set_set_name_visible(enabled)
+            ui_dirty=true
+            config.save(settings)
+        end
+        chat_format.say(207,'[XIVCrossbar] Set name: '..(settings.Texts.SetName~=false and 'On' or 'Off'))
         return
     end
 
@@ -2840,6 +2873,7 @@ windower.register_event('prerender',function()
             ui.public_visible = ui:show(player.hotbar, player.hotbar_settings.active_environment) == true
         else ui:hide(); ui.public_visible = false end
     end
+    if ui.is_setup then ui:update_context_labels(display_bank or 0, visible, menu_open) end
 
     if visible and ui.feedback.is_active then
         ui:show_feedback()

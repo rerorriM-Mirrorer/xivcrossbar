@@ -45,6 +45,7 @@ local topics = {
         {'slotglow [on|off|status]', 'Show a gold slot border while a button is held.'},
         {'triggerscale [on|off|status|0-25]', 'Set the size change when switching trigger banks.'},
         {'banklabels [on|off|status]', 'Show or hide the trigger labels on crossbars.'},
+        {'setname [on|off|status]', 'Show the uppercase set name between L2 and R2; bare toggles.'},
         {'banklabeloffset <x> <y>', 'Move bank labels in layout pixels.'},
         {'banklabelopacity [0-255|status]', 'Set the opacity of bank label text and outlines.'},
         {'slotlabeloffset <x> <y>', 'Move slot action names in layout pixels.'},

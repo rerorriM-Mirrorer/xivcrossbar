@@ -699,3 +699,5 @@ handling; the switching D-pad/face press remains consumed until release.
 Source double-tap banks are not silently restored as a destination double tap.
 This Lua/AHK patch requires addon reload and reader restart, no client restart.
 The separately reported intermittent native targeting leak still needs testing.
+
+2026-11-12: Consolidated compact/full trigger captions across Legacy, Default and Me. Added uppercase current-set name centered between L2/R2 with the trigger caption's opacity/stroke and one smaller font size. Added //xb setname bare toggle/on/off/status. Set name and full-mode Share/Options hints disappear immediately for combined, double-tap and shoulder banks, and return for idle/single triggers. Uses existing HUD fades and scale, refreshes on set or job changes. No AHK/native/input routing change. Existing saved -63 offset can be reset with //xb banklabeloffset 0 0 without reapplying a preset.

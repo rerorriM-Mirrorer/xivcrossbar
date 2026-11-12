@@ -33,5 +33,8 @@ for _,name in ipairs({'default','me'})do
     options.button_layout='playstation';ui:setup(options,{})
     local label=ui.geometry.surfaces[ui.bank_labels[1]]
     assert(label.center_y==math.min(ui:get_slot_y(1,2),ui:get_slot_y(1,4))-6)
+    ui:set_compact(false)
+    assert(ui.geometry.surfaces[ui.bank_labels[1]].center_y==ui:get_slot_y(1,2)+13,
+        name..' full label shares the zero-offset Legacy baseline')
 end
 print('Legacy extras: outward spread, adaptive compact height, matching XI header gap, reversible toggles and original full artwork/labels passed.')

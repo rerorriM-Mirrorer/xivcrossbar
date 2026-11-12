@@ -39,7 +39,10 @@ local label=ui.bank_labels[1]
 local function check_label_anchor(bank)
     local m=ui.geometry.surfaces[ui.bank_labels[bank]]
     assert(m.center_x==(ui:get_slot_x(bank,2)+ui:get_slot_x(bank,6))/2+20)
-    assert(m.center_y==ui:get_slot_y(bank,2)+13)
+    local expected_y=ui.is_compact and
+        math.min(ui:get_slot_y(bank,2),ui:get_slot_y(bank,4))-6
+        or ui:get_slot_y(bank,2)+13
+    assert(m.center_y==expected_y)
 end
 check_label_anchor(1)
 local function check_stroke(view, r, g, b)

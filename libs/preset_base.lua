@@ -137,6 +137,7 @@ defaults.Texts = {}
 defaults.Texts.Font = 'sans-serif'
 defaults.Texts.Size = 7
 defaults.Texts.BankLabels = true
+defaults.Texts.SetName = true
 defaults.Texts.SlotLabelStroke = 'black'
 defaults.Texts.SlotLabelAlign = 'left'
 defaults.Texts.SlotLabelOffsetX = 0
