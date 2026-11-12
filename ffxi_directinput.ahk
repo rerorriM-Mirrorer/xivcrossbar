@@ -4,6 +4,7 @@
 #SingleInstance Off
 #Include %A_ScriptDir%\controller_messages.ahk
 #Include %A_ScriptDir%\controller_bridge.ahk
+#Include %A_ScriptDir%\controller_ps.ahk
 #Include %A_ScriptDir%\controller_diagnostics.ahk
 #Include %A_ScriptDir%\controller_clients.ahk
 #Include %A_ScriptDir%\controller_mappings.ahk
@@ -62,7 +63,7 @@ OnExit(TransportExit)
 SetTimer(TransportPoll, 10)
 
 TransportPoll() {
-    global owner, ready, phase, connected, xinputFault, CB, HO
+    global owner, ready, phase, connected, xinputFault, CB, HO, PPS
     Critical("On")
     if WrapperClientsShouldExit()
         ExitApp()
@@ -97,7 +98,7 @@ TransportPoll() {
     DiagStage("hardware-read")
     connected := IsObject(states)
     if (!connected) {
-        CB.psDown := true, CB.neutral := false
+        PPS.down := true, PPS.returnClient := 0, CB.neutral := false, CB.neutralSince := 0
         BridgeRelease()
         ReleaseTransport()
         ready := false

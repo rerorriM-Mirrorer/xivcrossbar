@@ -1,25 +1,28 @@
 ; Bridge modes are supplied only by the fresh, foreground PID's DirectLink lease.
 BridgeInit() {
-    global CB
-    CB := {client:0, movement:"off", ps:"off", gameplay:false, neutral:false, fired:false,
+    global CB, PPS
+    PPS := PersonalPSState()
+    CB := {client:0, movement:"off", ps:"off", gameplay:false, neutral:false, fired:false, armMode:"client", neutralSince:0,
         signalOwner:0, releaseAt:0, nextTrust:0, trustPolicy:"", trustReady:false,
-        lastMovement:"idle", lastPS:"idle", psDown:true, observedOutside:0, other:0, otherPID:0, returnClient:0,
-        returnPID:0, returnUntil:0}
+        lastMovement:"idle", lastPS:"idle"}
 }
 
 BridgeLease(lease) {
-    global CB
-    oldMovement := CB.movement, oldPS := CB.ps
+    global CB, PPS
+    oldMovement := CB.movement, oldPS := CB.ps, oldArm := CB.armMode
     CB.movement := RegExMatch(lease, "m)^bridge_movement=(on|test|off)\r?$", &move) ? move[1] : "off"
     CB.ps := RegExMatch(lease, "m)^bridge_ps=(on|test|off)\r?$", &ps) ? ps[1] : "off"
     CB.gameplay := RegExMatch(lease, "m)^bridge_gameplay=1\r?$") != 0
-    if (oldMovement != CB.movement) {
+    CB.armMode := RegExMatch(lease,"m)^movement_arm=neutral\r?$") ? "neutral" : "client"
+    if (oldMovement != CB.movement || oldArm != CB.armMode) {
         BridgeRelease()
-        CB.neutral := false, CB.fired := false
+        CB.neutral := false, CB.fired := false, CB.neutralSince := 0
         CB.lastMovement := "idle"
     }
     if (oldPS != CB.ps) {
-        CB.psDown := true
+        PPS.down := true
+        if (CB.ps = "off")
+            PPS.returnClient := 0
         CB.lastPS := "idle"
     }
 }
@@ -84,16 +87,16 @@ BridgePoll(states, active) {
     if (CB.signalOwner and (CB.signalOwner != active or A_TickCount >= CB.releaseAt))
         BridgeRelease()
     if (CB.client != active) {
-        CB.client := active, CB.neutral := false, CB.fired := false
-        CB.nextTrust := 0, CB.psDown := true, CB.returnClient := 0
+        CB.client := active, CB.neutral := false, CB.fired := false, CB.neutralSince := 0
+        CB.nextTrust := 0
     }
+    PersonalPSPoll(states,active,CB.ps,CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.gameplay)
     if (!CM.requested or CM.phase != "messages" or A_TickCount - CM.seen > 350)
         return
-    if (CB.movement != "off" and !CB.fired and states.HasOwnProp("moveX")) {
+    if (CB.movement != "off" and states.HasOwnProp("moveX")) {
         magnitude := states.moveX * states.moveX + states.moveY * states.moveY
-        if (magnitude < .12 * .12)
-            CB.neutral := true
-        if (magnitude >= .24 * .24) {
+        MovementArmStep(CB,magnitude,A_TickCount)
+        if (magnitude >= .24 * .24 && !CB.fired) {
             if (!CB.neutral)
                 BridgeDecision("movement", "waiting for neutral")
             else {
@@ -103,7 +106,7 @@ BridgePoll(states, active) {
                 else if (CB.trustPolicy = "Ready" and (!CB.trustReady or !CB.gameplay))
                     BridgeDecision("movement", "Ready waiting for Trust and gameplay")
                 else if (WinActive("ahk_class FFXiClass") = active) {
-                    CB.fired := true
+                    CB.fired := true, CB.neutral := false
                     if (CB.movement = "test")
                         BridgeDecision("movement", "Would signal Trust " . CB.trustPolicy)
                     else {
@@ -112,70 +115,31 @@ BridgePoll(states, active) {
                         BridgeDecision("movement", "Signaled Trust " . CB.trustPolicy)
                     }
                 }
+                if (CB.armMode = "neutral")
+                    CB.fired := true, CB.neutral := false
             }
         }
-    }
-    if (profile != "ps5-directinput" or !states.HasOwnProp("ps"))
-        return
-    fresh := states.ps and !CB.psDown
-    CB.psDown := states.ps
-    if (!fresh or CB.ps = "off")
-        return
-    if (!CB.gameplay)
-        return BridgeDecision("ps", "blocked by context")
-    for _, held in states
-        if (held)
-            return BridgeDecision("ps", "blocked by chord")
-    target := CB.other
-    try valid := (target && WinGetPID("ahk_id " . target) = CB.otherPID
-        && WinGetClass("ahk_id " . target) != "FFXiClass")
-    catch
-        valid := false
-    if (!valid)
-        return BridgeDecision("ps", "no remembered non-FFXI window")
-    if (CB.ps = "test")
-        return BridgeDecision("ps", "Would activate HWND " . target)
-    if (WinActive("ahk_class FFXiClass") != active)
-        return
-    try {
-        CB.returnPID := WinGetPID("ahk_id " . active)
-        CB.returnClient := active, CB.returnUntil := 0
-        ReleaseTransport()
-        WinActivate("ahk_id " . target)
-        BridgeDecision("ps", "Activated HWND " . target)
     }
 }
 
 BridgeOutside() {
-    global CB, profile, joystickPrefix
+    global CB
     BridgeRelease()
     CB.client := 0
-    foreground := WinActive("A")
-    if (foreground and foreground != CB.observedOutside) {
-        CB.observedOutside := foreground
-        try {
-            if (WinGetTitle("ahk_id " . foreground) != "")
-                CB.other := foreground, CB.otherPID := WinGetPID("ahk_id " . foreground)
+    PersonalPSPoll(ReadTransportStates(GetKeyState,true),0,CB.ps,false)
+}
+
+; Hysteresis plus 100 ms centered time prevents steering noise from rearming.
+MovementArmStep(s, magnitude, now) {
+    if (magnitude < .12*.12) {
+        if (!s.neutralSince)
+            s.neutralSince := now
+        if (now-s.neutralSince>=100) {
+            s.neutral := true
+            if (s.armMode = "neutral")
+                s.fired := false
         }
-    }
-    if (!CB.returnClient or profile != "ps5-directinput")
-        return
-    if (!WinExist("ahk_id " . CB.returnClient)
-        or GetKeyState(joystickPrefix . "JoyName") = "") {
-        CB.returnClient := 0
-        return
-    }
-    pressed := GetKeyState(joystickPrefix . "Joy13") ? true : false
-    fresh := pressed and !CB.psDown
-    CB.psDown := pressed
-    if (!fresh)
-        return
-    target := CB.returnClient
-    CB.returnClient := 0
-    try {
-        if (WinGetPID("ahk_id " . target) = CB.returnPID and WinGetClass("ahk_id " . target) = "FFXiClass") {
-            WinActivate("ahk_id " . target)
-            BridgeDecision("ps", "Returned to FFXI HWND " . target)
-        }
-    }
+    } else
+        s.neutralSince := 0
+    return magnitude>=.24*.24 && s.neutral && !s.fired
 }

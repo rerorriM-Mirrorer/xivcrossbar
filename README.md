@@ -667,3 +667,9 @@ headers match the XI gap while full Legacy labels retain their placement.
 2026-11-11: Added held L1/R1/L2/R2 handoff between FFXI clients, retaining
 compatible bank state and consuming preheld action buttons until release.
 Requires matching reader/hook/policy files and an FFXI restart for installation.
+
+2026-11-12: Combined held-modifier handoff with optional Me personal controls:
+R2 TargetNPC, targetless shoulder Tab/Shift-Tab, trigger-then-shoulder set cycling,
+rebuilt bare-PS window toggle and selectable client/neutral stick-message arming.
+Use //xb me status and //xb me controls/r2target/ps/sets on|off or movement client|neutral.
+Matching hook/policy/reader install and full FFXI restart required; Trust interpretation unchanged.

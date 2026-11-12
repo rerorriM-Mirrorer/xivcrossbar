@@ -19,6 +19,7 @@ function M.new(opts)
         local payload='profile='..profile..'\ndevice='..device..'\nbutton_mode=messages'..
             '\nbutton_token='..(token or '')..'\nbutton_ack='..tostring(ack or 0)..'\n'
         if bridge then
+            payload=payload..'movement_arm='..(bridge.movement_arm=='neutral' and 'neutral' or 'client')..'\n'
             if bridge.handoff then payload=payload..'button_handoff=1\nbutton_bank='..tostring(bridge.bank or 0)..'\n' end
             payload=payload..'bridge_movement='..bridge.movement..'\nbridge_ps='..bridge.ps
                 ..'\nbridge_gameplay='..(bridge.gameplay and '1' or '0')..'\n'

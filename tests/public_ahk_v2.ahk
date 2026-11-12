@@ -53,7 +53,7 @@ try {
     Check(DX.lines.Length = 0, "unmatched foreground cannot enter a scoped feed")
     DX.active := false
     BridgeLease("bridge_movement=test`nbridge_ps=on`nbridge_gameplay=1`n")
-    Check(CB.movement = "test" && CB.ps = "on" && CB.gameplay && CB.psDown,
+    Check(CB.movement = "test" && CB.ps = "on" && CB.gameplay && PPS.down,
         "bridge modes parse and arm from neutral")
     BridgeLease("bridge_movement=invalid`n")
     Check(CB.movement = "off" && CB.ps = "off" && !CB.gameplay, "old or invalid lease defaults off")
@@ -124,6 +124,7 @@ try {
         try FileDelete(spool)
         try FileDelete(spool . ".tmp")
     }
+    PersonalControlChecks()
     ProfileSlotChecks()
     FileAppend("Public native DirectLink checks passed.", "*")
     ExitApp(0)
@@ -145,6 +146,36 @@ Check(condition, description) {
         throw Error(description)
 }
 
+PersonalControlChecks() {
+    for arm in ["client","neutral"] {
+        s := {neutral:false,fired:false,neutralSince:0,armMode:arm}
+        Check(!MovementArmStep(s,1,1000),"deflected stick cannot arm without center")
+        MovementArmStep(s,0,1100)
+        Check(!MovementArmStep(s,0,1199),"center must be stable for 100 ms")
+        MovementArmStep(s,0,1200)
+        Check(MovementArmStep(s,1,1210),"fresh deliberate movement signals")
+        s.fired := true, s.neutral := false
+        Check(!MovementArmStep(s,1,1220),"held movement cannot repeat")
+        MovementArmStep(s,0,1300), MovementArmStep(s,0,1400)
+        Check(MovementArmStep(s,1,1410) = (arm = "neutral"),"only neutral mode rearms within the same focus session")
+    }
+    s := PersonalPSState(), s.other := 123, s.otherPID := 456
+    Check(!PersonalPSDecision(s,true,1,true,false,"on",1000),"preheld PS cannot switch")
+    PersonalPSDecision(s,false,1,true,false,"on",1010)
+    d := PersonalPSDecision(s,true,1,true,false,"on",1020)
+    Check(IsObject(d) && d.kind = "away" && d.target = 123,"fresh bare PS selects remembered non-FFXI window")
+    s.returnClient := 789, s.returnPID := 987, s.returnUntil := 32000
+    Check(!PersonalPSDecision(s,true,0,false,false,"on",1030),"held PS cannot immediately bounce back")
+    PersonalPSDecision(s,false,0,false,false,"on",1040)
+    d := PersonalPSDecision(s,true,0,false,false,"on",1050)
+    Check(IsObject(d) && d.kind = "return" && d.target = 789,"fresh PS outside selects originating FFXI client")
+    PersonalPSDecision(s,false,1,true,false,"on",1060)
+    Check(!PersonalPSDecision(s,true,1,true,true,"on",1070),"PS chord is blocked")
+    PersonalPSDecision(s,false,0,false,false,"on",33000)
+    Check(!PersonalPSDecision(s,true,0,false,false,"on",33010),"expired return cannot activate a window")
+    PersonalPSDecision(s,false,1,true,false,"off",34000)
+    Check(!PersonalPSDecision(s,true,1,true,false,"off",34010),"disabled PS remains inactive")
+}
 ProfileSlotChecks() {
     fixtures := Map(1, SlotSample())
     scan := {armed:Map(),signature:"",connected:"",active:""}

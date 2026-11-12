@@ -1,5 +1,7 @@
 local bridge = require('controller_bridge')
 local settings = require('defaults')
+settings.ShoulderBanks.PersonalControls.Enabled=true
+settings.ShoulderBanks.PersonalControls.PSButton=true
 local now, sent, reports, saves = 10, {}, {}, 0
 local function save() saves = saves+1 end
 local menu = bridge.new(function() return now end,function(cmd) sent[#sent+1]=cmd end,

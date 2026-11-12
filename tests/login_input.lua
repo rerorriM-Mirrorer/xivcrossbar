@@ -55,7 +55,7 @@ message(90,true);message(90,false)
 assert(#outputs==0,'targeting is off by default')
 env.settings.ShoulderBanks.Targeting=true
 message(90,true);message(90,true);message(90,false)
-assert(#outputs==1 and outputs[1]=='input /targetnpc','fresh targetless R1 only')
+assert(#outputs==1 and outputs[1]=='tab','fresh targetless R1 cycles only')
 target={}
 message(90,true);message(89,true);message(90,false);message(89,false)
 assert(#outputs==2 and outputs[2]=='tab','R1 first sends Tab, L1 later adds no shortcut')
@@ -107,15 +107,16 @@ end
 t:reset()
 message(89,true);message(89,false)
 message(90,true);message(90,false)
-assert(#outputs==0,'single shoulder requires a target')
+assert(#outputs==2 and outputs[1]=='shift-tab' and outputs[2]=='tab','single shoulders cycle without a target')
+outputs={}
 for _, pair in ipairs({{89,90},{90,89}}) do
     for _, simultaneous in ipairs({true,false}) do
         message(pair[1],true,simultaneous)
-        assert(#outputs==0,'first shoulder cannot acquire alone')
+        assert(#outputs==(simultaneous and 0 or 1),'only a staggered first shoulder may cycle')
         message(pair[2],true,simultaneous);message(pair[2],true,simultaneous)
-        assert(#outputs==1 and outputs[1]=='input /targetnpc','chord acquires on second press')
+        assert(#outputs==(simultaneous and 0 or 1),'combined shoulders never acquire TargetNPC')
         message(pair[1],false);message(pair[2],false)
-        assert(#outputs==1,'release does not acquire')
+        assert(#outputs==(simultaneous and 0 or 1),'release cannot target')
         outputs={}
     end
 end
@@ -135,6 +136,6 @@ message(59,true);message(89,true);message(89,false);message(59,false)
 assert(#outputs==2,'selected-target chord, triggers, menu, focus and held slots suppress targeting')
 message(90,true);message(89,true);message(89,false);message(90,false)
 assert(#outputs==3 and outputs[3]=='tab','staggered selected-target presses cycle only on the first press')
-print('Revision 3 routing: press-only targeting, both chord orders, selected-target gate and context priority passed.')
-print('Actual routing callback: R1 acquire/cycle, repeats, release, focus, menus and chord priority passed.')
+print('Revision 3 routing: press-only targeting, both chord orders, targetless cycling and context priority passed.')
+print('Actual routing callback: R1 cycle, repeats, release, focus, menus and chord priority passed.')
 print('Native login and bare gameplay, guard gate, chord routing, chat release and setup passed.')

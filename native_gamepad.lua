@@ -15,6 +15,7 @@ function M.open(path)
     local default_logic_loaded = false
     return {
         handoff_revision = dll.handoff_revision,
+        personal_revision = dll.personal_revision,
         begin = function(...)
             local result, operation, code = dll.begin(...)
             if result == 1 then

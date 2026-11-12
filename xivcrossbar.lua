@@ -1394,6 +1394,12 @@ end)
 windower.register_event('addon command', function(command, ...)
     command = command and command:lower() or 'help'
     if command == 'legacy' or command == 'default' or command == 'me' then
+        if command=='me' and select('#',...)>0 then
+            local feature,value=...
+            if select('#',...)>2 then chat_format.say(123,'[XIVCrossbar] //xb me <option> <value>');return end
+            return require('libs/personal_controls').command(settings,feature,value,
+                function()config.save(settings)end,function(message)chat_format.say(207,'[XIVCrossbar] '..message)end)
+        end
         if select('#',...) > 0 then
             chat_format.say(123,'[XIVCrossbar] //xb '..command..' takes no arguments.')
             return
@@ -2343,6 +2349,23 @@ local function route_controller_message(dik, pressed, chord, seq)
         if claimed then return decision or 'trust-menu-release',context end
     end
     if gamepad_state.trust_menu_live and pressed then return 'trust-menu-priority',context end
+    local personal=require('libs/personal_controls').options(settings)
+    if pressed and windower.has_focus() and context=='crossbar' and personal.SetCycling and native_gamepad.personal_revision==1 and (dik==89 or dik==90)
+        and ((dik==89 and transport.down[87] and not transport.down[88] and not transport.down[90])
+        or (dik==90 and transport.down[88] and not transport.down[87] and not transport.down[89])) then
+        for slot_dik=59,68 do if transport.down[slot_dik] then return 'set-cycle-blocked',context end end
+        local destination=require('libs/personal_controls').cycle(env_chooser:get_player_environments(player.hotbar),
+            player.hotbar_settings.active_environment,dik==89 and -1 or 1,player.hotbar)
+        if destination then set_active_environment(destination) end
+        return 'personal-set-cycle',context
+    end
+    if pressed and dik==88 and windower.has_focus() and context=='gameplay' and personal.R2TargetNPC and info and not info.menu_open
+        and not transport.down[87] and not transport.down[89] and not transport.down[90]
+        and not transport.down[67] and not transport.down[68] then
+        local blocked=false
+        for slot_dik=59,66 do if transport.down[slot_dik] then blocked=true end end
+        if not blocked and not settings.InputTest then windower.send_command('input /targetnpc') end
+    end
     if dik == 89 or dik == 90 then
         if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
             local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
@@ -2492,7 +2515,9 @@ local function poll_directlink()
         and not info.menu_open and actor and actor.status ~= 4 and not controller_bridge.menu.token
     message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,
         message_bridge.ack,shoulders,{movement=controller_bridge.mode(settings,'movement'),
-            ps=controller_bridge.mode(settings,'ps'),gameplay=gameplay,bank=gamepad_state.active_bar,
+            ps=require('libs/personal_controls').options(settings).PSButton and controller_bridge.mode(settings,'ps') or 'off',
+            movement_arm=require('libs/personal_controls').options(settings).MovementArm or 'client',
+            gameplay=gameplay,bank=gamepad_state.active_bar,
             handoff=native_gamepad.handoff_revision==1})
 end
 
@@ -2669,7 +2694,8 @@ do
             and action_binder:is_binding_combo()
         local handoff = native_gamepad.handoff_revision==1 and (context==1 or context==4)
             and xivcrossbar.ready and info and not info.chat_open and not crossbar_menu_open()
-        generation=native_gamepad.poll((handoff and 0x2000000 or 0) + context + (targeting and 0x100 or 0) + banks*0x200
+        local personal_sets=native_gamepad.personal_revision==1 and require('libs/personal_controls').options(settings).SetCycling
+        generation=native_gamepad.poll((personal_sets and 0x4000000 or 0) + (handoff and 0x2000000 or 0) + context + (targeting and 0x100 or 0) + banks*0x200
             + (binding and 0x1000 or 0) + trust_slots*0x10000, function()
             if generation and message_bridge.token then clear_controller_input() end
         end, function() end, generation)

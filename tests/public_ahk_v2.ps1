@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $env:RUNNER_TEMP ('xivcrossbar public v2 ' + [Guid]::NewGuid())
 $data = Join-Path $stage 'data'
 [void][IO.Directory]::CreateDirectory($data)
-foreach ($name in @('ffxi_directinput.ahk','controller_messages.ahk','controller_bridge.ahk','controller_diagnostics.ahk','controller_clients.ahk','controller_mappings.ahk','controller_slots.ahk','launch-controller.cmd','launch-controller.ps1','tests/public_ahk_v2.ahk')) {
+foreach ($name in @('ffxi_directinput.ahk','controller_messages.ahk','controller_bridge.ahk','controller_ps.ahk','controller_diagnostics.ahk','controller_clients.ahk','controller_mappings.ahk','controller_slots.ahk','launch-controller.cmd','launch-controller.ps1','tests/public_ahk_v2.ahk')) {
     Copy-Item (Join-Path $root $name) $stage
 }
 $status = Join-Path $data 'controller-status.ini'

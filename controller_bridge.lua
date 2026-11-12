@@ -7,6 +7,7 @@ local faces = {
 }
 
 function M.mode(settings, name)
+    if name=='ps' and not require('libs/personal_controls').options(settings).PSButton then return 'off' end
     local mode = settings.ControllerBridge[name]
     if mode ~= 'on' and mode ~= 'test' then return 'off' end
     if settings.InputTest and mode == 'on' then return 'test' end
@@ -17,7 +18,7 @@ function M.command(settings, feature, mode, save, say)
     if feature == nil or feature == 'status' then
         for _, name in ipairs(names) do
             local saved, effective = settings.ControllerBridge[name], M.mode(settings,name)
-            say(name..' '..saved..(saved ~= effective and ' (InputTest dry run)' or ''))
+            say(name..' '..saved..(saved ~= effective and (settings.InputTest and ' (InputTest dry run)' or ' (personal controls disabled)') or ''))
         end
         return
     end

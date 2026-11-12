@@ -1,3 +1,89 @@
+# Current Development Status - Optional personal controls and combined handoff test
+
+2026-11-12 (America/Chicago). rerorriM-Mirrorer/xivcrossbar,
+fix/settings-inheritance. Starting local cbf0827 matches published fc10a3d.
+Read current GitHub AGENTS.md, WORKFLOW.md and TESTING.md before edits. The
+held-modifier package is still untested in FFXI by the user; this delivery
+combines its runtime files and matching newly built native DLLs with this batch.
+Trust interpretation is explicitly deferred to the separate Trust conversation.
+No Trust files, settings or bindings are changed here.
+
+Me now owns ShoulderBanks.PersonalControls: Enabled, R2TargetNPC, PSButton,
+SetCycling and MovementArm. Legacy/Default initialize these disabled with client
+movement arming. Me enables them and selects neutral arming; //xb me applies
+and reloads as before. Nested test controls do not reload:
+//xb me status; //xb me controls on|off; //xb me r2target on|off;
+//xb me ps on|off; //xb me sets on|off; //xb me movement client|neutral.
+Nested changes require the Me preset; its master OFF disables new shortcuts
+and returns movement arming to the original client-focus rule. Existing bridge
+movement off/test/on remains available. No public top-level command is added.
+Controller profile/device and saved bindings remain preserved.
+
+Removed TargetNPC from both shoulder-target paths. With shoulder targeting on,
+L1 sends Shift-Tab and R1 Tab even without a target; simultaneous shoulders do
+not acquire an NPC. The combined shoulder bank remains usable. R2 TargetNPC is
+optional: a fresh bare R2 press in gameplay with no native menu, other modifiers
+or held action targets an NPC, then retains ordinary R2-bank behavior. Adopted
+R2 holds across focus do not synthesize this action. InputTest suppresses the
+real TargetNPC command. No R2 release or repeat action is added.
+
+Set controls (user selected cycle, not chooser): hold L2 then freshly press L1
+for previous; hold R2 then freshly press R1 for next. Uses existing chooser order
+and wraps, filters the Add New sentinel and respects Shared visibility. Trigger
+first is required; both triggers, held action buttons, setup/text/Trust menus
+and repeat downs cannot cycle. A new native capability gates the chord so the
+shoulder does not leak into native navigation. Native v1 ABI memory sizes stay
+unchanged; hook/policy files must match this build.
+
+PS was rebuilt as controller_ps.ahk. User selected bare PS only, no shoulder-PS
+combos. One global physical edge latch spans focus changes. A valid foreground
+non-FFXI window is remembered; bare PS from eligible gameplay selects it and
+arms a 30 s return to the originating FFXI HWND/PID. Release and press PS again
+outside to return. Invalid/reused handles, desktop/taskbar, expired returns,
+held PS, chords, inactive/test/off modes and non-PS5 profiles cannot activate
+unintended windows. Test mode only reports the decision. Outside polling uses
+the existing profile-slot reader, not a hardcoded device-number PS read. Visit
+the preferred non-FFXI window with Alt-Tab once so the reader can remember it.
+
+Movement: client preserves one signal per client-focus session after stable
+center. Neutral emits at most one signal per centered-to-movement gesture.
+Center threshold <12%, movement threshold >=24%, stable-center interval 100 ms.
+A held/uncentered stick cannot repeatedly signal. Neutral consumes an attempt
+even when Trust/eligibility is unavailable; no delayed replay after readiness
+changes. Client mode retains its prior readiness retry semantics. The exact
+30 ms vk1D/sc07B pulse and matching Trust receiver lease remain unchanged.
+See docs/TRUST-STICK-HANDOFF.md: park/stop semantics, idempotent receipts and
+movement-owned cleanup belong to Trust and are not implemented by this patch.
+
+All 51 local Lua suites passed (134 sources parsed with temporary Windower
+syntax normalization under Lua 5.4); final targeted routing/preset/bridge reruns
+and host g++ C++17 native fixtures passed. Windows x86/native/AHK results will
+be recorded before delivery. New AHK fixtures test
+client/neutral arming, PS latch/return/chord/expiry/off decisions and existing
+held-modifier focus transfer. No live FFXI or real desktop PS switching pass
+is claimed. Existing timer text-settling flicker remains a separate pending fix.
+
+INSTALL: combined incremental package over the preset/layout build; installing
+fc10a3d separately is NOT required. Stop shared reader with //xb controller stop,
+unload XIVCrossbar and CLOSE ALL FFXI processes before replacing native DLLs.
+Back up addon files; overlay the matching xivcrossbar folder; restart FFXI,
+load XB per client, start the reader if needed, then //xb me to activate this
+test group. Begin with all buttons released. No settings/hotbars are overwritten.
+Rollback requires closing FFXI and restoring matching Lua/AHK/native files.
+The optional global Me XML is separately supplied, never auto-installed.
+WORKFLOW.md and cumulative TESTING.md remain inside the addon payload.
+
+Live: first test held L1/R1/L2/R2 transfer, including combined/double banks and
+consume-until-release switching buttons. Then test individual Me switches,
+R2 TargetNPC, targetless Tab/Shift-Tab and no combined-chord NPC acquisition.
+Test set cycling order/wrap and unchanged bindings. Test PS outside/back with
+release, chords and stale windows. Use bridge movement test mode to compare
+client and neutral cadence before enabling real Trust messages. Verify Default
+and Legacy disable personal controls, bare gameplay remains native, and old
+partial installs do not advertise the new set-chord capability.
+
+---
+
 # Current Development Status - Held-modifier handoff between FFXI clients
 
 2026-11-11 (America/Chicago). rerorriM-Mirrorer/xivcrossbar,

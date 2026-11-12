@@ -48,7 +48,7 @@ std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend, last_context, banks, trust_slots;
 xb::FocusHandoff focus_handoff;
-bool inherit_modifiers;
+bool inherit_modifiers, personal_set_controls;
 bool menu, native_menu, targeting, binding, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
@@ -66,7 +66,7 @@ xb::Sample apply_policy(xb::Ownership& state, unsigned buttons, unsigned policy_
     ULONGLONG now = 0, bool use_targeting = false, unsigned use_banks = 0,
     bool use_binding = false, unsigned use_trust_slots = 0) {
     const xb::LogicInput input{now, buttons, policy_mode, menu, native_menu,
-        use_targeting, use_banks | (inherit_modifiers ? 8u : 0u), use_binding, use_trust_slots};
+        use_targeting, use_banks | (inherit_modifiers ? 8u : 0u) | (personal_set_controls ? 16u : 0u), use_binding, use_trust_slots};
     xb::Sample result{};
     apply_logic(&state, &input, &result);
     return result;
@@ -556,6 +556,7 @@ __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, un
         if (heartbeat && now - heartbeat > 500) heartbeat = 0;
     }
     inherit_modifiers = (context & 0x2000000) != 0;
+    personal_set_controls = (context & 0x4000000) != 0;
     targeting = (context & 0x100) && !r1_chooser;
     banks = (context >> 9) & 7;
     binding = (context & 0x1000) != 0;

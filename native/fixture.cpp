@@ -126,6 +126,15 @@ int main() {
     edge = owner.apply(up | circle, 2, false, false, 0, 200);
     check(edge.suppressed == (up | circle), "Trust-owned buttons stay captured after menu closes");
     check(owner.apply(0, 2, false, false).up == (up | circle), "Trust release clears ownership");
+    owner.reset();owner.apply(0,2,false,false);
+    owner.apply(left_trigger,2,false,false,0,100,false,0,false,0,true,false,true);
+    check(owner.apply(left_trigger | l1,2,false,false,0,110,false,0,false,0,true,false,true).down & l1,"personal previous-set chord captures L1 after L2");
+    owner.reset();owner.apply(0,2,false,false);
+    owner.apply(right_trigger,2,false,false,0,100,false,0,false,0,true,false,true);
+    check(owner.apply(right_trigger | r1,2,false,false,0,110,false,0,false,0,true,false,true).down & r1,"personal next-set chord captures R1 after R2");
+    owner.reset();owner.apply(0,2,false,false);
+    owner.apply(right_trigger,2,false,false);
+    check(!(owner.apply(right_trigger | r1,2,false,false).suppressed & r1),"disabled personal set control stays native");
     FocusHandoff handoff;
     check(handoff.sample(l1 | right,true,true,true)==(l1 | right),"foreground gap blocks preheld input before heartbeat");
     check(handoff.sample(l1 | up,true,true,true)==(l1 | up),"join gap also blocks newly held directions");
