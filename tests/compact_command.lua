@@ -70,6 +70,24 @@ label_command('slotlabeloffset','invalid','4')
 assert(saves==before+4 and ui.slot_y==6 and ui.bank_opacity==160)
 print('Label layout and opacity commands save and validate independently.')
 
+-- Exercise the new independently persisted set-name offset command.
+ui.set_set_name_offset=function(self,x,y) self.set_name_x,self.set_name_y=x,y end
+local offset_saves=saves
+label_command('setnameoffset','14','-7')
+assert(settings.Texts.SetNameOffsetX==14 and settings.Texts.SetNameOffsetY==-7)
+assert(ui.set_name_x==14 and ui.set_name_y==-7)
+assert(saves==offset_saves+1)
+label_command('setnameoffset')
+assert(saves==offset_saves+1,'bare offset command reports instead of saving')
+label_command('setnameoffset','oops','5')
+label_command('setnameoffset','3','5','extra')
+assert(saves==offset_saves+1,'invalid offsets cannot save')
+label_command('setnameoffset','0','0')
+assert(saves==offset_saves+2 and ui.set_name_x==0 and ui.set_name_y==0)
+assert(settings.Texts.BankLabelOffsetX==3 and settings.Texts.BankLabelOffsetY==-9,
+    'set-name changes cannot move trigger labels')
+print('Set-name offset: valid/invalid inputs, bare status, persistence and trigger-label isolation passed.')
+
 ui.set_cost_offset=function(self,x,y) self.cost_x,self.cost_y=x,y end
 label_command('costoffset','-8','-24')
 assert(settings.Texts.CostOffsetX==-8 and settings.Texts.CostOffsetY==-24 and ui.cost_y==-24)
