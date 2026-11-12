@@ -1,3 +1,18 @@
+# Current Development Status - Credits menu centering
+
+2026-11-12, rerorriM-Mirrorer/xivcrossbar, feat/contributor-credits-20261112.
+Baseline a7ef335dd09077a88e2bcb2dde0bc09f4dde8c29. User confirms portraits look correct when bound;
+Credits and icon picker portraits sit above/left inside their frames. Corrected
+sized-image inset to (40 - image size) / 2 relative to the frame origin, shared
+by both menus. Bound-slot assets, ordinary menu icons and controller behavior
+are unchanged. Regression now checks both portrait/frame coordinate differences.
+Local execution is unavailable (workspace connection failed); GitHub CI will run
+the Lua/Windows checks. Live centering confirmation remains pending. Install the
+updated ui/selectablelist.lua, retaining prior portrait assets, and reload XB
+one client at a time. Next step: confirm centering on both menu screens.
+
+## Previous status (retained)
+
 # Current Development Status - Contributor credits and forum-post draft
 
 2026-11-12, rerorriM-Mirrorer/xivcrossbar, feat/contributor-credits-20261112.
@@ -5488,3 +5503,15 @@ passed GitHub run 43254581718: Lua and Windows x86 native/AHK build, fixtures,
 parse/startup/profile/lifecycle smoke checks. Local/published Git trees matched.
 The 15-file overlay was byte-checked against the committed sources and contains
 README, WORKFLOW, TESTING and portrait provenance. No live FFXI test was performed.
+
+
+## 2026-11-12: Correct credit menu frame-relative inset
+
+User screenshot confirms bound portraits are correct but both menus are offset.
+~~The preceding 32px sizing patch placed portraits at a 4px frame inset.~~
+Correction: its -1 offset was relative to the already-inset frame origin, so it
+placed portraits 1px above/left. The shared renderer now derives a 4px inset
+from the 40px frame and 32px image. The earlier mocked check only asserted size;
+the updated test checks X and Y coordinates against the actual adjacent frame.
+No local checks or live FFXI checks can be claimed for this follow-up. GitHub
+checks and publication status are reported with the delivered commit.

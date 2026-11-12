@@ -8,6 +8,7 @@ local function object()
         return function(self, ...)
             assert(native[self], 'native object used after deletion: '..key)
             local args={...}
+            if key=='pos' and #args==2 then self.coords={args[1],args[2]} end
             if key=='destroy' then native[self]=nil
             elseif key=='show' then self.shown=true
             elseif key=='hide' then self.shown=false
@@ -101,9 +102,12 @@ assert(totals()==baseline, 'binding preview retained drawing objects')
 -- and fit inside the 40px frames with a 4px inset.
 binder:display_credits()
 local portraits=0
-for _,image in ipairs(binder.selector.images) do
+for i,image in ipairs(binder.selector.images) do
     if (image:path() or ''):find('images/credit_avatars/',1,true) then
         assert(image.values.fit==false and image.values.size==32)
+        local frame=binder.selector.images[i+1]
+        assert(image.coords[1]-frame.coords[1]==4 and image.coords[2]-frame.coords[2]==4,
+            'portrait must be centered inside its frame on both axes')
         portraits=portraits+1
     end
 end

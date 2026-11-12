@@ -343,7 +343,9 @@ function selectable_list:display_options(options, presentation)
                     icon:fit(false)
                     icon:size(value.icon_size,value.icon_size)
                 end
-                local icon_offset = value.icon_offset or 0
+                -- Sized portraits are centered relative to the frame at (x,y),
+                -- which already includes the row's 5px inset.
+                local icon_offset = value.icon_size and (40 - value.icon_size) / 2 or (value.icon_offset or 0)
                 icon:pos(x + icon_offset, y + icon_offset)
                 self.images:append(icon)
 
