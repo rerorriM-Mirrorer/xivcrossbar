@@ -6,6 +6,9 @@ local ui=require('ui')
 for _,preset in ipairs({'legacy','default','me'}) do
     local options=theme.apply(presets.values(preset));options.button_layout='playstation'
     ui:setup(options,{})
+    -- The preceding compact fixture leaves this singleton chooser flag true;
+    -- a live render pass would synchronize it to the actually closed chooser.
+    ui.chooser_open=false
     ui.public_visible=true
     ui:set_set_name('Travel / Tools')
     assert(ui.set_name_label:text()=='TRAVEL / TOOLS')
