@@ -29,7 +29,15 @@ The camera keys assume the user's period/comma bindings, not auto-detection.
 
 All 52 Lua suites passed; 135 sources parsed under Lua 5.4 with temporary
 Windower syntax normalization. Host g++ C++17 native fixture and generated
-mapping consistency passed. Windows x86/AHK CI verification is pending. Live PS5 input identity, camera
+mapping consistency passed. Windows CI run 43209235016 at published
+7b29831b09f61b83e241d5e65e905cf2ec5dc952 passed Lua, x86 MSVC native
+fixtures, module loading, AHK v2.0.19 discovery and actual reader/profile/
+lifecycle fixtures including new zoom decisions and 23-control messages.
+Artifact 13939982729 downloaded and its GitHub SHA256 verified. Initial
+Windows run found an outdated Lua registration fixture callback count; the
+fixture now verifies the extra capability/export and passes. Cleanup was also
+reviewed to reset zoom arming on client/reader changes. This verification
+update is documentation-only; delivered runtime equals the successful build. Live PS5 input identity, camera
 zoom/axis blocking, touchpad toggle, L3 native TargetNPC, client switches,
 release cleanup and Default/Legacy native behavior remain to test.
 
