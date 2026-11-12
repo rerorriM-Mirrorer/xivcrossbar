@@ -46,6 +46,7 @@ local topics = {
         {'triggerscale [on|off|status|0-25]', 'Set the size change when switching trigger banks.'},
         {'banklabels [on|off|status]', 'Show or hide the trigger labels on crossbars.'},
         {'setname [on|off|status]', 'Show the uppercase set name between L2 and R2; bare toggles.'},
+        {'setnameoffset <x> <y>', 'Move only the set-name caption; bare command shows its offset.'},
         {'banklabeloffset <x> <y>', 'Move bank labels in layout pixels.'},
         {'banklabelopacity [0-255|status]', 'Set the opacity of bank label text and outlines.'},
         {'slotlabeloffset <x> <y>', 'Move slot action names in layout pixels.'},

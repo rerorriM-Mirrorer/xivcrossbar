@@ -701,3 +701,5 @@ This Lua/AHK patch requires addon reload and reader restart, no client restart.
 The separately reported intermittent native targeting leak still needs testing.
 
 2026-11-12: Consolidated compact/full trigger captions across Legacy, Default and Me. Added uppercase current-set name centered between L2/R2 with the trigger caption's opacity/stroke and one smaller font size. Added //xb setname bare toggle/on/off/status. Set name and full-mode Share/Options hints disappear immediately for combined, double-tap and shoulder banks, and return for idle/single triggers. Uses existing HUD fades and scale, refreshes on set or job changes. No AHK/native/input routing change. Existing saved -63 offset can be reset with //xb banklabeloffset 0 0 without reapplying a preset.
+
+2026-11-12 (set-name HUD refinement): Added //xb setnameoffset <x> <y> to move only the centered set-name caption, preserving trigger label positions. Bare //xb setnameoffset reports saved values; 0 0 resets. The new fields follow character configuration and remain compatible with all display presets. Regression fixture update keeps the display-only UI mock aligned with the new set-name API.

@@ -420,8 +420,9 @@ end
 -- Share the trigger-caption rail, halfway between the L2 and R2 halves.
 local function position_set_name(self)
     if not self.set_name_label then return end
-    self.set_name_label:center((self:get_slot_x(1,7)+40+self:get_slot_x(2,1))/2,
-        bank_label_y(self,1))
+    self.set_name_label:center((self:get_slot_x(1,7)+40+self:get_slot_x(2,1))/2
+        + (self.set_name_offset_x or 0),
+        bank_label_y(self,1)+(self.set_name_offset_y or 0))
 end
 
 local function position_slot_label(self, bank, slot)
@@ -528,6 +529,8 @@ function ui:setup(theme_options, enchanted_items)
     self.display_palette = theme_options.display_palette
     self.bank_labels_visible = theme_options.bank_labels_visible ~= false
     self.set_name_enabled = theme_options.set_name_visible ~= false
+    self.set_name_offset_x = tonumber(theme_options.set_name_offset_x) or 0
+    self.set_name_offset_y = tonumber(theme_options.set_name_offset_y) or 0
     self.context_labels_visible = nil
     self.bank_label_offset_x = tonumber(theme_options.bank_label_offset_x) or 0
     self.bank_label_offset_y = tonumber(theme_options.bank_label_offset_y) or 0
@@ -1009,6 +1012,12 @@ function ui:set_bank_label_opacity(opacity)
             self.set_name_label:show()
         end
     end
+end
+
+-- The name has its own position adjustment, never shifting bank captions.
+function ui:set_set_name_offset(x,y)
+    self.set_name_offset_x,self.set_name_offset_y=x,y
+    position_set_name(self)
 end
 
 function ui:set_set_name(name)

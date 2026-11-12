@@ -154,6 +154,9 @@ return {
         BankLabelOffsetY = 0,
         BankLabelOpacity = 60,
         BankLabels = true,
+        SetName = true,
+        SetNameOffsetX = 0,
+        SetNameOffsetY = 0,
         Color = {
             Alpha = 255,
             Blue = 255,

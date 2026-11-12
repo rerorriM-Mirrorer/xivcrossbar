@@ -1,3 +1,18 @@
+# Set-name HUD test refinement - independent set-name offsets
+
+2026-11-12. Branch test/set-name-hud-20261112. User requested an
+independent position command for the set-name label. Added
+//xb setnameoffset <x> <y>, with bare status, numeric validation,
+immediate live relayout and character-setting persistence. Default 0,0.
+The preset values retain zero offsets and do not alter bank label positions.
+Regression coverage checks independent position and reset; the real display
+preset test fixture now provides the new UI method. First CI attempt
+43236384558 failed in a display-only fixture (nil set_set_name) after
+136 Lua sources parsed; this fixture correction is included. Recheck full
+CI before claiming automated pass; actual FFXI appearance remains untested.
+
+---
+
 # Current Development Status - Set-name caption and shared label anchors
 
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar,

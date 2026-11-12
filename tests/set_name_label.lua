@@ -42,6 +42,14 @@ for _,preset in ipairs({'legacy','default','me'}) do
     ui:set_bank_label_offset(0,5)
     assert(m.center_y==ui.geometry.surfaces[ui.bank_labels[1]].center_y)
     ui:set_bank_label_offset(0,0)
+    local prior_x,prior_y=m.center_x,m.center_y
+    local other=ui.geometry.surfaces[ui.bank_labels[1]]
+    local bank_x,bank_y=other.center_x,other.center_y
+    ui:set_set_name_offset(7,-11)
+    assert(m.center_x==prior_x+7 and m.center_y==prior_y-11,'independent set name offset')
+    assert(other.center_x==bank_x and other.center_y==bank_y,'bank label unaffected')
+    ui:set_set_name_offset(0,0)
+    assert(m.center_x==prior_x and m.center_y==prior_y,'reset offset')
     ui:set_compact(not ui.is_compact)
     assert(ui.geometry.surfaces[ui.set_name_label]==m,'mode toggle preserves label')
     assert(m.center_y==ui.geometry.surfaces[ui.bank_labels[1]].center_y)

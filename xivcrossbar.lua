@@ -1662,6 +1662,24 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
+    if command == 'setnameoffset' then
+        local x,y=tonumber(args[1]),tonumber(args[2])
+        if not args[1] and not args[2] then
+            chat_format.say(207,'[XIVCrossbar] Set name offset: '..
+                tostring(settings.Texts.SetNameOffsetX or 0)..', '..
+                tostring(settings.Texts.SetNameOffsetY or 0))
+        elseif x and y and x==x and y==y and math.abs(x)<math.huge and math.abs(y)<math.huge
+            and not args[3] then
+            settings.Texts.SetNameOffsetX,settings.Texts.SetNameOffsetY=x,y
+            theme_options.set_name_offset_x,theme_options.set_name_offset_y=x,y
+            ui:set_set_name_offset(x,y)
+            ui_dirty=true
+            config.save(settings)
+            chat_format.say(207,'[XIVCrossbar] Set name offset: '..tostring(x)..', '..tostring(y))
+        else chat_format.say(123,'[XIVCrossbar] //xb setnameoffset <x> <y>') end
+        return
+    end
+
     if command == 'slotlabelstroke' then
         local mode = args[1] and args[1]:lower() or 'status'
         if mode ~= 'black' and mode ~= 'amber' and mode ~= 'status' then
