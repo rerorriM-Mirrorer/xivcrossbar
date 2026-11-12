@@ -19,8 +19,13 @@ Portrait sources recorded under images/credit_avatars/SOURCES.md.
 Focused regression: production Credits screen emits 20 rows with retained roles;
 all portrait/icon PNG signatures verified; icon-folder labels and menu resource
 regressions pass. 138 Lua sources parse under Lua 5.4 with temporary Windower
-syntax normalization. Full CI pending. Actual Windower rendering/icon binding
-and pagination remain live tests; no live FFXI pass claimed.
+syntax normalization. GitHub Actions run 43250952846 at published
+11eda09d582c6b366a1152a6485d5dd001bd0aef passed all 54 Lua suites,
+Windows x86 native fixtures/module loading, AHK discovery/reader/lifecycle
+and package assembly. All 19 selector PNGs decode as 64x64 RGBA. Local and
+published runtime trees match. Actual Windower rendering/icon binding and
+pagination remain live tests; no live FFXI pass claimed. Forum BBCode tag
+balance was checked locally, not rendered or posted on FFXIAH.
 
 Forum draft uses conservative BBCode, original personal introduction/thanks,
 feature/FAQ groupings, corrected ribbon command names and explicit pending
