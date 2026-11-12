@@ -3,7 +3,7 @@
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar,
 feat/settings-cleanup-20261112. Integrated source baselines: credits
 03f0142faf7d428385fc1437a7acbb8301a4521f and visibility
- e0ef2aeefe13b3bbc4b9b504ef1f3babc0171926. Latest user-confirmed live
+e0ef2aeefe13b3bbc4b9b504ef1f3babc0171926. Latest user-confirmed live
 behavior: personal camera zoom and map work well; bound credit icons work.
 Menu centering and the supplied Cutscene/Auto patch still need live acceptance.
 
@@ -23,7 +23,8 @@ Me zoom/map options, field alpha independence and whole-HUD fades. Old tests
 which asserted chat/Event capture suppression were updated to the approved Auto
 contract; current no-focus/reader/ownership guards remain tested. XML examples
 were generated from the actual presets/schema and parsed with Python ElementTree.
-GitHub Lua/Windows CI is pending this publication. No assistant live FFXI test.
+GitHub run 43268730614 at source 8524858d17059d89d02009db392136042dc844d1
+passed all 58 Lua suites and Windows x86 native/AHK checks. No assistant live FFXI test.
 
 INSTALL: overlay only the matching addon files; keep data/settings.xml and all
 hotbars. Reload one client at a time, no controller/DLL restart. Migration is
@@ -11015,3 +11016,15 @@ Verification update: GitHub run 43262471284 passed both jobs (54 Lua suites,
 Windows native/AHK checks) at d63c16bf4a505542dddea0c3c9c7bdceb20bb2b5.
 The runtime delivery is one file, ui/selectablelist.lua; no new portrait assets
 are necessary. No local or live FFXI check was performed for this correction.
+
+
+## 2026-11-12: Settings cleanup final verification
+
+Published code checkpoint 8524858d17059d89d02009db392136042dc844d1 passed
+GitHub Actions run 43268730614 (Lua and Windows x86 jobs). Local 58-suite
+regression run passed; subsequent count-import validation passed its targeted
+schema test and the final full CI suite. 143 Lua sources parsed with temporary
+Windower string-method normalization. Controller mapping generation is unchanged
+and its --check passes. No AHK, DLL, installed settings or hotbar files changed.
+The final documentation commit does not change the tested runtime. Review and
+next steps are in docs/SETTINGS-CLEANUP.md; live FFXI acceptance is still pending.

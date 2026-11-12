@@ -96,3 +96,9 @@ Check Full/Compact, Default/Legacy/Me, all old/new command pairs, Show/Cutscene,
 Auto through chat/native menus/status4/death, shoulders, held-client switching,
 zoom and map. Confirm fields at 210 and labels/slots independent through fades.
 Automated checks are mock/static/CI; no assistant in-game FFXI test is claimed.
+
+
+Verification: final code 8524858d17059d89d02009db392136042dc844d1 passed
+GitHub run 43268730614 (all 58 Lua suites plus Windows native/AHK checks).
+143 Lua sources parsed after temporary Windower syntax normalization. Local
+regressions and XML example parsing passed. These do not replace live FFXI tests.
