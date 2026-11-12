@@ -24,6 +24,11 @@ no(visibility.should_show('always',false,true,false), 'Show respects optional Cu
 no(visibility.should_show('hidden',true,false,false), 'Hide stays hidden')
 assert(visibility.event_mode('always',true,true)=='always', 'Event never demotes Show to Auto')
 
+local presets = require('libs/settings_presets')
+yes(presets.values('legacy').Cutscene, 'Legacy retains optional cutscene hiding')
+no(presets.values('default').Cutscene, 'Default never hides automatically in events')
+no(presets.values('me').Cutscene, 'Me never hides automatically in events')
+
 -- AutoHold is not cancelled by a chat/death/event transition.
 local hold={}
 no(visibility.update_hold(hold,true,3,0,true), 'Held state is represented by the physical trigger')
