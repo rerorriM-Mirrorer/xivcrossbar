@@ -5481,3 +5481,10 @@ settings-save concurrency and focus-handoff observations remain deferred.
 
 The default icon picker Credits folder uses the same 32px bounded rendering as
 the Credits screen, while preserving 64px source portraits for crossbar slots.
+
+Final verification: all 54 local Lua suites passed; 138 Lua sources parsed after
+temporary Windower syntax normalization. Final code commit 34c132632d2a0ada049b69f6b710f9b996b66f56
+passed GitHub run 43254581718: Lua and Windows x86 native/AHK build, fixtures,
+parse/startup/profile/lifecycle smoke checks. Local/published Git trees matched.
+The 15-file overlay was byte-checked against the committed sources and contains
+README, WORKFLOW, TESTING and portrait provenance. No live FFXI test was performed.
