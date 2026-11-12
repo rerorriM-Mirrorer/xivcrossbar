@@ -57,7 +57,7 @@ end
 function M.target_action(dik, pressed, chord, down, has_target)
     if dik ~= 90 or not pressed or chord or down[89] or down[87] or down[88]
         or down[67] or down[68] then return end
-    return 'tab'
+    return has_target and 'tab' or 'targetnpc'
 end
 
 function M.target_press(dik, chord, down, has_target)
@@ -66,7 +66,7 @@ function M.target_press(dik, chord, down, has_target)
         if down[slot] then return end
     end
     if down[89] and down[90] then return
-    elseif not chord then
+    elseif not chord and has_target then
         return dik == 89 and 'shift-tab' or 'tab'
     end
 end

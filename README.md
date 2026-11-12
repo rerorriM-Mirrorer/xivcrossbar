@@ -673,3 +673,10 @@ R2 TargetNPC, targetless shoulder Tab/Shift-Tab, trigger-then-shoulder set cycli
 rebuilt bare-PS window toggle and selectable client/neutral stick-message arming.
 Use //xb me status and //xb me controls/r2target/ps/sets on|off or movement client|neutral.
 Matching hook/policy/reader install and full FFXI restart required; Trust interpretation unchanged.
+
+
+### 2026-11-12 Shoulder correction
+Restored revision 3 L1/R1 Tab/Shift-Tab only with an existing target.
+L1+R1 TargetNPC stays removed. Removed R2 TargetNPC dispatch and its private
+toggle; stale saved flags are inert. PS, set cycling and movement modes remain.
+This Lua-only correction needs addon reload, not an FFXI restart.

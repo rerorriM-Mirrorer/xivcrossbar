@@ -30,13 +30,14 @@ local env=setmetatable({settings=settings,player=player,transport=transport,
         if dik==87 or dik==88 then context=pressed and 'crossbar' or 'gameplay' end
     end},{__index=_G})
 local route=assert(load(source:sub(a,b-1)..'\nreturn route_controller_message','actual personal route','t',env))()
+settings.ShoulderBanks.PersonalControls.R2TargetNPC=true -- stale settings cannot restore removed shortcut
 route(88,true);route(88,true)
-assert(#outputs==1 and outputs[1]=='input /targetnpc','R2 targets only on its fresh press')
+assert(#outputs==0,'R2 never targets, even with the old saved flag')
 route(90,true);route(90,true);route(90,false)
 assert(#changes==1 and changes[1]=='basic','R2 then R1 cycles forward exactly once')
 route(88,false);route(87,true);route(89,true);route(89,false);route(87,false)
 assert(#changes==2 and changes[2]=='default','L2 then L1 cycles backward')
 settings.ShoulderBanks.PersonalControls.Enabled=false
 route(88,true);route(90,true);route(90,false);route(88,false)
-assert(#outputs==1 and #changes==2,'master switch disables the personal shortcuts')
-print('Personal controls: preset isolation, options, filtered cyclic set list, actual R2 target/cycling route and master OFF passed.')
+assert(#outputs==0 and #changes==2,'master switch disables the personal shortcuts')
+print('Personal controls: preset isolation, options, filtered cyclic set list, removed R2 target/cycling route and master OFF passed.')

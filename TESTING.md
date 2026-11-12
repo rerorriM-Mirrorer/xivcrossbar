@@ -1,3 +1,25 @@
+# Current Development Status - Shoulder correction
+
+2026-11-12. Repository rerorriM-Mirrorer/xivcrossbar, branch
+fix/settings-inheritance. Starting published source 0f46235.
+User reports the other personal controls feel good. Restored revision 3
+shoulder tabbing only with an existing target; removed R2 TargetNPC dispatch
+and command. Old saved R2TargetNPC=true is harmless. Legacy fallback R1
+behavior is preserved from before the personal-controls patch. L1+R1 NPC
+shortcut remains removed. No native DLL changes: addon reload is sufficient.
+
+Verification: all 51 Lua suites passed and 134 sources parsed under Lua 5.4
+with temporary Windower syntax normalization; no live FFXI test performed here. Test untargeted shoulders,
+targeted reverse/forward cycling, both shoulder chord orders, R2 with an old
+saved flag, and existing PS/set/movement controls. Next: live acceptance and
+a separately scoped configurable personal-action map.
+
+Correction to the historical batch below: targetless shoulder cycling and R2
+TargetNPC were unintended and are superseded by this entry. Earlier results
+are preserved as the record of that delivered build.
+
+---
+
 # Current Development Status - Optional personal controls and combined handoff test
 
 2026-11-12 (America/Chicago). rerorriM-Mirrorer/xivcrossbar,

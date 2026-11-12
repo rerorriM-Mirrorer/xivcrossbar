@@ -36,7 +36,7 @@ function M.values(name)
         out.Texts.CostOffsetX=-6;out.Texts.CostOffsetY=-28
         if name=='me' then
             merge(out,require('libs/personal_preset'))
-            out.ShoulderBanks.PersonalControls={Enabled=true,R2TargetNPC=true,PSButton=true,SetCycling=true,MovementArm='neutral'}
+            out.ShoulderBanks.PersonalControls={Enabled=true,R2TargetNPC=false,PSButton=true,SetCycling=true,MovementArm='neutral'}
             out.ControllerBridge.ps='on'
         end
     end

@@ -2359,13 +2359,6 @@ local function route_controller_message(dik, pressed, chord, seq)
         if destination then set_active_environment(destination) end
         return 'personal-set-cycle',context
     end
-    if pressed and dik==88 and windower.has_focus() and context=='gameplay' and personal.R2TargetNPC and info and not info.menu_open
-        and not transport.down[87] and not transport.down[89] and not transport.down[90]
-        and not transport.down[67] and not transport.down[68] then
-        local blocked=false
-        for slot_dik=59,66 do if transport.down[slot_dik] then blocked=true end end
-        if not blocked and not settings.InputTest then windower.send_command('input /targetnpc') end
-    end
     if dik == 89 or dik == 90 then
         if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
             local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
