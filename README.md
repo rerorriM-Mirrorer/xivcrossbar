@@ -75,7 +75,7 @@ switching.** Because Windower does not provide a cutscene-only flag, the
 Show-only detector is deliberately conservative: Event status 4 while
 alive, with neither chat nor a native game menu open. Death/raise and
 ordinary menus are never classified as cutscenes by this rule.
-`//xb cutscene` or `//xb cutscene status` reports the setting.
+Bare `//xb cutscene` toggles; `//xb cutscene status` reports the setting.
 Legacy defaults it on, Default/Me off. The old `//xb eventbars` command
 remains as an inverse compatibility alias (`eventbars on` = `cutscene off`).
 
