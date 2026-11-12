@@ -1,3 +1,48 @@
+# Current Development Status - Consolidated controller, PS and SetName overlay
+
+2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
+branch release/consolidated-overlay-20261112. Packaging-only consolidation
+from test/set-name-hud-20261112 source 8152dec (runtime caf89a7).
+Includes Extra Controls 462002c, permissive PS/fresh modifier 0a5540b,
+initial SetName UI/independent offset commands, and latest menu-visible set
+name/persistent-double-tap captions from the user's attached overlay.
+All 22 runtime paths were compared against the layered ZIPs and CI source;
+no new runtime behavior was introduced. The payload includes the new controller
+DLLs even for users who have not installed Extra Controls yet. No layering needed.
+
+Verification: GitHub Actions 43241843720 at caf89a791a18204ebd55d3cad07e2501a2053358
+passed Lua and Windows jobs: 53 Lua suites/136 parsed sources, x86 native
+fixtures/loading, AHK discovery/reader/lifecycle and package assembly. Artifact
+13956275380 downloaded and its GitHub SHA256 verified. Five focused local
+suites rerun for this consolidation passed, including layout, set captions,
+fresh modifier arrival, personal controls, extra messages and presets. Lua
+runs use Lua 5.4 with temporary Windower syntax normalization. No new live
+FFXI/controller/desktop test is claimed. PS behavior and Default labels at
+banklabeloffset 0 3 were previously confirmed good by the user; new camera,
+touchpad and latest menu/persistent-caption acceptance remain pending.
+
+INSTALL THIS ZIP ONCE: stop reader, CLOSE ALL FFXI clients, back up addon,
+overlay the included xivcrossbar folder, then restart/load clients and reader.
+Do not overlay earlier controller/PS/SetName ZIPs afterward. No settings XML,
+hotbars, bindings or personal data are shipped. Keep current settings and label
+offsets. Existing Me settings apply; if the new tests are disabled, use
+//xb me zoom on and //xb me map on individually, one client at a time. Avoid
+reapplying a whole preset just to enable these tests; it resets other preferences.
+Default/Legacy keep private shortcuts off. See INSTALL-CONSOLIDATED.txt.
+
+Deferred, unchanged: shared settings.xml write collision after simultaneous
+client saves (recovered uploaded XML separately); no cross-process locking or
+atomic replacement fix yet. Avoid broadcast settings-changing commands such
+as //all xb me. Intermittent native D-pad targeting on focus handoff also remains
+open; held modifiers now enter fresh press handling but do not prove native
+leak fixed. EventBars taking precedence over chatlog remains a requested future
+change, not implemented. Settings/command exposure review, compact/tight and
+optional trigger-field appearances remain separate work. No binding-menu
+redesign or unrelated development was included. Rollback requires all clients
+closed and restoration of the prior matching runtime/DLL backup.
+
+---
+
 # Current Development Status - Menu-visible set name and persistent extra captions VERIFIED
 
 2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
