@@ -37,7 +37,7 @@ local topics = {
         {'hide', 'Hide bars without disabling actions.'},
         {'show', 'Show bars.'},
         {'auto', 'Show bars on controller trigger.'},
-        {'eventbars [on|off|status]', 'Reveal held banks and allow shoulder slots during FFXI events.'},
+        {'cutscene [on|off|status]', 'Hide bars during cutscenes in Show only. Auto always works; eventbars is a legacy alias.'},
         {'autohold [0-30|status]', 'Keep the last bank visible after releasing a trigger or shoulder.'},
         {'autohide [on|off]', 'Set trigger visibility.'},
         {'fade [on|off]', 'Enable/disable fades.'},
