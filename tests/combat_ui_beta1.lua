@@ -139,7 +139,7 @@ local display_env={ui={is_setup=true,display_gcd_indicator=function(_,value) all
 local draw=assert(load(code:sub(draw_start,draw_end-1),'actual lockout visibility','t',display_env))
 draw();assert(allowed,'autohide must allow the lockout strip with no trigger held')
 display_env.xivcrossbar.hide_hotbars=true
-draw();assert(not allowed,'no ambient strip during status 4')
+draw();assert(allowed,'Auto strip remains available during status 4')
 display_env.visible=true
 draw();assert(allowed,'a visible trigger-held bar can show the strip')
 display_env.visibility_mode='hidden'

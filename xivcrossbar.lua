@@ -163,8 +163,8 @@ local function set_display_preset(mode)
         local xi = preset == 'xi'
         settings.DisplayPreset = preset
         settings.VisibilityMode = xi and 'oninput' or 'always'
-        settings.Animation.Enabled, settings.Animation.TextFade = xi, xi
-        theme_options.fade_enabled, theme_options.text_fade = xi, xi
+        settings.Animation.Enabled, settings.Animation.TextFade = xi, true
+        theme_options.fade_enabled, theme_options.text_fade = xi, true
         theme_options.load_fade_in = xi and settings.Animation.LoadFadeIn or 0
         theme_options.display_palette = theme.display_palette(preset)
         theme_options.slot_pulse_enabled = xi
@@ -1408,6 +1408,21 @@ end)
 -- ON COMMAND
 windower.register_event('addon command', function(command, ...)
     command = command and command:lower() or 'help'
+    -- Friendly public names dispatch into the established action paths.
+    if command=='preset' then
+        local name,extra=...
+        name=type(name)=='string' and name:lower()
+        if extra or (name~='default' and name~='legacy' and name~='me') then
+            chat_format.say(123,'[XIVCrossbar] //xb preset default|legacy|me');return
+        end
+        require('libs/settings_presets').apply(settings,name)
+        config.save(settings)
+        chat_format.say(207,'[XIVCrossbar] '..name:sub(1,1):upper()..name:sub(2)..' reloading')
+        graceful_restart(false);return
+    end
+    local friendly={crossbars='triggerbanks',crossbarlabels='banklabels',
+        crossbarlabeloffset='banklabeloffset',labelopacity='banklabelopacity'}
+    command=friendly[command] or command
     if command == 'legacy' or command == 'default' or command == 'me' then
         if command=='me' and select('#',...)>0 then
             local feature,value=...
@@ -1451,6 +1466,9 @@ windower.register_event('addon command', function(command, ...)
         elseif mode == 'start' then
             if controller_switcher.pending then report_controller_status() else start_controller_wrappers() end
         elseif mode == 'profile' then select_controller_profile(name, device)
+        elseif controller_profiles.aliases[mode] or controller_profiles.profiles[mode] then
+            if device then chat_format.say(123,'[XIVCrossbar] //xb controller <name> [device]');return end
+            select_controller_profile(mode,name)
         elseif mode == 'status' then report_controller_status()
         elseif mode == 'trace' then return diagnostic:command(name or 'start','input')
         elseif mode == 'profiles' then
@@ -1482,7 +1500,7 @@ windower.register_event('addon command', function(command, ...)
                 graceful_restart(false)
             end
         else
-            chat_format.say(207, '[XIVCrossbar] Trigger banks '..settings.Hotbar.Number..' | //xb triggerbanks [3|4|5|6]')
+            chat_format.say(207, '[XIVCrossbar] Crossbars: '..settings.Hotbar.Number..' | //xb crossbars [3|4|5|6]')
         end
         return
     elseif command == 'jobsets' then
@@ -1532,6 +1550,28 @@ windower.register_event('addon command', function(command, ...)
         return
     end
     local args = {...}
+    if command=='layout' then
+        local mode=args[1] and args[1]:lower()
+        if not mode or mode=='status' then
+            chat_format.say(207,'[XIVCrossbar] Layout: '..(settings.iscompact and 'Compact' or 'Full'));return
+        end
+        if args[2] or (mode~='full' and mode~='compact') then
+            chat_format.say(123,'[XIVCrossbar] //xb layout full|compact');return
+        end
+        return set_compact_mode(mode=='compact' and 'on' or 'off')
+    elseif command=='visibility' then
+        local mode=args[1] and args[1]:lower()
+        if not mode or mode=='status' then
+            local label=({always='Show',hidden='Hide',oninput='Auto'})[settings.VisibilityMode]
+            chat_format.say(207,'[XIVCrossbar] Visibility: '..tostring(label));return
+        end
+        if args[2] or (mode~='show' and mode~='hide' and mode~='auto') then
+            chat_format.say(123,'[XIVCrossbar] //xb visibility show|hide|auto');return
+        end
+        command,args='ui',{mode}
+    elseif command=='fading' then
+        command,args='ui',{'fade',args[1],args[2]}
+    end
     if command == 'fade' or command == 'scale' or command == 'hide' or command == 'show' or command == 'auto' then
         table.insert(args, 1, command)
         command = 'ui'
@@ -1555,6 +1595,7 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(0,chat_format.row('Layout',
             (settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)))
         chat_format.say(0,chat_format.row('Visibility',chat_format.visibility(settings.VisibilityMode)..' | Display: '..settings.DisplayPreset:upper()))
+        chat_format.say(0,chat_format.row('Cutscene Hide',chat_format.toggle(settings.Cutscene==true)..' | Show only; Auto unrestricted'))
         chat_format.say(0,chat_format.row('Animation',
             'Fades: '..chat_format.toggle(settings.Animation.Enabled)..
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
@@ -1629,7 +1670,7 @@ windower.register_event('addon command', function(command, ...)
     if command == 'banklabels' then
         local mode = args[1] and args[1]:lower()
         if mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status' then
-            chat_format.say(123, '[XIVCrossbar] //xb banklabels [on|off|status]')
+            chat_format.say(123, '[XIVCrossbar] //xb crossbarlabels [on|off|status]')
             return
         end
         if mode ~= 'status' then
@@ -1640,7 +1681,7 @@ windower.register_event('addon command', function(command, ...)
             ui_dirty = true
             config.save(settings)
         end
-        chat_format.say(207, '[XIVCrossbar] Bank labels: ' .. (settings.Texts.BankLabels ~= false and 'On' or 'Off'))
+        chat_format.say(207, '[XIVCrossbar] Crossbar labels: ' .. (settings.Texts.BankLabels ~= false and 'On' or 'Off'))
         return
     end
 
@@ -1721,7 +1762,7 @@ windower.register_event('addon command', function(command, ...)
             return
         end
         chat_format.say(207, ('[XIVCrossbar] %s offset (X, Y) = %g, %g'):format(
-            bank and 'Bank label' or cost and 'Cost text' or 'Slot label', settings.Texts[x_key] or 0, settings.Texts[y_key] or 0))
+            bank and 'Crossbar label' or cost and 'Cost text' or 'Slot label', settings.Texts[x_key] or 0, settings.Texts[y_key] or 0))
         return
     end
 
@@ -1750,10 +1791,10 @@ windower.register_event('addon command', function(command, ...)
             ui_dirty = true
             config.save(settings)
         elseif args[1] and args[1]:lower() ~= 'status' then
-            chat_format.say(123, '[XIVCrossbar] //xb banklabelopacity [0-255|status]')
+            chat_format.say(123, '[XIVCrossbar] //xb labelopacity [0-255|status]')
             return
         end
-        chat_format.say(207, '[XIVCrossbar] Bank label opacity: ' .. (settings.Texts.BankLabelOpacity or 255))
+        chat_format.say(207, '[XIVCrossbar] Label opacity: ' .. (settings.Texts.BankLabelOpacity or 255))
         return
     end
 
@@ -1835,8 +1876,11 @@ windower.register_event('addon command', function(command, ...)
 
     if command == 'ui' and args[1] == 'fade' then
         local mode = args[2] and args[2]:lower()
-        if mode and mode ~= 'on' and mode ~= 'off' then
-            chat_format.say(123, '[XIVCrossbar] //xb fade [on|off]'); return
+        if args[3] or (mode and mode ~= 'on' and mode ~= 'off' and mode ~= 'status') then
+            chat_format.say(123, '[XIVCrossbar] //xb fading [on|off|status]'); return
+        end
+        if mode=='status' then
+            chat_format.say(207,'[XIVCrossbar] Fading: '..(settings.Animation.Enabled and 'ON' or 'OFF'));return
         end
         local enabled = mode == 'on' or (not mode and not settings.Animation.Enabled)
         settings.Animation.Enabled = enabled
@@ -1847,7 +1891,7 @@ windower.register_event('addon command', function(command, ...)
         ui.public_visible = nil
         ui_dirty = true
         config.save(settings)
-        chat_format.say(207, '[XIVCrossbar] Fades: ' .. (enabled and 'ON' or 'OFF'))
+        chat_format.say(207, '[XIVCrossbar] Fading: ' .. (enabled and 'ON' or 'OFF'))
         return
     end
 
@@ -1895,18 +1939,28 @@ windower.register_event('addon command', function(command, ...)
         return
     end
 
-    if command == 'eventbars' then
-        local mode = args[1] and args[1]:lower() or 'status'
+    if command == 'cutscene' or command == 'eventbars' then
+        local old_alias = command == 'eventbars'
+        -- New Cutscene follows our bare-command toggle convention; retain
+        -- legacy EventBars bare-status behavior for existing users.
+        local mode = args[1] and args[1]:lower()
+            or (old_alias and 'status' or (settings.Cutscene and 'off' or 'on'))
         if mode == 'on' or mode == 'off' then
-            settings.EventBars = mode == 'on'
+            -- Old //xb eventbars on meant "permit bars in events".
+            -- Cutscene is the inverse, and ONLY changes Show's presentation.
+            settings.Cutscene = old_alias and mode == 'off' or
+                (not old_alias and mode == 'on')
+            settings.EventBars = not settings.Cutscene
             ui_dirty = true
             config.save(settings)
         elseif mode ~= 'status' then
-            chat_format.say(123, '[XIVCrossbar] //xb eventbars [on|off|status]')
+            chat_format.say(123, '[XIVCrossbar] //xb cutscene [on|off|status]')
             return
         end
-        chat_format.say(207, '[XIVCrossbar] Event banks: ' ..
-            (settings.EventBars and 'Reveal on hold' or 'Original behavior'))
+        chat_format.say(207, '[XIVCrossbar] Cutscene hiding in Show: ' ..
+            (settings.Cutscene and 'ON' or 'OFF') ..
+            ' | Auto is always available.' ..
+            (old_alias and ' //xb eventbars is a legacy alias.' or ''))
         return
     end
 
@@ -2392,7 +2446,8 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
     if restart_pending or native_mode ~= 'guard' or (not native_filtering and not handoff_press) then return 'guard-inactive' end
     local context = input_context()
     local info = windower.ffxi.get_info()
-    if info and info.chat_open and context ~= 'setup' then context = 'native-chat' end
+    -- Chat belongs to FFXI for bare buttons. Holding a crossbar modifier
+    -- explicitly transfers its eight slots to XIVCrossbar even during chat.
     local item, edge, owner = transport:edge(dik, pressed, context)
     if not item or edge == 'repeat' then return 'unmapped-or-held',context end
     if controller_bridge then
@@ -2430,11 +2485,11 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
             action_binder:set_shoulder_combo(shoulder_banks.ids[bank])
             ui_dirty = true
         end
-        local eligible = context == 'gameplay' and info and not info.menu_open and windower.has_focus()
+        local eligible = context == 'gameplay' and info and windower.has_focus()
         local targeting = gamepad_state.shoulder_targeting
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, eligible)
         local actor = targeting and windower.ffxi.get_player()
-        targeting = actor and actor.status ~= 4
+        targeting = not not actor
         local action
         if targeting and pressed then
             local has_target = not not windower.ffxi.get_mob_by_target('t')
@@ -2469,8 +2524,8 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
     if settings.InputTrace then
         chat_format.say(207, '[XIVCrossbar test] '..item.name..' '..edge..' | '..tostring(owner or context))
     end
-    if context == 'login' or (pressed and context == 'native-chat') then return 'native-context',context end
-    if not pressed and (not owner or (owner ~= context and not transition) or owner == 'native-chat') then return 'release-context-changed',context end
+    if context == 'login' then return 'native-context',context end
+    if not pressed and (not owner or (owner ~= context and not transition)) then return 'release-context-changed',context end
     if item.logical <= 66 and context == 'gameplay' and pressed and gamepad_state.shoulder_slots
         and info and windower.has_focus() then
         local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true)
@@ -2480,7 +2535,7 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
             return 'shoulder-slot',context,shoulder_banks.ids[bank],slot
         end
     end
-    if item.logical <= 66 and (context == 'gameplay' or context == 'native-chat') then return 'no-addon-claim',context end
+    if item.logical <= 66 and context == 'gameplay' then return 'no-addon-claim',context end
     if context == 'sets' and item.logical <= 66 and item.logical ~= 59 and item.logical ~= 61 then return 'set-chooser-ignored',context end
     local captured = gamepad_state.capturing
     gamepad_state.capturing = true
@@ -2498,7 +2553,7 @@ message_bridge=require('controller_messages').new({
     adopt=function(mask,bank)
         local info=windower.ffxi.get_info()
         if not windower.has_focus() or not xivcrossbar.ready or crossbar_menu_open()
-            or not info or info.chat_open then return false end
+            or not info then return false end
         -- Re-enter through normal trigger-down handling so press-dependent bank
         -- selection/animation runs on the destination. Do not replay slot actions
         -- or shoulder tap/set-cycle shortcuts merely because focus changed.
@@ -2735,7 +2790,10 @@ do
             if native_mode=='guard' and not lease_alive then
                 context=4 -- observe only until the reader has joined this PID
             else
-                context=(gamepad_mapper.is_showing or crossbar_menu_open()) and 2 or (info.chat_open and 3 or 1)
+                -- Native mode 3 suppresses addon capture. Chat and FFXI menus
+                -- must not force it: held modifiers own their bound slots,
+                -- while ordinary unmodified buttons stay native.
+                context=(gamepad_mapper.is_showing or crossbar_menu_open()) and 2 or 1
             end
         end
         if native_filtering and context==4 then clear_controller_input() end
@@ -2743,14 +2801,14 @@ do
             and controller_bridge and controller_bridge.menu:mask(buttonmapping) or 0
         local actor = context == 1 and trust_slots == 0 and message_bridge.extended
             and (native_gamepad.shoulder_slots or settings.ShoulderBanks.Targeting) and windower.ffxi.get_player()
-        local targeting = native_gamepad.tap_tab and actor and not info.menu_open and actor.status ~= 4
+        local targeting = native_gamepad.tap_tab and actor
             and shoulder_banks.targeting(settings.ShoulderBanks, settings.ControllerProfile, true)
-        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor, settings.EventBars)
+        local banks = native_gamepad.shoulder_slots and shoulder_banks.slot_context(info, actor)
             and shoulder_banks.capture_mask(settings.ShoulderBanks, settings.ControllerProfile) or 0
         local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
             and action_binder:is_binding_combo()
         local handoff = native_gamepad.handoff_revision==1 and (context==1 or context==4)
-            and xivcrossbar.ready and info and not info.chat_open and not crossbar_menu_open()
+            and xivcrossbar.ready and info and not crossbar_menu_open()
         local personal_sets=native_gamepad.personal_revision==1 and require('libs/personal_controls').options(settings).SetCycling
         if native_gamepad.extra_capture then
             local personal=require('libs/personal_controls').options(settings)
@@ -2813,7 +2871,7 @@ windower.register_event('prerender',function()
     local bank, bank_visible
     if gamepad_state.shoulder_slots and native_filtering then
         local info = windower.ffxi.get_info()
-        local eligible = info and not info.chat_open and input_context() == 'gameplay'
+        local eligible = info and input_context() == 'gameplay'
         bank, bank_visible = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile,
             transport.down, eligible)
     end
@@ -2853,8 +2911,16 @@ windower.register_event('prerender',function()
         return
     end
 
-    local visibility_mode = visibility.event_mode(settings.VisibilityMode, xivcrossbar.hide_hotbars, settings.EventBars)
-    if ui.is_setup and visibility_mode ~= 'hidden' and (not xivcrossbar.hide_hotbars or visibility_mode == 'oninput')
+    local visibility_mode = settings.VisibilityMode
+    local info = windower.ffxi.get_info()
+    local actor = windower.ffxi.get_player()
+    local hp = actor and tonumber(actor.hpp)
+    local stored_hp = player.vitals and tonumber(player.vitals.hp)
+    if (actor and actor.status == 2) or hp == 0 or stored_hp == 0 then hp = 0
+    elseif hp == nil then hp = stored_hp end
+    local cutscene_hidden = visibility.cutscene_hidden(visibility_mode, settings.Cutscene,
+        xivcrossbar.hide_hotbars, hp, info)
+    if ui.is_setup and visibility_mode ~= 'hidden'
         and (gamepad_state.left_trigger or gamepad_state.right_trigger) then
         ui.geometry:interrupt_startup_reveal()
     end
@@ -2868,13 +2934,13 @@ windower.register_event('prerender',function()
     local now = profile_clock()
     local hold_seconds = tonumber(settings.AutoHold) or 0
     local can_hold = hold_seconds > 0 and visibility_mode == 'oninput' and focused
-        and not menu_open and not xivcrossbar.hide_hotbars
-    local info = can_hold and windower.ffxi.get_info()
+        and not menu_open
     local holding = ui.is_setup and visibility.update_hold(ui.auto_hold, held, hold_seconds, now,
-        info and not info.chat_open)
-    local visible = (menu_open and not xivcrossbar.hide_hotbars) or visibility.should_show(visibility_mode,
-        held or holding, xivcrossbar.hide_hotbars, ui.is_setup and ui.geometry:is_startup_reveal_pending())
-        or action_binder:is_moving_crossbars() or env_chooser:is_showing()
+        can_hold)
+    local visible = (menu_open or visibility.should_show(visibility_mode,
+        held or holding, cutscene_hidden, ui.is_setup and ui.geometry:is_startup_reveal_pending())
+        or action_binder:is_moving_crossbars() or env_chooser:is_showing())
+        and not cutscene_hidden
     if not visible then crossbar_drag:finish() end
     local display_bank
     if ui.is_setup then
@@ -2899,7 +2965,7 @@ windower.register_event('prerender',function()
 
     if ui.is_setup then
         local lockout_visible = visibility_mode ~= 'hidden' and
-            (visible or (visibility_mode == 'oninput' and not xivcrossbar.hide_hotbars))
+            (visible or visibility_mode == 'oninput')
         ui:display_gcd_indicator(lockout_visible)
     end
 
@@ -2937,8 +3003,8 @@ end)
 windower.register_event('status change', function(new_status_id)
     if (not xivcrossbar.ready) then return end
     ui.public_visible = nil
-    -- Presentation is resolved on render so held triggers can override Event
-    -- hiding in Auto without showing inactive bars on a status transition.
+    -- Event status feeds only the optional Cutscene hide in Show.
+    -- Auto never hides or disables crossbar input because of status 4.
     xivcrossbar.hide_hotbars = new_status_id == 4
     ui_dirty = true
 

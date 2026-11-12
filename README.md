@@ -1,8 +1,9 @@
-# XIVCrossbar — Native Blocking and DirectLink test
+# XIVCrossbar — Settings cleanup test
 
-The current test adds a 0.4-second gold-white success flash for confirmed typed
-combat/spell actions, separate from the existing recast-ready flash. See the
-current entry in [TESTING.md](TESTING.md) for installation and live checks.
+The current test adds friendly settings/commands with old XML compatibility,
+fixed trigger-field alpha 210, corrected preset defaults and the latest visibility
+and credits patches. See [settings findings and scope](docs/SETTINGS-CLEANUP.md),
+[command inventory](docs/COMMAND-AUDIT.md), and [TESTING.md](TESTING.md).
 
 Switch complete settings with `//xb legacy`, `//xb default`, or `//xb me`.
 Each saves for the current character and reloads the addon, preserving bindings
@@ -59,6 +60,25 @@ controller and render trace commands remain available as capture aliases.
   Use `//xb controller status` and `//xb nativepad status` to inspect the two sides.
 
 ## Appearance and visibility
+
+**Always-on controller access in Auto:** Holding L2/R2 or an enabled L1/R1
+shoulder crossbar selects its bound eight slots even with FFXI chat open, a
+native FFXI menu open, while in Event status 4, or on the death/Raise prompt.
+An unmodified D-pad/face button still belongs to FFXI. XIVCrossbar routes
+bound commands in these states; FFXI itself can reject abilities while dead,
+zoning, or in a cutscene. The native hook's foreground ownership, matched
+reader and lease heartbeat are still required to avoid multibox input leaks.
+
+`//xb cutscene on` optionally hides crossbar artwork during cutscene-like
+Event status while using `//xb show`; `//xb cutscene off` leaves Show
+visible. **Cutscene never changes Auto, action availability, or PS window
+switching.** Because Windower does not provide a cutscene-only flag, the
+Show-only detector is deliberately conservative: Event status 4 while
+alive, with neither chat nor a native game menu open. Death/raise and
+ordinary menus are never classified as cutscenes by this rule.
+Bare `//xb cutscene` toggles; `//xb cutscene status` reports the setting.
+Legacy defaults it on, Default/Me off. The old `//xb eventbars` command
+remains as an inverse compatibility alias (`eventbars on` = `cutscene off`).
 
 In Auto, `//xb autohold 1.5` keeps the ordinary crossbars visible for 1.5 seconds
 after releasing the final trigger or visible shoulder. Released banks return to the normal idle layout. Set any duration
@@ -716,3 +736,20 @@ screen has 20 rows (Aliekber retains separate programming/art acknowledgments).
 Portrait source notes are in images/credit_avatars/SOURCES.md. The working
 FFXIAH beta-post draft is in docs/FFXIAH-Beta-Post-Draft.bbcode.txt; release
 links/dependency review and known-issue status are deliberately unfinished.
+2026-11-12: Cutscene is now a Show-only visibility preference; Auto does
+not suppress crossbars for Event status, chat input, death/Raise or native
+FFXI menus. DirectLink capture and shoulder banks now follow held modifiers
+in those states, with bare FFXI controls, addon-menu ownership, PS switching
+and focus/heartbeat safety preserved. Deprecated EventBars command remains
+as an inverse alias. Tests added; live FFXI acceptance pending.
+
+
+2026-11-12: Settings cleanup test. Friendly XML names and commands translate to
+established runtime fields; old XML/commands are accepted and character scopes
+remain independent. Trigger fields use alpha 210 in gameplay/binder and still
+fade with the HUD. Legacy labels/feedback are off; STPC and text fading are
+internal on. Latest Cutscene/Auto access and credit centering are consolidated.
+Personal zoom/map and controller behavior are retained. Simultaneous settings
+saving and remaining advanced/private exposure are separate unfinished work;
+see docs/SETTINGS-CLEANUP.md. Optional Default/Me XML examples are references,
+not replacements for installed character settings.

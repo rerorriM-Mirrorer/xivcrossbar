@@ -16,6 +16,7 @@ local files = require('files')
 local json = require('json')
 
 local config = {}
+local schema = require('libs/settings_schema')
 
 -- Keep Windower's shared config singleton and its settings registry intact.
 -- Shared libraries (including logger/texts) use it independently of our copy.
@@ -62,6 +63,7 @@ function config.load(filepath, defaults)
     meta.comments = {}
     meta.refresh = T{}
     meta.cdata = S{}
+    meta.public_schema = filepath:gsub('\\','/'):match('settings%.xml$') ~= nil
 
     settings_map[settings] = meta
 
@@ -107,6 +109,12 @@ function parse(settings)
         parsed = settings_table(parsed, settings)
     end
 
+    -- Translate raw scopes before merging: a character's old key must still
+    -- override a global's new key, and explicit new keys win within one scope.
+    if meta.public_schema then
+        for scope,values in pairs(parsed) do parsed[scope]=schema.decode(values) end
+    end
+
     -- Determine all characters found in the settings file.
     meta.chars = parsed:keyset() - S{'global'}
     meta.original = T{}
@@ -143,7 +151,8 @@ function parse(settings)
         full_parsed = table.update(full_parsed, rawget(parsed, player.name:lower()), true)
     end
 
-    return merge(settings, full_parsed)
+    local result=merge(settings, full_parsed)
+    return meta.public_schema and schema.finalize(result) or result
 end
 
 -- Merges two tables like update would, but retains type-information and tries to work around conflicts.
@@ -418,7 +427,9 @@ function settings_xml(meta)
         end
 
         lines:append('    <%s>':format(char))
-        lines:append(nest_xml(meta.original[char], meta))
+        local values=meta.original[char]
+        if meta.public_schema then values=schema.encode(values, char) end
+        lines:append(nest_xml(values, meta))
         lines:append('    </%s>':format(char))
     end
 

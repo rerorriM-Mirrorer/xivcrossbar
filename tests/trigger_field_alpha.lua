@@ -1,0 +1,26 @@
+dofile('tests/compact.lua')
+local theme=require('theme')
+local ui=require('ui')
+local settings=require('libs/settings_presets').values('default')
+settings.buttonbackgroundalpha=1 -- obsolete XML must not control trigger fields
+settings.Texts.BankLabelOpacity=60;settings.Style.SlotAlpha=100
+local options=theme.apply(settings);options.button_layout='playstation'
+assert(options.button_background_alpha==210 and options.bank_label_opacity==60 and options.slot_opacity==100)
+ui:setup(options,{})
+ui.geometry:set_opacity(1)
+ui.bar_background:show()
+local field=ui.geometry.surfaces[ui.bar_background]
+assert(field.alpha==210 and field.draw_alpha==210)
+ui.geometry:set_opacity(.5)
+assert(field.draw_alpha==105,'fixed field alpha still follows the whole HUD fade')
+local f=assert(io.open('ui.lua'));local source=f:read('*a');f:close()
+local a=assert(source:find('        for _, field in ipairs({self.bar_background',1,true))
+local b=assert(source:find('        self:show_bar_background(active_bar)',a,true))
+local branch=source:sub(a,b-1)
+local draw=assert(load('return function(self,menu_open,amber_stroke)\n'..branch..'\nend','actual binder field opacity','t',setmetatable({unpack=table.unpack},{__index=_G})))()
+ui.geometry:set_opacity(1)
+draw(ui,true,{200,150,100})
+assert(field.alpha==210 and field.draw_alpha==210,'binder keeps the preferred alpha')
+draw(ui,false,{})
+assert(field.alpha==210 and ui.bank_label_opacity==60,'field and label opacity remain independent')
+print('Trigger fields: fixed 210 in gameplay/binder, independent labels/slots, and whole-HUD fading passed.')

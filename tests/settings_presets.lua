@@ -14,7 +14,7 @@ for _,from in ipairs({'legacy','default','me'})do
         expected.ControllerProfile,expected.ControllerDevice,expected.InputTest='xbox-xinput',4,true
         assert(equal(settings,expected),from..' -> '..to..' must be repeatable')
         settings.Animation.SlotGlow=false
-        assert(presets.values(to).Animation.RecastFlash,'no mutation of preset templates')
+        assert(presets.values(to).Animation.RecastFlash==(to~='legacy'),'no mutation of preset templates')
     end
 end
 local legacy,public,me=presets.values('legacy'),presets.values('default'),presets.values('me')
@@ -25,7 +25,7 @@ assert(not public.ShoulderBanks.L1.Enabled and not public.ShoulderBanks.Targetin
 assert(me.StartupEnvironment=='job-sub' and not me.UseSharedSet and me.AutoHold==3)
 assert(me.LockoutOpacity==0 and me.ShoulderBanks.L1.Enabled)
 for _,p in ipairs({legacy,public,me})do
-    assert(p.Animation.RecastFlash and p.Texts.BankLabelOpacity==60)
+    assert(p.Animation.RecastFlash==(p.SettingsPreset~='legacy') and p.Texts.BankLabelOpacity==60)
 end
 assert(not presets.apply({},'new'))
 assert(require('defaults').SettingsPreset=='default')

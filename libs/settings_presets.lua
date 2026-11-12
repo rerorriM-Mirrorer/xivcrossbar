@@ -22,14 +22,16 @@ function M.values(name)
     out.ShoulderBanks.PersonalControls={Enabled=false,R2TargetNPC=false,PSButton=false,SetCycling=false,CameraZoom=false,TouchpadMap=false,MovementArm='client'}
     if name=='legacy' then
         out.DisplayPreset='legacy';out.VisibilityMode='always'
-        out.AutoHideExtraBars=false;out.EventBars=false
-        out.AllowSTPCForSelfTargetedActions=false
-        out.Animation.Enabled=false;out.Animation.TextFade=false
+        out.AutoHideExtraBars=false;out.EventBars=false;out.Cutscene=true
+        out.AllowSTPCForSelfTargetedActions=true
+        out.Animation.Enabled=false;out.Animation.TextFade=true
+        out.Texts.BankLabels=false;out.Texts.SetName=false
+        out.Animation.SlotGlow=false;out.Animation.RecastFlash=false;out.Animation.TriggerScale=false
         -- Full-layout height; the renderer adapts its spread and compact spacing.
         out.HotbarOffsets.DoublePress={X=0,Y=-180}
         out.LegacyExtraBars=true
     else
-        out.DisplayPreset='xi';out.iscompact=true;out.EventBars=true
+        out.DisplayPreset='xi';out.iscompact=true;out.EventBars=true;out.Cutscene=false
         out.Animation.TriggerScale=true;out.Animation.SlotGlow=true
         out.Texts.SlotLabelAlign='center';out.Texts.SlotLabelOffsetY=-6
         out.Texts.BankLabelOffsetY=0 -- Shared compact/full anchor, no preset-specific shift.
@@ -40,6 +42,10 @@ function M.values(name)
             out.ControllerBridge.ps='on'
         end
     end
+    out.AllowSTPCForSelfTargetedActions=true
+    out.Hotbar.HideBattleNotice=false
+    out.Animation.TextFade=true
+    out.buttonbackgroundalpha=210
     out.LegacyExtraBars=out.LegacyExtraBars==true
     return out
 end

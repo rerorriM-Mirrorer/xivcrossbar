@@ -8,10 +8,11 @@ M.profiles = {
     ['xinput'] = {backend='xinput', label='Xbox / XInput', experimental=true},
     ['xinput-r1-chooser'] = {backend='xinput', label='Xbox / XInput (RB set chooser)', experimental=true},
 }
-M.aliases = {ps5='ps5-directinput', f710='f710-directinput',
+M.aliases = {ps='ps5-directinput',xbox='xinput',xboxrb='xinput-r1-chooser',fightpad='fightpadpro-directinput',ps5='ps5-directinput', f710='f710-directinput',
     fightpadpro='fightpadpro-directinput', xinput='xinput', xinputalt='xinput-r1-chooser'}
 function M.short_name(name)
-    for short, canonical in pairs(M.aliases) do if canonical == name then return short end end
+    local names={['ps5-directinput']='ps',xinput='xbox',['xinput-r1-chooser']='xboxrb',['f710-directinput']='f710',['fightpadpro-directinput']='fightpad'}
+    if names[name] then return names[name] end
     return name
 end
 function M.display_name(name)

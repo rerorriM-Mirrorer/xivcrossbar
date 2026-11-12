@@ -30,10 +30,10 @@ assert(keys(63,true)==false,'physical F-key remains independent')
 chat=true
 message(63,false);message(87,false);message(88,true);message(88,false)
 assert(released[#released]==6, 'Cross pulse must release even after entering chat')
-assert(#routed==3 and routed[3][1]==87 and routed[3][2]==false,'chat must permit cleanup only')
+assert(#routed==6 and routed[4][1]==87 and routed[4][2]==false and routed[5][1]==88,'chat permits cleanup and fresh held-trigger input')
 chat=false;context='setup'
 message(65,true);message(65,false)
-assert(#routed==5 and routed[4][1]==65 and routed[5][2]==false,'setup still uses messages')
+assert(#routed==8 and routed[7][1]==65 and routed[8][2]==false,'setup still uses messages')
 message(64,true);message(65,true)
 message(64,false);message(65,false)
 assert(released[#released-1]==5 and released[#released]==7,'Circle and Square must clear the slots they trigger')
@@ -73,7 +73,7 @@ context='gameplay';env.settings.ControllerProfile='xinput-r1-chooser'
 message(90,true);message(90,false)
 env.settings.ControllerProfile='ps5-directinput'
 message(87,true);message(90,true);message(90,false);message(87,false)
-assert(#outputs==2,'chords, menus, focus loss, RB chooser and triggers suppress targeting')
+assert(#outputs==4,'in-world menu/Event permit targeting; chords, focus loss, RB chooser and triggers suppress it')
 local fired = {}
 env.trigger_action=function(slot,bank) fired[#fired+1]={slot,bank} end
 env.settings.ShoulderBanks.L1.Enabled=true
@@ -133,9 +133,9 @@ message(87,true);message(90,true);message(90,false);message(87,false)
 menu=true;message(90,true);message(90,false);menu=false
 focus=false;message(89,true);message(89,false);focus=true
 message(59,true);message(89,true);message(89,false);message(59,false)
-assert(#outputs==2,'selected-target chord, triggers, menu, focus and held slots suppress targeting')
+assert(#outputs==3,'menu permits targeting; selected-target chord, triggers, focus and held slots suppress it')
 message(90,true);message(89,true);message(89,false);message(90,false)
-assert(#outputs==3 and outputs[3]=='tab','staggered selected-target presses cycle only on the first press')
+assert(#outputs==4 and outputs[4]=='tab','staggered selected-target presses cycle only on the first press')
 print('Revision 3 routing: press-only targeting, both chord orders, target-required cycling and context priority passed.')
 print('Actual routing callback: R1 cycle, repeats, release, focus, menus and chord priority passed.')
 print('Native login and bare gameplay, guard gate, chord routing, chat release and setup passed.')

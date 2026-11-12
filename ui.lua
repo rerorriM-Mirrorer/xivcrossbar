@@ -2084,7 +2084,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
         for _, field in ipairs({self.bar_background, self.bar_background_left, self.bar_background_right}) do
             if menu_open then
                 field:color(unpack(amber_stroke))
-                field:alpha(math.min(self.button_bg_alpha, 140))
+                field:alpha(self.button_bg_alpha)
             else
                 field:color(255, 255, 255)
                 field:alpha(self.button_bg_alpha)

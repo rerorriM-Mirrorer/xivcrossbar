@@ -18,17 +18,13 @@ assert(visibility.should_show(d.VisibilityMode,true,false,false))
 assert(visibility.should_show(d.VisibilityMode,false,false,true),
     'Startup reveal still visible')
 assert(visibility.should_show('oninput',true,true,false), 'Trigger shows auto bars during an event')
-assert(not visibility.should_show('oninput',false,true,true), 'Events suppress startup reveal')
+assert(visibility.should_show('oninput',false,true,true), 'Auto ignores cutscene suppression even during startup reveal')
 assert(not visibility.should_show('always',true,true,false), 'Legacy visibility hides during events')
 assert(not visibility.should_show('hidden',true,true,false), 'Explicit hide wins')
 assert(d.EventBars==true,'Public Default allows held bars during events')
 for _, mode in ipairs({'always','oninput'}) do
-    local during=visibility.event_mode(mode,true,true)
-    assert(during=='oninput')
-    assert(not visibility.should_show(during,false,true,true),'Event hides idle and startup bars')
-    assert(visibility.should_show(during,true,true,false),'held bank reveals during Event')
-    assert(visibility.event_mode(mode,false,true)==mode,'leaving Event restores selected mode')
-    assert(visibility.event_mode(mode,true,false)==mode,'option off preserves original policy')
+    assert(visibility.event_mode(mode,true,true)==mode,'Event never rewrites the chosen visibility')
+    assert(visibility.event_mode(mode,true,false)==mode)
 end
 assert(visibility.event_mode('hidden',true,true)=='hidden')
 -- Simulate saved values taking precedence after config has merged settings.

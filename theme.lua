@@ -106,7 +106,7 @@ theme.apply = function (settings)
 
     options.iconpack = settings.iconpack
     options.is_compact = settings.iscompact
-    options.button_background_alpha = settings.buttonbackgroundalpha or 150
+    options.button_background_alpha = 210
     options.hotbar_number = settings.Hotbar.Number
     options.hide_empty_slots = settings.Hotbar.HideEmptySlots
     options.hide_action_names = settings.Hotbar.HideActionName

@@ -5,6 +5,8 @@ local theme=require('theme')
 local ui=require('ui')
 for _,preset in ipairs({'legacy','default','me'}) do
     local options=theme.apply(presets.values(preset));options.button_layout='playstation'
+    -- This fixture tests opt-in label geometry; preset defaults are checked separately.
+    options.bank_labels_visible=true;options.set_name_visible=true
     ui:setup(options,{})
     -- The preceding compact fixture leaves this singleton chooser flag true;
     -- a live render pass would synchronize it to the actually closed chooser.

@@ -55,29 +55,29 @@ dll.shoulder_slots=true
 dll.tap_tab=function() return 1 end
 info.menu_open=true
 a.native_poll()
-assert(calls[#calls]==1 and not a.gamepad_state.shoulder_slots,'idle native menu keeps ownership')
+assert(calls[#calls]==1+0x100+0x200 and a.gamepad_state.shoulder_slots,'idle native menu permits held shoulder ownership')
 for _, status in ipairs({1,3}) do
     actor.status=status
     a.native_poll()
-    assert(calls[#calls]==1+0x200 and a.gamepad_state.shoulder_slots,'battle menu bit must permit slot capture')
-    assert(not a.gamepad_state.shoulder_targeting,'targeting remains disabled under the native menu bit')
+    assert(calls[#calls]==1+0x100+0x200 and a.gamepad_state.shoulder_slots,'battle menu permits configured shoulder capture')
+    assert(a.gamepad_state.shoulder_targeting,'configured targeting remains available in-world')
 end
 info.chat_open=true
 a.native_poll()
-assert(calls[#calls]==3 and not a.gamepad_state.shoulder_slots,'chat must suppress slot capture')
+assert(calls[#calls]==1+0x100+0x200 and a.gamepad_state.shoulder_slots,'chat permits held shoulder capture')
 info.chat_open=false
 actor.status=4
 a.native_poll()
-assert(calls[#calls]==1 and not a.gamepad_state.shoulder_slots,'Event slot capture is opt-in')
+assert(calls[#calls]==1+0x100+0x200 and a.gamepad_state.shoulder_slots,'Event capture needs no separate permission')
 a.settings.EventBars=true
 a.settings.ShoulderBanks.R1.Enabled=true
 a.settings.ShoulderBanks.Both.Enabled=true
 a.native_poll()
-assert(calls[#calls]==1+7*0x200 and a.gamepad_state.shoulder_slots)
-assert(not a.gamepad_state.shoulder_targeting,'an Event bank must not enable the R1 targeting shortcut')
+assert(calls[#calls]==1+0x100+7*0x200 and a.gamepad_state.shoulder_slots)
+assert(a.gamepad_state.shoulder_targeting,'configured targeting remains available during Event')
 info.chat_open=true
 a.native_poll()
-assert(calls[#calls]==3 and not a.gamepad_state.shoulder_slots,'chat still owns slot input during Event')
+assert(calls[#calls]==1+0x100+7*0x200 and a.gamepad_state.shoulder_slots,'chat/Event permits every configured shoulder crossbar')
 a.native_stop(true)
 assert(table.concat(calls,','):find('off,clear,detach',1,true))
 assert(a.native_mode==nil and not a.native_filtering and b.native_mode=='guard')
