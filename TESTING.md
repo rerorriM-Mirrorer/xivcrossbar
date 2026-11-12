@@ -26,8 +26,13 @@ message filtering is ready. Focus/readiness/chat/menu guards still apply.
 This change does NOT claim to fix the independently reported intermittent
 native-targeting leak. Native hook/foreground-quarantine changes are deferred;
 no DLL or timeout values change. Test fresh modifier arrival and native blocking
-as separate observations. Current automated checks are pending below; live
-FFXI tests remain. Next: PS and handoff acceptance, then native leak capture.
+as separate observations. Verification: five focused local Lua suites passed and 135 sources parsed
+under Lua 5.4 with temporary Windower syntax normalization. Windows CI run
+43215915365 at 192675b8dffd4c83fdd5676de0323a15e3648fdc passed all 52 Lua
+suites, x86 native fixtures/module loading, AHK v2.0.19 discovery and actual
+reader/profile/lifecycle fixtures including permissive PS decisions. Live
+FFXI/window-switch acceptance remains; CI does not exercise your desktop.
+This verification entry is documentation-only. Next: PS and handoff acceptance, then native leak capture.
 
 INSTALL: //xb controller stop, overlay Lua/AHK files, //lua r xivcrossbar on
 each client, then //xb controller start. No full client restart; keep existing
