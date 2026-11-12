@@ -1,3 +1,69 @@
+# Current Development Status - Held-modifier handoff between FFXI clients
+
+2026-11-11 (America/Chicago). rerorriM-Mirrorer/xivcrossbar,
+fix/settings-inheritance. Starting local source 63d6169 matches published
+37ce5f1. Current GitHub AGENTS.md, WORKFLOW.md and TESTING.md read before edits.
+User reported L1 held across a window switch was lost while native D-pad input
+reached the destination. Requested all four logical modifiers to carry, while
+already-held action buttons remain consumed until release. The prior Legacy
+layout/preset fix is included in the source baseline; this is a controller batch.
+
+Reader: a direct FFXI-to-FFXI switch snapshots held logical L2/R2/L1/R1 and the
+last published active trigger bank. On a matching capable destination lease,
+only modifiers still physically held are adopted. All other currently-held
+buttons are seeded without down edges, so they must be released and pressed
+again. Ordinary startup, reconnect and non-FFXI transitions retain neutral
+rearming. Existing mappings, controller profile selection and slot scanning
+are unchanged. Alternate R1-as-chooser mappings retain their existing semantics.
+
+Lua: token-checked resume records restore modifier/bank state directly, without
+routing synthetic presses, opening double-tap windows or shoulder targeting.
+Double-tap and ordered combined banks are retained where the destination's
+trigger layout supports them; otherwise its normal compatible bank is used.
+Receiver validates mask/range/sequence/token, and ignores duplicate records.
+Source lease cleanup releases old ownership. Old DLLs do not advertise the
+handoff capability, so readers retain neutral gating rather than half-enabling.
+
+Native: the matching hook and policy adopt preheld modifiers without action
+edges, quarantine already-held action buttons through release, and cover the
+foreground-to-Lua heartbeat gap. DirectInput state/buffered and XInput paths
+share suppression policy. The v1 policy ABI memory layout is unchanged. A new
+module capability field gates Lua/reader handoff. Native build workflow now runs
+for this development branch to build x86 DLLs and execute Windows/AHK fixtures.
+
+Local verification: all 50 Lua regression suites passed and 132 sources parsed
+with temporary Windower syntax normalization under Lua 5.4. New tests exercise
+all modifier masks, bank preservation, fresh input, invalid/duplicate records
+and the real adoption callback. Host g++ C++17 native fixture passed, including
+focus-gap quarantine, modifier combinations and consume-until-release after
+modifier release. Expanded Windows AHK fixtures await the native CI build.
+No live FFXI handoff success is claimed. Windows build results will be recorded
+before delivery. Canonical ASCII chat-output convention is adopted here.
+
+INSTALL: This batch changes the loaded native bridge DLL. Stop the shared
+reader, unload XIVCrossbar on every client, and CLOSE ALL FFXI processes before
+replacing native DLLs; Lua reload alone cannot replace the loaded hook. Back up
+the current addon/native/reader files. Overlay the matching controller patch,
+restart FFXI, load XIVCrossbar on each client and run //xb controller start once.
+Start with all buttons released. Keep profile/device consistent across clients.
+No settings/hotbars are replaced. Roll back by closing FFXI and restoring the
+backed-up Lua, AHK and DLL files together. Do not mix hook/policy versions.
+
+Live acceptance: on two clients, hold each of L1, R1, L2 and R2, use a bound
+window-switch action, and keep the modifier held. Destination should display
+the matching bank, with no native D-pad/face leak or repeated switch. Release
+only the action and press a fresh action without releasing the modifier. Repeat
+both triggers, both shoulders, double-tap trigger banks and 4/6-bank trigger
+order. Release modifier before the switching direction and verify that direction
+stays blocked until released. Check rapid round trips, chat/addon menus, leaving
+FFXI for another app, disconnect/reconnect, reader stop/restart and foreground
+changes with no modifier. Native bare gameplay should remain normal.
+
+Pending separate issue: the timer text-settling blink from the provided render
+capture is not part of this controller change.
+
+---
+
 # Current Development Status — ASCII reload feedback and Legacy bank spacing
 
 2026-11-11. Repository rerorriM-Mirrorer/xivcrossbar, branch

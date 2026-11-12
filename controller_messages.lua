@@ -50,13 +50,18 @@ function M.new(opts)
         local events,next_seq,last_cancel={},self.ack+1,0
         for line in body:sub(1,-5):gmatch('[^\n]+') do
             local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
-            local chord
+            local chord,bank
+            if not seq and opts.adopt then
+                seq,button,bank=line:match('^(%d+),resume,(%d+),([0-6])$')
+                if seq then kind='resume' end
+            end
             if not seq and extended then
                 seq,button=line:match('^(%d+),down,(1[34]),1$')
                 kind,chord='down',true
             end
             seq,button=tonumber(seq),tonumber(button)
             if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=(extended and #M.diks or 12))
+                or (kind=='resume' and bank and button>=1 and button<=(extended and 15 or 3))
                 or ((kind=='cancel' or kind=='stall') and button==0)) then
                 self.rejected=self.rejected+1;return false
             end
@@ -66,7 +71,7 @@ function M.new(opts)
                     if opts.observe then opts.observe('rejected seq-gap expected='..next_seq..' got='..seq) end
                     return false
                 end
-                events[#events+1]={seq,kind,button,chord};next_seq=next_seq+1
+                events[#events+1]={seq,kind,button,chord,tonumber(bank)};next_seq=next_seq+1
                 if kind=='cancel' or kind=='stall' then last_cancel=#events end
             end
         end
@@ -86,6 +91,14 @@ function M.new(opts)
                 local kind,button=event[2],event[3]
                 if kind=='cancel' then cancel()
                 elseif kind=='stall' then self:reset('output-stall')
+                elseif kind=='resume' then
+                    cancel()
+                    if opts.adopt(button,event[5]) then
+                        for bit=0,3 do
+                            if math.floor(button/2^bit)%2==1 then self.held[11+bit]=true end
+                        end
+                        self.captured=true;opts.capture(true)
+                    end
                 elseif kind=='down' and not self.held[button] then
                     if not self.captured then self.captured=true;opts.capture(true) end
                     self.held[button]=true

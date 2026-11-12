@@ -47,6 +47,8 @@ bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend, last_context, banks, trust_slots;
+xb::FocusHandoff focus_handoff;
+bool inherit_modifiers;
 bool menu, native_menu, targeting, binding, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
 GUID joystick;
 ULONGLONG heartbeat, last_sample;
@@ -64,7 +66,7 @@ xb::Sample apply_policy(xb::Ownership& state, unsigned buttons, unsigned policy_
     ULONGLONG now = 0, bool use_targeting = false, unsigned use_banks = 0,
     bool use_binding = false, unsigned use_trust_slots = 0) {
     const xb::LogicInput input{now, buttons, policy_mode, menu, native_menu,
-        use_targeting, use_banks, use_binding, use_trust_slots};
+        use_targeting, use_banks | (inherit_modifiers ? 8u : 0u), use_binding, use_trust_slots};
     xb::Sample result{};
     apply_logic(&state, &input, &result);
     return result;
@@ -82,6 +84,8 @@ unsigned observe(unsigned buttons) {
     last_sample = now;
     DWORD foreground = 0;
     GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
+    const auto focus_mask=focus_handoff.sample(buttons,foreground==GetCurrentProcessId(),mode==3,
+        !heartbeat || last_context==4);
     if (!apply_logic || !mode || !heartbeat || foreground != GetCurrentProcessId() || now - heartbeat > 500 ||
         (mode == 2 && buffered_seen) || overflow) {
         if (suppressed || count) reset();
@@ -90,20 +94,22 @@ unsigned observe(unsigned buttons) {
         buffered_ownership.reset();
         buffered_raw = 0;
         buffered_hat_pending = false;
-        suppressed = 0;
-        return 0;
+        suppressed = focus_mask;
+        return focus_mask;
     }
     if (waiting_for_neutral) {
-        if (buttons & (xb::controls | xb::l1 | xb::r1)) return 0;
+        if (buttons & (xb::controls | xb::l1 | xb::r1)) return focus_mask;
         waiting_for_neutral = false;
     }
-    if ((mode == 1 || mode == 3) && !probe_ready && !(buttons & xb::controls)) {
+    if ((mode == 1 || mode == 3) && !probe_ready && (!(buttons & xb::controls)
+        || (mode==3 && inherit_modifiers && (buttons & (xb::triggers | xb::l1 | xb::r1))))) {
         probe_ready = true;
-        apply_policy(buffered_ownership, 0, 2);
+        buffered_raw=inherit_modifiers ? buttons : 0;
+        apply_policy(buffered_ownership, buffered_raw, 2);
     }
     const auto result = apply_policy(ownership, buttons, mode == 3 ? 2 : mode, mode == 3 ? now : 0,
         mode == 3 && targeting, mode == 3 ? banks : 0, mode == 3 && binding, mode == 3 ? trust_slots : 0);
-    suppressed = result.suppressed;
+    suppressed = result.suppressed | focus_mask;
     if (mode == 3) return suppressed;
     // Releases precede presses; simultaneous triggers precede face/D-pad.
     for (int i = 0; i < 12; ++i)
@@ -204,7 +210,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             if (mode == 2) reset();
         }
         const bool rearming = waiting_for_neutral || discard_buffered_batch;
-        if (!probe_ready && heartbeat && SUCCEEDED(result)) {
+        if ((heartbeat || mode==3) && SUCCEEDED(result)) {
             DIJOYSTATE2 current{};
             auto hr = direct_original(object, sizeof current, &current);
             if (FAILED(hr)) hr = direct_original(object, sizeof(DIJOYSTATE), &current);
@@ -219,10 +225,14 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
         constexpr DWORD legacy_size = offsetof(DIDEVICEOBJECTDATA, uAppData);
         DWORD foreground = 0;
         GetWindowThreadProcessId(GetForegroundWindow(), &foreground);
-        if (rearming || (mode != 1 && mode != 3) || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
+        const bool quarantine_only=mode==3 && focus_handoff.blocked() && foreground==GetCurrentProcessId()
+            && (!probe_ready || !heartbeat || GetTickCount64()-heartbeat>500);
+        if (!quarantine_only && (rearming || (mode != 1 && mode != 3) || !probe_ready || !heartbeat || GetTickCount64() - heartbeat > 500 ||
             foreground != GetCurrentProcessId() || FAILED(result) || !data || !entries ||
-            *entries > capacity || (size != legacy_size && size != sizeof(DIDEVICEOBJECTDATA)))
+            *entries > capacity || (size != legacy_size && size != sizeof(DIDEVICEOBJECTDATA))))
             return result;
+        if (FAILED(result) || !data || !entries || *entries>capacity
+            || (size!=legacy_size && size!=sizeof(DIDEVICEOBJECTDATA))) return result;
         last_sample = GetTickCount64();
         ++calls;
         auto* bytes = reinterpret_cast<unsigned char*>(data);
@@ -244,7 +254,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             if ((type & DIDFT_POV) && instance == 0) {
                 const std::uint8_t neutral[32]{};
                 state = (state & ~0xfu) | xb::read_joystick(value, neutral, fightpad);
-                const auto mask = mode == 1 ? xb::up : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).suppressed;
+                const auto mask = mode == 1 ? xb::up : focus_handoff.blocked() | (quarantine_only ? 0u : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).suppressed);
                 if (mode == 3) memcpy(&hat, record, size);
                 const auto filtered = xb::filter_hat(value, mask);
                 hat_pending = mode == 3 && filtered != value;
@@ -256,13 +266,13 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
-                const auto mask = mode == 1 ? xb::circle : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).buffered_mask();
+                const auto mask = mode == 1 ? xb::circle : focus_handoff.blocked() | (quarantine_only ? 0u : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).buffered_mask());
                 if (mask & bit) value &= ~0x80u;
             } else continue;
             memcpy(record + sizeof offset, &value, sizeof value);
         }
         if (mode == 3 && hat_pending && *entries < capacity && result == DI_OK) {
-            const auto mask = apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).suppressed;
+            const auto mask = focus_handoff.blocked() | (quarantine_only ? 0u : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).suppressed);
             if (!(mask & state & xb::directions)) {
                 hat.dwTimeStamp = GetTickCount();
                 memcpy(bytes + (*entries)++ * size, &hat, size);
@@ -528,6 +538,7 @@ __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, u
 __declspec(dllexport) void __cdecl xb_off() {
     std::lock_guard lock(guard);
     mode = 0;
+    focus_handoff.reset();
     reset();
 }
 __declspec(dllexport) unsigned __cdecl xb_detach() {
@@ -544,6 +555,7 @@ __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, un
         last_sample = 0;
         if (heartbeat && now - heartbeat > 500) heartbeat = 0;
     }
+    inherit_modifiers = (context & 0x2000000) != 0;
     targeting = (context & 0x100) && !r1_chooser;
     banks = (context >> 9) & 7;
     binding = (context & 0x1000) != 0;

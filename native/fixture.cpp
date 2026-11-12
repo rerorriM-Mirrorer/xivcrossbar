@@ -126,6 +126,26 @@ int main() {
     edge = owner.apply(up | circle, 2, false, false, 0, 200);
     check(edge.suppressed == (up | circle), "Trust-owned buttons stay captured after menu closes");
     check(owner.apply(0, 2, false, false).up == (up | circle), "Trust release clears ownership");
+    FocusHandoff handoff;
+    check(handoff.sample(l1 | right,true,true,true)==(l1 | right),"foreground gap blocks preheld input before heartbeat");
+    check(handoff.sample(l1 | up,true,true,true)==(l1 | up),"join gap also blocks newly held directions");
+    check(handoff.sample(up,true,true,false)==up,"preheld direction stays quarantined after modifier release");
+    check(handoff.sample(0,true,true,false)==0,"quarantine ends only at release");
+    check(handoff.sample(l1 | right,false,true,true)==0,"unfocused client never filters input");
+    check(handoff.sample(l1 | right,true,false,true)==0,"disabled bridge leaves native input intact");
+    for (unsigned modifier : {left_trigger,right_trigger,l1,r1,left_trigger | right_trigger,l1 | r1}) {
+        owner.reset();
+        auto inherited=owner.apply(modifier | right,2,false,true,0,100,false,7,false,0,true,true);
+        check(inherited.suppressed==(modifier | right) && !inherited.down,"handoff quarantines held action without synthetic presses");
+        check(!owner.apply(modifier | right,2,false,false,0,110,false,7,false,0,true,true).down,"switch direction cannot repeat");
+        owner.apply(modifier,2,false,false,0,120,false,7,false,0,true,true);
+        check(owner.apply(modifier | right,2,false,false,0,130,false,7,false,0,true,true).down & right,"fresh direction works under adopted modifier");
+        owner.reset();
+        owner.apply(modifier | right,2,false,true,0,100,false,7,false,0,true,true);
+        owner.apply(right,2,false,false,0,200,false,7,false,0,true,true);
+        check(owner.apply(right,2,false,false,0,400,false,7,false,0,true,true).suppressed & right,"quarantined direction stays blocked after modifier release");
+        check(!owner.apply(0,2,false,false,0,410,false,7,false,0,true,true).suppressed,"release clears quarantine");
+    }
     std::uint8_t buttons[32]{};
     buttons[1] = buttons[6] = buttons[10] = 0x80;
     check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger), "DirectInput layout");

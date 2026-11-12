@@ -663,3 +663,7 @@ global settings delivery. Preserved hardware selection and saved bindings.
 2026-11-11: Preset reload confirmations now use capitalized ASCII text. Legacy
 extra banks spread outward and adapt their height in compact mode; compact
 headers match the XI gap while full Legacy labels retain their placement.
+
+2026-11-11: Added held L1/R1/L2/R2 handoff between FFXI clients, retaining
+compatible bank state and consuming preheld action buttons until release.
+Requires matching reader/hook/policy files and an FFXI restart for installation.

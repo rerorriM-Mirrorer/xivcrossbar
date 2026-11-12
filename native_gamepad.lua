@@ -14,6 +14,7 @@ function M.open(path)
     local hooks = 'hook state unknown | DLL loaded'
     local default_logic_loaded = false
     return {
+        handoff_revision = dll.handoff_revision,
         begin = function(...)
             local result, operation, code = dll.begin(...)
             if result == 1 then

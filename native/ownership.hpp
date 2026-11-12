@@ -18,6 +18,22 @@ struct Sample {
     unsigned buffered_mask() const { return suppressed | up; }
 };
 
+// Covers the brief foreground-to-Lua-heartbeat gap without replaying old input.
+class FocusHandoff {
+    bool active_=false;
+    unsigned blocked_=0;
+public:
+    void reset() { active_=false;blocked_=0; }
+    unsigned blocked() const { return blocked_; }
+    unsigned sample(unsigned raw,bool foreground,bool enabled,bool joining) {
+        if (!foreground || !enabled) { reset();return 0; }
+        if (!active_ && (raw & (triggers | l1 | r1))) blocked_=raw & (controls | l1 | r1);
+        active_=true;blocked_ &= raw;
+        if (joining && (blocked_ & (triggers | l1 | r1))) blocked_ |= raw & controls;
+        return blocked_;
+    }
+};
+
 class Ownership {
     std::uint64_t direction_resume_at_ = 0;
     std::uint32_t previous_ = 0;
@@ -30,8 +46,15 @@ public:
     // mode 1 is the isolated Up and Circle probe. Mode 2 routes the normal crossbar.
     Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu, unsigned passthrough = 0,
         std::uint64_t now = 0, bool targeting = false, unsigned banks = 0, bool binding = false, unsigned trust_slots = 0,
-        bool shoulder_gestures = false) {
+        bool shoulder_gestures = false, bool inherit = false) {
         if (!armed_) {
+            if (inherit && mode==2 && !menu && (raw & (triggers | l1 | r1))) {
+                // Adopt modifiers without a press gesture. Quarantine every
+                // preheld action until release, including during reader join.
+                armed_=true;previous_=raw;owned_=raw & (controls | l1 | r1);
+                shoulder_directions_=raw & directions;
+                return {owned_,0,0};
+            }
             armed_ = !(raw & controls);
             previous_ = raw;
             return {};

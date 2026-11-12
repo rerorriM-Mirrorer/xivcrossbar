@@ -241,6 +241,7 @@ Apply these conventions to new addons and to existing addons as they are develop
 - Use BattleStations-inspired, chat-only help: full `//addon command` examples, concise descriptions, `<required>` and `[optional]` arguments, and deterministic order.
 - Color individual fragments using Windower's `require('chat')` and `string.color()`: separators **140**, headings **167**, `//addon` prefix and `->` arrow **200**, syntax **207**, descriptions **0** (neutral white). Emit each line with `windower.add_to_chat(0, line)`; do **not** also print normal help to the console.
 - Give concise command feedback. Keep `reload` distinct from a complete `restart` when an addon uses both.
+- Use ASCII punctuation in addon-generated FFXI chat messages. Use the plain hyphen-minus `-` (U+002D), a colon, or no separator; do not use typographic en/em dashes (U+2013/U+2014). These Unicode dashes can render as Japanese characters in the FFXI chat log. Check the actual emitted message, including shared formatters.
 
 **Visual interface (where applicable)**
 - Support draggable positioning, saved coordinates, edit-mode guides, lock/unlock, and recovery when a UI is positioned off-screen.

@@ -2414,6 +2414,30 @@ message_bridge=require('controller_messages').new({
     observe=function(message)
         if diagnostic and diagnostic:input_active() then diagnostic:record('DIRECTLINK',message) end
     end,
+    adopt=function(mask,bank)
+        local info=windower.ffxi.get_info()
+        if not windower.has_focus() or not xivcrossbar.ready or crossbar_menu_open()
+            or not info or info.chat_open then return false end
+        local held={}
+        for bit,dik in ipairs({87,88,89,90})do
+            if math.floor(mask/2^(bit-1))%2==1 then held[dik]='gameplay' end
+        end
+        transport.down=held
+        gamepad_state.left_trigger=held[87]~=nil
+        gamepad_state.right_trigger=held[88]~=nil
+        gamepad_state.left_trigger_doublepress=bank==5 and gamepad_state.left_trigger and not gamepad_state.right_trigger
+        gamepad_state.right_trigger_doublepress=bank==6 and gamepad_state.right_trigger and not gamepad_state.left_trigger
+        close_left_doublepress_window();close_right_doublepress_window()
+        local selected=0
+        if gamepad_state.left_trigger and gamepad_state.right_trigger then
+            selected=(theme_options.hotbar_number==4 or theme_options.hotbar_number==6) and bank==4 and 4 or 3
+        elseif gamepad_state.left_trigger then selected=gamepad_state.left_trigger_doublepress and theme_options.hotbar_number>=5 and 5 or 1
+        elseif gamepad_state.right_trigger then selected=gamepad_state.right_trigger_doublepress and theme_options.hotbar_number>=5 and 6 or 2 end
+        gamepad_state.active_bar=selected
+        if selected~=0 then change_active_hotbar(selected) end
+        ui_dirty=true
+        return true
+    end,
     event=route_controller_message,
     routed=function(seq,button,kind,reason,context,bank,slot)
         if not diagnostic or not diagnostic:input_active() then return end
@@ -2468,7 +2492,8 @@ local function poll_directlink()
         and not info.menu_open and actor and actor.status ~= 4 and not controller_bridge.menu.token
     message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,
         message_bridge.ack,shoulders,{movement=controller_bridge.mode(settings,'movement'),
-            ps=controller_bridge.mode(settings,'ps'),gameplay=gameplay})
+            ps=controller_bridge.mode(settings,'ps'),gameplay=gameplay,bank=gamepad_state.active_bar,
+            handoff=native_gamepad.handoff_revision==1})
 end
 
 local frame = 0
@@ -2642,7 +2667,9 @@ do
             and shoulder_banks.capture_mask(settings.ShoulderBanks, settings.ControllerProfile) or 0
         local binding = context == 2 and message_bridge.extended and native_gamepad.shoulder_slots
             and action_binder:is_binding_combo()
-        generation=native_gamepad.poll(context + (targeting and 0x100 or 0) + banks*0x200
+        local handoff = native_gamepad.handoff_revision==1 and (context==1 or context==4)
+            and xivcrossbar.ready and info and not info.chat_open and not crossbar_menu_open()
+        generation=native_gamepad.poll((handoff and 0x2000000 or 0) + context + (targeting and 0x100 or 0) + banks*0x200
             + (binding and 0x1000 or 0) + trust_slots*0x10000, function()
             if generation and message_bridge.token then clear_controller_input() end
         end, function() end, generation)

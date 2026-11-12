@@ -62,7 +62,7 @@ OnExit(TransportExit)
 SetTimer(TransportPoll, 10)
 
 TransportPoll() {
-    global owner, ready, phase, connected, xinputFault, CB
+    global owner, ready, phase, connected, xinputFault, CB, HO
     Critical("On")
     if WrapperClientsShouldExit()
         ExitApp()
@@ -76,6 +76,7 @@ TransportPoll() {
     DiagTick(active)
     DiagStage("start")
     if (!active) {
+        HO.pending := false
         BridgeOutside()
         ReleaseTransport()
         ready := false
@@ -85,6 +86,7 @@ TransportPoll() {
         return
     }
     if (owner and owner != active) {
+        ControllerMessagePrepareHandoff()
         BridgeRelease()
         ReleaseTransport()
         ControllerMessageSelect(false, "", 0, "")
@@ -113,9 +115,13 @@ TransportPoll() {
     DiagSample(states,active,phase)
     WriteTransportStatus()
     if (!ready) {
-        if (neutral)
+        if (HO.pending)
             ready := true
-        return
+        else {
+            if (neutral)
+                ready := true
+            return
+        }
     }
     ControllerMessagePoll(states, active)
     DiagStage("lease-routing-write")

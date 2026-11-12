@@ -96,6 +96,7 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
     api.table(L, 0, 12);
     api.push(L, 1); api.field(L, -2, "trust_menu");
     api.push(L, 1); api.field(L, -2, "shoulder_slots");
+    api.push(L, 1); api.field(L, -2, "handoff_revision");
     api.push(L, 1); api.field(L, -2, "reverse_tab");
     api.closure(L, begin, 0); api.field(L, -2, "begin");
     api.push(L, GetCurrentProcessId()); api.field(L, -2, "process_id");

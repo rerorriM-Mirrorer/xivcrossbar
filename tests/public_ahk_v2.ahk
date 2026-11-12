@@ -98,6 +98,28 @@ try {
             ControllerMessagePoll(held, 0)
             Check(CM.seq = 3 && InStr(FileRead(spool), "3,down,5"), "every profile sends messages")
         }
+        for mask in [1,2,4,8,3,12] {
+            ControllerMessageSelect(true,"handoff-source-" . mask,0,spool,14)
+            CM.handoff := true, CM.bank := mask = 1 ? 5 : mask = 2 ? 6 : 3
+            ControllerMessagePoll(NeutralButtons(),0)
+            held := NeutralButtons(), held[2] := true
+            Loop 4
+                held[10+A_Index] := (mask & (1 << (A_Index-1))) != 0
+            ControllerMessagePoll(held,0)
+            ControllerMessagePrepareHandoff()
+            Check(HO.pending,"eligible source keeps a modifier handoff")
+            ControllerMessageSelect(true,"handoff-target-" . mask,0,spool,14)
+            ControllerMessagePoll(held,0)
+            contents := FileRead(spool)
+            Check(InStr(contents,",resume," . mask . ",") && !InStr(contents,",down,2"),
+                "destination adopts modifiers without replaying switching direction")
+            Check(CM.phase = "messages" && CM.previous[2] && !HO.pending,"preheld action is seeded until release")
+            held[2] := false
+            ControllerMessagePoll(held,0)
+            held[2] := true
+            ControllerMessagePoll(held,0)
+            Check(InStr(FileRead(spool),",down,2"),"fresh direction works without releasing modifiers")
+        }
     } finally {
         try FileDelete(spool)
         try FileDelete(spool . ".tmp")

@@ -1,8 +1,9 @@
 ; Ordered messages for every controller profile. A missing lease emits no input.
 ControllerMessageInit() {
-    global CM
+    global CM, HO
+    HO := {pending:false, mask:0, bank:0}
     CM := {requested:false, token:"", ack:0, seq:0, count:12, pending:[], previous:NeutralButtons()
-        , phase:"waiting-lease", seen:0, path:"", nextWrite:0, error:false}
+        , phase:"waiting-lease", handoff:false, bank:0, seen:0, path:"", nextWrite:0, error:false}
 }
 ControllerMessageContext(hwnd) {
     global CM, profile, device
@@ -29,6 +30,8 @@ ControllerMessageContext(hwnd) {
     if (age < -1 or age > 2)
         return
     BridgeLease(lease)
+    CM.handoff := RegExMatch(lease, "m)^button_handoff=1\r?$") != 0
+    CM.bank := RegExMatch(lease, "m)^button_bank=([0-6])\r?$", &bank) ? bank[1]+0 : 0
     count := RegExMatch(lease, "m)^button_count=14\r?$") ? 14 : 12
     ControllerMessageSelect(true, token[1], ack[1] + 0, RegExReplace(path, "\.ini$", ".buttons"), count)
 }
@@ -62,6 +65,14 @@ ControllerMessageSelect(requested, token, ack, path, count := 12) {
         CM.pending := retained
     }
 }
+ControllerMessagePrepareHandoff() {
+    global CM, HO
+    mask := 0
+    for bit, i in [11,12,13,14]
+        if (CM.previous[i])
+            mask |= 1 << (bit-1)
+    HO := {pending:CM.requested && CM.handoff && mask != 0, mask:mask, bank:CM.bank}
+}
 ControllerMessageAdd(kind, button, chord := false) {
     global CM
     CM.seq += 1
@@ -90,14 +101,14 @@ ControllerMessageFlush(force := false) {
     if (CM.count = 14)
         contents .= "buttons=14`n"
     for _, event in CM.pending
-        contents .= event.seq . "," . event.kind . "," . event.button . (event.chord ? ",1" : "") . "`n"
+        contents .= event.seq . "," . event.kind . "," . event.button . (event.kind = "resume" ? "," . event.bank : (event.chord ? ",1" : "")) . "`n"
     contents .= "END`n"
     temporary := CM.path . ".tmp"
     CM.error := !WriteControllerFile(temporary, CM.path, contents)
     return !CM.error
 }
 ControllerMessagePoll(states, hwnd) {
-    global CM
+    global CM, HO
     if (hwnd)
         ControllerMessageContext(hwnd)
     if (!CM.requested)
@@ -116,6 +127,24 @@ ControllerMessagePoll(states, hwnd) {
             CM.requested := false, CM.token := "", CM.phase := "waiting-lease"
         }
         return true
+    }
+    if (CM.phase = "neutral" && HO.pending && CM.handoff) {
+        mask := 0
+        for bit, i in [11,12,13,14]
+            if (i <= CM.count && states[i] && (HO.mask & (1 << (bit-1))))
+                mask |= 1 << (bit-1)
+        if (mask) {
+            ; Seed every held action without a down edge; it must be released first.
+            Loop CM.count
+                CM.previous[A_Index] := states[A_Index]
+            ControllerMessageAdd("resume", mask)
+            CM.pending[CM.pending.Length].bank := HO.bank
+            CM.phase := "messages"
+            ControllerMessageFlush(true)
+            HO.pending := false
+            return true
+        }
+        HO.pending := false
     }
     if (CM.phase = "neutral") {
         if (neutral)
