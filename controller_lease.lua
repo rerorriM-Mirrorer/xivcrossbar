@@ -24,7 +24,9 @@ function M.new(opts)
             payload=payload..'bridge_movement='..bridge.movement..'\nbridge_ps='..bridge.ps
                 ..'\nbridge_gameplay='..(bridge.gameplay and '1' or '0')..'\n'
         end
-        if shoulders then payload=payload..'button_count=14\n' end
+        if bridge and bridge.extras then payload=payload..'button_count=23\n'
+        elseif shoulders then payload=payload..'button_count=14\n' end
+        if bridge and bridge.zoom then payload=payload..'bridge_zoom=1\n' end
         if self.payload==payload and self.next_write and now<self.next_write then return true end
         self.next_write=now+.10
         local temporary=path..'.tmp'

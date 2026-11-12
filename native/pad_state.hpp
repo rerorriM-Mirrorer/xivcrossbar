@@ -4,6 +4,22 @@
 #include "controller_mappings.hpp"
 
 namespace xb {
+constexpr unsigned extra_buttons = 0x7c000, right_directions = 0x780000;
+constexpr unsigned extra_controls = extra_buttons | right_directions;
+inline unsigned read_right(double x, double y) {
+    return (y < -.55 ? 1u<<19 : 0) | (x > .55 ? 1u<<20 : 0) |
+        (y > .55 ? 1u<<21 : 0) | (x < -.55 ? 1u<<22 : 0);
+}
+inline unsigned read_extra_buttons(const std::uint8_t* buttons, bool fight) {
+    if (fight) return 0; // No inferred extra-button layout for fightpads.
+    unsigned raw=0;
+    for (unsigned i=0;i<5;++i) if (buttons[10+i]&0x80) raw|=1u<<(14+i);
+    return raw;
+}
+inline void filter_extra_buttons(std::uint8_t* buttons,unsigned mask,bool fight) {
+    if (!fight) for (unsigned i=0;i<5;++i) if (mask&(1u<<(14+i))) buttons[10+i]&=0x7f;
+}
+
 inline unsigned xbox_button(unsigned i, bool r1_chooser) {
     if (i >= 12) return i == 13 && r1_chooser ? 0 : xbox_shoulders[i - 12];
     return i == 9 && r1_chooser ? xbox_alternate_chooser : xbox[i];
@@ -15,6 +31,8 @@ inline unsigned read_xbox(unsigned buttons, unsigned left, unsigned right, bool 
         if (buttons & xbox_button(i, r1_chooser)) raw |= 1u << i;
     for (unsigned i = 12; i < 14; ++i)
         if (buttons & xbox_button(i, r1_chooser)) raw |= 1u << i;
+    if (buttons & 0x40) raw |= 1u<<14;
+    if (buttons & 0x80) raw |= 1u<<15;
     return raw;
 }
 inline unsigned read_joystick(unsigned pov, const std::uint8_t* buttons, bool fight) {
@@ -26,7 +44,7 @@ inline unsigned read_joystick(unsigned pov, const std::uint8_t* buttons, bool fi
     const auto* map = fight ? fightpad : dualsense;
     for (unsigned i = 0; i < sizeof(logical_buttons) / sizeof(*logical_buttons); ++i)
         if (buttons[map[i]] & 0x80) raw |= 1u << logical_buttons[i];
-    return raw;
+    return raw | read_extra_buttons(buttons,fight);
 }
 inline unsigned filter_hat(unsigned pov, unsigned suppressed) {
     if (pov >= 36000 || pov % 4500 != 0) return pov;

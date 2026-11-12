@@ -19,7 +19,7 @@ function M.values(name)
     out.Texts.BankLabelOpacity=60
     out.Animation.RecastFlash=true
     out.Hotbar.Number=5
-    out.ShoulderBanks.PersonalControls={Enabled=false,R2TargetNPC=false,PSButton=false,SetCycling=false,MovementArm='client'}
+    out.ShoulderBanks.PersonalControls={Enabled=false,R2TargetNPC=false,PSButton=false,SetCycling=false,CameraZoom=false,TouchpadMap=false,MovementArm='client'}
     if name=='legacy' then
         out.DisplayPreset='legacy';out.VisibilityMode='always'
         out.AutoHideExtraBars=false;out.EventBars=false
@@ -36,7 +36,7 @@ function M.values(name)
         out.Texts.CostOffsetX=-6;out.Texts.CostOffsetY=-28
         if name=='me' then
             merge(out,require('libs/personal_preset'))
-            out.ShoulderBanks.PersonalControls={Enabled=true,R2TargetNPC=false,PSButton=true,SetCycling=true,MovementArm='neutral'}
+            out.ShoulderBanks.PersonalControls={Enabled=true,R2TargetNPC=false,PSButton=true,SetCycling=true,CameraZoom=true,TouchpadMap=true,MovementArm='neutral'}
             out.ControllerBridge.ps='on'
         end
     end

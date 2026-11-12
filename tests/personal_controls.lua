@@ -41,3 +41,14 @@ settings.ShoulderBanks.PersonalControls.Enabled=false
 route(88,true);route(90,true);route(90,false);route(88,false)
 assert(#outputs==0 and #changes==2,'master switch disables the personal shortcuts')
 print('Personal controls: preset isolation, options, filtered cyclic set list, removed R2 target/cycling route and master OFF passed.')
+-- Execute the production extra route, including an old hook and disabled Me.
+settings.ShoulderBanks.PersonalControls.Enabled=true
+settings.ShoulderBanks.PersonalControls.TouchpadMap=true
+env.native_gamepad.extra_revision=1
+route(89,true);route(203,true);route(203,true);route(203,false);route(89,false)
+assert(#outputs==1 and outputs[1]=='toggle ffxidb','L1 touchpad toggles exactly once')
+route(203,true);route(203,false)
+assert(#outputs==1,'bare touchpad remains observation only')
+env.native_gamepad.extra_revision=nil
+route(89,true);route(203,true);route(203,false);route(89,false)
+assert(#outputs==1,'old native hook cannot enable an unblocked shortcut')

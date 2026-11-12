@@ -126,6 +126,33 @@ try {
     }
     PersonalControlChecks()
     ProfileSlotChecks()
+    s := {armed:false,previousL1:false}, extra := NeutralButtons()
+    extra[13] := true
+    Check(ZoomDecision(s,extra,true)="","L1 alone has no zoom")
+    extra[20] := true
+    Check(ZoomDecision(s,extra,true)="vkBE","L1 then right up holds period")
+    extra[20] := false, extra[22] := true
+    Check(ZoomDecision(s,extra,true)="vkBC","right down holds comma")
+    Check(ZoomDecision(s,extra,false)="","lost eligibility releases zoom")
+    Check(ZoomDecision(s,extra,true)="","held stick cannot rearm on focus return")
+    extra[22] := false
+    ZoomDecision(s,extra,true)
+    extra[22] := true
+    Check(ZoomDecision(s,extra,true)="vkBC","centering rearms zoom")
+    extra[14] := true
+    Check(ZoomDecision(s,extra,true)="","other shoulder suppresses zoom")
+    packet := Buffer(16,0)
+    NumPut("UShort",0xc0,packet,4)
+    NumPut("Short",28000,packet,12)
+    NumPut("Short",28000,packet,14)
+    extra := DecodeXInputState(packet,"xinput")
+    Check(extra.Length=23 && extra[15] && extra[16] && extra[20] && extra[21],"XInput extras and right diagonal")
+    ControllerMessageInit()
+    ControllerMessageSelect(true,"extra-fixture",0,A_ScriptDir . "\data\extra.buttons",23)
+    ControllerMessagePoll(NeutralButtons(),0)
+    extra := NeutralButtons(), extra[18] := true, extra[23] := true
+    ControllerMessagePoll(extra,0)
+    Check(CM.pending.Length=3 && CM.pending[2].button=18 && CM.pending[3].button=23,"extended stream carries extra edges")
     FileAppend("Public native DirectLink checks passed.", "*")
     ExitApp(0)
 } catch Error as failure {

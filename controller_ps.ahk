@@ -42,8 +42,9 @@ PersonalPSPoll(states, active, mode, eligible) {
     pressed := IsObject(states) && states.HasOwnProp("ps") && states.ps
     chord := false
     if (IsObject(states)) {
-        Loop 14
-            chord := chord || states[A_Index]
+        Loop states.Length
+            if (A_Index != 17)
+                chord := chord || states[A_Index]
     }
     fresh := pressed && !PPS.down
     decision := PersonalPSDecision(PPS,pressed,active,eligible,chord,

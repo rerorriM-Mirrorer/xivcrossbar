@@ -47,6 +47,7 @@ bool buffered_hat_pending;
 std::array<int, 256> events{};
 unsigned head, count, generation, mode, device, raw, suppressed, calls, buffered_calls, unsupported;
 unsigned backend, last_context, banks, trust_slots;
+unsigned extra_plain, extra_l1;
 xb::FocusHandoff focus_handoff;
 bool inherit_modifiers, personal_set_controls;
 bool menu, native_menu, targeting, binding, fightpad, r1_chooser, overflow, buffered_seen, probe_ready;
@@ -66,9 +67,13 @@ xb::Sample apply_policy(xb::Ownership& state, unsigned buttons, unsigned policy_
     ULONGLONG now = 0, bool use_targeting = false, unsigned use_banks = 0,
     bool use_binding = false, unsigned use_trust_slots = 0) {
     const xb::LogicInput input{now, buttons, policy_mode, menu, native_menu,
-        use_targeting, use_banks | (inherit_modifiers ? 8u : 0u) | (personal_set_controls ? 16u : 0u), use_binding, use_trust_slots};
+        use_targeting, use_banks | ((extra_plain | ((buttons & xb::l1) && !(buttons & (xb::triggers | xb::r1 | xb::share | xb::chooser)) ? extra_l1 : 0)) & xb::extra_controls) | (inherit_modifiers ? 8u : 0u) | (personal_set_controls ? 16u : 0u), use_binding, use_trust_slots};
     xb::Sample result{};
     apply_logic(&state, &input, &result);
+    // Suppress low analog values too while zoom owns an axis; digital edges
+    // still require crossing the shared threshold and preserve release ownership.
+    if (policy_mode==2 && !menu && !native_menu)
+        result.suppressed |= input.banks & xb::right_directions;
     return result;
 }
 
@@ -136,7 +141,12 @@ DWORD WINAPI xbox_read(DWORD index, XINPUT_STATE* state) {
         return result;
     }
     auto& pad = state->Gamepad;
-    const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger, r1_chooser));
+    const unsigned mask = observe(xb::read_xbox(pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger, r1_chooser)
+        | xb::read_right(pad.sThumbRX/32768.0, -pad.sThumbRY/32768.0));
+    if (mask & (1u<<14)) pad.wButtons &= ~0x40;
+    if (mask & (1u<<15)) pad.wButtons &= ~0x80;
+    if (mask & ((1u<<19)|(1u<<21))) pad.sThumbRY=0;
+    if (mask & ((1u<<20)|(1u<<22))) pad.sThumbRX=0;
     for (unsigned i = 0; i < 10; ++i)
         if (mask & (1u << i)) pad.wButtons &= static_cast<WORD>(~xb::xbox_button(i, r1_chooser));
     if (mask & xb::l1) pad.wButtons &= static_cast<WORD>(~xb::xbox_button(12, r1_chooser));
@@ -170,6 +180,19 @@ bool is_selected(IDirectInputDevice8A* object) {
     info.dwSize = sizeof(info);
     return SUCCEEDED(object->GetDeviceInfo(&info)) && IsEqualGUID(info.guidInstance, joystick);
 }
+double axis_value(IDirectInputDevice8A* object,DWORD offset,LONG value,LONG* center=nullptr) {
+    DIPROPRANGE range{};range.diph.dwSize=sizeof range;range.diph.dwHeaderSize=sizeof range.diph;
+    range.diph.dwObj=offset;range.diph.dwHow=DIPH_BYOFFSET;
+    if (FAILED(object->GetProperty(DIPROP_RANGE,&range.diph)) || range.lMax<=range.lMin) return 0;
+    const double middle=(double(range.lMin)+range.lMax)/2;
+    if (center) *center=static_cast<LONG>(middle);
+    return (value-middle)/((double(range.lMax)-range.lMin)/2);
+}
+unsigned read_direct(IDirectInputDevice8A* object,const DIJOYSTATE& state) {
+    auto result=xb::read_joystick(state.rgdwPOV[0],state.rgbButtons,fightpad);
+    if (!fightpad) result|=xb::read_right(axis_value(object,DIJOFS_Z,state.lZ),axis_value(object,DIJOFS_RZ,state.lRz));
+    return result;
+}
 HRESULT STDMETHODCALLTYPE direct_read(IDirectInputDevice8A* object, DWORD size, void* state) {
     const HRESULT result = direct_original(object, size, state);
     std::lock_guard lock(guard);
@@ -191,10 +214,14 @@ HRESULT STDMETHODCALLTYPE direct_read(IDirectInputDevice8A* object, DWORD size, 
     auto* hat = bytes + offsetof(DIJOYSTATE, rgdwPOV);
     auto* buttons = bytes + offsetof(DIJOYSTATE, rgbButtons);
     memcpy(&pov, hat, sizeof pov);
-    const unsigned mask = observe(xb::read_joystick(pov, buttons, fightpad));
+    const unsigned mask = observe(read_direct(object,*static_cast<DIJOYSTATE*>(state)));
     pov = xb::filter_hat(pov, mask);
     memcpy(hat, &pov, sizeof pov);
     xb::filter_joystick(buttons, mask, fightpad);
+    xb::filter_extra_buttons(buttons,mask,fightpad);
+    auto* joystick_state=static_cast<DIJOYSTATE*>(state);
+    if (mask & ((1u<<19)|(1u<<21))) { LONG center=joystick_state->lRz;axis_value(object,DIJOFS_RZ,center,&center);joystick_state->lRz=center; }
+    if (mask & ((1u<<20)|(1u<<22))) { LONG center=joystick_state->lZ;axis_value(object,DIJOFS_Z,center,&center);joystick_state->lZ=center; }
     return result;
 }
 
@@ -214,7 +241,7 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
             DIJOYSTATE2 current{};
             auto hr = direct_original(object, sizeof current, &current);
             if (FAILED(hr)) hr = direct_original(object, sizeof(DIJOYSTATE), &current);
-            if (SUCCEEDED(hr)) observe(xb::read_joystick(current.rgdwPOV[0], current.rgbButtons, fightpad));
+            if (SUCCEEDED(hr)) observe(read_direct(object,*reinterpret_cast<DIJOYSTATE*>(&current)));
         }
         if (discard_buffered_batch && !waiting_for_neutral && SUCCEEDED(result)
             && entries && data && !(flags & DIGDD_PEEK) && *entries <= capacity
@@ -264,10 +291,20 @@ HRESULT STDMETHODCALLTYPE direct_buffered(IDirectInputDevice8A* object, DWORD si
                 unsigned bit = 0;
                 for (unsigned j = 0; j < sizeof(xb::logical_buttons) / sizeof(*xb::logical_buttons); ++j)
                     if (instance == map[j]) bit = 1u << xb::logical_buttons[j];
+                if (!fightpad && instance>=10 && instance<=14) bit=1u<<(14+instance-10);
                 if (!bit) continue;
                 state = (state & ~bit) | ((value & 0x80u) ? bit : 0);
                 const auto mask = mode == 1 ? xb::circle : focus_handoff.blocked() | (quarantine_only ? 0u : apply_policy(stream, state, 2, now, targeting, banks, binding, trust_slots).buffered_mask());
                 if (mask & bit) value &= ~0x80u;
+            } else if (!fightpad && (type & DIDFT_AXIS) && (IsEqualGUID(info.guidType,GUID_ZAxis) || IsEqualGUID(info.guidType,GUID_RzAxis))) {
+                const bool vertical=IsEqualGUID(info.guidType,GUID_RzAxis);
+                LONG center=static_cast<LONG>(value);
+                const double normalized=axis_value(object,offset,static_cast<LONG>(value),&center);
+                const unsigned axis_mask=vertical ? ((1u<<19)|(1u<<21)) : ((1u<<20)|(1u<<22));
+                const auto direction=vertical ? xb::read_right(0,normalized) : xb::read_right(normalized,0);
+                state=(state & ~axis_mask)|direction;
+                const auto mask=focus_handoff.blocked() | (quarantine_only ? 0u : apply_policy(stream,state,2,now,targeting,banks,binding,trust_slots).buffered_mask());
+                if (mask & axis_mask) value=static_cast<DWORD>(center);
             } else continue;
             memcpy(record + sizeof offset, &value, sizeof value);
         }
@@ -538,6 +575,7 @@ __declspec(dllexport) unsigned __cdecl xb_begin(unsigned kind, unsigned index, u
 __declspec(dllexport) void __cdecl xb_off() {
     std::lock_guard lock(guard);
     mode = 0;
+    extra_plain=extra_l1=0;
     focus_handoff.reset();
     reset();
 }
@@ -546,6 +584,10 @@ __declspec(dllexport) unsigned __cdecl xb_detach() {
     // Restore target entry points without freeing trampolines. A callback
     // already in flight may still need its original-function trampoline.
     return !target_count || set_hooks(false);
+}
+__declspec(dllexport) void __cdecl xb_extra_capture(unsigned plain,unsigned l1) {
+    std::lock_guard lock(guard);
+    extra_plain=plain & xb::extra_controls;extra_l1=l1 & xb::extra_controls;
 }
 __declspec(dllexport) unsigned __cdecl xb_poll(unsigned context, int* output, unsigned capacity, unsigned* status) {
     std::lock_guard lock(guard);

@@ -94,7 +94,7 @@ TransportPoll() {
         ready := false
     }
     owner := active
-    states := ReadTransportStates(GetKeyState, CB.movement != "off" or CB.ps != "off")
+    states := ReadTransportStates(GetKeyState, true)
     DiagStage("hardware-read")
     connected := IsObject(states)
     if (!connected) {
@@ -183,6 +183,14 @@ ReadTransportSlot(readKey := GetKeyState, observeBridge := false, slot := 0) {
                 states.moveX := (x - 50) / 50, states.moveY := (y - 50) / 50
             states.ps := profile = "ps5-directinput" and readKey(prefix . "Joy13") ? true : false
         }
+        if (observeBridge) {
+            ; Standard PS5/F710 button numbers. Fightpad extras are deliberately unmapped.
+            Loop 5
+                states.Push(profile != "fightpadpro-directinput" && readKey(prefix . "Joy" . (10+A_Index)) ? true : false)
+            rx := readKey(prefix . "JoyZ"), ry := readKey(prefix . "JoyR")
+            AddRightDirections(states,profile != "fightpadpro-directinput" && IsNumber(rx) ? (rx-50)/50 : 0,
+                profile != "fightpadpro-directinput" && IsNumber(ry) ? (ry-50)/50 : 0)
+        }
         return states
     }
     if (!xinputGetState)
@@ -204,6 +212,8 @@ DecodeXInputState(state, profile) {
         states.Push((buttons & flag) != 0)
     states.moveX := NumGet(state, 8, "Short") / 32768
     states.moveY := NumGet(state, 10, "Short") / 32768
+    states.Push((buttons & 0x40) != 0,(buttons & 0x80) != 0,false,false,false)
+    AddRightDirections(states,NumGet(state,12,"Short")/32768,-NumGet(state,14,"Short")/32768)
     return states
 }
 
@@ -272,4 +282,9 @@ WriteControllerFile(temporary, destination, contents) {
         ; FileMove can throw a generic Error with a failed-file count.
         return false
     }
+}
+
+; Logical 20..23: right stick Up, Right, Down, Left. Native hook uses the same threshold.
+AddRightDirections(states,x,y) {
+    states.Push(y < -.55,x > .55,y > .55,x < -.55)
 }

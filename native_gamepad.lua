@@ -16,6 +16,8 @@ function M.open(path)
     return {
         handoff_revision = dll.handoff_revision,
         personal_revision = dll.personal_revision,
+        extra_revision = dll.extra_revision,
+        extra_capture = dll.extra_capture,
         begin = function(...)
             local result, operation, code = dll.begin(...)
             if result == 1 then

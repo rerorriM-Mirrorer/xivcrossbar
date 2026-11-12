@@ -46,7 +46,7 @@ public:
     // mode 1 is the isolated Up and Circle probe. Mode 2 routes the normal crossbar.
     Sample apply(unsigned raw, unsigned mode, bool menu, bool native_menu, unsigned passthrough = 0,
         std::uint64_t now = 0, bool targeting = false, unsigned banks = 0, bool binding = false, unsigned trust_slots = 0,
-        bool shoulder_gestures = false, bool inherit = false, bool set_controls = false) {
+        bool shoulder_gestures = false, bool inherit = false, bool set_controls = false, unsigned extra_capture = 0) {
         if (!armed_) {
             if (inherit && mode==2 && !menu && (raw & (triggers | l1 | r1))) {
                 // Adopt modifiers without a press gesture. Quarantine every
@@ -73,7 +73,7 @@ public:
             const unsigned bank = shoulders == (l1 | r1) ? 4 : shoulders == r1 ? 2 : shoulders == l1 ? 1 : 0;
             const bool bank_owns = !menu && (banks & bank) && !(raw & (triggers | share | chooser));
 
-            capture = triggers | share | chooser;
+            capture = triggers | share | chooser | extra_capture;
             if (set_controls && !menu) {
                 if ((raw & triggers)==0x400) capture |= l1;
                 if ((raw & triggers)==0x800) capture |= r1;

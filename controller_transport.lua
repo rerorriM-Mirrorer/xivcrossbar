@@ -16,6 +16,9 @@ M.signals = {
     [89] = {name='L1', logical=89},
     [90] = {name='R1', logical=90},
 }
+for index,name in ipairs({'L3','R3','PS','Touchpad','Mute','Right stick Up','Right stick Right','Right stick Down','Right stick Left'}) do
+    M.signals[199+index]={name=name,logical=199+index}
+end
 function M:edge(dik, pressed, context)
     local signal = self.signals[dik]
     if not signal then return nil end

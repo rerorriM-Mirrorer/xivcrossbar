@@ -157,18 +157,33 @@ int main() {
     }
     std::uint8_t buttons[32]{};
     buttons[1] = buttons[6] = buttons[10] = 0x80;
-    check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger), "DirectInput layout");
+    check(read_joystick(4500, buttons, false) == (up | right | face | left_trigger | (1u<<14)), "DirectInput layout");
     filter_joystick(buttons, face | left_trigger, false);
     check(!buttons[1] && !buttons[6] && buttons[10], "DirectInput unrelated button stays intact");
     buttons[9] = 0x80;
-    check(read_joystick(0xffffffffu, buttons, false) == chooser, "DirectInput Options/Start mapping");
+    check(read_joystick(0xffffffffu, buttons, false) == (chooser | (1u<<14)), "DirectInput Options/Start mapping");
     filter_joystick(buttons, chooser, false);
     check(!buttons[9] && buttons[10], "DirectInput chooser preserves unrelated input");
     buttons[4] = buttons[5] = 0x80;
-    check(read_joystick(0xffffffffu, buttons, false) == (l1 | r1), "DirectInput shoulder observation");
+    check(read_joystick(0xffffffffu, buttons, false) == (l1 | r1 | (1u<<14)), "DirectInput shoulder observation");
     filter_joystick(buttons, 0, false);
     check(buttons[4] && buttons[5], "DirectInput shoulders pass through");
     buttons[4] = buttons[5] = 0;
     buttons[2] = 0x80;
     check(read_joystick(0xffffffffu, buttons, true) == face, "FightPad mapping");
+
+    check(read_right(0,-.8)==(1u<<19),"right stick up");
+    check(read_right(.8,.8)==((1u<<20)|(1u<<21)),"right stick diagonal");
+    check(!read_right(.4,-.4),"right stick deadzone");
+    check(read_xbox(0xc0,0,0)==((1u<<14)|(1u<<15)),"XInput L3 and R3");
+    buttons[13]=0x80;
+    check(read_extra_buttons(buttons,false)&(1u<<17),"touchpad click routing");
+    filter_extra_buttons(buttons,1u<<17,false);
+    check(!buttons[13] && buttons[10],"only selected extra captured");
+    owner.reset();owner.apply(0,2,false,false);
+    check(!owner.apply(1u<<14,2,false,false).suppressed,"extra default passthrough");
+    owner.apply(0,2,false,false);
+    check(owner.apply(1u<<19,2,false,false,0,0,false,0,false,0,true,false,false,1u<<19).suppressed==(1u<<19),"configured extra capture");
+    check(owner.apply(1u<<19,2,false,false).suppressed==(1u<<19),"extra retains ownership until release");
+    check(owner.apply(0,2,false,false).up==(1u<<19),"extra release");
 }

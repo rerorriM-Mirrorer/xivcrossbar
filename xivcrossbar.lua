@@ -2350,6 +2350,19 @@ local function route_controller_message(dik, pressed, chord, seq)
     end
     if gamepad_state.trust_menu_live and pressed then return 'trust-menu-priority',context end
     local personal=require('libs/personal_controls').options(settings)
+    if dik>=200 and dik<=208 then
+        if settings.InputTrace then chat_format.say(207,'[XIVCrossbar test] '..item.name..' '..edge) end
+        if pressed and dik==203 and personal.TouchpadMap and native_gamepad.extra_revision==1
+            and context=='gameplay' and windower.has_focus() and info and not info.menu_open
+            and transport.down[89] and not transport.down[90] and not transport.down[87] and not transport.down[88]
+            and not transport.down[67] and not transport.down[68] then
+            local blocked=false
+            for slot_dik=59,66 do if transport.down[slot_dik] then blocked=true end end
+            if not blocked and not settings.InputTest then windower.send_command('toggle ffxidb') end
+            return 'personal-map-toggle',context
+        end
+        return 'extra-observe',context
+    end
     if pressed and windower.has_focus() and context=='crossbar' and personal.SetCycling and native_gamepad.personal_revision==1 and (dik==89 or dik==90)
         and ((dik==89 and transport.down[87] and not transport.down[88] and not transport.down[90])
         or (dik==90 and transport.down[88] and not transport.down[87] and not transport.down[89])) then
@@ -2489,9 +2502,10 @@ local function poll_directlink()
     end
     local pid = native_gamepad.process_id
     local shoulders = native_gamepad.shoulder_slots or shoulder_banks.requested(settings.ShoulderBanks, settings.ControllerProfile)
-    local key = settings.ControllerProfile..':'..settings.ControllerDevice..':'..tostring(shoulders)
-    message_bridge:context(key, true, shoulders)
-    if message_bridge:watchdog() then message_bridge:context(key, true, shoulders) end
+    local extras=native_gamepad.extra_revision==1
+    local key = settings.ControllerProfile..':'..settings.ControllerDevice..':'..tostring(shoulders)..':'..tostring(extras)
+    message_bridge:context(key, true, shoulders, extras)
+    if message_bridge:watchdog() then message_bridge:context(key, true, shoulders, extras) end
     local directory=windower.addon_path..'data/directlink/'
     local now=profile_clock()
     if now>=next_message_poll then
@@ -2510,7 +2524,8 @@ local function poll_directlink()
         message_bridge.ack,shoulders,{movement=controller_bridge.mode(settings,'movement'),
             ps=require('libs/personal_controls').options(settings).PSButton and controller_bridge.mode(settings,'ps') or 'off',
             movement_arm=require('libs/personal_controls').options(settings).MovementArm or 'client',
-            gameplay=gameplay,bank=gamepad_state.active_bar,
+            gameplay=gameplay,bank=gamepad_state.active_bar,extras=extras,
+            zoom=extras and gameplay and not settings.InputTest and require('libs/personal_controls').options(settings).CameraZoom,
             handoff=native_gamepad.handoff_revision==1})
 end
 
@@ -2688,6 +2703,13 @@ do
         local handoff = native_gamepad.handoff_revision==1 and (context==1 or context==4)
             and xivcrossbar.ready and info and not info.chat_open and not crossbar_menu_open()
         local personal_sets=native_gamepad.personal_revision==1 and require('libs/personal_controls').options(settings).SetCycling
+        if native_gamepad.extra_capture then
+            local personal=require('libs/personal_controls').options(settings)
+            local eligible=context==1 and info and not info.menu_open and trust_slots==0
+            local extra_mask=eligible and ((personal.CameraZoom and (2^19+2^21) or 0)
+                +(personal.TouchpadMap and 2^17 or 0)) or 0
+            native_gamepad.extra_capture(0,extra_mask)
+        end
         generation=native_gamepad.poll((personal_sets and 0x4000000 or 0) + (handoff and 0x2000000 or 0) + context + (targeting and 0x100 or 0) + banks*0x200
             + (binding and 0x1000 or 0) + trust_slots*0x10000, function()
             if generation and message_bridge.token then clear_controller_input() end

@@ -4,7 +4,7 @@ BridgeInit() {
     PPS := PersonalPSState()
     CB := {client:0, movement:"off", ps:"off", gameplay:false, neutral:false, fired:false, armMode:"client", neutralSince:0,
         signalOwner:0, releaseAt:0, nextTrust:0, trustPolicy:"", trustReady:false,
-        lastMovement:"idle", lastPS:"idle"}
+        lastMovement:"idle", lastPS:"idle", zoom:false, zoomOwner:0, zoomKey:"", zoomState:{armed:false, previousL1:false}}
 }
 
 BridgeLease(lease) {
@@ -13,6 +13,7 @@ BridgeLease(lease) {
     CB.movement := RegExMatch(lease, "m)^bridge_movement=(on|test|off)\r?$", &move) ? move[1] : "off"
     CB.ps := RegExMatch(lease, "m)^bridge_ps=(on|test|off)\r?$", &ps) ? ps[1] : "off"
     CB.gameplay := RegExMatch(lease, "m)^bridge_gameplay=1\r?$") != 0
+    CB.zoom := RegExMatch(lease,"m)^bridge_zoom=1\r?$") != 0
     CB.armMode := RegExMatch(lease,"m)^movement_arm=neutral\r?$") ? "neutral" : "client"
     if (oldMovement != CB.movement || oldArm != CB.armMode) {
         BridgeRelease()
@@ -56,8 +57,10 @@ BridgeTrustReceiver(active) {
     }
 }
 
-BridgeRelease() {
+BridgeRelease(all := true) {
     global CB
+    if (all)
+        ZoomRelease()
     if (!IsSet(CB) or !CB.signalOwner)
         return
     target := CB.signalOwner
@@ -85,11 +88,13 @@ BridgeDecision(feature, message) {
 BridgePoll(states, active) {
     global CB, CM, profile
     if (CB.signalOwner and (CB.signalOwner != active or A_TickCount >= CB.releaseAt))
-        BridgeRelease()
+        BridgeRelease(CB.signalOwner != active)
     if (CB.client != active) {
         CB.client := active, CB.neutral := false, CB.fired := false, CB.neutralSince := 0
         CB.nextTrust := 0
     }
+    zoomEligible := CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.gameplay && CB.zoom && CM.count=23
+    ZoomPoll(states,active,zoomEligible)
     PersonalPSPoll(states,active,CB.ps,CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.gameplay)
     if (!CM.requested or CM.phase != "messages" or A_TickCount - CM.seen > 350)
         return
@@ -142,4 +147,44 @@ MovementArmStep(s, magnitude, now) {
     } else
         s.neutralSince := 0
     return magnitude>=.24*.24 && s.neutral && !s.fired
+}
+
+; Require L1 first and a centered right stick. Never adopt a held zoom across clients.
+ZoomDecision(s,states,eligible) {
+    l1 := eligible && states.Length>=23 && states[13] && !states[14] && !states[11] && !states[12] && !states[9] && !states[10]
+    Loop 8
+        if (states[A_Index])
+            l1 := false
+    if (!l1 || !s.previousL1)
+        s.armed := false
+    if (l1 && !states[20] && !states[21] && !states[22] && !states[23])
+        s.armed := true
+    s.previousL1 := l1
+    return l1 && s.armed ? (states[20] && !states[22] ? "vkBE" : states[22] && !states[20] ? "vkBC" : "") : ""
+}
+ZoomRelease() {
+    global CB
+    if (!IsSet(CB) || !CB.HasOwnProp("zoomOwner") || !CB.zoomOwner)
+        return
+    owner := CB.zoomOwner, key := CB.zoomKey
+    CB.zoomOwner := 0, CB.zoomKey := ""
+    if (owner = WinActive("ahk_class FFXiClass"))
+        SendEvent("{Blind}{" . key . " up}")
+    else if WinExist("ahk_id " . owner)
+        try ControlSend("{Blind}{" . key . " up}",,"ahk_id " . owner)
+}
+ZoomPoll(states,active,eligible) {
+    global CB
+    if (CB.zoomOwner && CB.zoomOwner != active) {
+        ZoomRelease()
+        CB.zoomState := {armed:false,previousL1:false}
+    }
+    eligible := eligible && !GetKeyState("Alt","P") && !GetKeyState("Ctrl","P") && !GetKeyState("Shift","P") && !GetKeyState("LWin","P") && !GetKeyState("RWin","P")
+    key := ZoomDecision(CB.zoomState,states,eligible)
+    if (CB.zoomKey != key)
+        ZoomRelease()
+    if (key != "" && !CB.zoomOwner && active && WinActive("ahk_class FFXiClass")=active) {
+        CB.zoomOwner := active, CB.zoomKey := key
+        SendEvent("{Blind}{" . key . " down}")
+    }
 }

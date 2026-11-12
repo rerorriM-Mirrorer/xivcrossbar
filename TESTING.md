@@ -1,3 +1,47 @@
+# Current Development Status - Extra controls routing and Me shortcut tests
+
+2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar, branch
+fix/settings-inheritance. Starting published source cbd8a21. Read current
+GitHub AGENTS.md, WORKFLOW.md and TESTING.md before editing. User reports
+previous personal controls feel good; no live acceptance of this batch yet.
+
+Adds negotiated 23-control reader messages and native extra-capture capability.
+New logical controls: L3/R3, PS, touchpad click, mute, right-stick Up/Right/Down/Left.
+Unassigned inputs remain native. PS keeps its existing private AHK window toggle.
+PS5 DirectInput candidates use buttons 11/12/13/14/15 and axes Z/Rz; mute is
+driver-dependent and may not be exposed. F710 exposes L3/R3 where available;
+no invented fightpad extras. Standard XInput supports L3/R3 and right stick,
+not PS/Guide/touchpad/mute. Touch surface gestures and independent paddles
+are not available from these joystick APIs. Record InputTrace/diagnostics to
+verify actual device outputs; these mappings are not claimed hardware-tested.
+
+Under //xb me: CameraZoom and TouchpadMap default on. Private controls
+//xb me zoom on|off and //xb me map on|off save live without addon reload.
+L1 first, centered right stick then Up holds period (zoom in), Down holds comma
+(zoom out). Native vertical camera movement is suppressed while this shortcut
+owns the axis. Release, focus loss, stale lease, disable/menu/test or reader
+shutdown releases generated keys. A held stick is not adopted across clients.
+L1 + fresh touchpad sends toggle ffxidb once; bare touchpad is unchanged.
+Other modifiers, held slot buttons, menus and chat suppress these shortcuts.
+Default/Legacy leave both shortcuts off. Existing shoulder correction, PS,
+set cycling, neutral/client movement modes and held-modifier handoff remain.
+The camera keys assume the user's period/comma bindings, not auto-detection.
+
+All 52 Lua suites passed; 135 sources parsed under Lua 5.4 with temporary
+Windower syntax normalization. Host g++ C++17 native fixture and generated
+mapping consistency passed. Windows x86/AHK CI verification is pending. Live PS5 input identity, camera
+zoom/axis blocking, touchpad toggle, L3 native TargetNPC, client switches,
+release cleanup and Default/Legacy native behavior remain to test.
+
+INSTALL: stop reader, close ALL FFXI clients, overlay matched Lua/AHK/native
+files, restart clients and use //xb me. This one expanded hook install needs
+a client restart. Future Lua/reader changes within these routes can use addon
+reload/reader restart without closing FFXI. No data/settings files overwritten.
+Rollback: close clients and restore the previous matched runtime/DLLs.
+Next: user live acceptance; no configurable action-map UI introduced.
+
+---
+
 # Current Development Status - Shoulder correction
 
 2026-11-12. Repository rerorriM-Mirrorer/xivcrossbar, branch

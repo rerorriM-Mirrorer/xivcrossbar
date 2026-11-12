@@ -680,3 +680,11 @@ Restored revision 3 L1/R1 Tab/Shift-Tab only with an existing target.
 L1+R1 TargetNPC stays removed. Removed R2 TargetNPC dispatch and its private
 toggle; stale saved flags are inert. PS, set cycling and movement modes remain.
 This Lua-only correction needs addon reload, not an FFXI restart.
+
+
+### 2026-11-12 Extra control routing test
+Expanded reader/native routing for L3/R3, PS5 extras and four right-stick
+directions, preserving unassigned native functions. Me adds L1 + right-stick
+Up/Down period/comma zoom and L1 + touchpad toggle ffxidb. Use //xb me zoom
+on|off and //xb me map on|off for live switches. Install matching DLLs with
+all FFXI processes closed once; see TESTING.md for driver limitations and tests.

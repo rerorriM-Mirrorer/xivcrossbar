@@ -32,7 +32,7 @@ ControllerMessageContext(hwnd) {
     BridgeLease(lease)
     CM.handoff := RegExMatch(lease, "m)^button_handoff=1\r?$") != 0
     CM.bank := RegExMatch(lease, "m)^button_bank=([0-6])\r?$", &bank) ? bank[1]+0 : 0
-    count := RegExMatch(lease, "m)^button_count=14\r?$") ? 14 : 12
+    count := RegExMatch(lease, "m)^button_count=23\r?$") ? 23 : RegExMatch(lease, "m)^button_count=14\r?$") ? 14 : 12
     ControllerMessageSelect(true, token[1], ack[1] + 0, RegExReplace(path, "\.ini$", ".buttons"), count)
 }
 ControllerMessageSelect(requested, token, ack, path, count := 12) {
@@ -98,8 +98,8 @@ ControllerMessageFlush(force := false) {
     CM.nextWrite := A_TickCount + 100
     stamp := DateDiff(A_NowUTC, "19700101000000", "Seconds")
     contents := "token=" . CM.token . "`nstamp=" . stamp . "`nbeat=" . A_TickCount . "`n"
-    if (CM.count = 14)
-        contents .= "buttons=14`n"
+    if (CM.count >= 14)
+        contents .= "buttons=" . CM.count . "`n"
     for _, event in CM.pending
         contents .= event.seq . "," . event.kind . "," . event.button . (event.kind = "resume" ? "," . event.bank : (event.chord ? ",1" : "")) . "`n"
     contents .= "END`n"
@@ -172,9 +172,9 @@ ControllerMessagePoll(states, hwnd) {
             CM.previous[i] := false, changed := true
         }
     }
-    for _, i in [11, 12, 9, 10, 13, 14, 1, 2, 3, 4, 5, 6, 7, 8] {
+    for _, i in [11, 12, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 1, 2, 3, 4, 5, 6, 7, 8] {
         if (i <= CM.count and states[i] and !CM.previous[i]) {
-            chord := i >= 13 && states[13] && states[14]
+            chord := (i = 13 || i = 14) && states[13] && states[14]
             ControllerMessageAdd("down", i, chord)
             CM.previous[i] := true, changed := true
         }
@@ -185,7 +185,7 @@ ControllerMessagePoll(states, hwnd) {
 
 NeutralButtons() {
     buttons := []
-    Loop 14
+    Loop 23
         buttons.Push(false)
     return buttons
 }

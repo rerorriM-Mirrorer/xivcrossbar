@@ -1,5 +1,5 @@
 -- Shoulder edges are accepted only when the client explicitly leases them.
-local M={diks={59,60,61,62,63,64,65,66,67,68,87,88,89,90}}
+local M={diks={59,60,61,62,63,64,65,66,67,68,87,88,89,90,200,201,202,203,204,205,206,207,208}}
 function M.new(opts)
     local self={token=nil,key=nil,epoch=0,ack=0,held={},captured=false,last_seen=0,received=0,rejected=0}
     local function cancel()
@@ -13,7 +13,7 @@ function M.new(opts)
         self.extended=false
         self.reason=reason or 'reset'
     end
-    function self:context(key,enabled,shoulders)
+    function self:context(key,enabled,shoulders,extras)
         if not enabled then
             if self.token then self:reset('inactive') end
             return
@@ -23,6 +23,7 @@ function M.new(opts)
             self.epoch=self.epoch+1
             self.key=key
             self.shoulders=shoulders==true
+            self.extras=extras==true
             self.token=opts.session..'-buttons-'..self.epoch
         end
     end
@@ -45,8 +46,10 @@ function M.new(opts)
             if opts.observe then opts.observe('rejected stale snapshot age='..tostring(age)) end
             return false
         end
-        local extended = self.shoulders and body:sub(1,11)=='buttons=14\n'
+        local extra = self.extras and body:sub(1,11)=='buttons=23\n'
+        local extended = extra or self.shoulders and body:sub(1,11)=='buttons=14\n'
         if extended then body=body:sub(12) end
+        local limit=extra and 23 or extended and 14 or 12
         local events,next_seq,last_cancel={},self.ack+1,0
         for line in body:sub(1,-5):gmatch('[^\n]+') do
             local seq,kind,button=line:match('^(%d+),(%a+),(%d+)$')
@@ -60,7 +63,7 @@ function M.new(opts)
                 kind,chord='down',true
             end
             seq,button=tonumber(seq),tonumber(button)
-            if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=(extended and #M.diks or 12))
+            if not seq or not button or not (((kind=='down' or kind=='up') and button>=1 and button<=limit)
                 or (kind=='resume' and bank and button>=1 and button<=(extended and 15 or 3))
                 or ((kind=='cancel' or kind=='stall') and button==0)) then
                 self.rejected=self.rejected+1;return false

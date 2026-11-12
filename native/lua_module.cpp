@@ -13,6 +13,7 @@ extern "C" unsigned __cdecl xb_policy_revision();
 extern "C" unsigned __cdecl xb_policy_action(unsigned);
 extern "C" unsigned __cdecl xb_load_policy(unsigned);
 extern "C" unsigned __cdecl xb_detach();
+extern "C" void __cdecl xb_extra_capture(unsigned,unsigned);
 extern "C" unsigned __cdecl xb_poll(unsigned, int*, unsigned, unsigned*);
 
 namespace {
@@ -61,6 +62,7 @@ int tap_tab(lua_State* L) {
     return 1;
 }
 
+int extra_capture(lua_State* L) { xb_extra_capture(static_cast<unsigned>(api.integer(L,1)),static_cast<unsigned>(api.integer(L,2)));return 0; }
 int poll(lua_State* L) {
     int edges[256]{};
     unsigned status[8]{};
@@ -98,6 +100,8 @@ extern "C" __declspec(dllexport) int __cdecl luaopen_xb_gamepad_messages(lua_Sta
     api.push(L, 1); api.field(L, -2, "shoulder_slots");
     api.push(L, 1); api.field(L, -2, "handoff_revision");
     api.push(L, 1); api.field(L, -2, "personal_revision");
+    api.push(L, 1); api.field(L, -2, "extra_revision");
+    api.closure(L, extra_capture, 0); api.field(L,-2,"extra_capture");
     api.push(L, 1); api.field(L, -2, "reverse_tab");
     api.closure(L, begin, 0); api.field(L, -2, "begin");
     api.push(L, GetCurrentProcessId()); api.field(L, -2, "process_id");

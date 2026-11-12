@@ -2,7 +2,7 @@
 ; polling and no mapping inference. Publish one logical stream to existing routing.
 ReadProfileSlots(readSlot, maximum, scan, logChange := LogProfileSlots) {
     combined := []
-    Loop 14
+    Loop 23
         combined.Push(false)
     combined.ps := false
     found := false, connected := "", active := "", signature := ""
@@ -17,8 +17,8 @@ ReadProfileSlots(readSlot, maximum, scan, logChange := LogProfileSlots) {
         found := true
         connected .= (connected = "" ? "" : ",") . slot
         mask := 0
-        Loop 14 {
-            if (sample[A_Index])
+        Loop 23 {
+            if (sample.Length >= A_Index && sample[A_Index])
                 mask |= 1 << (A_Index - 1)
         }
         ps := sample.HasOwnProp("ps") && sample.ps
@@ -31,8 +31,8 @@ ReadProfileSlots(readSlot, maximum, scan, logChange := LogProfileSlots) {
             continue
         if (mask || ps)
             active .= (active = "" ? "" : ",") . slot
-        Loop 14
-            combined[A_Index] := combined[A_Index] || sample[A_Index]
+        Loop 23
+            combined[A_Index] := combined[A_Index] || (sample.Length >= A_Index && sample[A_Index])
         if (ps)
             combined.ps := true
         ; Preserve a real source's stick vector, never add multiple axes together.

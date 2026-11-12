@@ -19,14 +19,14 @@ function M.command(settings,feature,value,save,say)
     local p=settings.ShoulderBanks.PersonalControls
     if feature=='status' and not value then
         say('Personal controls: '..(p.Enabled and 'ON' or 'OFF')..
-            '; PS '..tostring(p.PSButton)..'; set cycling '..tostring(p.SetCycling)..'; movement '..p.MovementArm)
+            '; zoom '..tostring(p.CameraZoom)..'; map '..tostring(p.TouchpadMap)..'; PS '..tostring(p.PSButton)..'; set cycling '..tostring(p.SetCycling)..'; movement '..p.MovementArm)
         return
     end
     if settings.SettingsPreset~='me' then say('Apply //xb me before changing personal controls.');return end
-    local fields={controls='Enabled',ps='PSButton',sets='SetCycling'}
+    local fields={controls='Enabled',ps='PSButton',sets='SetCycling',zoom='CameraZoom',map='TouchpadMap'}
     if fields[feature] and (value=='on' or value=='off') then p[fields[feature]]=value=='on'
     elseif feature=='movement' and (value=='client' or value=='neutral') then p.MovementArm=value
-    else say('//xb me status | controls/ps/sets <on|off> | movement <client|neutral>');return end
+    else say('//xb me status | controls/ps/sets/zoom/map <on|off> | movement <client|neutral>');return end
     if feature=='ps' and value=='on' then settings.ControllerBridge.ps='on' end
     save();say('Personal '..feature..': '..value)
 end
