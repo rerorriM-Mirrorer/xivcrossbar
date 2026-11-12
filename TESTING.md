@@ -64,10 +64,16 @@ If Show/Auto behavior differs in-game, attach one //xb diagnose start full
 capture and identify the status/chat/menu/HP sequence. The Show cutscene
 proxy needs live classification before declaring cutscene-only accuracy.
 
-VERIFICATION: source review of the actual on-branch Lua files and
-new mocked policy tests prepared; full CI/Windows and real FFXI tests
-must not be claimed until their result is observed. No installed client
-or user input hardware was exercised by the assistant.
+VERIFICATION: source review of the actual on-branch Lua files;
+local texlua/Lua 5.3 mock policy test PASSED for the verbatim visibility.lua
+and shoulder_banks.lua snapshot with 26 assertions covering Show/Auto/Hide,
+Event 4, Raise HP 0, chat/menu, AutoHold and shoulder eligibility.
+The subsequently added preset-value assertions in tests/cutscene_context.lua
+have been source-reviewed, but not executed locally; they await full CI.
+Neither that mock check nor source review is a Windower/FFXI live test.
+Full Lua suite/Windows CI and actual game acceptance remain UNVERIFIED.
+No installed FFXI client, AHK reader or controller hardware was exercised
+by the assistant.
 
 ---
 
