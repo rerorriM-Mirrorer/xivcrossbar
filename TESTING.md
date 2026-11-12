@@ -1,3 +1,36 @@
+# Current Development Status - Set-name HUD offset command verification
+
+2026-11-12 (America/Chicago), repository rerorriM-Mirrorer/xivcrossbar,
+test/set-name-hud-20261112. Successfully verified published code checkpoint
+bae90c1845d575c7f134126b24ce0e01b6f183a0 on GitHub Actions run
+43237098828. This documentation update does not modify that tested runtime.
+Ubuntu Lua regression suite PASSED, including real command-path tests for
+//xb setnameoffset: numeric validity, saved offsets, bare status,
+reset to 0,0, and isolation of the trigger-label positions; the HUD
+mock also passed shared compact/full caption anchors and contextual hiding.
+136 Lua files parsed using temporary Windower Lua 5.4 normalization.
+Windows 2022 x86 native fixtures and module loading both PASSED (2/2),
+AutoHotkey v2 discovery/reader fixtures PASSED, and matched installable
+artifact 13953950452 was uploaded successfully. All CI jobs PASSED.
+These are static/mock/CI checks, not a Windower/FFXI visual test.
+
+Test/install: GitHub Actions run 43237098828 contains the full-folder
+installable artifact. For a minimal UI-only overlay, copy ui.lua,
+xivcrossbar.lua, theme.lua, libs/preset_base.lua,
+libs/personal_preset.lua, libs/settings_presets.lua and
+libs/command_help.lua from the artifact onto matching relative
+addon paths, retaining existing data/character settings, and
+//lua r xivcrossbar. Do not replace the controller AHK or native DLLs
+for this change. Existing saved BankLabelOffsetY=-63 remains until
+//xb banklabeloffset 0 0 or a full preset reapplication. Set-name
+offset begins at 0,0; //xb setnameoffset <x> <y> changes only
+that label. Verify in-game on both Compact and Full, all presets,
+with single, combined, double-tap and shoulder banks; check
+autohide/hold/fades, job changes, long titles, 4K/laptop clients.
+The visual test is pending user confirmation.
+
+---
+
 # Set-name HUD test refinement - independent set-name offsets
 
 2026-11-12. Branch test/set-name-hud-20261112. User requested an
