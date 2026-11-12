@@ -1555,6 +1555,7 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(0,chat_format.row('Layout',
             (settings.iscompact and 'Compact' or 'Full')..' | Scale: '..tostring(settings.CrossbarScale)))
         chat_format.say(0,chat_format.row('Visibility',chat_format.visibility(settings.VisibilityMode)..' | Display: '..settings.DisplayPreset:upper()))
+        chat_format.say(0,chat_format.row('Cutscene Hide',chat_format.toggle(settings.Cutscene==true)..' | Show only; Auto unrestricted'))
         chat_format.say(0,chat_format.row('Animation',
             'Fades: '..chat_format.toggle(settings.Animation.Enabled)..
             ' | Text Fade: '..chat_format.toggle(settings.Animation.TextFade == true)..
@@ -1896,8 +1897,11 @@ windower.register_event('addon command', function(command, ...)
     end
 
     if command == 'cutscene' or command == 'eventbars' then
-        local mode = args[1] and args[1]:lower() or 'status'
         local old_alias = command == 'eventbars'
+        -- New Cutscene follows our bare-command toggle convention; retain
+        -- legacy EventBars bare-status behavior for existing users.
+        local mode = args[1] and args[1]:lower()
+            or (old_alias and 'status' or (settings.Cutscene and 'off' or 'on'))
         if mode == 'on' or mode == 'off' then
             -- Old //xb eventbars on meant "permit bars in events".
             -- Cutscene is the inverse, and ONLY changes Show's presentation.
