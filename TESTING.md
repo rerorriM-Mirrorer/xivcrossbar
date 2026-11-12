@@ -1,3 +1,42 @@
+# Current Development Status - Menu-visible set name and persistent extra captions VERIFIED
+
+2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
+branch test/set-name-hud-20261112. Tested source checkpoint
+caf89a791a18204ebd55d3cad07e2501a2053358, based on
+79f832454bedc3cbc7279aba9d6bcf2f87c69843. GitHub Actions
+run 43241843720 PASSED both Lua and Windows jobs. 136 Lua sources parsed
+under temporary Windower syntax normalization; the full Lua regression
+suite passed, including tests/set_name_label.lua for persistent versus
+autohidden double-tap captions, full-mode hint icons/text, combined/shoulder
+suppression, binder/chooser menu-visible set name and live title update.
+Windows 2022 x86 native fixtures, module loading, PS5 AHK discovery/reader
+fixtures and package assembly passed. Artifact ID 13956275380 uploaded.
+These are mock/static/CI passes, NOT live FFXI testing. Live acceptance
+of the new visibility rules remains pending user testing.
+
+The first CI check on commit 8ea6edc, run 43241645917, failed a
+mock-only chooser_text assertion because tests/compact.lua left the reused
+singleton chooser_open=true. The fixture now explicitly resets that flag to
+match the closed-chooser state seen in the game's render pass. Runtime UI
+logic was unchanged by this correction. Follow-up run 43241843720 passed.
+
+Runtime change from the preceding set-name overlay is ONLY ui.lua.
+A delta overlay may therefore include just ui.lua, with WORKFLOW.md and
+TESTING.md beside it inside the xivcrossbar folder. Keep existing saved
+settings, prior patch files, AHK and DLLs; overlay ui.lua and run
+//lua r xivcrossbar. No full game, controller-reader or DLL restart.
+User confirmed //xb banklabeloffset 0 3 looks excellent for Default
+Compact and Full; 0 9 is the provisional Legacy Compact reference.
+These are observations, not new hardcoded offsets. Potential future layout
+names: Full, Compact, Tight. Actual in-game checks requested: legacy
+persistent double-taps 5/6 retain set name and full hints; Default/Me
+nonpersistent double-taps hide them; combined 3/4 hide; shoulder 7/8/9
+hide; binder and Options chooser keep set name, including on live set
+switch, while full hints remain hidden in menus. Check autohide/hold,
+fade, long names, compact and full.
+
+---
+
 # Current Development Status - Persistent double-tap captions and menu-visible set name
 
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar,
