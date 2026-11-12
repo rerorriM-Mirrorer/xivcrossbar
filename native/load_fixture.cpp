@@ -23,6 +23,9 @@ int main() {
     auto off = reinterpret_cast<void (__cdecl*)()>(GetProcAddress(dll, "xb_off"));
     auto poll = reinterpret_cast<unsigned (__cdecl*)(unsigned, int*, unsigned, unsigned*)>(
         GetProcAddress(dll, "xb_poll"));
+    auto extra=reinterpret_cast<void (__cdecl*)(unsigned,unsigned)>(GetProcAddress(dll,"xb_extra_capture"));
+    if (!extra) return 21;
+    extra(0,1u<<19);extra(0,0);
     if (!begin || !off || !poll || begin(0, 0, 0, 0, "") != 0 ||
         begin(1, 0, 1, 0, "xb_fixture_missing.dll") != 0) return 2;
     auto detach = reinterpret_cast<unsigned (__cdecl*)()>(GetProcAddress(dll, "xb_detach"));
