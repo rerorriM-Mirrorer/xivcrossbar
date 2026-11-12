@@ -5458,3 +5458,23 @@ and unmapped logging. Unchanged upstream uses Windower Lua syntax extensions
 
 Sources: https://github.com/qEagleStrikerp/xivcrossbar/tree/15d8381dfad0f9efdb84fe2d24655afc150faec4
 and https://docs.windower.net/commands/keymapping/.
+
+
+## 2026-11-12: Credits portrait fitting and attribution follow-up
+
+Request: bound avatars to the supplied frames, deduplicate Aliekber as
+Programming/Art, remove library wording, verify four avatar identities and review
+upstream credits. Credits opt into a 32x32 image size and a 4px frame inset;
+ordinary menu icons retain their previous sizing. Aliekber has one row. Added
+posimagi for the explicitly attributed upstream Skillchains update. Refreshed
+Akirane/Ivaar/BlueSummersC from verified GitHub repository owners (identicons);
+Aeliya remains the supplied placeholder because no replacement was verified.
+Source URLs and bounded research notes are in images/credit_avatars/SOURCES.md.
+
+Validation: targeted production Credits callback and menu-resource renderer tests
+cover all 20 entries, bounded image sizing, assets and cleanup. Static/mocked
+checks are not in-game rendering verification. Live check requested: open Credits,
+confirm all portraits fit and remain centered, then check ordinary action icons
+and the default icon pack's Credits picker. Apply as an overlay and reload the
+addon one client at a time; no controller/DLL restart is required. Outstanding
+settings-save concurrency and focus-handoff observations remain deferred.

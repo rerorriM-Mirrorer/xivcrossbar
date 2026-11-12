@@ -1,11 +1,11 @@
 -- Supplied contributor names/portraits; retain established role credits.
 local M={entries={
-    {name='Programming\nAliekber',person='Aliekber',icon='aliekber'},
-    {name='MS Paint Art\nAliekber',person='Aliekber',icon='aliekber'},
+    {name='Programming/Art\nAliekber',person='Aliekber',icon='aliekber'},
     {name='Based on XIVHotbar by\nSirEdeonX',person='SirEdeonX',icon='edeon'},
-    {name='Skillchain library\nIvaar',person='Ivaar',icon='ivaar'},
-    {name='MountRoulette library\nXurion',person='Xurion',icon='xurion'},
-    {name='IconExtractor library\nRubenator',person='Rubenator',icon='rubenator'},
+    {name='Skillchains\nIvaar',person='Ivaar',icon='ivaar'},
+    {name='Skillchains updates\nposimagi',person='posimagi',icon='posimagi'},
+    {name='MountRoulette\nXurion',person='Xurion',icon='xurion'},
+    {name='IconExtractor\nRubenator',person='Rubenator',icon='rubenator'},
     {name='Beta Testing\nJinxs',person='Jinxs',icon='jinxs'},
     {name='Beta Testing\nMartel',person='Martel',icon='martel'},
     {name='Community contribution\nAeliya',person='Aeliya',icon='aeliya'},

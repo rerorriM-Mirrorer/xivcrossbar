@@ -253,7 +253,8 @@ If needed, an optional device number selects which controller to read: `//xb con
 
 Thank you to SirEdeonX for the original xivhotbar, Aliekber for XIVCrossbar, and
 upstream contributors including Aeliya, BlueSummersC, FionaBrightgrass, grayfox2510,
-Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Public update contributions: A.
+Icydeath, qEagleStrikerp, Sylvebits and XerevNonori. Akirane maintained XIVHotbar;
+posimagi contributed upstream Skillchains updates. Public update contributions: A.
 
 See LICENSE and NOTICE. Menu asset attribution, license links and cursor provenance
 are retained under `images/assets/menu/`. Original game artwork belongs to its respective owners.

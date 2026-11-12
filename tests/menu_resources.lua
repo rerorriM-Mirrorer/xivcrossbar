@@ -97,6 +97,19 @@ binder:go_back()
 assert(has_preview() and binder:get_tentative_binding_slot()==nil)
 binder:hide();binder:reset_state()
 assert(totals()==baseline, 'binding preview retained drawing objects')
+-- Run the production credit renderer: portraits disable natural texture sizing
+-- and fit inside the 40px frames with a 4px inset.
+binder:display_credits()
+local portraits=0
+for _,image in ipairs(binder.selector.images) do
+    if (image:path() or ''):find('images/credit_avatars/',1,true) then
+        assert(image.values.fit==false and image.values.size==32)
+        portraits=portraits+1
+    end
+end
+assert(portraits==20,'credits did not render every bounded portrait')
+binder:hide();binder:reset_state()
+assert(totals()==baseline,'credit portraits retained drawing objects')
 local peak
 for i=1,200 do
     binder.custom_action_draft={name='Bow',alias='Bow',command='input /bow'}

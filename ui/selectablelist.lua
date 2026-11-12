@@ -337,6 +337,12 @@ function selectable_list:display_options(options, presentation)
                 x = x + 5
                 y = y + 5
                 setup_image(icon, icon_path)
+                -- Credit portraits opt into a bounded square; ordinary spell,
+                -- item and ability images keep their established sizing.
+                if value.icon_size then
+                    icon:fit(false)
+                    icon:size(value.icon_size,value.icon_size)
+                end
                 local icon_offset = value.icon_offset or 0
                 icon:pos(x + icon_offset, y + icon_offset)
                 self.images:append(icon)

@@ -3847,7 +3847,7 @@ function action_binder:display_credits()
     local credits = L{}
     for index,entry in ipairs(require('libs/contributor_credits').entries) do
         credits:append({id=index,name=entry.name,
-            icon='images/credit_avatars/'..entry.icon..'.png',data=NO_DATA})
+            icon='images/credit_avatars/'..entry.icon..'.png',icon_size=32,icon_offset=-1,data=NO_DATA})
     end
 
     -- The main menu's saved selection remains available for Go Back, but
