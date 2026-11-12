@@ -1,7 +1,7 @@
 name: Experimental native gamepad bridge
 on:
   push:
-    branches: [fix/settings-inheritance, test/set-name-hud-20261112, experiment/native-gamepad-bridge, experiment/messages-native-all-profiles, integration/shoulder-banks, feat/reloadable-controller-logic]
+    branches: [feat/contributor-credits-20261112, fix/settings-inheritance, test/set-name-hud-20261112, experiment/native-gamepad-bridge, experiment/messages-native-all-profiles, integration/shoulder-banks, feat/reloadable-controller-logic]
   workflow_dispatch:
 permissions:
   contents: read

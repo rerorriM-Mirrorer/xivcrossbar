@@ -1,0 +1,97 @@
+[b]XIVCrossbar: updated controller input, UI and custom-action tools[/b]
+
+Hi everyone! I've been working on an updated XIVCrossbar fork, and I'm preparing it for a public beta. Returning to Vana'diel has been so much more fun with this addon. A lot of the work started with things I wanted for my own play, but I kept finding questions in this thread that lined up with the same problems.
+
+First, a huge thank you to SirEdeonX, Aliekber, qEagleStrikerp, Sylvebits, GrayFox2510, Aeliya, Akirane, BlueSummersC, FionaBrightgrass, FrostTrunks / Zuberj, HunterHog / Rhulkr, IcyDeath and XerevNonori, and everyone who has contributed code, artwork, testing or explanations over the years. The existing library and testing credits are retained in the addon too. This builds on your work, and I'd like to make that visible.
+
+[b]Download and source[/b]
+
+Beta download: [ADD THE FINAL TESTED RELEASE LINK]
+[url=https://github.com/rerorriM-Mirrorer/xivcrossbar]Source repository[/url]
+Install/update guide: [ADD THE RELEASE-SPECIFIC GUIDE]
+
+[b]Please back up your existing xivcrossbar folder before testing.[/b] Use the complete beta package and its instructions rather than mixing files from different versions. Updates to the native controller DLL require closing all FFXI clients first.
+
+My own controller testing has been with a PS5 DualSense and an Xbox 360 USB controller whose left trigger is, unfortunately, pretty busted. Other controllers and connection types need more testing; a listed profile isn't a claim that I've personally tested every device using it.
+
+[b]What changed?[/b]
+
+[b]Controller input without borrowing your GearSwap keys[/b]
+
+@Achelion, @1thenumber and @drzapper: this version changes how controller input reaches the addon. Trigger-held inputs are captured for the crossbar instead of also reaching the game's normal button assignments. Outside crossbar-owned contexts, normal gamepad input passes through.
+
+The intended result is no native macro palette opening alongside the crossbar, and no menu opening just because the face button you're using for a crossbar action is also your native menu button. You can retain ordinary Gamepad Config assignments. The new reader doesn't use Ctrl+F9-F12, or the other F-keys, as its controller-to-addon transport, so those keyboard bindings remain available to GearSwap and other uses.
+
+There is still an intermittent native-input leak during held-modifier client switching under investigation. Please don't read the above as a promise that every switching edge case is solved.
+
+[b]Visibility, positioning and scale[/b]
+
+@Suteru, @Echohawk, @Kuroganashi, @Jinxs and @Souki: the crossbars can hide until you use them, be moved by dragging, and be scaled independently of the game's UI setting. Compact and full layouts can be switched in-game.
+
+[code]//xb auto
+//xb show
+//xb hide
+//xb compact on
+//xb compact off
+//xb scale <value>[/code]
+
+Use Show while positioning the bars, then Auto to return to input-driven visibility. There are fade and trigger-scale animation options too. Small-window layouts have been part of testing, but I'm leaving exact supported resolutions to the release guide rather than guessing from memory.
+
+There's also a current-set name between the bars, with its own position adjustment. It updates when changing jobs or sets and stays visible in the binder and set chooser.
+
+[code]//xb setname
+//xb setnameoffset <x> <y>[/code]
+
+[b]Optional ribbon indicators[/b]
+
+@olgi: these can be disabled individually. These are the current development command names; I'll recheck them after the public command review.
+
+[code]//xb skillchain off
+//xb autoattack off
+//xb lockout off[/code]
+
+Skillchain controls the skillchain ribbon. Autoattack disables the swing-estimation display and its estimator. Lockout controls the ability-lock ribbon. Use On to restore an indicator.
+
+[b]Custom actions[/b]
+
+@Jinxs and @darkvulpine: custom actions can be created and edited through the addon's review screens. GrayFox2510's custom-action work was a big help here.
+
+[code]//xb ca new <name>[/code]
+
+Commands can chain Windower commands with semicolons. For example:
+
+[code]input /echo First message; wait 1; input /echo Second message[/code]
+
+That's a command chain, rather than an arbitrary Lua function. More involved logic can still live in a script that the custom action calls. Quoting needs care when commands themselves contain quoted arguments; I'll include tested examples in the guide.
+
+The multiline editor, shared-catalog changes and other binding-menu ideas currently being discussed are future work, not promises about this beta.
+
+[b]Additional crossbars and shoulders[/b]
+
+@Khajit and the people asking about bumper controls: optional L1, R1 and combined shoulder banks are available. Shoulder targeting is also optional. Those features are off in Default, so an ordinary installation doesn't silently replace everyone's shoulder behavior.
+
+The Default and Legacy presets provide two starting points for behavior and appearance. They don't generate extra job-category sets just by being selected, and they don't replace your saved hotbar bindings. Personal experimental controls are separate from the public Default.
+
+[b]Setup and requirements[/b]
+
+- Windower 4.
+- AutoHotkey v2.0.19 or later in the v2 series, rather than the old v1 reader.
+- Windower's Run plugin for starting the reader.
+- [CONFIRM SHORTCUTS REQUIREMENT AND ADD DOWNLOAD LINKS FOR THE RELEASE.]
+
+The exact setup and upgrade steps will be in the release guide. Stop the old controller reader before starting the new one. Please keep a backup of settings, bindings and any custom icons so rolling back is straightforward.
+
+[b]What I'd like help testing[/b]
+
+Controller model, USB versus Bluetooth, fresh installs versus upgrades, menus, small-window layouts, job/subjob changes, and multibox client switching would all be useful. If something goes wrong, please include the beta version, controller/profile, the exact error and the steps that reproduce it. Screenshots help with layout problems; diagnostics help with input problems.
+
+[b]Known issues in the current development build[/b]
+
+- Simultaneous client settings saves can corrupt the shared settings XML. This needs fixing before a wider beta; for now, don't broadcast settings-changing commands such as //all xb me.
+- A held modifier can occasionally allow native targeting input through during a client switch.
+- The new right-stick zoom and touchpad shortcuts still need hardware playtesting.
+- Allowing EventBars to take precedence over an open chat log is requested but not implemented yet.
+
+[REVIEW THIS LIST AGAIN BEFORE POSTING. REPLACE FIXED ITEMS WITH THEIR VERIFIED STATUS; DO NOT PRESENT THIS WORKING DRAFT AS A RELEASE ANNOUNCEMENT YET.]
+
+Thank you again to everyone who has kept this addon going. I'm having a lot of fun with it, and I hope these changes will make it easier for more people to use too.

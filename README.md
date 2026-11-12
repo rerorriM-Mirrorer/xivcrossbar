@@ -705,3 +705,13 @@ The separately reported intermittent native targeting leak still needs testing.
 2026-11-12 (set-name HUD refinement): Added //xb setnameoffset <x> <y> to move only the centered set-name caption, preserving trigger label positions. Bare //xb setnameoffset reports saved values; 0 0 resets. The new fields follow character configuration and remain compatible with all display presets. Regression fixture update keeps the display-only UI mock aligned with the new set-name API.
 
 2026-11-12 (set-name HUD follow-up): When AutoHideExtraBars=false (as in Legacy), selecting a double-tap bank no longer hides the set-name caption or full-layout Share/Options hints. When extras are hidden by default, double-tap selection still suppresses that rail. Combined L2/R2 banks and shoulder banks always suppress it outside addon menus. The set name now remains visible while binder and set chooser menus are open, updating when the active set changes; menus still suppress the full-mode hints. Layout offset references from live user observations: 0 3 is ideal for Default Compact/Full, about 0 9 for Legacy Compact; a future three-mode Full/Compact/Tight system may persist offsets separately. This test intentionally leaves existing character positions, preset defaults and compact geometry untouched.
+
+
+### 2026-11-12 Contributor portraits and forum draft
+Preserved original role/library/testing credits and added supplied contributor
+portraits plus A's current GitHub portrait. Default icon pack now includes a
+Credits folder with 19 selectable portraits and exact display names. Credits
+screen has 20 rows (Aliekber retains separate programming/art acknowledgments).
+Portrait source notes are in images/credit_avatars/SOURCES.md. The working
+FFXIAH beta-post draft is in docs/FFXIAH-Beta-Post-Draft.bbcode.txt; release
+links/dependency review and known-issue status are deliberately unfinished.

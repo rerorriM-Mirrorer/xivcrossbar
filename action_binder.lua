@@ -3037,6 +3037,7 @@ function action_binder:display_icon_selector(rel_path)
         display_name = display_name:gsub('(%a)([%w]*)', function(first, rest)
             return first:upper() .. rest
         end)
+        if rel_path=='credits' then display_name=require('libs/contributor_credits').icon_names[filename] or display_name end
         list:append({
             id = 'FILE_' .. rel_icon,
             name = display_name,
@@ -3843,16 +3844,11 @@ function action_binder:display_credits()
 
     local NO_DATA = {target_type = {['None'] = true}}
 
-    local credits = L{
-        {id = 0, name = 'Programming\nAliekber', icon = 'images/credit_avatars/aliekber.png', data = NO_DATA},
-        {id = 0, name = 'MS Paint Art\nAliekber', icon = 'images/credit_avatars/aliekber.png', data = NO_DATA},
-        {id = 0, name = 'Based on XIVHotbar by\nSirEdeonX', icon = 'images/credit_avatars/edeon.png', data = NO_DATA},
-        {id = 0, name = 'Skillchain library\nIvaar', icon = 'images/credit_avatars/ivaar.png', data = NO_DATA},
-        {id = 0, name = 'MountRoulette library\nXurion', icon = 'images/credit_avatars/xurion.png', data = NO_DATA},
-        {id = 0, name = 'IconExtractor library\nRubenator', icon = 'images/credit_avatars/rubenator.png', data = NO_DATA},
-        {id = 0, name = 'Beta Testing\nJinxs', icon = 'images/credit_avatars/jinxs.png', data = NO_DATA},
-        {id = 0, name = 'Beta Testing\nMartel', icon = 'images/credit_avatars/martel.png', data = NO_DATA},
-    }
+    local credits = L{}
+    for index,entry in ipairs(require('libs/contributor_credits').entries) do
+        credits:append({id=index,name=entry.name,
+            icon='images/credit_avatars/'..entry.icon..'.png',data=NO_DATA})
+    end
 
     -- The main menu's saved selection remains available for Go Back, but
     -- this shorter responsive list always starts on its own first page.

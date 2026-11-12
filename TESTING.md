@@ -1,3 +1,43 @@
+# Current Development Status - Contributor credits and forum-post draft
+
+2026-11-12, rerorriM-Mirrorer/xivcrossbar, feat/contributor-credits-20261112.
+Starting published consolidated baseline ba07c84. Read current GitHub AGENTS.md,
+WORKFLOW.md and TESTING.md before changes. Scope: supplied Credits.zip assets,
+Credits screen/default icon picker and an edited draft of Pasted text(8).txt.
+No settings, controller routing, native DLL or hotbar changes.
+
+Preserved all original credit roles, added supplied contributor names/aliases
+without inventing contribution details, and A's repository-owner GitHub portrait.
+20 credits rows, 19 unique portrait icons. Static 64x64 aspect-fitted PNGs with
+transparent padding; first GIF frame used. Aeliya/Akirane supplied images are
+matching placeholder-style avatars, retained as provided. Existing SirEdeonX
+credit uses the newer supplied portrait. Default icon picker Credits directory
+keeps exact contributor spelling while saving ordinary relative PNG paths.
+Third-party icon packs may copy that directory; no custom packs overwritten.
+Portrait sources recorded under images/credit_avatars/SOURCES.md.
+
+Focused regression: production Credits screen emits 20 rows with retained roles;
+all portrait/icon PNG signatures verified; icon-folder labels and menu resource
+regressions pass. 138 Lua sources parse under Lua 5.4 with temporary Windower
+syntax normalization. Full CI pending. Actual Windower rendering/icon binding
+and pagination remain live tests; no live FFXI pass claimed.
+
+Forum draft uses conservative BBCode, original personal introduction/thanks,
+feature/FAQ groupings, corrected ribbon command names and explicit pending
+release/dependency placeholders. No forum posting occurred. Draft avoids claiming
+future menu/editor features are delivered and retains the settings-save race and
+focus-switch leak as release issues. No source-contribution claims beyond the
+user-supplied names and previously established role labels.
+
+INSTALL: overlay the credit patch onto consolidated ba07c84; reload XB one client
+at a time. No reader/client restart. Existing settings-save race remains deferred;
+do not broadcast settings-changing commands. Test Credits page navigation and
+ordinary slot/custom-action icon selection from Default icon pack > Credits.
+Next: live visual acceptance, confirm displayed contributor names and complete
+release/settings review before publishing the forum draft.
+
+---
+
 # Current Development Status - Consolidated controller, PS and SetName overlay
 
 2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
