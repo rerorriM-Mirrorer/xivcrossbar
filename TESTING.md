@@ -6,8 +6,9 @@ Credits and icon picker portraits sit above/left inside their frames. Corrected
 sized-image inset to (40 - image size) / 2 relative to the frame origin, shared
 by both menus. Bound-slot assets, ordinary menu icons and controller behavior
 are unchanged. Regression now checks both portrait/frame coordinate differences.
-Local execution is unavailable (workspace connection failed); GitHub CI will run
-the Lua/Windows checks. Live centering confirmation remains pending. Install the
+Local execution is unavailable (workspace connection failed). GitHub CI run
+43262471284 passed all 54 Lua suites and the Windows x86 native/AHK checks at
+source d63c16bf4a505542dddea0c3c9c7bdceb20bb2b5. Live centering confirmation remains pending. Install the
 updated ui/selectablelist.lua, retaining prior portrait assets, and reload XB
 one client at a time. Next step: confirm centering on both menu screens.
 
@@ -5515,3 +5516,8 @@ from the 40px frame and 32px image. The earlier mocked check only asserted size;
 the updated test checks X and Y coordinates against the actual adjacent frame.
 No local checks or live FFXI checks can be claimed for this follow-up. GitHub
 checks and publication status are reported with the delivered commit.
+
+Verification update: GitHub run 43262471284 passed both jobs (54 Lua suites,
+Windows native/AHK checks) at d63c16bf4a505542dddea0c3c9c7bdceb20bb2b5.
+The runtime delivery is one file, ui/selectablelist.lua; no new portrait assets
+are necessary. No local or live FFXI check was performed for this correction.
