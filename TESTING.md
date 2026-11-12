@@ -1,3 +1,76 @@
+# Current Development Status - Cutscene Show-only and Auto crossbar availability (TEST PENDING)
+
+2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
+working branch fix/eventbars-chat-death-20261112, based on published
+test/set-name-hud-20261112 commit 8152dec36bd85617a42f500bbc7b26044ccb011f.
+Current work supersedes the old EventBars behavior but does not merge to master.
+Read the current GitHub AGENTS.md, WORKFLOW.md and TESTING.md. Compared with
+qEagleStrikerp/xivcrossbar master: upstream explicitly hid bars when player
+status became 4; the newer chat/native-menu controller restrictions belong
+to this fork's DirectLink architecture.
+
+REQUEST: Auto must expose and route ALL L2/R2 and enabled shoulder crossbars
+and their commands while chat is open, any regular FFXI menu is open, death/
+Raise is displayed, and status is Event (4), without special EventBars
+permission. Default/Me enable this. Cutscene is an independent ON/OFF
+preference for Show-only HUD hiding. Legacy enables Cutscene; Default/Me
+disable it. Do not block PS switching during login, zoning or other status.
+
+CHANGES (Lua only; no AHK/native DLL changes):
+- visibility.lua: remove event-induced Show-to-Auto remapping; implement
+  Cutscene Show-only hiding. Windower has no authoritative cutscene flag;
+  conservative approximation is status 4, positive HP, chat/menu closed.
+  Auto always ignores the Cutscene setting. Death/raise and FFXI menus are
+  explicitly exempt from Show cutscene hiding.
+- xivcrossbar.lua: native hook uses ordinary addon input context even when
+  FFXI chat is open; DirectLink no longer changes to native-chat or drops
+  held crossbar presses; remove shoulder targeting, display and modifier
+  handoff chat/event/menu restrictions; maintain normal addon menu ownership.
+  Preserve foreground/reader/heartbeat and character-loaded prerequisites.
+  AutoHold now continues through chat/event/death.
+- shoulder_banks.lua: in-world shoulders work with FFXI menus/chat/Event 4
+  and death/Raise, limited only by presence of FFXI character/info and
+  normal modifier/binding priority.
+- libs/preset_base.lua, libs/settings_presets.lua: new Cutscene preference,
+  Legacy ON, Default/Me OFF. Old EventBars XML remains tolerated but is no
+  longer a separate input gate.
+- //xb cutscene on/off/status; //xb eventbars compatibility is INVERSE:
+  eventbars on = cutscene off, eventbars off = cutscene on.
+- tests/cutscene_context.lua: regression cases for Show/Auto/Hide, HP 0,
+  chat/menu exceptions, AutoHold and shoulder availability.
+- README.md, libs/command_help.lua updated. Previous test/source history
+  below is deliberately preserved.
+
+INSTALL/TEST: Preserve all existing user data and character files. Overlay
+xivcrossbar.lua, visibility.lua, shoulder_banks.lua, libs/preset_base.lua,
+libs/settings_presets.lua and libs/command_help.lua at matching paths, then
+//lua r xivcrossbar on each client. Do NOT replace saved settings.xml and do
+NOT replace or restart AHK/native DLLs for this Lua-only patch. Do not send
+broadcast preset-change commands while shared settings XML write races remain
+unfixed (separate outstanding work).
+
+LIVE ACCEPTANCE STILL REQUIRED: Verify Default/Me Auto:
+(1) idle then L2/R2 + face/D-pad in chat input and expanded chat log;
+(2) L1/R1/L1+R1 shoulder display + face/D-pad in chat, event, native menu;
+(3) death/Raise prompt with visible Auto held banks and command execution
+attempt; game may legitimately refuse combat abilities while dead;
+(4) status 4 warp/cutscene and regular NPC dialogue/menu, including
+//xb auto and //xb show with Cutscene ON and OFF; keep Raise visible;
+(5) AutoHold across chat/death; bare native navigation unchanged;
+(6) PS away/return during zoning, loading, death and login;
+(7) multibox focus handoff and held-button quarantine still prevent leaks;
+(8) Default, Me, Legacy preset reload, saved XML and //xb eventbars alias.
+If Show/Auto behavior differs in-game, attach one //xb diagnose start full
+capture and identify the status/chat/menu/HP sequence. The Show cutscene
+proxy needs live classification before declaring cutscene-only accuracy.
+
+VERIFICATION: source review of the actual on-branch Lua files and
+new mocked policy tests prepared; full CI/Windows and real FFXI tests
+must not be claimed until their result is observed. No installed client
+or user input hardware was exercised by the assistant.
+
+---
+
 # Current Development Status - Menu-visible set name and persistent extra captions VERIFIED
 
 2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
