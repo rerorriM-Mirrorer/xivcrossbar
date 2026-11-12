@@ -3042,6 +3042,8 @@ function action_binder:display_icon_selector(rel_path)
             id = 'FILE_' .. rel_icon,
             name = display_name,
             icon = 'images/' .. pathbase .. '/' .. rel_icon .. '.png',
+            icon_size = rel_path=='credits' and 32 or nil,
+            icon_offset = rel_path=='credits' and -1 or nil,
             data = {
                 is_dir = false,
                 icon_path = rel_icon,  -- matches existing <icon> tag format (no leading slash)

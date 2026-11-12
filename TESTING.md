@@ -5478,3 +5478,6 @@ confirm all portraits fit and remain centered, then check ordinary action icons
 and the default icon pack's Credits picker. Apply as an overlay and reload the
 addon one client at a time; no controller/DLL restart is required. Outstanding
 settings-save concurrency and focus-handoff observations remain deferred.
+
+The default icon picker Credits folder uses the same 32px bounded rendering as
+the Credits screen, while preserving 64px source portraits for crossbar slots.
