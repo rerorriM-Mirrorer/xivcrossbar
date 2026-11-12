@@ -61,7 +61,12 @@ function M.finalize(t)
     t.buttonbackgroundalpha=210
     t.AllowSTPCForSelfTargetedActions=true
     t.TextSettling=true
-    if t.Hotbar then t.Hotbar.HideBattleNotice=false end
+    if t.Hotbar then
+        t.Hotbar.HideBattleNotice=false
+        local n=tonumber(t.Hotbar.Number)
+        if n~=3 and n~=4 and n~=5 and n~=6 then n=5 end
+        t.Hotbar.Number=n
+    end
     if t.Animation then
         t.Animation.TextFade=true
         t.Animation.FadeIn=.1;t.Animation.FadeOut=.5;t.Animation.LoadFadeIn=2

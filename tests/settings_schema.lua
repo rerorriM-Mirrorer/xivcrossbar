@@ -61,3 +61,6 @@ assert(schema.encode(custom).Color.MpCost.Red==1 and schema.encode(custom).Unrec
 local exceptional=schema.encode({SettingsPreset='me',DisplayPreset='legacy',ShoulderBanks={PersonalControls={Enabled=true,CameraZoom=true}}})
 assert(exceptional.Preset=='Me' and exceptional.DisplayPreset=='legacy')
 assert(schema.decode(exceptional).SettingsPreset=='me' and schema.decode(exceptional).ShoulderBanks.PersonalControls.CameraZoom)
+
+assert(schema.finalize({Hotbar={Number=9}}).Hotbar.Number==5)
+for n=3,6 do assert(schema.finalize({Hotbar={Number=n}}).Hotbar.Number==n) end
