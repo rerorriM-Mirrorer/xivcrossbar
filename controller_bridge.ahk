@@ -59,8 +59,11 @@ BridgeTrustReceiver(active) {
 
 BridgeRelease(all := true) {
     global CB
-    if (all)
+    if (all) {
         ZoomRelease()
+        if (IsSet(CB))
+            CB.zoomState := {armed:false,previousL1:false}
+    }
     if (!IsSet(CB) or !CB.signalOwner)
         return
     target := CB.signalOwner
