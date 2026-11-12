@@ -57,8 +57,13 @@ movement-owned cleanup belong to Trust and are not implemented by this patch.
 
 All 51 local Lua suites passed (134 sources parsed with temporary Windower
 syntax normalization under Lua 5.4); final targeted routing/preset/bridge reruns
-and host g++ C++17 native fixtures passed. Windows x86/native/AHK results will
-be recorded before delivery. New AHK fixtures test
+and host g++ C++17 native fixtures passed. Windows 2022 CI run 43193701625 at bca4f2778b7e6cc30dca21400925c7d83f39fe03
+passed both jobs: complete Lua regression, x86 MSVC build/native fixtures,
+pinned AutoHotkey v2.0.19 discovery and real reader/profile/lifecycle fixtures,
+including new PS and stick-arming decisions and the inherited focus handoff.
+Artifact 13932391017 downloaded with its GitHub SHA256 verified. The original
+windows-latest run remained queued, so the native workflow is now pinned to
+Windows 2022 for reproducible builds. This verification update is docs-only. New AHK fixtures test
 client/neutral arming, PS latch/return/chord/expiry/off decisions and existing
 held-modifier focus transfer. No live FFXI or real desktop PS switching pass
 is claimed. Existing timer text-settling flicker remains a separate pending fix.
