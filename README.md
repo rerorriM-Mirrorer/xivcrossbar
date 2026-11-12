@@ -60,6 +60,25 @@ controller and render trace commands remain available as capture aliases.
 
 ## Appearance and visibility
 
+**Always-on controller access in Auto:** Holding L2/R2 or an enabled L1/R1
+shoulder crossbar selects its bound eight slots even with FFXI chat open, a
+native FFXI menu open, while in Event status 4, or on the death/Raise prompt.
+An unmodified D-pad/face button still belongs to FFXI. XIVCrossbar routes
+bound commands in these states; FFXI itself can reject abilities while dead,
+zoning, or in a cutscene. The native hook's foreground ownership, matched
+reader and lease heartbeat are still required to avoid multibox input leaks.
+
+`//xb cutscene on` optionally hides crossbar artwork during cutscene-like
+Event status while using `//xb show`; `//xb cutscene off` leaves Show
+visible. **Cutscene never changes Auto, action availability, or PS window
+switching.** Because Windower does not provide a cutscene-only flag, the
+Show-only detector is deliberately conservative: Event status 4 while
+alive, with neither chat nor a native game menu open. Death/raise and
+ordinary menus are never classified as cutscenes by this rule.
+`//xb cutscene` or `//xb cutscene status` reports the setting.
+Legacy defaults it on, Default/Me off. The old `//xb eventbars` command
+remains as an inverse compatibility alias (`eventbars on` = `cutscene off`).
+
 In Auto, `//xb autohold 1.5` keeps the ordinary crossbars visible for 1.5 seconds
 after releasing the final trigger or visible shoulder. Released banks return to the normal idle layout. Set any duration
 from 0 to 30 seconds. The default, 0, starts the fade immediately. Hold
@@ -705,3 +724,10 @@ The separately reported intermittent native targeting leak still needs testing.
 2026-11-12 (set-name HUD refinement): Added //xb setnameoffset <x> <y> to move only the centered set-name caption, preserving trigger label positions. Bare //xb setnameoffset reports saved values; 0 0 resets. The new fields follow character configuration and remain compatible with all display presets. Regression fixture update keeps the display-only UI mock aligned with the new set-name API.
 
 2026-11-12 (set-name HUD follow-up): When AutoHideExtraBars=false (as in Legacy), selecting a double-tap bank no longer hides the set-name caption or full-layout Share/Options hints. When extras are hidden by default, double-tap selection still suppresses that rail. Combined L2/R2 banks and shoulder banks always suppress it outside addon menus. The set name now remains visible while binder and set chooser menus are open, updating when the active set changes; menus still suppress the full-mode hints. Layout offset references from live user observations: 0 3 is ideal for Default Compact/Full, about 0 9 for Legacy Compact; a future three-mode Full/Compact/Tight system may persist offsets separately. This test intentionally leaves existing character positions, preset defaults and compact geometry untouched.
+
+2026-11-12: Cutscene is now a Show-only visibility preference; Auto does
+not suppress crossbars for Event status, chat input, death/Raise or native
+FFXI menus. DirectLink capture and shoulder banks now follow held modifiers
+in those states, with bare FFXI controls, addon-menu ownership, PS switching
+and focus/heartbeat safety preserved. Deprecated EventBars command remains
+as an inverse alias. Tests added; live FFXI acceptance pending.
