@@ -36,9 +36,13 @@ with temporary Windower syntax normalization under Lua 5.4. New tests exercise
 all modifier masks, bank preservation, fresh input, invalid/duplicate records
 and the real adoption callback. Host g++ C++17 native fixture passed, including
 focus-gap quarantine, modifier combinations and consume-until-release after
-modifier release. Expanded Windows AHK fixtures await the native CI build.
-No live FFXI handoff success is claimed. Windows build results will be recorded
-before delivery. Canonical ASCII chat-output convention is adopted here.
+modifier release. Windows CI run 43139719439 at published source d5d4ea42f7bbe32f5fee77b87cdeed14cf49eee9
+passed both jobs: all Lua suites, x86 MSVC build/native fixtures, pinned official
+AutoHotkey v2.0.19 discovery smoke, and real AHK reader/profile/lifecycle plus
+handoff fixtures. Downloaded artifact 13909251690 matched its GitHub SHA256
+and passed ZIP integrity checks. Packaged DLLs are x86 and taken directly from
+that build. No live FFXI handoff success is claimed. This verification update
+changes documentation only; runtime source is identical to that CI checkpoint. Canonical ASCII chat-output convention is adopted here.
 
 INSTALL: This batch changes the loaded native bridge DLL. Stop the shared
 reader, unload XIVCrossbar on every client, and CLOSE ALL FFXI processes before
