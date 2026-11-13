@@ -1,3 +1,27 @@
+# Current Development Status - November 13, 2026 - Shared Agent Entry Point Adoption
+
+2026-11-13 (America/Chicago). Repository `rerorriM-Mirrorer/xivcrossbar`,
+branch `release/consolidated-overlay-20261112`, starting source checkpoint
+`ba07c8426605238c7cceb836e982b54d179dbd4f`. Replaced the previous short
+`AGENTS.md` with the trimmed shared NPCMirror agent entry point and added
+XIVCrossbar-specific branch-boundary safeguards. `WORKFLOW.md` and runtime
+files are unchanged.
+
+Documentation-only change. No Lua, AHK, native DLL, settings, profiles, assets,
+or testing package changed. No new tests or live FFXI/controller checks were
+run. The packaging CI and artifact verification recorded in the preceding
+November 12 status remain the latest verification; this documentation update
+does not claim a new runtime or package pass.
+
+Next: continue the focused public-beta release review from this snapshot. Keep
+the binder redesign on its separate experimental branch, and do not describe
+this candidate as a public release until outstanding live acceptance and the
+release checklist are complete.
+
+---
+
+## Previous cumulative history (retained)
+
 # Current Development Status - Consolidated controller, PS and SetName overlay
 
 2026-11-12 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar,
@@ -42,6 +66,7 @@ redesign or unrelated development was included. Rollback requires all clients
 closed and restoration of the prior matching runtime/DLL backup.
 
 ---
+
 
 # Current Development Status - Menu-visible set name and persistent extra captions VERIFIED
 
