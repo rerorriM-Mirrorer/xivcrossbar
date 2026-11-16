@@ -47,7 +47,8 @@ local grip_rumble = require('libs/grip_rumble').new(settings, {
 })
 -- Keep new/changed captions transparent until Windower reports a stable width.
 require('ui/text_measure').enabled=settings.TextSettling~=false
-require('ui/menu_background').deep_fade=settings.MenuFade==true
+-- A: the deeper menu fade is the default; //xb menufade off turns it off.
+require('ui/menu_background').deep_fade=settings.MenuFade~=false
 -- A: profile selection replaces the independent legacy backend flags. Existing
 -- unused XML fields remain harmless; only one shared reader can be active.
 local controller_profiles = require('controller_profiles')
@@ -1558,10 +1559,12 @@ windower.register_event('addon command', function(command, ...)
             chat_format.say(123, '[XIVCrossbar] Use //xb menufade [on|off].')
             return
         end
-        if mode == nil then settings.MenuFade = not settings.MenuFade else settings.MenuFade = mode == 'on' end
+        local on = settings.MenuFade ~= false
+        if mode == nil then on = not on else on = mode == 'on' end
+        settings.MenuFade = on
         config.save(settings)
-        require('ui/menu_background').deep_fade = settings.MenuFade == true
-        chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (settings.MenuFade and 'ON (deeper at the bottom)' or 'OFF') ..
+        require('ui/menu_background').deep_fade = on
+        chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (on and 'ON (deeper at the bottom)' or 'OFF') ..
             '. Shown from the next menu screen.')
     elseif command == 'undo' then
         -- A: undo the last change made from the XIV Crossbar menu.

@@ -912,3 +912,6 @@ Lua simulation only; live testing pending.
 - Switch / Quick Switch list ALL, JOB, JOB/SUB first, and leave out Shared
   when UseSharedSet is off.
 Lua simulation only; live testing pending.
+
+2026-11-16: The deeper menu background fade is now the default. //xb menufade off
+turns it off (saved), and //xb menufade on turns it back on.

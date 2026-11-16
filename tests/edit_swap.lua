@@ -105,6 +105,9 @@ assert(prim_values.xcb_title_band.set_visibility[1]==false, 'band hides with the
 binder.is_hidden=false
 -- Menu fade option deepens the bottom of the background.
 local bg=require('ui/menu_background')
+assert(bg.deep_fade==true, 'deeper fade is the default')
+local main=io.open('xivcrossbar.lua'):read('*a')
+assert(main:find("deep_fade=settings.MenuFade~=false",1,true), 'only an explicit off turns it off')
 bg.deep_fade=true; bg.set_color(windower.prim,'dialog_bg',150,0,0,0)
 local deep=prim_values.dialog_bg_gradient_32.set_color[1]
 bg.deep_fade=false; bg.set_color(windower.prim,'dialog_bg',150,0,0,0)

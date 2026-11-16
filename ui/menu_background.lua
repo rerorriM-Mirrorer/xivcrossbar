@@ -1,6 +1,6 @@
 -- A: a subtle vertical alpha gradient using the existing primitive API.
 -- Keep the panel's top alpha; extra black strips darken only toward the bottom.
-local M = {panels={}, deep_fade=false}
+local M = {panels={}, deep_fade=true} -- A: deeper fade by default
 local count = 32
 function M.create(prim, name)
     if M.panels[name] then M.set_visibility(prim,name,false);return end

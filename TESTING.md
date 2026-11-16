@@ -1,3 +1,25 @@
+# Current Development Status - Menu fade on by default (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint 78e626c (pushed).
+
+LIVE RESULTS for 78e626c (Sunshine): Swap works (screen to be spiffed later);
+titles, band and amber line good (offsets may be tuned later); //xb menufade on
+looked good, so it is now the default; Switch/Quick Switch listings good,
+Shared left out.
+
+CHANGES: ui/menu_background.lua deep_fade defaults on; xivcrossbar.lua applies
+settings.MenuFade ~= false (only an explicit off turns it off); //xb menufade
+toggles from that.
+
+CHECKS: tests/edit_swap.lua asserts the default. Full suite, 69 files, exit 0
+(Lua 5.4 harness). NOT run: Lua 5.1, Windows, live.
+
+LIVE TEST PENDING: the menu opens with the deeper fade without any command;
+//xb menufade off restores the old look and survives a reload.
+
+---
+
 # Current Development Status - Edit mode: Swap, title styling and band, menu fade (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
