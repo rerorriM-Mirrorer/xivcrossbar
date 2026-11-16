@@ -71,9 +71,11 @@ local function select_slot(trigger, button)
 end
 local function footer_text()
     binder:update_destination_footer()
-    local first=binder.destination_footer[1]
-    return first and first.values.text
+    local f=binder.destination_footer_objects
+    return f and f.label:visible() and f.label.values.text
 end
+-- The footer uses the crossbar label's display name, not the internal key.
+binder.set_name_provider=function() return 'SHOWN '..player.hotbar_settings.active_environment:upper() end
 player.hotbar.second={name='Second'}
 
 -- Ghost 1: nothing without a destination.
@@ -108,23 +110,29 @@ binder.state=2
 binder.capturing_text=true; assert(binder:get_ghost()==nil); binder.capturing_text=false
 
 -- Chooser 1: opening the set chooser keeps the destination and footer.
-assert(footer_text()=='Basic:')
+assert(footer_text()=='SHOWN BASIC:')
 binder:set_chooser_active(true)
 local d=binder:get_destination(); assert(d and d.bank==2 and d.slot==7, 'destination survives the chooser')
-assert(footer_text()=='Basic:', 'footer stays up while choosing a set')
+assert(footer_text()=='SHOWN BASIC:', 'footer stays up while choosing a set')
 assert(binder:get_ghost()==nil, 'no ghost while the chooser has the controller')
 -- Chooser 2: slot presses are ignored while the chooser is open.
 assert(binder:edit_slot_press(1,true)==false)
 -- Chooser 3: browsing sets updates the footer name; same slot stays selected.
 player.hotbar_settings.active_environment='second'
-assert(footer_text()=='Second:', 'footer follows the browsed set')
+assert(footer_text()=='SHOWN SECOND:', 'footer follows the browsed set')
+-- A renamed label is shown again once measured (first visit to a set was invisible).
+local text_measure=require('ui/text_measure')
+for _=1,12 do text_measure.begin_frame(); binder:update_destination_footer() end
+local label=binder.destination_footer_objects.label
+assert(label.values.alpha==255 and label.values.stroke_alpha==255,
+    'set name visible after measuring: '..tostring(label.values.alpha))
 binder:set_chooser_active(false)
 d=binder:get_destination(); assert(d.bank==2 and d.slot==7)
-assert(footer_text()=='Second:')
+assert(footer_text()=='SHOWN SECOND:')
 -- Chooser 4: cancelling back to the first set restores the name.
 binder:set_chooser_active(true)
 player.hotbar_settings.active_environment='basic'
-assert(footer_text()=='Basic:')
+assert(footer_text()=='SHOWN BASIC:')
 binder:set_chooser_active(false)
 -- Chooser 5: binding after a set change saves to the same slot position.
 binder:submit_selected_option()

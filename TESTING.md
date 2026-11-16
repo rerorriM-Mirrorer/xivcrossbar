@@ -1,3 +1,64 @@
+# Current Development Status - Edit mode: live-test fixes and all banks (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint 73abba8 (pushed).
+
+LIVE RESULTS for 73abba8 (Sunshine, three clients): loads; slot selection,
+deselect, and bind-and-rebind (Thunder/Water <t> on bank 3) work; nothing
+fires in the menu; the ghost works on empty and bound slots. Found:
+(1) footer showed the internal set name; (2) the footer flashed on a new slot;
+(3) after a set change the name was invisible until the set was visited a
+second time; (4) the name did not follow set changes made outside the chooser;
+(5) the set name overlapped the L2>R2 label in the menu; (6) main menu title
+not centred (left); (7) crossbar flicker and the menu open/close transition
+(appearance, later). L2/R2 still page on the Change Icon list (expected: taps
+turn pages there too).
+
+CAUSES (read from source):
+(1) the footer read the hotbar key/name, not ui.set_name_text.
+(2) every change destroyed and recreated the footer objects.
+(3) text resources hold a caption transparent while its width is pending;
+    the footer never called commit_measurement(), so a new name stayed
+    transparent until its width was cached (second visit).
+(5) update_context_labels kept the name in menus over combined banks.
+
+CHANGES:
+- action_binder.lua: footer objects created once per opening, updated in
+  place; set label style; footer_set_name() via set_name_provider;
+  measure -> position -> commit_measurement each frame. hide() clears the
+  destination (every close path). edit_bank(): double-tap banks via
+  doublepress_provider (5+ banks), shoulder banks via set_shoulder_combo in
+  edit mode; triggers take priority. undo_double_tap_page(),
+  consume_trigger_gesture(), is_bind_ready(), target_step() (shared with
+  Confirm). get_destination() returns {bank, slot, ready}. Ghost also on the
+  four immediate main-menu entries. Renames: Clear, Change Icon.
+- ui.lua: amber alpha 48 when ready, 120 otherwise; set name hidden over
+  combined/double/shoulder bank labels in menus (kept while the set chooser is
+  open).
+- xivcrossbar.lua: set_name_provider, doublepress_provider; personal set
+  cycling (L2>L1 / R2>R1) also in edit-mode menus; shoulder combos reach the
+  binder in edit mode.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_banks_ready.lua; edit_destination, edit_chooser_ghost and
+xi_layout updated. 7 mutations each made a test fail (one redundant-path
+mutation survived: clear_destination's dispose is also done by hide()).
+Full suite, 65 files, all exit 0. NOT run: Lua 5.1 parse, Windows CI, live.
+
+LIVE TESTS PENDING:
+1. Footer shows the set's display name in the crossbar label style; switching
+   slots does not flash it; switching sets (chooser, L2>L1/R2>R1, command)
+   updates it, on the first visit to each set.
+2. Close and reopen the menu: "Choose a slot to bind to".
+3. Double-tap L2 + a slot: bank 5 selected; the list page is unchanged.
+4. Hold L1 (and R1, L1+R1) + a slot: shoulder bank selected and shown.
+5. L2>L1 / R2>R1 in a list: set changes, page does not turn, slot stays.
+6. Amber lighter on: the target list; Check/View Map on the main menu; a
+   no-target action in a list. Full amber on spell lists that open targets.
+7. Holding L2+R2 in the menu: the set name hides under the L2>R2 label.
+
+---
+
 # Current Development Status - Edit mode: set chooser carry-over and ghost preview (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,

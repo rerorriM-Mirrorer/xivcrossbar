@@ -739,6 +739,12 @@ function initialize(server_id, expected_name, expected_id)
         action_binder:setup(temp_buttonmapping, set_hotkey, delete_hotkey, theme_options, get_crossbar_sets, 150, 150, windower.get_windower_settings().ui_x_res - 300,
             windower.get_windower_settings().ui_y_res - y_adjust, change_slot_icon, save_global_icon, save_custom_action, update_custom_action, delete_custom_action, create_new_set)
     end
+    -- A: edit-mode footer shows the set name exactly as the crossbar label does.
+    action_binder.set_name_provider = function() return ui.set_name_text end
+    -- A: edit-mode double-tap banks use the same detection as play.
+    action_binder.doublepress_provider = function()
+        return gamepad_state.left_trigger_doublepress == true, gamepad_state.right_trigger_doublepress == true
+    end
     -- A: edit mode binds straight to the selected slot; play its confirmation.
     action_binder.on_bound = function(bank, slot)
         if ui.is_setup then ui:flash_binding(bank, slot) end
@@ -2478,18 +2484,23 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
         end
         return 'extra-observe',context
     end
-    if not handoff_press and pressed and windower.has_focus() and context=='crossbar' and personal.SetCycling and native_gamepad.personal_revision==1 and (dik==89 or dik==90)
+    -- A: L2>L1 / R2>R1 set cycling also works in the XIV Crossbar menu (edit
+    -- mode); the selected slot stays selected and the trigger turns no page.
+    local edit_menu = context:sub(1,5)=='menu:' and action_binder.is_edit_mode ~= nil and action_binder:is_edit_mode()
+    if not handoff_press and pressed and windower.has_focus() and (context=='crossbar' or edit_menu) and personal.SetCycling and native_gamepad.personal_revision==1 and (dik==89 or dik==90)
         and ((dik==89 and transport.down[87] and not transport.down[88] and not transport.down[90])
         or (dik==90 and transport.down[88] and not transport.down[87] and not transport.down[89])) then
         for slot_dik=59,68 do if transport.down[slot_dik] then return 'set-cycle-blocked',context end end
         local destination=require('libs/personal_controls').cycle(env_chooser:get_player_environments(player.hotbar),
             player.hotbar_settings.active_environment,dik==89 and -1 or 1,player.hotbar)
         if destination then set_active_environment(destination) end
+        if edit_menu then action_binder:consume_trigger_gesture(); ui_dirty = true end
         return 'personal-set-cycle',context
     end
     if dik == 89 or dik == 90 then
         if handoff_press then return 'handoff-shoulder-press',context end
-        if native_gamepad and native_gamepad.shoulder_slots and action_binder:is_binding_combo() then
+        if native_gamepad and native_gamepad.shoulder_slots
+            and (action_binder:is_binding_combo() or (action_binder.is_edit_mode and action_binder:is_edit_mode())) then
             local bank = shoulder_banks.select(settings.ShoulderBanks, settings.ControllerProfile, transport.down, true, true)
             action_binder:set_shoulder_combo(shoulder_banks.ids[bank])
             ui_dirty = true

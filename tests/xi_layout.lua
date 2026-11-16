@@ -222,4 +222,16 @@ assert(not ui:update_ghost(nil,1,3,true), 'hidden with nothing highlighted')
 ui:flash_binding(1,3)
 assert(not ui:update_ghost('addon/images/a.png',1,3,true), 'no ghost during the bind flash')
 ui:clear_action_success()
+-- Bind-ready: the amber selection is 60% lighter.
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3,ready=true})
+assert(ui.destination_tint:alpha()==48, 'bind-ready amber alpha '..tostring(ui.destination_tint:alpha()))
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3})
+assert(ui.destination_tint:alpha()==120)
+-- The set name steps aside for combined-bank labels in menus too.
+ui:set_set_name('Basic'); ui:set_set_name_visible(true); ui:set_chooser_open(false)
+ui:update_context_labels(3,true,true)
+assert(not ui.set_name_label:visible(), 'set name hidden while L2+R2 shows in the menu')
+ui:update_context_labels(1,true,true)
 print('XI compact spacing, Legacy reversibility, empty frames and fitted trigger fields passed.')

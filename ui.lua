@@ -1068,7 +1068,10 @@ function ui:update_context_labels(bank, visible, menu_open)
     local persistent_double = not self.AutoHideExtraBars and (bank == 5 or bank == 6)
     local normal_caption = normal_bank or persistent_double
     local show_hints = normal_caption and not menu_open
-    local show_name = menu_open or normal_caption
+    -- Combined, double-tap and shoulder bank labels sit where the set name
+    -- does, so the name steps aside for them in menus too (as in legacy).
+    -- The set chooser keeps the name up: it is what the chooser changes.
+    local show_name = normal_caption or self.chooser_open == true
     self.context_labels_visible = show_hints
     if show_hints and not self.is_compact then self:show_button_hints()
     else self:hide_button_hints(true) end
@@ -2747,6 +2750,8 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     local d = menu_open and destination
     if d and self.hotbars[d.bank] and self.pulse_visible_bars[d.bank] and d.slot >= 1 and d.slot <= 8 then
         self.destination_tint:pos(self:get_slot_x(d.bank, d.slot), self:get_slot_y(d.bank, d.slot))
+        -- 60% lighter when the next Confirm would bind here.
+        self.destination_tint:alpha(d.ready and 48 or 120)
         self.destination_tint:show()
     else
         self.destination_tint:hide()

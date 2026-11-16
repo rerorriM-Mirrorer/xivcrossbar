@@ -119,19 +119,24 @@ assert(icons[1]:find('trigger_playstation_right') and icons[2]:find('plus') and 
 icons=binder:destination_icons(4,1)
 assert(icons[1]:find('_left') and icons[2]:find('arrow_right') and icons[3]:find('_right') and icons[5]:find('dpad_playstation_left'))
 
--- 8. Footer is built once per change and removed on hide/close.
+-- 8. Footer objects are created once and updated in place; hide disposes them.
 binder:update_destination_footer()
-local built=#binder.destination_footer
-assert(built>=2, 'footer shows set name and pictures')
-local first=binder.destination_footer[1]
+local f=binder.destination_footer_objects
+assert(f and f.label:visible() and f.label.values.text=='BASIC:', 'footer shows the set name')
+assert(f.icons[1]:visible() and not f.prompt:visible())
+local label,icon1=f.label,f.icons[1]
+binder.trigger_left_pressed=true; binder:edit_slot_press(2,true); binder:edit_slot_press(2,false); binder.trigger_left_pressed=false
 binder:update_destination_footer()
-assert(binder.destination_footer[1]==first, 'footer must not rebuild every frame')
+assert(binder.destination_footer_objects.label==label and binder.destination_footer_objects.icons[1]==icon1,
+    'a new slot reuses the footer objects (no flash)')
+assert(icon1.values.path:find('trigger_playstation_left'), 'pictures updated in place')
 binder:hide()
-assert(#binder.destination_footer==0 and resources.is_disposed(first))
+assert(binder.destination==nil, 'closing the menu clears the selected slot')
+assert(resources.is_disposed(label) and binder.destination_footer_objects==nil)
 binder.is_hidden=false
-binder:clear_destination()
 binder:update_destination_footer()
-assert(binder.destination_footer[1].values.text=='Choose a slot to bind to')
+assert(binder.destination_footer_objects.prompt:visible(), 'reopened menu: Choose a slot to bind to')
+assert(binder.destination_footer_objects.prompt.values.text=='Choose a slot to bind to')
 
 -- 9. Legacy Bind-to-Slot screen is untouched: edit mode is off there.
 binder.state=5 -- SELECT_BUTTON_ASSIGNMENT

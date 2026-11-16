@@ -799,3 +799,24 @@ While you browse an action list, the highlighted action's icon breathes faintly
 in the selected slot (1.5 s pulse, under the amber selection). It pauses during
 the bind flash and doesn't repeat the action you just bound until the cursor
 moves. Lua simulation only; live testing pending.
+
+2026-11-16: Edit mode fixes from the first live test, plus every bank.
+- The footer's set name is the crossbar label's display name, in the label's
+  own style (bold white with amber stroke), fully opaque. A newly shown name no
+  longer stays invisible until the set is visited twice. The footer objects
+  are reused, so choosing a new slot no longer flashes, and the name follows set
+  changes made by any route (chooser, set cycling, command, Start/Options).
+- Closing the menu by any route clears the selected slot.
+- Every bank can be selected: L2/R2, both combined banks, both double-tap banks
+  (the second tap puts back the page the first tap turned), and L1, R1 and
+  L1+R1 shoulder banks (native controller).
+- L2>L1 and R2>R1 cycle sets inside the menu too (with SetCycling on); the slot
+  stays selected and the trigger turns no page.
+- The amber selection is 60% lighter whenever the next Confirm would bind
+  (target screen, Assist's player list, no-target actions, and Check, View Map,
+  Switch Target and Last Synth on the main menu). Those four also show a ghost.
+- The set name steps aside for combined/double-tap/shoulder bank labels in the
+  menu, as it does in legacy mode.
+- Main menu: "Remove a Binding" is now "Clear", "Change Slot Icon" is now
+  "Change Icon".
+Lua simulation only; live testing pending.

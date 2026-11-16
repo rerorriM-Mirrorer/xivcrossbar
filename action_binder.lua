@@ -809,6 +809,11 @@ function action_binder:is_binding_combo()
 end
 
 function action_binder:set_shoulder_combo(bar)
+    if self:is_edit_mode() then
+        -- Edit mode: L1 / R1 / L1+R1 held picks the shoulder bank (7/8/9).
+        self.shoulder_crossbar = bar
+        return
+    end
     if self:is_binding_combo() then
         self.shoulder_crossbar = bar
         self:update_active_crossbar(false, false)
@@ -857,12 +862,65 @@ end
 -- pressed second decides bank 3 or 4 when four or six banks exist.
 -- Not yet supported here: double-tap banks (5/6) and L1/R1 shoulder banks.
 function action_binder:edit_bank()
+    local bars = self.theme_options and self.theme_options.hotbar_number or 2
     if self.trigger_left_pressed and self.trigger_right_pressed then
-        local bars = self.theme_options and self.theme_options.hotbar_number
         if bars == 4 or bars == 6 then return self.edit_combined_bank or 3 end
         return 3
-    elseif self.trigger_left_pressed then return 1
-    elseif self.trigger_right_pressed then return 2 end
+    end
+    -- Double-tap banks follow the play-mode detection in xivcrossbar.lua.
+    local left_double, right_double = false, false
+    if self.doublepress_provider then left_double, right_double = self.doublepress_provider() end
+    if self.trigger_left_pressed then return (left_double and bars >= 5) and 5 or 1
+    elseif self.trigger_right_pressed then return (right_double and bars >= 5) and 6 or 2 end
+    return self.shoulder_crossbar -- L1 / R1 / L1+R1 shoulder banks, or nil
+end
+
+-- Double-tapping a trigger means its first tap already turned a page; the
+-- second press, now selecting the double-tap bank, puts that page back.
+function action_binder:undo_double_tap_page(side)
+    local turn = self.last_page_turn
+    self.last_page_turn = nil
+    if not turn or turn.side ~= side or turn.state ~= self.state or not self:is_in_selector_state() then return end
+    if turn.next_page then self.selector:decrement_page() else self.selector:increment_page() end
+end
+
+-- A trigger used in a chord (slot press, set cycling) never turns a page.
+function action_binder:consume_trigger_gesture()
+    if self.page_gesture then self.page_gesture.used = true end
+    self.selector:page_highlight(nil)
+end
+
+-- True when the next Confirm press would bind to the selected slot, so the
+-- amber selection can step back and let the slot itself read clearly.
+local immediate_main_menu = nil
+function action_binder:is_bind_ready()
+    if not self:is_edit_mode() or not self.destination then return false end
+    if self.state == states.SELECT_ACTION_TARGET or self.state == states.SELECT_PLAYER_BINDING then return true end
+    local option = self.selector.is_showing and self.selector:get_selected_option()
+    if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT' then return false end
+    if self.state == states.SELECT_ACTION_TYPE then
+        immediate_main_menu = immediate_main_menu or {[action_types.CHECK] = true,
+            [action_types.SWITCH_TARGET] = true, [action_types.MAP] = true, [action_types.LAST_SYNTH] = true}
+        return immediate_main_menu[option.id] == true
+    end
+    if self.state ~= states.SELECT_ACTION or self.is_linking_for_custom_action then return false end
+    if option.data and (option.data.is_dir or option.data.warp_folder) then return false end
+    return self:target_step(option.data and option.data.target_type) ~= 'picker'
+end
+
+-- The target step for a chosen action: 'self' and 'none' bind at once,
+-- 'picker' shows the target list. Shared by Confirm and is_bind_ready.
+function action_binder:target_step(target_type)
+    if not target_type then return 'picker' end
+    if target_type['Self'] and self.action_type ~= action_types.WEAPONSKILL and
+            not (self.theme_options.allow_stpc_for_self_targeted_actions or
+            target_type['NPC'] or target_type['Enemy'] or target_type['Party'] or
+            target_type['Player'] or target_type['Ally']) then
+        return 'self'
+    elseif target_type['None'] then
+        return 'none'
+    end
+    return 'picker'
 end
 
 -- Returns true when the press (and its release) belongs to edit mode, so the
@@ -959,10 +1017,12 @@ end
 function action_binder:get_ghost()
     if not self:is_edit_mode() or not self.destination then return nil end
     local asset
-    if self.state == states.SELECT_ACTION then
+    if self.state == states.SELECT_ACTION or self.state == states.SELECT_ACTION_TYPE then
         local option = self.selector.is_showing and self.selector:get_selected_option()
         if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT'
             or (option.data and option.data.is_dir) then return nil end
+        -- Main menu: only entries that bind at once (Check, View Map...).
+        if self.state == states.SELECT_ACTION_TYPE and not self:is_bind_ready() then return nil end
         asset = option.asset_path
     elseif self.state == states.SELECT_ACTION_TARGET then
         asset = self.binding_preview_icon
@@ -978,18 +1038,24 @@ function action_binder:get_ghost()
 end
 
 function action_binder:get_destination()
-    if self.is_hidden then return nil end
-    return self.destination
+    if self.is_hidden or not self.destination then return nil end
+    local d = self.destination
+    return {bank = d.bank, slot = d.slot, ready = self:is_bind_ready()}
 end
 
 function action_binder:clear_destination()
     self.destination = nil
     self.edit_consumed = nil
     self.edit_combined_bank = nil
+    self.ghost_suppressed = nil
+    self:dispose_destination_footer()
+end
+
+function action_binder:dispose_destination_footer()
     if self.destination_footer then ui_resources.clear(self.destination_footer) end
     self.destination_footer = L{}
+    self.destination_footer_objects = nil
     self.destination_footer_key = nil
-    self.destination_footer_layout = nil
 end
 
 local slot_button_icons = {
@@ -1018,76 +1084,118 @@ function action_binder:destination_icons(bank, slot)
     return icons
 end
 
-local function active_set_name()
+-- The name the crossbar's own set label shows (display name, as styled
+-- there). xivcrossbar.lua supplies it; the internal key is only a fallback.
+function action_binder:footer_set_name()
+    local name = self.set_name_provider and self.set_name_provider()
+    if name and name ~= '' then return name end
     local key = player_data.hotbar_settings and player_data.hotbar_settings.active_environment
     local bar = key and player_data.hotbar and player_data.hotbar[key]
-    return bar and (bar.name or key) or key or ''
+    return tostring(bar and (bar.name or key) or key or ''):upper()
 end
 
--- Footer between the Exit and Confirm/Go Back hints. Called every rendered
--- frame; rebuilds its few objects only when what it shows changes.
+-- Footer objects are created once per menu opening and updated in place, so
+-- choosing another slot or set never destroys and recreates them (no flash).
+local footer_icon_count = 6
+function action_binder:ensure_destination_footer()
+    local f = self.destination_footer_objects
+    if f and not ui_resources.is_disposed(f.label) then return f end
+    f = {icons = {}, paths = {}}
+    -- Same look as the crossbar's set name label, fully opaque.
+    f.label = ui_resources.text({flags = {draggable = false}})
+    f.label:bg_alpha(0); f.label:bg_visible(false)
+    f.label:font(self.theme_options.font)
+    f.label:size(11 * .94)
+    f.label:bold(true)
+    f.label:color(255, 255, 255)
+    f.label:stroke_color(255, 216, 112)
+    f.label:stroke_width(2)
+    f.label:alpha(255); f.label:stroke_alpha(255)
+    f.label:text('')
+    f.label:hide()
+    f.prompt = self:create_text('Choose a slot to bind to', 0, 0)
+    f.prompt:size(14)
+    f.prompt:alpha(170)
+    f.prompt:hide()
+    for i = 1, footer_icon_count do
+        local icon = ui_resources.image({draggable = false})
+        icon:fit(false)
+        icon:size(32, 32)
+        icon:hide()
+        f.icons[i] = icon
+    end
+    self.destination_footer = L{f.label, f.prompt}
+    for i = 1, footer_icon_count do self.destination_footer:append(f.icons[i]) end
+    self.destination_footer_objects = f
+    return f
+end
+
+-- Called every rendered frame. Cheap when nothing changed: only the text
+-- measurement is polled until it settles.
 function action_binder:update_destination_footer()
     -- Also visible while the set chooser is open over the menu, at full
     -- strength, so the set name visibly changes as sets are browsed.
     local visible = self:is_edit_mode() or self:is_choosing_set_in_edit_mode()
+    local f = self.destination_footer_objects
+    if not visible then
+        if f and not ui_resources.is_disposed(f.label) and self.destination_footer_key ~= nil then
+            f.label:hide(); f.prompt:hide()
+            for i = 1, footer_icon_count do f.icons[i]:hide() end
+        end
+        self.destination_footer_key = nil
+        return
+    end
+    f = self:ensure_destination_footer()
     local d = self.destination
-    local name = visible and active_set_name() or ''
-    local key = visible and (d and (name .. '|' .. d.bank .. '|' .. d.slot) or 'none') or nil
-    if key == self.destination_footer_key then return self:layout_destination_footer() end
-    self.destination_footer_key = key
-    self.destination_footer_layout = nil
-    if self.destination_footer then ui_resources.clear(self.destination_footer) end
-    self.destination_footer = L{}
-    if not visible then return end
-
+    local name = d and self:footer_set_name() or ''
+    local key = d and (name .. '|' .. d.bank .. '|' .. d.slot) or 'none'
     local y = self.base_y + self.height - 50
     local left_edge = self.base_x + 120              -- right of the Exit hint
     local right_edge = self.base_x + self.width - 260 -- left of Confirm
     local center = (left_edge + right_edge) / 2
-    if not d then
-        local prompt = self:create_text('Choose a slot to bind to', center, y + 10)
-        prompt:size(14)
-        prompt:alpha(170)
-        caption_layout:center(prompt, center, y + 10, right_edge - left_edge)
-        self.destination_footer:append(prompt)
-        return
+    if key ~= self.destination_footer_key then
+        self.destination_footer_key = key
+        f.width = nil
+        if not d then
+            f.label:hide()
+            for i = 1, footer_icon_count do f.icons[i]:hide() end
+            f.prompt:show()
+            caption_layout:center(f.prompt, center, y + 10, right_edge - left_edge)
+            return
+        end
+        f.prompt:hide()
+        if f.label:text() ~= name .. ':' then f.label:text(name .. ':') end
+        f.label:show()
+        local paths = self:destination_icons(d.bank, d.slot)
+        f.count = #paths
+        for i = 1, footer_icon_count do
+            local path = paths[i] and (windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/' .. paths[i])
+            if path then
+                if f.paths[i] ~= path then f.icons[i]:path(path); f.paths[i] = path end
+                f.icons[i]:show()
+            else
+                f.icons[i]:hide()
+            end
+        end
     end
-    local label = self:create_text(name .. ':', center, y + 10)
-    label:size(14)
-    self.destination_footer:append(label)
-    local layout = {label = label, icons = L{}, center = center, left_edge = left_edge, y = y}
-    local paths = self:destination_icons(d.bank, d.slot)
-    for i = 1, #paths do
-        local icon = ui_resources.image({draggable = false})
-        icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/' .. paths[i])
-        icon:fit(false)
-        icon:size(32, 32)
-        icon:show()
-        self.destination_footer:append(icon)
-        layout.icons:append(icon)
+    if not d then return end
+    -- Position the group once the label's width is known; until then the
+    -- label is held transparent by the text resource, then released.
+    local width = f.label:measure_width()
+    if width == nil then return end
+    if width ~= f.width then
+        f.width = width
+        local gap, icon_size = 6, 32
+        local total = width + gap + f.count * icon_size
+        local x = math.max(left_edge, center - total / 2)
+        f.label:pos(x, y + 12)
+        x = x + width + gap
+        for i = 1, f.count do
+            f.icons[i]:pos(x, y + 4)
+            x = x + icon_size
+        end
     end
-    self.destination_footer_layout = layout
-    self:layout_destination_footer()
-end
-
--- Glyph widths can arrive a frame after the caption is drawn, so the group is
--- re-centred whenever the measured width changes (positions only, no rebuild).
-function action_binder:layout_destination_footer()
-    local layout = self.destination_footer_layout
-    if not layout or ui_resources.is_disposed(layout.label) then return end
-    local width = layout.label.measure_width and layout.label:measure_width()
-    if width == nil then width = #(layout.label:text() or '') * 8 end
-    if width == layout.width then return end
-    layout.width = width
-    local gap, icon_size = 6, 32
-    local total = width + gap + #layout.icons * icon_size
-    local x = math.max(layout.left_edge, layout.center - total / 2)
-    layout.label:pos(x, layout.y + 10)
-    x = x + width + gap
-    for i = 1, #layout.icons do
-        layout.icons[i]:pos(x, layout.y + 4)
-        x = x + icon_size
-    end
+    f.label:commit_measurement()
 end
 
 function action_binder:get_tentative_binding_slot()
@@ -1152,6 +1260,12 @@ function action_binder:menu_trigger(side,pressed)
     local just_released=not pressed and self[field]
     self[field]=pressed
     if just_pressed and self[other] then self.edit_combined_bank = side=='left' and 3 or 4 end
+    if just_pressed and not self[other] and self.doublepress_provider and self:is_edit_mode() then
+        local left_double, right_double = self.doublepress_provider()
+        if (side == 'left' and left_double) or (side == 'right' and right_double) then
+            self:undo_double_tap_page(side)
+        end
+    end
     if just_pressed then
         if self[other] and self.page_gesture then
             self.page_gesture.next_page=side=='right'
@@ -1160,8 +1274,10 @@ function action_binder:menu_trigger(side,pressed)
         local gesture=self.page_gesture
         if not gesture.used and gesture.state==self.state and self:is_in_selector_state() then
             gesture.used=true
-            if gesture.next_page and self.selector.is_next_button_showing then self.selector:increment_page()
-            elseif not gesture.next_page and self.selector.is_prev_button_showing then self.selector:decrement_page() end
+            local turned=false
+            if gesture.next_page and self.selector.is_next_button_showing then self.selector:increment_page(); turned=true
+            elseif not gesture.next_page and self.selector.is_prev_button_showing then self.selector:decrement_page(); turned=true end
+            self.last_page_turn = turned and {side=side,next_page=gesture.next_page,state=self.state} or nil
         end
     end
     if self.page_gesture and not self.page_gesture.used then self.selector:page_highlight(self.page_gesture.next_page)
@@ -1389,17 +1505,12 @@ function action_binder:submit_selected_option()
             self.action_alias = option.data.alias
 
             -- A: self-only weaponskills still open the picker so <st> can be chosen.
-            if (self.target_type['Self'] and self.action_type ~= action_types.WEAPONSKILL and
-                    not (self.theme_options.allow_stpc_for_self_targeted_actions or
-                    self.target_type['NPC'] or
-                    self.target_type['Enemy'] or
-                    self.target_type['Party'] or
-                    self.target_type['Player'] or
-                    self.target_type['Ally'])) then
+            local step = self:target_step(self.target_type)
+            if step == 'self' then
                 self.action_target = action_targets.SELF
                 self.state = states.SELECT_BUTTON_ASSIGNMENT
                 self:display_button_assigner()
-            elseif (self.target_type['None']) then
+            elseif step == 'none' then
                 if self.action_type == action_types.EXECUTE_COMMAND or self.action_type == action_types.SUPERWARP then
 					self.icon = option.icon
 				end
@@ -2027,10 +2138,11 @@ end
 function action_binder:hide()
     self.held_navigation = nil
     self.is_hidden = true
-    if self.destination_footer then ui_resources.clear(self.destination_footer) end
-    self.destination_footer = L{}
-    self.destination_footer_key = nil
-    self.destination_footer_layout = nil
+    -- Closing the menu (any path) clears the edit destination and footer.
+    self.destination = nil
+    self.edit_consumed = nil
+    self.ghost_suppressed = nil
+    self:dispose_destination_footer()
     require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg', false)
     windower.prim.set_visibility('button_entry_bg', false)
     self.title:hide()
@@ -2138,9 +2250,9 @@ function action_binder:display_action_type_selector()
     action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick XB Switch', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
     action_type_list:append({id = action_types.CREATE_NEW_SET, name = 'Create New Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_' .. self.button_layout .. '.png'})
     action_type_list:append({id = action_types.MOVE_CROSSBARS, name = 'Move Crossbar', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_ps.png'})
-	action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Slot Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
+	action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
     action_type_list:append({id = action_types.GLOBAL_ICON_SET, name = 'Change Action Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
-    action_type_list:append({id = action_types.DELETE, name = 'Remove a Binding', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
+    action_type_list:append({id = action_types.DELETE, name = 'Clear', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
 
     action_type_list:append({id = action_types.SHOW_CREDITS, name = 'XIVCrossbar Credits', icon = 'images/credit_avatars/xiv.png'})
     self.selector:display_options(action_type_list)
