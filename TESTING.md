@@ -13,9 +13,11 @@ CHANGES:
   (blue/white from two waves, 8% white arcs, quicker and fading in the last
   1.5 s).
 - libs/skillchain/skillchains.lua: get_burst_window(), get_skillchain_pending()
-  (weaponskill can close once the delay passes). Note: branch
-  fix/skillchain-element-only-20261115 (e4131ff) also edits this file; review it
-  when porting other branches.
+  (weaponskill can close once the delay passes). Also brought over the
+  Searing Light fix from fix/skillchain-element-only-20261115 (e4131ff:
+  element-only abilities create no skillchain window; nil-safe property
+  checks) with its test tests/skillchain_element_only.lua, so installing this
+  package does not undo it.
 - ui.lua: check_recasts records a chain state per slot (menu closed, slot
   available: burst / open / charge for weaponskills); tick_chain_glows()
   every frame draws one tinted slot-glow image per glowing slot on visible
@@ -30,7 +32,7 @@ CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
 new tests/chain_glow.lua; xi_layout (glow drawing) and edit_swap (empty slots,
 paging) extended. 7 mutations: 6 made a test fail; the held-trigger page
 mutation survived because the per-frame expiry also blocks the turn. Full
-suite, 70 files, all exit 0. The skillchain timing itself (packets) could not
+suite, 71 files, all exit 0. The skillchain timing itself (packets) could not
 be simulated. NOT run: Lua 5.1, Windows, live.
 
 LIVE TESTS PENDING:
