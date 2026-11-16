@@ -893,3 +893,22 @@ Lua simulation only; live testing pending.
 - In the menu, the crossbar's set name steps aside for double-tap and combined
   bank labels as in play.
 Lua simulation only; live testing pending.
+
+2026-11-16: Swap, main title styling, title band, menu fade option.
+- Swap, right after Custom Action, works with a bound slot selected. The Swap
+  Slot Bindings screen shows that slot's icon and "SETNAME: [buttons]". Hold a
+  trigger and press any slot, on any set (the set chooser and set cycling still
+  work), to choose the second slot. The crossbar highlights it with the moved
+  action breathing there. Confirm swaps the two: the icon flashes and you
+  return to the main menu with the selection on the action's new place. Circle
+  first clears the second slot, then leaves. Swapping onto an empty slot moves
+  the action. One Undo restores both slots.
+- Main menu title "X I V   C R O S S B A R": amber with a black outline, two
+  points larger. Inner screen titles stay white.
+- Titles sit on a slimmer dark band with soft faded ends and a thin amber
+  line underneath.
+- //xb menufade [on|off]: the menu background fades to nearly opaque (245) at
+  the bottom. Off by default; saved.
+- Switch / Quick Switch list ALL, JOB, JOB/SUB first, and leave out Shared
+  when UseSharedSet is off.
+Lua simulation only; live testing pending.

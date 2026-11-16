@@ -75,6 +75,6 @@ assert(order({Self=true,Party=true,Ally=true,Player=true}, WHM, true)=='SELF,SEL
 assert(order({Corpse=true}, WHM, true)=='SELECT_PARTY,SELECT_ALLIANCE,SELECT_PLAYER')
 -- Main menu title.
 local src=io.open('action_binder.lua'):read('*a')
-assert(src:find("self:set_title('XIV Crossbar')",1,true) and not src:find("'Select Action Type'",1,true))
+assert(src:find("self:set_title('X I V   C R O S S B A R', true)",1,true) and not src:find("'Select Action Type'",1,true))
 assert(src:find('ws.targets',1,true), 'weaponskill picker must use resource targets')
 print('target picker order: 8 checks passed')

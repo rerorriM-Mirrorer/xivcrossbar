@@ -1,6 +1,6 @@
 -- A: a subtle vertical alpha gradient using the existing primitive API.
 -- Keep the panel's top alpha; extra black strips darken only toward the bottom.
-local M = {panels={}}
+local M = {panels={}, deep_fade=false}
 local count = 32
 function M.create(prim, name)
     if M.panels[name] then M.set_visibility(prim,name,false);return end
@@ -16,7 +16,8 @@ end
 function M.set_color(prim, name, alpha, red, green, blue)
     prim.set_color(name,alpha,red,green,blue)
     local panel=M.panels[name];if not panel then return end
-    local bottom=alpha==215 and 235 or math.min(255,alpha+40)
+    -- A: //xb menufade on makes the bottom nearly opaque (245).
+    local bottom=M.deep_fade and math.max(alpha,245) or (alpha==215 and 235 or math.min(255,alpha+40))
     for i,id in ipairs(panel.strips) do
         local desired=alpha+(bottom-alpha)*(i-1)/(count-1)
         local overlay=alpha<255 and (desired-alpha)*255/(255-alpha) or 0

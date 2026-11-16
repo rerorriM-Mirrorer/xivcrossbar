@@ -38,3 +38,45 @@ assert(player:restore_slot_record('basic',2,7,false) and player.hotbar.basic.hot
 assert(player:restore_slot_record('basic',8,1,{action='Haste'}) and player.hotbar.shared['hotbar_shoulder-r1'].slot_1.action=='Haste', 'R1 bank lives in shared')
 assert(not player:restore_slot_record('gone',2,1,{action='x'}), 'deleted set refuses')
 print('player slot records: snapshot and restore passed')
+
+-- Swap is one Undo step restoring both slots.
+local hs=undo.new({read=function() return nil end, write=function() end})
+hs:push_group({{environment='basic',bank=2,slot=7,before={action='Cure'}},{environment='second',bank=1,slot=3,before=nil}},'Swap')
+assert(hs:count()==1)
+local rec=hs:pop()
+assert(rec.label=='Swap' and #rec.group==2 and rec.group[1].before.action=='Cure' and rec.group[2].before==false)
+assert(rec.environment=='basic' and rec.bank==2 and rec.slot==7, 'first slot selected after Undo')
+local saved_group
+local hp=undo.new({read=function() return saved_group end, write=function(t) saved_group=t end})
+hp:push_group({{environment='a',bank=1,slot=1,before={action='X'}},{environment='a',bank=1,slot=2,before={action='Y'}}},'Swap')
+assert(undo.new({read=function() return saved_group end}):pop().group[2].before.action=='Y', 'group survives a reload')
+
+-- swap_slots and undo_last_edit from xivcrossbar.lua, run against a fake hotbar.
+local f2=assert(io.open('xivcrossbar.lua')); local main=f2:read('*a'); f2:close()
+local s1=main:find('function swap_slots(a, b)',1,true)
+local s2=main:find('-- command to set a crossbar action in action_binder',s1,true)
+local u1=main:find('function undo_last_edit()',1,true)
+local u2=main:find('\n%-%- A: exchange two slots',u1)
+local hotbar={basic={hotbar_2={slot_7={action='Cure'}}},second={hotbar_1={slot_3={action='Haste'}}},shared={}}
+local p2={hotbar=hotbar,hotbar_settings={active_environment='basic'},hotbar_load_ok=true}
+p2.get_slot_record=player.get_slot_record; p2.restore_slot_record=player.restore_slot_record
+local history2=undo.new({read=function() return nil end, write=function() end})
+local said={}
+local env2=setmetatable({player=p2,shoulder_banks=require('shoulder_banks'),edit_undo=undo,
+    ensure_edit_undo_history=function() return history2 end,
+    chat_format={say=function(_,t) said[#said+1]=t end},
+    reload_hotbar=function() end,set_active_environment=function() end},{__index=_G})
+function p2:save_hotbar() self.saves=(self.saves or 0)+1 end
+assert((load or loadstring)(main:sub(s1,s2-1),'swap_slots','t',env2))()
+assert((load or loadstring)(main:sub(u1,u2),'undo_last_edit','t',env2))()
+assert(env2.swap_slots({environment='basic',bank=2,slot=7},{environment='second',bank=1,slot=3}))
+assert(hotbar.basic.hotbar_2.slot_7.action=='Haste' and hotbar.second.hotbar_1.slot_3.action=='Cure', 'swapped across sets')
+assert(env2.swap_slots({environment='basic',bank=2,slot=7},{environment='basic',bank=1,slot=4}))
+assert(hotbar.basic.hotbar_2.slot_7==nil and hotbar.basic.hotbar_1.slot_4.action=='Haste', 'swap onto an empty slot moves it')
+assert(env2.undo_last_edit() and hotbar.basic.hotbar_2.slot_7.action=='Haste' and hotbar.basic.hotbar_1.slot_4==nil)
+assert(env2.undo_last_edit() and hotbar.basic.hotbar_2.slot_7.action=='Cure' and hotbar.second.hotbar_1.slot_3.action=='Haste',
+    'one Undo restores both slots of a swap')
+p2.hotbar_load_ok=false
+assert(env2.swap_slots({environment='basic',bank=2,slot=7},{environment='second',bank=1,slot=3})==false)
+assert(hotbar.basic.hotbar_2.slot_7.action=='Cure', 'nothing changes after a failed load')
+print('swap undo groups and swap_slots: passed')

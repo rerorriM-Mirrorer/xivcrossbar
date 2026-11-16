@@ -87,7 +87,8 @@ end
 binder.state=5 -- SELECT_BUTTON_ASSIGNMENT
 binder.action_name,binder.action_alias,binder.binding_preview_icon='Bow','Wave','images/bow.png'
 binder:display_button_assigner()
-assert(binder.title:bg_visible() and binder.title:bg_alpha()==215)
+-- 2026-11-16: the title's dark field is the title band (prims), not text bg.
+assert(not binder.title:bg_visible() and binder.title_band and binder.title_band.core=='xcb_title_band')
 assert(has_preview() and binder:get_tentative_binding_slot()==nil)
 binder.active_crossbar,binder.button_a_pressed,binder.hotkey=2,true,6
 binder:show_pressed_buttons()

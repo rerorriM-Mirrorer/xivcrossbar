@@ -47,6 +47,7 @@ local grip_rumble = require('libs/grip_rumble').new(settings, {
 })
 -- Keep new/changed captions transparent until Windower reports a stable width.
 require('ui/text_measure').enabled=settings.TextSettling~=false
+require('ui/menu_background').deep_fade=settings.MenuFade==true
 -- A: profile selection replaces the independent legacy backend flags. Existing
 -- unused XML fields remain harmless; only one shared reader can be active.
 local controller_profiles = require('controller_profiles')
@@ -327,9 +328,11 @@ function undo_last_edit()
         chat_format.say(123, '[XIVCrossbar] Reload successfully before undoing. Existing files were not changed.')
         return nil
     end
-    if not player:restore_slot_record(record.environment, record.bank, record.slot, record.before) then
-        chat_format.say(123, '[XIVCrossbar] Undo: the set "' .. tostring(record.environment) .. '" no longer exists.')
-        return nil
+    for _, entry in ipairs(record.group or {record}) do
+        if not player:restore_slot_record(entry.environment, entry.bank, entry.slot, entry.before) then
+            chat_format.say(123, '[XIVCrossbar] Undo: the set "' .. tostring(entry.environment) .. '" no longer exists.')
+            return nil
+        end
     end
     player:save_hotbar()
     reload_hotbar()
@@ -337,6 +340,39 @@ function undo_last_edit()
     chat_format.say(207, '[XIVCrossbar] Undid: ' .. tostring(record.label or 'change') .. ' (' ..
         tostring(record.environment) .. ', bank ' .. record.bank .. ', slot ' .. record.slot .. ').')
     return record
+end
+
+-- A: exchange two slots' bindings. a, b = {environment = set key, bank, slot}.
+-- An empty slot works too, so swapping onto an empty slot moves the action.
+function swap_slots(a, b)
+    if player.hotbar_load_ok == false then
+        chat_format.say(123, '[XIVCrossbar] Reload successfully before swapping. Existing files were not changed.')
+        return false
+    end
+    local ea = shoulder_banks.destination(a.environment, a.bank)
+    local eb = shoulder_banks.destination(b.environment, b.bank)
+    local ra = player:get_slot_record(ea, a.bank, a.slot)
+    local rb = player:get_slot_record(eb, b.bank, b.slot)
+    ra, rb = ra and edit_undo.copy(ra) or nil, rb and edit_undo.copy(rb) or nil
+    if not player:restore_slot_record(ea, a.bank, a.slot, rb or false)
+        or not player:restore_slot_record(eb, b.bank, b.slot, ra or false) then
+        chat_format.say(123, '[XIVCrossbar] Swap: a set no longer exists. Nothing was changed.')
+        player:restore_slot_record(ea, a.bank, a.slot, ra or false)
+        return false
+    end
+    local history = ensure_edit_undo_history()
+    if history then
+        history:push_group({{environment = ea, bank = a.bank, slot = a.slot, before = ra},
+            {environment = eb, bank = b.bank, slot = b.slot, before = rb}}, 'Swap')
+    end
+    local active = player.hotbar_settings.active_environment
+    player:save_hotbar()
+    reload_hotbar()
+    set_active_environment(active)
+    chat_format.say(207, '[XIVCrossbar] Swapped ' .. tostring(ra and (ra.alias or ra.action) or 'empty') ..
+        ' (' .. tostring(a.environment) .. ') with ' .. tostring(rb and (rb.alias or rb.action) or 'empty') ..
+        ' (' .. tostring(b.environment) .. ').')
+    return true
 end
 
 -- command to set a crossbar action in action_binder
@@ -364,7 +400,8 @@ local function set_display_name(key, name)
 end
 
 function get_crossbar_sets()
-    return require('crossbar_destinations').build(player.hotbar, set_display_name)
+    return require('crossbar_destinations').build(player.hotbar, set_display_name,
+        {hide_shared = theme_options.UseSharedSet == false})
 end
 
 function create_new_set(name)
@@ -790,6 +827,13 @@ function initialize(server_id, expected_name, expected_id)
         return ok
     end
     action_binder.undo_binding = function() return undo_last_edit() end
+    -- A: Swap exchanges two slots (any sets, any banks); one Undo restores both.
+    action_binder.swap_binding = function(a, b) return swap_slots(a, b) end
+    action_binder.slot_icon_provider = function(bank, slot)
+        local bar = ui.is_setup and ui.hotbars[bank]
+        local icon = bar and bar.slot_icon and bar.slot_icon[slot]
+        return icon and icon:path() or nil
+    end
     action_binder.undo_count = function()
         local history = ensure_edit_undo_history()
         return history and history:count() or 0
@@ -1507,6 +1551,18 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(207,'[XIVCrossbar] '..command:sub(1,1):upper()..command:sub(2)..' reloading')
         graceful_restart(false)
         return
+    elseif command == 'menufade' then
+        -- A: menu background fades to nearly opaque (245) at the bottom.
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        if mode ~= nil and mode ~= 'on' and mode ~= 'off' then
+            chat_format.say(123, '[XIVCrossbar] Use //xb menufade [on|off].')
+            return
+        end
+        if mode == nil then settings.MenuFade = not settings.MenuFade else settings.MenuFade = mode == 'on' end
+        config.save(settings)
+        require('ui/menu_background').deep_fade = settings.MenuFade == true
+        chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (settings.MenuFade and 'ON (deeper at the bottom)' or 'OFF') ..
+            '. Shown from the next menu screen.')
     elseif command == 'undo' then
         -- A: undo the last change made from the XIV Crossbar menu.
         if not undo_last_edit() then chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.') end

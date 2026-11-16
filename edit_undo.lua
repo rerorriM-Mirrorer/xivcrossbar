@@ -91,6 +91,21 @@ function M:push(environment, bank, slot, before, label)
     self:save()
 end
 
+-- Several slots changed together (Swap): one Undo restores them all.
+-- entries: {{environment=, bank=, slot=, before=}, ...}
+function M:push_group(entries, label)
+    local group = {}
+    for i, e in ipairs(entries) do
+        group[i] = {environment = e.environment, bank = e.bank, slot = e.slot,
+            before = e.before ~= nil and copy(e.before) or false}
+    end
+    local first = group[1]
+    self.records[#self.records+1] = {environment = first.environment, bank = first.bank, slot = first.slot,
+        before = first.before, group = group, label = label}
+    while #self.records > self.limit do table.remove(self.records, 1) end
+    self:save()
+end
+
 function M:pop()
     local record = table.remove(self.records)
     if record then self:save() end

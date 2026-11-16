@@ -4,8 +4,11 @@ local choices=require('crossbar_destinations')
 local bars={basic={name='Basic'},default={name='Default'},['job-default']={name='Job Default'},
     ['all-jobs-default']={name='Universal'},['all-warps']={name='Warps'},shared={name='Shared'}}
 local entries=choices.build(bars)
-assert(entries[1].key=='default' and entries[2].key=='job-default' and entries[3].key=='all-jobs-default')
-assert(entries[3].name=='Universal' and bars['all-jobs-default'].name=='Universal')
+assert(entries[1].key=='all-jobs-default' and entries[2].key=='job-default' and entries[3].key=='default')
+assert(entries[1].name=='Universal' and bars['all-jobs-default'].name=='Universal')
+local without=choices.build(bars,nil,{hide_shared=true})
+assert(#without==5, 'Shared left out when UseSharedSet is off')
+for _,e in ipairs(without) do assert(e.key~='shared') end
 assert(#entries==6 and choices.build({})[1]==nil)
 local binder=require('action_binder')
 local player=package.loaded.player

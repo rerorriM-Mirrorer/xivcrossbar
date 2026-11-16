@@ -1,3 +1,56 @@
+# Current Development Status - Edit mode: Swap, title styling and band, menu fade (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint 664cb7c (pushed).
+
+LIVE RESULTS for 664cb7c (Sunshine): custom action screen, target title,
+set chooser, Switch/Quick Switch icons, arrow keys on menus and the set name
+stepping aside all check out. Bound switch slots keep the four-button icon
+(kept, intended). Requests below.
+
+CHANGES:
+- action_binder.lua: Swap (action type 48, state 23) after Custom Action,
+  dummied out until a bound slot is selected (kept current each frame).
+  enter_swap / choose_swap_target / display_swap_screen / update_swap_target /
+  tick_swap_view / submit_swap; slot lines in the footer style
+  (create_slot_line, set_slot_line, tick_slot_line); get_destination,
+  get_ghost and is_bind_ready follow the second slot while swapping (only when
+  its set is shown); edit footer hidden on the Swap screen; Swap screen takes
+  Enter/Esc. The confirmation flash uses hold_flash_image. Main title spaced
+  capitals, amber, black stroke, size 20 (inner titles reset to size 18 and
+  the theme colours). Title band prims (core, 2x8 fade strips, 1px amber line)
+  replace the title's text background; updated every frame from the measured
+  title width; dimmed with the set chooser.
+- edit_undo.lua: push_group() for multi-slot changes.
+- xivcrossbar.lua: swap_slots() (any two slots, any sets; empty allowed;
+  Undo group), slot_icon_provider (the crossbar's current icon path),
+  undo_last_edit() restores groups, //xb menufade [on|off] (settings.MenuFade).
+- ui/menu_background.lua: deep_fade makes the gradient's bottom 245.
+- crossbar_destinations.lua: ALL, JOB, JOB/SUB order; hide_shared option.
+
+FOUND DURING TESTING: the Swap screen's text was created before
+show_control_hints(), which clears self.hints, so it would have vanished.
+Fixed by drawing hints first.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_swap.lua; edit_undo_history covers groups and the real
+swap_slots/undo_last_edit; crossbar_destinations, menu_resources,
+edit_hold_undo, target_order updated. 8 mutations each made a test fail. Full
+suite, 69 files, all exit 0. NOT run: Lua 5.1, Windows, live.
+
+LIVE TESTS PENDING:
+1. Main menu title: spaced capitals, amber with black outline, larger; inner
+   titles white. Band fits the title, ends fade, thin amber line beneath.
+2. //xb menufade on / off: bottom of the menu much darker / as before.
+3. Swap dummied out until a bound slot is selected.
+4. Swap screen: title with the action in amber; icon; SETNAME: [buttons];
+   prompt. Pick a second slot (same set, other set, empty slot); the crossbar
+   highlights it with the action breathing; Circle clears it; Confirm swaps,
+   flashes, returns; Undo restores both.
+5. Switch / Quick Switch: ALL, JOB, JOB/SUB first; no Shared when off.
+
+---
+
 # Current Development Status - Edit mode: custom action Save & Bind, review grid, keyboard (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,

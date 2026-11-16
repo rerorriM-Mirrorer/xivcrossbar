@@ -153,6 +153,7 @@ end
 
 local states = {
     ['DELETE_SET'] = 22,
+    ['SWAP'] = 23,
     ['HIDDEN'] = 0,
     ['SELECT_ACTION_TYPE'] = 1,
     ['SELECT_ACTION'] = 2,
@@ -180,6 +181,7 @@ local action_types = {
     -- A: 2026-11-16 edit-mode main menu entries.
     ['DELETE_SET'] = 46,
     ['UNDO'] = 47,
+    ['SWAP'] = 48,
     ['DELETE'] = 0,
     ['JOB_ABILITY'] = 1,
     ['WEAPONSKILL'] = 2,
@@ -396,10 +398,11 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.title = self:create_text('XIV Crossbar', base_x + 50, base_y + 30)
     self.title:size(18)
     self.title:pad(5)
-    self.title:bg_color(15, 17, 24)
-    self.title:bg_alpha(215)
-    self.title:bg_visible(true)
+    -- A: the title's dark field is drawn by title_band prims (faded ends and an
+    -- amber underline), not by the text's own background.
+    self.title:bg_visible(false)
     self.title:hide()
+    self:create_title_band()
     self.base_x = base_x
     self.base_y = base_y
     self.width =  max_width or (windower.get_windower_settings().ui_x_res - 300)
@@ -902,8 +905,10 @@ action_binder.main_menu_action_names = {[action_types.CHECK] = 'Check', [action_
 -- amber selection can step back and let the slot itself read clearly.
 local immediate_main_menu = nil
 function action_binder:is_bind_ready()
+    if self.state == states.SWAP then return self:is_edit_mode() and self.swap_target ~= nil end
     if not self:is_edit_mode() or not self.destination then return false end
     if self.state == states.SELECT_PLAYER_BINDING then return true end
+    if self.state == states.SWAP then return self.swap_target ~= nil end
     if self.state == states.EDIT_CUSTOM_ACTION_REVIEW then
         local option = self.selector.is_showing and self.selector:get_selected_option()
         return option ~= nil and option.id == 'SAVE_BIND' and not option.disabled
@@ -992,6 +997,11 @@ function action_binder:edit_slot_press(hotkey, pressed)
     -- A trigger held for a slot press never repeats menu navigation.
     self.held_navigation = nil
     self.edit_consumed = self.edit_consumed or {}
+    if pressed and self.state == states.SWAP then
+        self.edit_consumed[hotkey] = true
+        self:choose_swap_target(bank, hotkey)
+        return true
+    end
     if pressed then
         self.edit_consumed[hotkey] = true
         local d = self.destination
@@ -1091,6 +1101,8 @@ function action_binder:tick_bind_hold(now)
     local t = (now - hold.started) / self.bind_hold_seconds
     if t >= 1 or self.is_hidden then self:finish_bind_hold()
     elseif self.selector.set_flash then self.selector:set_flash(1 - t) end
+    local flash = self.hold_flash_image
+    if flash and not ui_resources.is_disposed(flash) then flash:alpha(math.max(0, math.floor(230 * (1 - t)))) end
 end
 
 function action_binder:finish_bind_hold()
@@ -1098,6 +1110,8 @@ function action_binder:finish_bind_hold()
     if not hold then return end
     self.bind_hold = nil
     if self.selector.set_flash then self.selector:set_flash(nil) end
+    if self.hold_flash_image and not ui_resources.is_disposed(self.hold_flash_image) then self.hold_flash_image:hide() end
+    self.hold_flash_image = nil
     if not self.is_hidden then hold.after() end
 end
 
@@ -1198,6 +1212,13 @@ end
 -- entries). Target picker: the action already chosen. Returns an absolute
 -- path plus the destination bank and slot, or nil.
 function action_binder:get_ghost()
+    if self.state == states.SWAP then
+        -- The action being moved breathes on the second slot.
+        local t = self:is_edit_mode() and self:swap_target_on_screen()
+        local icon = self.swap_source and self.swap_source.icon
+        if t and icon and icon ~= '' then return icon, t.bank, t.slot end
+        return nil
+    end
     if not self:is_edit_mode() or not self.destination then return nil end
     local asset, name
     if self.state == states.SELECT_ACTION or self.state == states.SELECT_ACTION_TYPE then
@@ -1239,8 +1260,219 @@ function action_binder:get_ghost()
     return windower.addon_path .. asset, d.bank, d.slot
 end
 
+-- ---------------------------------------------------------------------------
+-- A: Swap (2026-11-16). With a bound slot selected, Swap opens a screen that
+-- shows that slot's action and position. Hold a trigger and press a slot (on
+-- any set: the chooser and set cycling stay available) to choose the second
+-- slot; Confirm swaps the two, Circle clears the second slot or leaves.
+-- Swapping onto an empty slot moves the action. One Undo restores both.
+-- ---------------------------------------------------------------------------
+local slot_line_icon_count = 6
+local function slot_record_name(record)
+    if not record then return nil end
+    return record.alias or record.action
+end
+
+function action_binder:active_set_key()
+    return player_data.hotbar_settings and player_data.hotbar_settings.active_environment
+end
+
+function action_binder:slot_record_at(environment, bank, slot)
+    local env = shoulders.destination(environment, bank)
+    local hb = player_data.hotbar and shoulders.bar(player_data.hotbar, env, bank)
+    local record = hb and hb['slot_' .. slot]
+    if record and record.action ~= nil then return record end
+end
+
+function action_binder:enter_swap()
+    local d = self.destination
+    local record = d and self:destination_record()
+    self.state = states.SELECT_ACTION_TYPE
+    if not record then
+        chat_format.say(207, '[XIVCrossbar] Select a bound crossbar slot first (hold a trigger and press its button).')
+        return
+    end
+    self.swap_source = {bank = d.bank, slot = d.slot, environment = self:active_set_key(),
+        set_name = self:footer_set_name(), name = slot_record_name(record),
+        icon = self.slot_icon_provider and self.slot_icon_provider(d.bank, d.slot) or nil}
+    self.swap_target = nil
+    self.state = states.SWAP
+    self:display_swap_screen()
+end
+
+-- The second slot when it is on the set now shown (so the crossbar can
+-- highlight it); nil when it is on another set.
+function action_binder:swap_target_on_screen()
+    local t = self.swap_target
+    if t and t.environment == self:active_set_key() then return t end
+end
+
+function action_binder:choose_swap_target(bank, slot)
+    local src, env = self.swap_source, self:active_set_key()
+    if not src then return end
+    if src.environment == env and src.bank == bank and src.slot == slot then return end -- the slot itself
+    local t = self.swap_target
+    if t and t.environment == env and t.bank == bank and t.slot == slot then
+        self.swap_target = nil -- pressing it again clears it
+    else
+        local record = self:slot_record_at(env, bank, slot)
+        self.swap_target = {bank = bank, slot = slot, environment = env, set_name = self:footer_set_name(),
+            name = slot_record_name(record),
+            icon = record and self.slot_icon_provider and self.slot_icon_provider(bank, slot) or nil}
+    end
+    self:update_swap_target()
+end
+
+-- One "SETNAME: [buttons]" line in the footer's style, centred on cx.
+function action_binder:create_slot_line()
+    local line = {icons = {}, paths = {}}
+    line.label = ui_resources.text({flags = {draggable = false}})
+    line.label:bg_alpha(0); line.label:bg_visible(false)
+    line.label:font(self.theme_options.font)
+    line.label:size(11 * .94 + 2); line.label:bold(true)
+    line.label:color(255, 216, 112); line.label:stroke_color(0, 0, 0); line.label:stroke_width(2)
+    line.label:alpha(255); line.label:stroke_alpha(255)
+    line.label:text(''); line.label:hide()
+    self.hints:append(line.label)
+    for i = 1, slot_line_icon_count do
+        local icon = ui_resources.image({draggable = false})
+        icon:fit(false); icon:size(32, 32); icon:hide()
+        line.icons[i] = icon
+        self.images:append(icon)
+    end
+    return line
+end
+
+function action_binder:set_slot_line(line, cx, y, set_name, bank, slot)
+    line.cx, line.y, line.width = cx, y, nil
+    if not set_name then
+        line.label:hide()
+        for i = 1, slot_line_icon_count do line.icons[i]:hide() end
+        line.count = 0
+        return
+    end
+    local text = set_name .. ':'
+    if line.label:text() ~= text then line.label:text(text) end
+    line.label:show()
+    local paths = self:destination_icons(bank, slot)
+    line.count = #paths
+    for i = 1, slot_line_icon_count do
+        local path = paths[i] and (windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/' .. paths[i])
+        if path then
+            if line.paths[i] ~= path then line.icons[i]:path(path); line.paths[i] = path end
+            line.icons[i]:show()
+        else line.icons[i]:hide() end
+    end
+end
+
+function action_binder:tick_slot_line(line)
+    if not line or not line.count or line.count == 0 or ui_resources.is_disposed(line.label) then return end
+    local width = line.label:measure_width()
+    if width == nil then return end
+    if width ~= line.width then
+        line.width = width
+        local total = width + 6 + line.count * 32
+        local x = line.cx - total / 2
+        line.label:pos(x, line.y + 7)
+        x = x + width + 6
+        for i = 1, line.count do line.icons[i]:pos(x, line.y); x = x + 32 end
+    end
+    line.label:commit_measurement()
+end
+
+local function slot_picture(self, x, y, icon_path)
+    local frame = ui_resources.image({draggable = false})
+    frame:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/frame.png')
+    frame:fit(false); frame:size(40, 40); frame:pos(x, y); frame:show()
+    local icon = ui_resources.image({draggable = false})
+    icon:path(icon_path or (windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/blank.png'))
+    icon:fit(false); icon:size(40, 40); icon:pos(x, y); icon:show()
+    self.images:append(icon); self.images:append(frame)
+    return icon, frame
+end
+
+function action_binder:display_swap_screen()
+    local src = self.swap_source
+    self.selector:hide()
+    ui_resources.clear(self.images); self.images = L{}
+    ui_resources.clear(self.hints); self.hints = L{}
+    -- Hints first: show_control_hints clears self.hints.
+    self:show_control_hints('Confirm', 'Go Back')
+    require('ui/menu_background').set_color(windower.prim, 'dialog_bg', 150, 0, 0, 0)
+    self:set_title('Swap Slot Bindings - \\cs(255,216,112)' .. tostring(src.name or 'empty') .. '\\cr')
+    self.title:show()
+    local cx = self.base_x + self.width / 2
+    local view = {cx = cx}
+    view.source_icon = slot_picture(self, cx - 20, self.base_y + 110, src.icon)
+    view.flash = ui_resources.image({draggable = false})
+    view.flash:path(windower.addon_path .. 'images/icons/iconpacks/default/ui/square.png')
+    view.flash:fit(false); view.flash:size(40, 40); view.flash:pos(cx - 20, self.base_y + 110)
+    view.flash:color(255, 245, 205); view.flash:alpha(0); view.flash:hide()
+    self.images:append(view.flash)
+    view.source_line = self:create_slot_line()
+    self:set_slot_line(view.source_line, cx, self.base_y + 160, src.set_name, src.bank, src.slot)
+    view.target_icon, view.target_frame = slot_picture(self, cx - 20, self.base_y + 225, nil)
+    view.prompt = self:create_text('Select set and crossbar slot to swap binds with:', cx, self.base_y + 280)
+    view.prompt:size(14)
+    self.hints:append(view.prompt)
+    view.target_line = self:create_slot_line()
+    self.swap_view = view
+    self:update_swap_target()
+end
+
+function action_binder:update_swap_target()
+    local view, t = self.swap_view, self.swap_target
+    if not view or ui_resources.is_disposed(view.prompt) then return end
+    local blank = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/blank.png'
+    view.target_icon:path(t and t.icon or blank)
+    if t then
+        view.prompt:hide()
+        self:set_slot_line(view.target_line, view.cx, self.base_y + 275, t.set_name, t.bank, t.slot)
+    else
+        self:set_slot_line(view.target_line, view.cx, self.base_y + 275, nil)
+        view.prompt:show()
+        caption_layout:center(view.prompt, view.cx, self.base_y + 282, self.width - 80)
+    end
+end
+
+function action_binder:tick_swap_view()
+    local view = self.swap_view
+    if not view or ui_resources.is_disposed(view.prompt) then return end
+    self:tick_slot_line(view.source_line)
+    self:tick_slot_line(view.target_line)
+end
+
+function action_binder:submit_swap()
+    local src, t = self.swap_source, self.swap_target
+    if not src then return self:return_to_action_type_menu() end
+    if not t then
+        chat_format.say(207, '[XIVCrossbar] Select a set and crossbar slot to swap with first.')
+        return
+    end
+    local ok = self.swap_binding and self.swap_binding(
+        {environment = src.environment, bank = src.bank, slot = src.slot},
+        {environment = t.environment, bank = t.bank, slot = t.slot})
+    if ok == false or ok == nil then return end
+    -- The selection follows the action to its new place.
+    self.destination = {bank = t.bank, slot = t.slot}
+    self.swap_source, self.swap_target = nil, nil
+    local view = self.swap_view
+    if view and not ui_resources.is_disposed(view.flash) then
+        view.flash:alpha(230); view.flash:show()
+        self.hold_flash_image = view.flash
+    end
+    if self.on_bound and t.environment == self:active_set_key() then self.on_bound(t.bank, t.slot) end
+    self:start_bind_hold(function() self.swap_view = nil; self:return_to_action_type_menu() end)
+end
+
 function action_binder:get_destination()
-    if self.is_hidden or not self.destination then return nil end
+    if self.is_hidden then return nil end
+    if self.state == states.SWAP then
+        -- The second slot is what the crossbar highlights while swapping.
+        local t = self:swap_target_on_screen()
+        return t and {bank = t.bank, slot = t.slot, ready = true} or nil
+    end
+    if not self.destination then return nil end
     local d = self.destination
     return {bank = d.bank, slot = d.slot, ready = self:is_bind_ready()}
 end
@@ -1342,6 +1574,7 @@ end
 -- Called every rendered frame. Cheap when nothing changed: only the text
 -- measurement is polled until it settles.
 function action_binder:update_destination_footer()
+    self:update_title_band()
     -- A: the menu side of edit mode, kept in step every frame (cheap):
     -- Clear Slot is dummied out while the selected slot is empty, and the
     -- highlighted entry glows while Confirm would bind it.
@@ -1352,6 +1585,11 @@ function action_binder:update_destination_footer()
                 self.clear_slot_disabled = empty
                 self.selector:set_option_disabled(action_types.DELETE, empty)
             end
+            local swap_off = self.destination == nil or empty
+            if swap_off ~= self.swap_entry_disabled then
+                self.swap_entry_disabled = swap_off
+                self.selector:set_option_disabled(action_types.SWAP, swap_off)
+            end
         end
         if self.selector.set_option_glow then
             self.selector:set_option_glow(not self.bind_hold and self:is_bind_ready())
@@ -1359,7 +1597,8 @@ function action_binder:update_destination_footer()
     end
     -- Also visible while the set chooser is open over the menu, at full
     -- strength, so the set name visibly changes as sets are browsed.
-    local visible = self:is_edit_mode() or self:is_choosing_set_in_edit_mode()
+    local visible = (self:is_edit_mode() or self:is_choosing_set_in_edit_mode()) and self.state ~= states.SWAP
+    if self.state == states.SWAP then self:tick_swap_view() end
     local f = self.destination_footer_objects
     if not visible then
         if f and not ui_resources.is_disposed(f.label) and self.destination_footer_key ~= nil then
@@ -1617,6 +1856,8 @@ function action_binder:submit_selected_option()
                 chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.')
             elseif selected.id == action_types.DELETE then
                 chat_format.say(207, '[XIVCrossbar] That slot is already empty.')
+            elseif selected.id == action_types.SWAP then
+                chat_format.say(207, '[XIVCrossbar] Select a bound crossbar slot first (hold a trigger and press its button).')
             elseif selected.disabled_focusable then
                 chat_format.say(207, '[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.')
             end
@@ -1632,7 +1873,9 @@ function action_binder:submit_selected_option()
         self.action_name, self.action_alias = nil, nil
         self.binding_preview_icon = option.asset_path
 
-        if self.action_type == action_types.UNDO then
+        if self.action_type == action_types.SWAP then
+            self:enter_swap()
+        elseif self.action_type == action_types.UNDO then
             self:undo_last_edit()
         elseif self.action_type == action_types.DELETE_SET then
             self.state = states.DELETE_SET
@@ -1715,6 +1958,8 @@ function action_binder:submit_selected_option()
         self:display_button_assigner()
     elseif (self.state == states.DELETE_SET) then
         self:submit_delete_set()
+    elseif self.state == states.SWAP then
+        self:submit_swap()
     elseif (self.state == states.SELECT_ACTION) then
         self.selection_states[states.SELECT_ACTION] = self.selector:export_selection_state()
         local option = self.selector:submit_selected_option()
@@ -2101,6 +2346,12 @@ function action_binder:go_back()
         self:return_to_action_type_menu()
         return
     end
+    if self.state == states.SWAP then
+        -- Circle first clears a chosen second slot, then leaves Swap.
+        if self.swap_target then self.swap_target = nil; self:update_swap_target()
+        else self.swap_source = nil; self:return_to_action_type_menu() end
+        return
+    end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self:hide()
         self:reset_state()
@@ -2443,7 +2694,7 @@ end
 
 function action_binder:display_action_type_selector()
     require('ui/menu_background').set_color(windower.prim, 'dialog_bg',150,0,0,0)
-    self:set_title('XIV Crossbar')
+    self:set_title('X I V   C R O S S B A R', true)
     self.title:show()
 
     self.selector:display_options(self:main_menu_options())
@@ -2468,6 +2719,10 @@ function action_binder:main_menu_options()
     -- Create/Edit Custom Action live inside Custom Action; Create Set lives
     -- in the set chooser; Delete Custom Action on the custom action edit screen.
     action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon})
+    -- Swap: dummied out until a bound slot is selected (kept current each frame).
+    local swap_off = self.destination == nil or self:destination_slot_empty()
+    action_type_list:append({id = action_types.SWAP, name = 'Swap', icon = custom_icon, disabled = swap_off, disabled_focusable = true})
+    self.swap_entry_disabled = swap_off
     action_type_list:append({id = action_types.JOB_ABILITY, name = 'Job Ability', icon = 'images/icons/abilities/00001.png', icon_offset = 4})
     action_type_list:append({id = action_types.WEAPONSKILL, name = 'Weaponskills', icon = 'images/icons/weapons/sword.png', icon_offset = 4})
     if (white_magic_jobs[main_job] or white_magic_jobs[sub_job]) then
@@ -2644,9 +2899,81 @@ end
 
 -- A: one title rule for every menu screen: centred on the menu. (Before
 -- this, a title stayed centred only after a screen that centred it.)
-function action_binder:set_title(text)
+function action_binder:set_title(text, main)
+    -- The main menu's title is amber with a black outline, two points larger;
+    -- every inner screen's title uses the normal (white) text style.
+    local o = self.theme_options
+    if main then
+        self.title:size(20)
+        self.title:color(255, 216, 112)
+        self.title:stroke_color(0, 0, 0)
+        self.title:stroke_width(2)
+    else
+        self.title:size(18)
+        self.title:color(o.font_color_red, o.font_color_green, o.font_color_blue)
+        self.title:stroke_color(o.font_stroke_color_red, o.font_stroke_color_green, o.font_stroke_color_blue)
+        self.title:stroke_width(o.font_stroke_width)
+    end
     self.title:text(text)
     caption_layout:center(self.title, self.base_x + self.width / 2, self.base_y + 30, self.width - 80)
+end
+
+-- A: title band: a dark rectangle fitted to the title, soft faded ends on
+-- both sides and one thin amber line beneath it.
+local band_fade_steps, band_fade_width, band_height = 8, 48, 30
+function action_binder:create_title_band()
+    local prim = windower.prim
+    if self.title_band then return end
+    self.title_band = {core = 'xcb_title_band', line = 'xcb_title_line', fades = {}}
+    prim.create(self.title_band.core); prim.set_visibility(self.title_band.core, false)
+    prim.create(self.title_band.line); prim.set_visibility(self.title_band.line, false)
+    for side = 1, 2 do
+        for i = 1, band_fade_steps do
+            local id = 'xcb_title_fade_' .. side .. '_' .. i
+            prim.create(id); prim.set_visibility(id, false)
+            self.title_band.fades[#self.title_band.fades+1] = {id = id, side = side, step = i}
+        end
+    end
+end
+
+-- Called every frame; positions follow the measured title width.
+function action_binder:update_title_band()
+    local band = self.title_band
+    if not band then return end
+    local prim = windower.prim
+    local visible = not self.is_hidden and self.title and not ui_resources.is_disposed(self.title)
+        and self.title:visible() and self.state ~= states.HIDDEN
+    local width = visible and self.title:measure_width() or nil
+    local key = visible and width and table.concat({width, self.chooser_active and 1 or 0, self.base_x, self.base_y}, ':') or nil
+    if key == band.key then return end
+    band.key = key
+    if not key then
+        prim.set_visibility(band.core, false); prim.set_visibility(band.line, false)
+        for _, fade in ipairs(band.fades) do prim.set_visibility(fade.id, false) end
+        return
+    end
+    local dim = self.chooser_active and .45 or 1
+    local alpha = math.floor(215 * dim)
+    local center = self.base_x + self.width / 2
+    local core_width = width + 40
+    local left, top = center - core_width / 2, self.base_y + 28
+    prim.set_color(band.core, alpha, 15, 17, 24)
+    prim.set_position(band.core, left, top)
+    prim.set_size(band.core, core_width, band_height)
+    prim.set_visibility(band.core, true)
+    local step_width = band_fade_width / band_fade_steps
+    for _, fade in ipairs(band.fades) do
+        local fade_alpha = math.floor(alpha * (1 - fade.step / (band_fade_steps + 1)) + .5)
+        local x = fade.side == 1 and (left - fade.step * step_width) or (left + core_width + (fade.step - 1) * step_width)
+        prim.set_color(fade.id, fade_alpha, 15, 17, 24)
+        prim.set_position(fade.id, x, top)
+        prim.set_size(fade.id, step_width, band_height)
+        prim.set_visibility(fade.id, true)
+    end
+    prim.set_color(band.line, math.floor(230 * dim), 255, 216, 112)
+    prim.set_position(band.line, left, top + band_height)
+    prim.set_size(band.line, core_width, 1)
+    prim.set_visibility(band.line, true)
 end
 
 -- Center captions using measured glyph widths rather than character counts.
@@ -4526,7 +4853,7 @@ function action_binder:is_keyboard_review()
         or (self.custom_action_draft ~= nil and (state==states.SELECT_ICON
             or state==states.SELECT_LINKED_TYPE or state==states.SELECT_ACTION))
         -- A: arrow keys, Enter and Esc work on every menu screen.
-        or self:is_in_selector_state() or state==states.SHOW_CREDITS
+        or self:is_in_selector_state() or state==states.SHOW_CREDITS or state==states.SWAP
 end
 
 function action_binder:set_capturing_text(enabled)
