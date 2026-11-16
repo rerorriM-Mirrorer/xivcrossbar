@@ -739,6 +739,11 @@ function initialize(server_id, expected_name, expected_id)
         action_binder:setup(temp_buttonmapping, set_hotkey, delete_hotkey, theme_options, get_crossbar_sets, 150, 150, windower.get_windower_settings().ui_x_res - 300,
             windower.get_windower_settings().ui_y_res - y_adjust, change_slot_icon, save_global_icon, save_custom_action, update_custom_action, delete_custom_action, create_new_set)
     end
+    -- A: edit mode binds straight to the selected slot; play its confirmation.
+    action_binder.on_bound = function(bank, slot)
+        if ui.is_setup then ui:flash_binding(bank, slot) end
+        ui_dirty = true
+    end
 
     player:initialize(windower_player, server, theme_options, enchanted_items)
     if player:load_hotbar() == false then
@@ -2902,6 +2907,8 @@ windower.register_event('prerender',function()
         if action_success.pending then action_success:tick(success_policy.snapshot(windower.ffxi)) end
         ui:tick_recast_flashes()
         ui:tick_action_success()
+        -- Keep redrawing while an edit-mode bind flash fades the slot's icon.
+        if ui:has_binding_flash() then ui_dirty = true end
         if success_confirmed then
             ui:flash_action_success(success_confirmed[1],success_confirmed[2])
             success_confirmed=nil

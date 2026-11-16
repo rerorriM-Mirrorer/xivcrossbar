@@ -198,4 +198,16 @@ assert(not ui.destination_tint:visible(), 'destination on an undrawn bank stays 
 ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
     {get_skillchain_window=function()return 0,0 end},{},false,false,false,nil,nil,nil,{bank=1,slot=3})
 assert(not ui.destination_tint:visible(), 'no destination tint outside the menu')
+-- Edit-mode bind flash survives the open menu's per-frame success clearing.
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3})
+assert(ui:flash_binding(1,3), 'bind flash shows on a drawn bank')
+assert(ui:has_binding_flash())
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3})
+assert(ui:has_binding_flash(), 'menu frame must not clear a bind flash')
+assert(ui.hotbars[1].slot_icon[3]:color()>205, 'bound icon starts brighter than the menu dim')
+ui:clear_action_success()
+assert(not ui:has_binding_flash())
+assert(not ui:flash_binding(7,3), 'no flash on an undrawn bank')
 print('XI compact spacing, Legacy reversibility, empty frames and fitted trigger fields passed.')

@@ -886,6 +886,59 @@ function action_binder:edit_slot_press(hotkey, pressed)
     return true
 end
 
+-- Which flows bind straight to the destination. Slot operations (Remove a
+-- Binding, Change Slot Icon, Change Action Icon), new sets and the custom
+-- action editor's Save & Bind keep their legacy screens until later steps.
+function action_binder:can_bind_to_destination()
+    if not self.destination or self.is_hidden or self.chooser_active then return false end
+    if self.binding_custom_action_review then return false end
+    local t = self.action_type
+    if t == nil or t == action_types.DELETE or t == action_types.CHANGE_ICON
+        or t == action_types.GLOBAL_ICON_SET or t == action_types.CREATE_NEW_SET then
+        return false
+    end
+    return self.action_name ~= nil and self.action_name ~= ''
+end
+
+-- Save the chosen action to the destination, flash it, and return to the list
+-- the action was chosen from with the cursor where it was. The destination
+-- stays selected, so choosing again replaces the same slot. No confirmation.
+function action_binder:bind_to_destination()
+    if not self:can_bind_to_destination() then return false end
+    local d = self.destination
+    self.active_crossbar, self.hotkey = d.bank, d.slot
+    local ok = self.save_binding(d.bank, d.slot, prefix_lookup[self.action_type], self.action_name,
+        self.action_target, self.action_command, self.action_icon, self.action_linked_action,
+        self.action_linked_type, self.action_alias)
+    if ok ~= false and self.on_bound then self.on_bound(d.bank, d.slot) end
+    self:return_after_bind()
+    return true
+end
+
+function action_binder:return_after_bind()
+    self:clear_button_entry_ui()
+    self.active_crossbar, self.hotkey = nil, nil
+    self.action_name, self.action_target = nil, nil
+    self.selection_states[states.SELECT_ACTION_TARGET] = nil
+    local t = self.action_type
+    local direct = t == action_types.CHECK or t == action_types.SWITCH_TARGET or t == action_types.MAP
+        or t == action_types.LAST_SYNTH or t == action_types.ATTACK or t == action_types.RANGED_ATTACK
+        or t == action_types.ASSIST
+    local list = not direct and self.selection_states[states.SELECT_ACTION]
+    if list then
+        -- Same action list, same page and cursor.
+        self.state = states.SELECT_ACTION
+        self.selector:set_page(list.page)
+        self:display_action_selector()
+        self.selector:import_selection_state(list)
+        self.selection_states[states.SELECT_ACTION] = nil
+    else
+        -- Direct actions (Check, Switch Target, View Map, Last Synth, Attack,
+        -- Ranged Attack, Assist) were chosen from the main menu itself.
+        self:return_to_action_type_menu()
+    end
+end
+
 function action_binder:get_destination()
     if self.is_hidden then return nil end
     return self.destination
@@ -2251,6 +2304,9 @@ function action_binder:show_button_entry_captions(confirming)
 end
 
 function action_binder:display_button_assigner()
+    -- A: edit mode step 2. With a destination selected, skip Enter Button
+    -- Combo / Confirm and bind straight to it. Otherwise the legacy flow runs.
+    if self:bind_to_destination() then return end
     self.active_crossbar = nil
     self:show_set_title('Enter Button Combo')
     self:reset_gamepad()

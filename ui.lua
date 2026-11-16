@@ -1967,10 +1967,13 @@ function ui:clear_recast_flashes()
 end
 
 -- Success is separate from ready feedback: a fresh cooldown must not erase it.
-function ui:clear_action_success(hotbar,slot)
+function ui:clear_action_success(hotbar,slot,keep_binding)
     local target=hotbar and ((hotbar-1)*8+slot)
     for key,views in pairs(self.success_views) do
-        if not target or target==key then
+        local flash=self.success_flashes[key]
+        if keep_binding and flash and flash.binding then
+            -- edit-mode binding flashes play while the menu is open
+        elseif not target or target==key then
             views.center:hide();views.border:hide();self.success_flashes[key]=nil
         end
     end
@@ -1991,6 +1994,23 @@ function ui:flash_action_success(hotbar,slot)
     end
     self.success_flashes[key]={hotbar=hotbar,slot=slot,started=self.recast_flash_clock()}
     self:tick_action_success()
+end
+
+-- A: edit-mode bind confirmation. Same gold/white flash as a confirmed action,
+-- marked so the open menu does not clear it. Returns true when it will show.
+function ui:flash_binding(hotbar,slot)
+    if not self.pulse_visible_bars[hotbar] then return false end
+    self:flash_action_success(hotbar,slot)
+    local flash=self.success_flashes[(hotbar-1)*8+slot]
+    if flash then flash.binding=true end
+    return flash ~= nil
+end
+
+function ui:has_binding_flash()
+    for _,flash in pairs(self.success_flashes) do
+        if flash.binding then return true end
+    end
+    return false
 end
 
 function ui:tick_action_success()
@@ -2073,7 +2093,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     end
 
     dim_default_slots = dim_default_slots or false
-    if menu_open then self:clear_action_success() end
+    if menu_open then self:clear_action_success(nil, nil, true) end
     local observe_recasts = self.recast_flash_enabled and not menu_open
     if menu_open and next(self.recast_samples) then self:clear_recast_flashes() end
 
@@ -2140,6 +2160,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
                 self.hotbars[h].slot_background[i]:show()
                 local shade = menu_open and 205 or 255
+                -- A: a slot just bound in edit mode starts fully bright and
+                -- settles to the menu dim strength while its flash plays.
+                local bound_flash = menu_open and self.success_flashes[(h-1)*8+i]
+                if bound_flash and bound_flash.binding then
+                    local left = 1 - (self.recast_flash_clock() - bound_flash.started) / .4
+                    if left > 0 then shade = math.floor(205 + 50 * left + .5) end
+                end
                 self.hotbars[h].slot_icon[i]:show()
                 self.hotbars[h].slot_frame[i]:show()
                 self.hotbars[h].slot_element[i]:show()

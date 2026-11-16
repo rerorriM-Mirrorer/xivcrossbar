@@ -1,3 +1,63 @@
+# Current Development Status - Edit mode step 2: immediate bind (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+pushed to origin at 38354e3 (step 1); this step is the next commit on that
+branch. Spec: FFXI project doc
+claude/ffxi-xivcrossbar-edit-mode-and-glows-spec-2026-11-16.md.
+Step 1 (slot selection, below) is still awaiting live results.
+
+REQUEST: wrap up destination state and input routing, then make immediate
+binding work with the available menu options, keeping the legacy fallback.
+
+CHANGES:
+- action_binder.lua: display_button_assigner() first tries
+  bind_to_destination(). Every flow that used to reach Enter Button Combo
+  passes through it, so all of these bind straight to the selected slot: spells,
+  abilities, weaponskills, pet commands, Trusts, mounts, items, warps,
+  existing custom actions, Switch Crossbars, Quick XB Switch, Check, Switch
+  Target, View Map, Last Synth, Attack, Ranged Attack and Assist.
+  can_bind_to_destination() keeps the legacy screens for Remove a Binding,
+  Change Slot Icon, Change Action Icon, Create New Set and the custom action
+  editor's Save & Bind (later steps). No destination means the legacy flow.
+  return_after_bind(): back to the same action list, page and cursor; direct
+  actions return to the main menu with its cursor. The destination stays
+  selected. No confirmation, no menu close. A failed save (set_hotkey returns
+  false) shows no flash and keeps the menu where it is.
+- ui.lua: flash_binding() reuses the gold/white success flash, marked so the
+  open menu's per-frame clear keeps it; the bound slot's icon starts at full
+  brightness and settles to the menu dim (205) over 0.4 s. has_binding_flash().
+- xivcrossbar.lua: action_binder.on_bound plays the flash; redraws while it runs.
+- set_hotkey already prints the "bound" chat line and sends the GripRumble
+  `binding` cue, so both happen on every edit-mode bind.
+
+NOT YET: target memory per category, ghost preview, menu row flash, Undo,
+Clear/Change This Icon on the destination, set chooser carry-over checks,
+shoulder (L1/R1) and double-tap banks as destinations.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_bind.lua (7 scenario groups); tests/xi_layout.lua gains flash
+checks. 7 mutations of the new code each made a test fail. Full suite,
+63 files, all exit 0. NOT run: Lua 5.1 parse, Windows CI, live FFXI.
+
+LIVE TESTS PENDING (after step 1's list below):
+1. Select a slot (R2 + Cross). White Magic > Cure > <t>: Cure appears on that
+   slot at once with a gold/white flash; chat says it was bound; GripRumble
+   pulses if its bind cue is on. You are back on the White Magic list on Cure.
+2. Choose another spell: it replaces Cure on the same slot. No confirm.
+3. A self-only ability (no target screen) binds straight from the list.
+4. Check / View Map from the main menu: binds, returns to the main menu.
+5. Weaponskill, Trust, item, Superwarp entry, existing custom action, Quick XB
+   Switch: each binds to the selected slot.
+6. Deselect the slot (press it again), choose a spell: the old Enter Button
+   Combo screen appears and works as before (closes the menu after binding).
+7. Remove a Binding / Change Slot Icon with a slot selected: old screens.
+8. Bind to a slot on bank 3/4 (L2+R2): saved correctly; flash shows only if
+   the bank is visible at that moment.
+9. After several binds, close the menu: the crossbar shows the new bindings
+   normally, and nothing fires while the menu was open.
+
+---
+
 # Current Development Status - Edit mode step 1: slot selection (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116

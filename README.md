@@ -779,3 +779,14 @@ name and the slot's button pictures. Pressing it again deselects it, and closing
 the menu clears it. Tapping a trigger still turns the page. Nothing binds
 differently yet; the existing Bind-to-Slot flow is unchanged. Lua simulation
 only; live testing pending.
+
+2026-11-16: Edit mode, step 2 (bind to the selected slot). With a slot selected
+in the menu, choosing an action (and its target, when there is a choice) binds it
+to that slot at once. There are no button-combo or confirm screens. The slot
+flashes gold/white and its icon fades from full brightness to the menu dim. You
+return to the same action list with the cursor where it was, and the slot stays
+selected, so choosing again replaces it. Check, Switch Target, View Map, Last
+Synth, Attack, Ranged Attack and Assist return to the main menu. With no slot
+selected, the old Bind-to-Slot screens work as before. Remove a Binding, the two
+icon tools, Create New Set and the custom action editor's Save & Bind keep their
+old screens for now. Lua simulation only; live testing pending.
