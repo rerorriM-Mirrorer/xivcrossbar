@@ -595,6 +595,7 @@ end
 function action_binder:dpad_left(pressed)
     self:menu_input('left',pressed)
     if self.capturing_text then return end
+    if self:edit_slot_press(1, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -615,6 +616,7 @@ end
 function action_binder:dpad_right(pressed)
     self:menu_input('right',pressed)
     if self.capturing_text then return end
+    if self:edit_slot_press(3, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -635,6 +637,7 @@ end
 function action_binder:dpad_down(pressed)
     self:menu_input('down',pressed)
     if self.capturing_text then return end
+    if self:edit_slot_press(2, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -655,6 +658,7 @@ end
 function action_binder:dpad_up(pressed)
     self:menu_input('up',pressed)
     if self.capturing_text then return end
+    if self:edit_slot_press(4, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
         self:reset_gamepad_dpad()
         self:reset_gamepad_face_buttons()
@@ -674,6 +678,7 @@ end
 
 function action_binder:button_a(pressed)
     self:menu_input('a',pressed)
+    if self:edit_slot_press(6, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'a' or
             self.button_layout == 'playstation' and self.cancel_button == 'cross' or
             self.button_layout == 'xbox' and self.cancel_button == 'a' or
@@ -705,6 +710,7 @@ end
 
 function action_binder:button_b(pressed)
     self:menu_input('b',pressed)
+    if self:edit_slot_press(5, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'b' or
             self.button_layout == 'playstation' and self.cancel_button == 'square' or
             self.button_layout == 'xbox' and self.cancel_button == 'x' or
@@ -736,6 +742,7 @@ end
 
 function action_binder:button_x(pressed)
     self:menu_input('x',pressed)
+    if self:edit_slot_press(7, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'x' or
             self.button_layout == 'playstation' and self.cancel_button == 'circle' or
             self.button_layout == 'xbox' and self.cancel_button == 'b' or
@@ -767,6 +774,7 @@ end
 
 function action_binder:button_y(pressed)
     self:menu_input('y',pressed)
+    if self:edit_slot_press(8, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'y' or
             self.button_layout == 'playstation' and self.cancel_button == 'triangle' or
             self.button_layout == 'xbox' and self.cancel_button == 'y' or
@@ -812,6 +820,180 @@ function action_binder:get_binding_preview_bank()
     if not self.is_hidden and not self.chooser_active
         and (self.state == states.SELECT_BUTTON_ASSIGNMENT or self.state == states.CONFIRM_BUTTON_ASSIGNMENT) then
         return self.active_crossbar
+    end
+    -- Edit mode: holding a trigger in any other menu screen shows that bank,
+    -- exactly as it would outside the menu.
+    if self:is_edit_mode() then return self:edit_bank() end
+end
+
+-- ---------------------------------------------------------------------------
+-- A: Edit mode, step 1 (2026-11-16). While the XIV Crossbar menu is open the
+-- crossbar chooses WHERE and the menu chooses WHAT. Holding a crossbar
+-- trigger and pressing a slot button selects that slot as the destination.
+-- Nothing is bound differently yet: this step only selects, shows and clears
+-- the destination. The legacy Bind-to-Slot screens are left untouched.
+-- The destination is a position (bank + slot), not a binding, so it survives
+-- set switches; it is cleared only when the menu closes (clear_destination).
+-- ---------------------------------------------------------------------------
+function action_binder:is_edit_mode()
+    return not self.is_hidden and not self.chooser_active and not self.capturing_text
+        and self.state ~= states.HIDDEN
+        and self.state ~= states.SELECT_BUTTON_ASSIGNMENT
+        and self.state ~= states.CONFIRM_BUTTON_ASSIGNMENT
+        and (states.MOVE_CROSSBARS == nil or self.state ~= states.MOVE_CROSSBARS)
+end
+
+-- Bank under the held trigger(s). L2+R2 follows the normal rule: the trigger
+-- pressed second decides bank 3 or 4 when four or six banks exist.
+-- Not yet supported here: double-tap banks (5/6) and L1/R1 shoulder banks.
+function action_binder:edit_bank()
+    if self.trigger_left_pressed and self.trigger_right_pressed then
+        local bars = self.theme_options and self.theme_options.hotbar_number
+        if bars == 4 or bars == 6 then return self.edit_combined_bank or 3 end
+        return 3
+    elseif self.trigger_left_pressed then return 1
+    elseif self.trigger_right_pressed then return 2 end
+end
+
+-- Returns true when the press (and its release) belongs to edit mode, so the
+-- caller must not also navigate the menu.
+function action_binder:edit_slot_press(hotkey, pressed)
+    if not self:is_edit_mode() then return false end
+    local bank = self:edit_bank()
+    if not bank then
+        -- A release whose press selected a slot stays consumed even if the
+        -- trigger was let go first.
+        if not pressed and self.edit_consumed and self.edit_consumed[hotkey] then
+            self.edit_consumed[hotkey] = nil
+            return true
+        end
+        return false
+    end
+    -- A trigger held for a slot press never repeats menu navigation.
+    self.held_navigation = nil
+    self.edit_consumed = self.edit_consumed or {}
+    if pressed then
+        self.edit_consumed[hotkey] = true
+        local d = self.destination
+        if d and d.bank == bank and d.slot == hotkey then
+            self.destination = nil -- pressing the selected slot again deselects it
+        else
+            self.destination = {bank = bank, slot = hotkey}
+        end
+    else
+        self.edit_consumed[hotkey] = nil
+    end
+    return true
+end
+
+function action_binder:get_destination()
+    if self.is_hidden then return nil end
+    return self.destination
+end
+
+function action_binder:clear_destination()
+    self.destination = nil
+    self.edit_consumed = nil
+    self.edit_combined_bank = nil
+    if self.destination_footer then ui_resources.clear(self.destination_footer) end
+    self.destination_footer = L{}
+    self.destination_footer_key = nil
+    self.destination_footer_layout = nil
+end
+
+local slot_button_icons = {
+    [1] = 'dpad_%s_left', [2] = 'dpad_%s_down', [3] = 'dpad_%s_right', [4] = 'dpad_%s_up',
+    [5] = 'facebuttons_%s_b', [6] = 'facebuttons_%s_a', [7] = 'facebuttons_%s_x', [8] = 'facebuttons_%s_y',
+}
+
+-- Button pictures for a bank + slot, matching the old Bind-to-Slot screen.
+function action_binder:destination_icons(bank, slot)
+    local layout = self.button_layout
+    local left = 'ui/binding_icons/trigger_' .. layout .. '_left.png'
+    local right = 'ui/binding_icons/trigger_' .. layout .. '_right.png'
+    local icons = L{}
+    if bank == 1 then icons:append(left)
+    elseif bank == 2 then icons:append(right)
+    elseif bank == 3 then
+        if self.theme_options.hotbar_number == 4 or self.theme_options.hotbar_number == 6 then
+            icons:append(right); icons:append('ui/binding_icons/arrow_right.png'); icons:append(left)
+        else icons:append(left); icons:append(right) end
+    elseif bank == 4 then
+        icons:append(left); icons:append('ui/binding_icons/arrow_right.png'); icons:append(right)
+    elseif bank == 5 then icons:append(left); icons:append('ui/binding_icons/x2.png')
+    elseif bank == 6 then icons:append(right); icons:append('ui/binding_icons/x2.png') end
+    icons:append('ui/binding_icons/plus.png')
+    icons:append('ui/binding_icons/' .. string.format(slot_button_icons[slot], layout) .. '.png')
+    return icons
+end
+
+local function active_set_name()
+    local key = player_data.hotbar_settings and player_data.hotbar_settings.active_environment
+    local bar = key and player_data.hotbar and player_data.hotbar[key]
+    return bar and (bar.name or key) or key or ''
+end
+
+-- Footer between the Exit and Confirm/Go Back hints. Called every rendered
+-- frame; rebuilds its few objects only when what it shows changes.
+function action_binder:update_destination_footer()
+    local visible = self:is_edit_mode()
+    local d = self.destination
+    local name = visible and active_set_name() or ''
+    local key = visible and (d and (name .. '|' .. d.bank .. '|' .. d.slot) or 'none') or nil
+    if key == self.destination_footer_key then return self:layout_destination_footer() end
+    self.destination_footer_key = key
+    self.destination_footer_layout = nil
+    if self.destination_footer then ui_resources.clear(self.destination_footer) end
+    self.destination_footer = L{}
+    if not visible then return end
+
+    local y = self.base_y + self.height - 50
+    local left_edge = self.base_x + 120              -- right of the Exit hint
+    local right_edge = self.base_x + self.width - 260 -- left of Confirm
+    local center = (left_edge + right_edge) / 2
+    if not d then
+        local prompt = self:create_text('Choose a slot to bind to', center, y + 10)
+        prompt:size(14)
+        prompt:alpha(170)
+        caption_layout:center(prompt, center, y + 10, right_edge - left_edge)
+        self.destination_footer:append(prompt)
+        return
+    end
+    local label = self:create_text(name .. ':', center, y + 10)
+    label:size(14)
+    self.destination_footer:append(label)
+    local layout = {label = label, icons = L{}, center = center, left_edge = left_edge, y = y}
+    local paths = self:destination_icons(d.bank, d.slot)
+    for i = 1, #paths do
+        local icon = ui_resources.image({draggable = false})
+        icon:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/' .. paths[i])
+        icon:fit(false)
+        icon:size(32, 32)
+        icon:show()
+        self.destination_footer:append(icon)
+        layout.icons:append(icon)
+    end
+    self.destination_footer_layout = layout
+    self:layout_destination_footer()
+end
+
+-- Glyph widths can arrive a frame after the caption is drawn, so the group is
+-- re-centred whenever the measured width changes (positions only, no rebuild).
+function action_binder:layout_destination_footer()
+    local layout = self.destination_footer_layout
+    if not layout or ui_resources.is_disposed(layout.label) then return end
+    local width = layout.label.measure_width and layout.label:measure_width()
+    if width == nil then width = #(layout.label:text() or '') * 8 end
+    if width == layout.width then return end
+    layout.width = width
+    local gap, icon_size = 6, 32
+    local total = width + gap + #layout.icons * icon_size
+    local x = math.max(layout.left_edge, layout.center - total / 2)
+    layout.label:pos(x, layout.y + 10)
+    x = x + width + gap
+    for i = 1, #layout.icons do
+        layout.icons[i]:pos(x, layout.y + 4)
+        x = x + icon_size
     end
 end
 
@@ -876,6 +1058,7 @@ function action_binder:menu_trigger(side,pressed)
     local just_pressed=pressed and not self[field]
     local just_released=not pressed and self[field]
     self[field]=pressed
+    if just_pressed and self[other] then self.edit_combined_bank = side=='left' and 3 or 4 end
     if just_pressed then
         if self[other] and self.page_gesture then
             self.page_gesture.next_page=side=='right'
@@ -922,6 +1105,9 @@ function action_binder:trigger_left(pressed)
     elseif (self:is_in_selector_state()) then
         self:menu_trigger('left',pressed)
     else
+        if pressed and not self.trigger_left_pressed and self.trigger_right_pressed then
+            self.edit_combined_bank = 3
+        end
         self.trigger_left_pressed = pressed
     end
 end
@@ -955,6 +1141,9 @@ function action_binder:trigger_right(pressed)
     elseif (self:is_in_selector_state()) then
         self:menu_trigger('right',pressed)
     else
+        if pressed and not self.trigger_right_pressed and self.trigger_left_pressed then
+            self.edit_combined_bank = 4
+        end
         self.trigger_right_pressed = pressed
     end
 end
@@ -1745,6 +1934,10 @@ end
 function action_binder:hide()
     self.held_navigation = nil
     self.is_hidden = true
+    if self.destination_footer then ui_resources.clear(self.destination_footer) end
+    self.destination_footer = L{}
+    self.destination_footer_key = nil
+    self.destination_footer_layout = nil
     require('ui/menu_background').set_visibility(windower.prim, 'dialog_bg', false)
     windower.prim.set_visibility('button_entry_bg', false)
     self.title:hide()

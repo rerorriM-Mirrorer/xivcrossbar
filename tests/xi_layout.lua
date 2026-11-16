@@ -188,4 +188,14 @@ ui:move_to(80,40)
 check_label_anchor(9)
 assert(ui.bank_labels[9]:visible() and not ui.bank_labels[7]:visible())
 print('Centered shoulder banks, trigger priority, disabled binding preview and layout changes passed.')
+-- Edit-mode destination tint: shown on a drawn bank, hidden otherwise or when the menu closes.
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3})
+assert(ui.destination_tint:visible() and ui.destination_tint:pos()==ui:get_slot_x(1,3), 'destination tint on bank 1 slot 3')
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=7,slot=3})
+assert(not ui.destination_tint:visible(), 'destination on an undrawn bank stays hidden')
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,false,nil,nil,nil,{bank=1,slot=3})
+assert(not ui.destination_tint:visible(), 'no destination tint outside the menu')
 print('XI compact spacing, Legacy reversibility, empty frames and fitted trigger fields passed.')

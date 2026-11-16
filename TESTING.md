@@ -1,3 +1,64 @@
+# Current Development Status - Edit mode step 1: slot selection (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116
+(local, not pushed). Source checkpoint: 9a53037 (target order f94b517 plus its docs
+correction) on snapshot/known-good-20261115 a766b6e.
+Spec: FFXI project doc claude/ffxi-xivcrossbar-edit-mode-and-glows-spec-2026-11-16.md.
+
+REQUEST: build step 1 of the edit-mode binding spec. While the menu is open, the
+crossbar chooses WHERE: trigger + slot button selects a destination slot. Amber =
+selected (shared palette). Footer `SETNAME: [button pictures]`. Same slot again
+deselects. The menu opens with no slot selected. The destination is cleared
+when the menu closes.
+
+CHANGES:
+- action_binder.lua: is_edit_mode(), edit_bank(), edit_slot_press(),
+  get_destination(), clear_destination(), destination_icons(),
+  update_destination_footer()/layout_destination_footer(). Each D-pad/face
+  handler asks edit_slot_press first. Edit mode is off on the legacy
+  Bind-to-Slot/Confirm screens, while typing, and while the set chooser is
+  inside the binder. A trigger used for a slot press does not turn the page or
+  start held-navigation repeat. A release whose press selected a slot stays
+  consumed even if the trigger was let go first. L2+R2: the trigger pressed
+  second picks bank 3/4 (four or six banks), as in play.
+  get_binding_preview_bank() now also returns the held trigger's bank in edit
+  mode (only the held bank shows, as outside the menu).
+- ui.lua: new amber destination_tint (255,190,70 at alpha 120), drawn on the
+  destination when its bank is drawn and the menu is open; hidden with the UI.
+  check_recasts gains a final `destination` argument.
+- xivcrossbar.lua: passes the destination to check_recasts, updates the footer
+  each frame (rebuilds only on change), clears the destination in
+  close_addon_menus and on restart.
+- The legacy green binding_tint is unchanged.
+
+NOT YET (later steps): binding to the destination, ghost preview, transition,
+L1/R1 shoulder banks and double-tap banks 5/6 as destinations, keyboard
+selection of slots.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_destination.lua (10 scenario groups); 5 mutations of the new
+code each made it fail. tests/xi_layout.lua gains destination tint checks. Full
+suite, 62 files, all exit 0. NOT run: Lua 5.1 parse, Windows CI, any live FFXI.
+
+LIVE TESTS PENDING (one client first, then two):
+1. Open the menu (Select). Footer reads "Choose a slot to bind to".
+2. Hold R2, press Cross: R2 bank shows, that slot turns amber, footer shows
+   `SETNAME: [R2] + [Cross]`. The menu cursor does not move and nothing is
+   chosen. Release: no page turn.
+3. Tap R2 alone in a long list: the page still turns.
+4. Hold L2, D-pad Up: the destination moves. Press it again: deselected.
+5. L2+R2 combinations select banks 3/4 in the right order.
+6. While selecting slots, FFXI must not act (no spell, no target change, no
+   menu in game), with chat closed, with chat open, and with DirectLink on.
+7. Open the set chooser and change set: the same slot stays amber, and the
+   footer shows the new set name.
+8. Close the menu and reopen: no slot selected.
+9. Old flow still works: choose an action with no slot selected, then bind it
+   via the Bind-to-Slot screen.
+10. Two clients: selecting a slot on one does nothing on the other.
+
+---
+
 # Current Development Status - Target picker order and XIV Crossbar title (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116

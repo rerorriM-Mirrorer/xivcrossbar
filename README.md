@@ -766,3 +766,16 @@ shows status. Cues append `slotpress`, `triggerpull`, `setswitch` and `binding`
 to GripRumble/events.txt, so GripRumble decides what each feels like. `//xb
 slotrumble` remains a this-load override that GripRumble sets when it loads.
 Lua simulation only; live testing pending.
+
+2026-11-16: Target picker order. Weaponskills use the game's own target data, so
+self-only weaponskills (Myrkr, Dagan, Moonlight, Starlight) offer `<me>` then
+`<st>` only. Other actions that can use `<t>` list it first. The main menu title
+is now "XIV Crossbar". Lua simulation only; live testing pending.
+
+2026-11-16: Edit mode, step 1 (slot selection). While the XIV Crossbar menu is
+open, hold L2, R2 or both and press a slot button to select that slot as the
+binding destination. It is highlighted in amber, and the footer shows the set
+name and the slot's button pictures. Pressing it again deselects it, and closing
+the menu clears it. Tapping a trigger still turns the page. Nothing binds
+differently yet; the existing Bind-to-Slot flow is unchanged. Lua simulation
+only; live testing pending.

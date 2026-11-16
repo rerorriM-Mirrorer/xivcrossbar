@@ -1317,6 +1317,7 @@ local function graceful_restart(unload)
     if action_binder.selector then
         action_binder:hide()
         action_binder:reset_state()
+        action_binder:clear_destination()
     end
     if gamepad_mapper.is_showing then gamepad_mapper:hide() end
     review_keyboard:reset()
@@ -2118,6 +2119,7 @@ local function close_addon_menus()
     if action_binder.selector then
         action_binder:hide()
         action_binder:reset_state()
+        action_binder:clear_destination() -- never carry a stale edit destination
     end
     text_input_guard:release(windower.send_command)
     if ui.is_setup then ui:show_button_hints() end
@@ -2886,6 +2888,8 @@ windower.register_event('prerender',function()
     gamepad_state.shoulder_display = bank_visible and shoulder_banks.ids[bank] or nil
     local focused = windower.has_focus()
     action_binder:tick_navigation(profile_clock(), focused)
+    -- Edit-mode footer (set name + slot buttons); cheap when nothing changed.
+    if action_binder.selector then action_binder:update_destination_footer() end
     local keyboard_context = focused and not restart_pending
     local navigation = keyboard_context and (gamepad_mapper.is_showing or action_binder:is_keyboard_review()
         or gamepad_mapper:has_owned_key() or review_keyboard:has_owned_key()) or false
@@ -2975,7 +2979,8 @@ windower.register_event('prerender',function()
     if visible and ui.is_setup then
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open,
-            action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot(), display_bank)
+            action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot(), display_bank,
+            action_binder:get_destination())
         ui:show_slot_pulse(menu_open)
     end
 

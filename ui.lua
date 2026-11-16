@@ -744,6 +744,15 @@ function ui:load(theme_options)
     self.binding_tint:alpha(105)
     self.binding_tint:hide()
 
+    -- A: edit-mode destination (step 1). Amber = selected slot in the shared
+    -- palette; the green binding_tint above stays for the legacy Bind-to-Slot.
+    self.destination_tint = new_image(images_setup)
+    prepare_image(self.destination_tint, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
+    self.destination_tint:size(40, 40)
+    self.destination_tint:color(255, 190, 70)
+    self.destination_tint:alpha(120)
+    self.destination_tint:hide()
+
     -- load feedback icon last so it stays above everything else
     self.feedback_icon = new_image(images_setup)
     prepare_image(self.feedback_icon, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/feedback.png')
@@ -962,6 +971,7 @@ function ui:hide()
     end
     self.battle_notice:hide()
     self.binding_tint:hide()
+    self.destination_tint:hide()
     self.feedback_icon:hide()
     self:clear_slot_pulses()
 
@@ -2056,7 +2066,7 @@ function ui:tick_recast_flashes()
 end
 
 -- check action recasts
-function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank, tentative_slot, display_bank)
+function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gamepad_state, skillchains, consumables, dim_default_slots, in_battle, menu_open, preview_bank, tentative_slot, display_bank, destination)
     animation_frame_count = animation_frame_count + self.frame_skip + 1
     if (animation_frame_count > 40) then
         animation_frame_count = 1
@@ -2667,6 +2677,15 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
             self:hide_controller_icons(h)
         end
+    end
+
+    -- Edit-mode destination: shown on its bank whenever that bank is drawn.
+    local d = menu_open and destination
+    if d and self.hotbars[d.bank] and self.pulse_visible_bars[d.bank] and d.slot >= 1 and d.slot <= 8 then
+        self.destination_tint:pos(self:get_slot_x(d.bank, d.slot), self:get_slot_y(d.bank, d.slot))
+        self.destination_tint:show()
+    else
+        self.destination_tint:hide()
     end
 end
 
