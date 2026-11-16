@@ -214,6 +214,32 @@ function build_module()
         end
     end
 
+    -- A: chain glows (2026-11-16). Seconds left in the current target's
+    -- Magic Burst window (0 when none).
+    myself.get_burst_window = function()
+        local targ = windower.ffxi.get_mob_by_target('t', 'bt')
+        local reson = targ and resonating[targ.id]
+        if not reson then return 0 end
+        return math.max(0, reson.mb_window - os.clock())
+    end
+
+    -- A: chain glows. An action that will be able to close a skillchain once
+    -- the window opens (its delay has not passed yet). Returns the property,
+    -- the seconds until the window opens and the whole wait; nil otherwise.
+    myself.get_skillchain_pending = function(id, resource)
+        local ability = skills[resource] and skills[resource][id]
+        if not ability or ability.skillchain == nil then return nil end
+        local targ = windower.ffxi.get_mob_by_target('t', 'bt')
+        local reson = targ and resonating[targ.id]
+        if not reson or reson.closed or targ.hpp <= 0 then return nil end
+        local now = os.clock()
+        if now >= reson.delay or reson.times - now <= 0 then return nil end
+        local _, prop = check_sc_props(reson.active, ability.skillchain)
+        if not prop then return nil end
+        local created = reson.mb_window - 10
+        return prop, reson.delay - now, math.max(.1, reson.delay - created)
+    end
+
     local next_frame = os.clock()
 
     myself.prerender = function()

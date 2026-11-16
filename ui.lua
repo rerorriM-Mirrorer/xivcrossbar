@@ -972,6 +972,7 @@ end
 function ui:hide()
     self.display_bank, self.center_release_deadline = 0, nil
     self:clear_recast_flashes()
+    self:clear_chain_glows()
     self:clear_action_success()
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
@@ -2053,6 +2054,53 @@ function ui:has_binding_flash()
     return false
 end
 
+-- A: chain glows (2026-11-16). One tinted slot-glow image per glowing slot,
+-- animated every frame from the clock (not the frame count). Visible banks
+-- only; nothing while the menu is open (check_recasts records no state).
+local chain_glow = require('ui/chain_glow')
+local chain_glow_padding = 4
+function ui:tick_chain_glows()
+    self.chain_views = self.chain_views or {}
+    local states = self.chain_states or {}
+    local now = self.recast_flash_clock and self.recast_flash_clock() or os.clock()
+    local sc = self.chain_skillchains
+    for key, view in pairs(self.chain_views) do
+        local state = states[key]
+        if not state or not self.pulse_visible_bars[state.h] then view:hide() end
+    end
+    for key, state in pairs(states) do
+        if self.pulse_visible_bars[state.h] then
+            local view = self.chain_views[key]
+            if not view then
+                view = new_image(images_setup)
+                prepare_image(view, windower.addon_path .. 'images/assets/slot-glow.png')
+                view:fit(false)
+                view:size(40 + 2 * chain_glow_padding, 40 + 2 * chain_glow_padding)
+                self.chain_views[key] = view
+            end
+            local r, g, b, a
+            if state.kind == 'burst' then
+                r, g, b, a = chain_glow.burst(state.element, now, sc and sc.get_burst_window and sc.get_burst_window())
+            elseif state.kind == 'charge' then
+                r, g, b, a = chain_glow.charge(state.opens_at - os.clock(), state.total)
+            else
+                local remaining = sc and select(2, sc.get_skillchain_window()) or nil
+                r, g, b, a = chain_glow.open(now, remaining, self.chain_random)
+            end
+            geometry:assign_bank(view, state.h)
+            view:pos(self:get_slot_x(state.h, state.i) - chain_glow_padding, self:get_slot_y(state.h, state.i) - chain_glow_padding)
+            view:color(r, g, b)
+            view:alpha(a)
+            view:show()
+        end
+    end
+end
+
+function ui:clear_chain_glows()
+    self.chain_states = {}
+    for _, view in pairs(self.chain_views or {}) do view:hide() end
+end
+
 function ui:tick_action_success()
     for key,flash in pairs(self.success_flashes) do
         local views=self.success_views[key]
@@ -2139,6 +2187,9 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
 
     local skillchain_delay, skillchain_window = skillchains.get_skillchain_window()
     self:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
+    -- A: chain glows: this frame's glowing slots (ticked every frame).
+    self.chain_skillchains = skillchains
+    local chain_states = {}
     self:display_aa_indicator()
 
     local active_bar = menu_open and (preview_bank or 0) or display_bank
@@ -2177,6 +2228,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     local sync_state = self.sync_availability or {}
     local pet_state
     self.resolved_slots = self.resolved_slots or {}
+    self.chain_states = chain_states
     for _, h in ipairs(self.render_banks) do
         local isThisBarActive = active_bar == h
         local isThisBarVisibleByDefault
@@ -2645,6 +2697,21 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                         end
                     end
 
+                    -- A: chain glow state for this slot (visible banks, menu closed).
+                    if not menu_open and not availability_unavailable and crossbar_action then
+                        local key = (h - 1) * 8 + i
+                        if skillchain_prop and property_type == 'burst' and self.burst_glow_enabled ~= false then
+                            chain_states[key] = {h = h, i = i, kind = 'burst', element = crossbar_action.element}
+                        elseif skillchain_prop and property_type == 'skillchain' and self.chain_glow_enabled ~= false then
+                            chain_states[key] = {h = h, i = i, kind = 'open'}
+                        elseif not skillchain_prop and lookup_type == 'ws' and self.chain_glow_enabled ~= false
+                            and skillchains.get_skillchain_pending then
+                            local prop, wait, total = skillchains.get_skillchain_pending(crossbar_action.id, 'weapon_skills')
+                            if prop then
+                                chain_states[key] = {h = h, i = i, kind = 'charge', opens_at = os.clock() + wait, total = total}
+                            end
+                        end
+                    end
                     if availability_unavailable then skillchain_prop = nil end
                     -- Restore base frame even with a warmup or missing metadata;
                     -- never leave the prior skillchain animation attached to this slot.

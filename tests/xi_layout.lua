@@ -234,4 +234,27 @@ ui:set_set_name('Basic'); ui:set_set_name_visible(true); ui:set_chooser_open(fal
 ui:update_context_labels(3,true,true)
 assert(not ui.set_name_label:visible(), 'set name hidden while L2+R2 shows in the menu')
 ui:update_context_labels(1,true,true)
+-- Chain glows: tinted slot glow on visible banks, cleared with the state or the UI.
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,false,nil,nil,nil,nil)
+ui.chain_skillchains={get_burst_window=function() return 5 end,get_skillchain_window=function() return 0,6 end}
+ui.chain_random=function() return .9 end
+ui.chain_states={[3]={h=1,i=3,kind='burst',element='Water'},[4]={h=1,i=4,kind='open'},[5]={h=1,i=5,kind='charge',opens_at=os.clock()+1,total=3}}
+ui:tick_chain_glows()
+local v=ui.chain_views[3]
+local function red(view) local c=view.values.color; return type(c)=='table' and c[1] or c end
+assert(v:visible() and red(v)==60 and v:pos()==ui:get_slot_x(1,3)-4, 'water burst glow on the slot')
+assert(ui.chain_views[4]:visible() and ui.chain_views[5]:visible() and red(ui.chain_views[5])==255)
+ui.chain_states={[4]={h=1,i=4,kind='open'}}
+ui:tick_chain_glows()
+assert(not ui.chain_views[3]:visible() and ui.chain_views[4]:visible(), 'ended glows hide')
+ui.chain_states={[60]={h=8,i=4,kind='open'}}
+ui:tick_chain_glows()
+assert(ui.chain_views[60]==nil and not ui.chain_views[4]:visible(), 'hidden banks get no glow')
+ui.chain_states={[4]={h=1,i=4,kind='open'}}; ui:tick_chain_glows()
+ui.pulse_visible_bars[1]=false; ui:tick_chain_glows()
+assert(not ui.chain_views[4]:visible(), 'glow hides when its bank is hidden')
+ui.pulse_visible_bars[1]=true; ui:tick_chain_glows()
+ui:hide()
+assert(not ui.chain_views[4]:visible() and next(ui.chain_states)==nil, 'cleared with the UI')
 print('XI compact spacing, Legacy reversibility, empty frames and fitted trigger fields passed.')

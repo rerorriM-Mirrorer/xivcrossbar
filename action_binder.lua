@@ -905,10 +905,10 @@ action_binder.main_menu_action_names = {[action_types.CHECK] = 'Check', [action_
 -- amber selection can step back and let the slot itself read clearly.
 local immediate_main_menu = nil
 function action_binder:is_bind_ready()
-    if self.state == states.SWAP then return self:is_edit_mode() and self.swap_target ~= nil end
+    if self.state == states.SWAP then return self:is_edit_mode() and self:can_confirm_swap() end
     if not self:is_edit_mode() or not self.destination then return false end
     if self.state == states.SELECT_PLAYER_BINDING then return true end
-    if self.state == states.SWAP then return self.swap_target ~= nil end
+    if self.state == states.SWAP then return self:can_confirm_swap() end
     if self.state == states.EDIT_CUSTOM_ACTION_REVIEW then
         local option = self.selector.is_showing and self.selector:get_selected_option()
         return option ~= nil and option.id == 'SAVE_BIND' and not option.disabled
@@ -1286,15 +1286,17 @@ end
 
 function action_binder:enter_swap()
     local d = self.destination
-    local record = d and self:destination_record()
     self.state = states.SELECT_ACTION_TYPE
-    if not record then
-        chat_format.say(207, '[XIVCrossbar] Select a bound crossbar slot first (hold a trigger and press its button).')
+    if not d then
+        chat_format.say(207, '[XIVCrossbar] Select a crossbar slot first (hold a trigger and press its button).')
         return
     end
+    -- An empty first slot is allowed (swapping then moves the other slot's
+    -- action here); only two empty slots cannot be swapped.
+    local record = self:destination_record()
     self.swap_source = {bank = d.bank, slot = d.slot, environment = self:active_set_key(),
-        set_name = self:footer_set_name(), name = slot_record_name(record),
-        icon = self.slot_icon_provider and self.slot_icon_provider(d.bank, d.slot) or nil}
+        set_name = self:footer_set_name(), name = slot_record_name(record), bound = record ~= nil,
+        icon = record and self.slot_icon_provider and self.slot_icon_provider(d.bank, d.slot) or nil}
     self.swap_target = nil
     self.state = states.SWAP
     self:display_swap_screen()
@@ -1317,7 +1319,7 @@ function action_binder:choose_swap_target(bank, slot)
     else
         local record = self:slot_record_at(env, bank, slot)
         self.swap_target = {bank = bank, slot = slot, environment = env, set_name = self:footer_set_name(),
-            name = slot_record_name(record),
+            name = slot_record_name(record), bound = record ~= nil,
             icon = record and self.slot_icon_provider and self.slot_icon_provider(bank, slot) or nil}
     end
     self:update_swap_target()
@@ -1399,7 +1401,7 @@ function action_binder:display_swap_screen()
     -- Hints first: show_control_hints clears self.hints.
     self:show_control_hints('Confirm', 'Go Back')
     require('ui/menu_background').set_color(windower.prim, 'dialog_bg', 150, 0, 0, 0)
-    self:set_title('Swap Slot Bindings - \\cs(255,216,112)' .. tostring(src.name or 'empty') .. '\\cr')
+    self:set_title('Swap Slot Bindings - \\cs(255,216,112)' .. tostring(src.name or '(empty)') .. '\\cr')
     self.title:show()
     local cx = self.base_x + self.width / 2
     local view = {cx = cx}
@@ -1420,9 +1422,22 @@ function action_binder:display_swap_screen()
     self:update_swap_target()
 end
 
+-- Swap can be confirmed once a second slot is chosen and at least one of the
+-- two slots holds something; otherwise Confirm is dummied out.
+function action_binder:can_confirm_swap()
+    local src, t = self.swap_source, self.swap_target
+    return src ~= nil and t ~= nil and (src.bound or t.bound) == true
+end
+
 function action_binder:update_swap_target()
     local view, t = self.swap_view, self.swap_target
     if not view or ui_resources.is_disposed(view.prompt) then return end
+    local hint = self.confirm_hint
+    if hint and not ui_resources.is_disposed(hint.caption) then
+        local alpha = self:can_confirm_swap() and 255 or 80
+        hint.caption:alpha(alpha)
+        if hint.icon and not ui_resources.is_disposed(hint.icon) then hint.icon:alpha(alpha) end
+    end
     local blank = windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/blank.png'
     view.target_icon:path(t and t.icon or blank)
     if t then
@@ -1449,6 +1464,10 @@ function action_binder:submit_swap()
         chat_format.say(207, '[XIVCrossbar] Select a set and crossbar slot to swap with first.')
         return
     end
+    if not self:can_confirm_swap() then
+        chat_format.say(207, '[XIVCrossbar] Both slots are empty; there is nothing to swap.')
+        return
+    end
     local ok = self.swap_binding and self.swap_binding(
         {environment = src.environment, bank = src.bank, slot = src.slot},
         {environment = t.environment, bank = t.bank, slot = t.slot})
@@ -1470,7 +1489,7 @@ function action_binder:get_destination()
     if self.state == states.SWAP then
         -- The second slot is what the crossbar highlights while swapping.
         local t = self:swap_target_on_screen()
-        return t and {bank = t.bank, slot = t.slot, ready = true} or nil
+        return t and {bank = t.bank, slot = t.slot, ready = self:can_confirm_swap()} or nil
     end
     if not self.destination then return nil end
     local d = self.destination
@@ -1585,7 +1604,7 @@ function action_binder:update_destination_footer()
                 self.clear_slot_disabled = empty
                 self.selector:set_option_disabled(action_types.DELETE, empty)
             end
-            local swap_off = self.destination == nil or empty
+            local swap_off = self.destination == nil
             if swap_off ~= self.swap_entry_disabled then
                 self.swap_entry_disabled = swap_off
                 self.selector:set_option_disabled(action_types.SWAP, swap_off)
@@ -1689,6 +1708,13 @@ local repeat_navigation = {
 function action_binder:tick_navigation(now, focused)
     self.nav_clock = now
     self:tick_bind_hold(now)
+    -- A: a trigger held past a quick tap stops offering the page turn.
+    local gesture = self.page_gesture
+    if gesture and not gesture.used and gesture.started and now
+        and now - gesture.started > (self.page_tap_seconds or .25) then
+        gesture.used = true
+        if self.selector and self.selector.page_highlight then self.selector:page_highlight(nil) end
+    end
     local held = self.held_navigation
     if not held then return end
     if not focused or self.is_hidden or self.chooser_active or not self:is_in_selector_state()
@@ -1741,9 +1767,14 @@ function action_binder:menu_trigger(side,pressed)
     if just_pressed then
         if self[other] and self.page_gesture then
             self.page_gesture.next_page=side=='right'
-        else self.page_gesture={state=self.state,next_page=side=='right',used=self[other]} end
+        else self.page_gesture={state=self.state,next_page=side=='right',used=self[other],started=self.nav_clock} end
     elseif just_released and self.page_gesture then
         local gesture=self.page_gesture
+        -- A: only a quick, clean tap turns the page: no other button during it,
+        -- released within page_tap_seconds. A held trigger never turns it.
+        local held_too_long = gesture.started and self.nav_clock
+            and (self.nav_clock - gesture.started) > (self.page_tap_seconds or .25)
+        if held_too_long then gesture.used = true end
         if not gesture.used and gesture.state==self.state and self:is_in_selector_state() then
             gesture.used=true
             local turned=false
@@ -1857,7 +1888,7 @@ function action_binder:submit_selected_option()
             elseif selected.id == action_types.DELETE then
                 chat_format.say(207, '[XIVCrossbar] That slot is already empty.')
             elseif selected.id == action_types.SWAP then
-                chat_format.say(207, '[XIVCrossbar] Select a bound crossbar slot first (hold a trigger and press its button).')
+                chat_format.say(207, '[XIVCrossbar] Select a crossbar slot first (hold a trigger and press its button).')
             elseif selected.disabled_focusable then
                 chat_format.say(207, '[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.')
             end
@@ -2719,8 +2750,8 @@ function action_binder:main_menu_options()
     -- Create/Edit Custom Action live inside Custom Action; Create Set lives
     -- in the set chooser; Delete Custom Action on the custom action edit screen.
     action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon})
-    -- Swap: dummied out until a bound slot is selected (kept current each frame).
-    local swap_off = self.destination == nil or self:destination_slot_empty()
+    -- Swap: dummied out until a slot is selected (kept current each frame).
+    local swap_off = self.destination == nil
     action_type_list:append({id = action_types.SWAP, name = 'Swap', icon = custom_icon, disabled = swap_off, disabled_focusable = true})
     self.swap_entry_disabled = swap_off
     action_type_list:append({id = action_types.JOB_ABILITY, name = 'Job Ability', icon = 'images/icons/abilities/00001.png', icon_offset = 4})
@@ -3284,6 +3315,7 @@ function action_binder:show_hint(hint_text, path, x, y)
     local caption = self:create_text(hint_text, x + 45, y + 10)
     caption:size(14)
     self.hints:append(caption)
+    if hint_text == 'Confirm' then self.confirm_hint = {caption = caption, icon = icon} end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT then
         local disabled = hint_text == 'Confirm' or (hint_text == 'Go Back' and
             (self.trigger_left_pressed or self.trigger_right_pressed))

@@ -817,6 +817,9 @@ function initialize(server_id, expected_name, expected_id)
         action_binder:setup(temp_buttonmapping, set_hotkey, delete_hotkey, theme_options, get_crossbar_sets, 150, 150, windower.get_windower_settings().ui_x_res - 300,
             windower.get_windower_settings().ui_y_res - y_adjust, change_slot_icon, save_global_icon, save_custom_action, update_custom_action, delete_custom_action, create_new_set)
     end
+    -- A: chain glows follow the saved switches (on unless turned off).
+    ui.chain_glow_enabled = settings.ChainGlow ~= false
+    ui.burst_glow_enabled = settings.BurstGlow ~= false
     -- A: edit-mode Undo (last 9 changes per character, saved with the crossbar files).
     action_binder.undo_wrap = function(bank, slot, label, change)
         local environment = shoulder_banks.destination(player.hotbar_settings.active_environment, bank)
@@ -1566,6 +1569,24 @@ windower.register_event('addon command', function(command, ...)
         require('ui/menu_background').deep_fade = on
         chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (on and 'ON (deeper at the bottom)' or 'OFF') ..
             '. Shown from the next menu screen.')
+    elseif command == 'chainglow' or command == 'burstglow' then
+        -- A: skillchain glow (charging white, then blue/white flicker) and
+        -- Magic Burst glow (element colour) on crossbar slot borders.
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        if mode ~= nil and mode ~= 'on' and mode ~= 'off' then
+            chat_format.say(123, '[XIVCrossbar] Use //xb ' .. command .. ' [on|off].')
+            return
+        end
+        local key = command == 'chainglow' and 'ChainGlow' or 'BurstGlow'
+        local on = settings[key] ~= false
+        if mode == nil then on = not on else on = mode == 'on' end
+        settings[key] = on
+        config.save(settings)
+        ui.chain_glow_enabled = settings.ChainGlow ~= false
+        ui.burst_glow_enabled = settings.BurstGlow ~= false
+        if not on and ui.is_setup then ui:clear_chain_glows() end
+        chat_format.say(207, '[XIVCrossbar] ' .. (command == 'chainglow' and 'Skillchain' or 'Magic Burst') ..
+            ' glow: ' .. (on and 'ON' or 'OFF') .. '.')
     elseif command == 'undo' then
         -- A: undo the last change made from the XIV Crossbar menu.
         if not undo_last_edit() then chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.') end
@@ -3047,6 +3068,7 @@ windower.register_event('prerender',function()
         if action_success.pending then action_success:tick(success_policy.snapshot(windower.ffxi)) end
         ui:tick_recast_flashes()
         ui:tick_action_success()
+        ui:tick_chain_glows()
         -- Keep redrawing while an edit-mode bind flash fades the slot's icon.
         if ui:has_binding_flash() then ui_dirty = true end
         -- Ghost preview of the highlighted action in the selected slot.

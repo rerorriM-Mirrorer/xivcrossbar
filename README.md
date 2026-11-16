@@ -915,3 +915,17 @@ Lua simulation only; live testing pending.
 
 2026-11-16: The deeper menu background fade is now the default. //xb menufade off
 turns it off (saved), and //xb menufade on turns it back on.
+
+2026-11-16: Chain glows, Swap with an empty slot, quick-tap paging.
+- Crossbar slot borders glow on visible banks while the menu is closed.
+  Magic Burst glows in the spell's element colour, breathing, and quicker in
+  the window's last 1.5 s. A weaponskill that will close a skillchain glows
+  white and brightens until the window opens, then flickers blue/white with
+  random white arcs, sputtering out at the end. //xb chainglow [on|off] and
+  //xb burstglow [on|off]; both on by default.
+- Swap works with an empty first or second slot (a move). Confirm is dummied
+  out until a second slot is chosen, and when both slots are empty.
+- L2/R2 turn the menu page only on a quick, clean tap (released within 0.25 s
+  with no other button). A held trigger, or one used to pick a slot, never
+  turns the page.
+Lua simulation only; live testing pending.

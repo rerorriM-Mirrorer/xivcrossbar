@@ -118,7 +118,7 @@ binder:display_action_type_selector()
 choose_main('Swap')
 assert(binder.selector:get_selected_option().disabled)
 binder:submit_selected_option()
-assert(binder.state==1 and chat[#chat]:find('bound crossbar slot first'))
+assert(binder.state==1 and chat[#chat]:find('crossbar slot first'))
 press('trigger_right','button_x') -- bank 2 slot 7 (Cure)
 binder:update_destination_footer()
 assert(not binder.selector:get_selected_option().disabled, 'Swap available on a bound slot')
@@ -171,9 +171,47 @@ assert(binder.state==1 and binder.destination.bank==1 and binder.destination.slo
 binder.state=23; binder.selector.is_showing=false
 assert(binder:is_keyboard_review())
 binder.state=1
+-- An empty first slot works (it moves the other slot's action here); two
+-- empty slots dummy out Confirm.
+binder:display_action_type_selector()
+press('trigger_left','dpad_left') -- bank 1 slot 1, empty on Second
+binder:update_destination_footer()
+choose_main('Swap')
+assert(not binder.selector:get_selected_option().disabled, 'Swap available on an empty selected slot')
+binder:submit_selected_option()
+assert(binder.state==23 and binder.title.values.text:find('(empty)',1,true))
+assert(binder.confirm_hint and binder.confirm_hint.caption.values.alpha==80, 'Confirm dummied out with no second slot')
+press('trigger_left','button_b') -- bank 1 slot 5, empty too
+assert(binder.swap_target and not binder:can_confirm_swap() and binder.confirm_hint.caption.values.alpha==80)
+assert(not binder:is_bind_ready() and not binder:get_destination().ready, 'two empty slots are not swappable')
+local before=#swaps
+binder:submit_selected_option()
+assert(#swaps==before and chat[#chat]:find('Both slots are empty'))
+press('trigger_left','button_b') -- clear
+press('trigger_left','dpad_right') -- bank 1 slot 3 (Cure on Second)
+assert(binder:can_confirm_swap() and binder.confirm_hint.caption.values.alpha==255, 'Confirm available again')
+binder:submit_selected_option()
+assert(#swaps==before+1, 'an empty slot swaps with a bound one (a move)')
+tick(.5)
+assert(binder.state==1)
+
 -- Circle with no second slot leaves Swap.
 player.hotbar.second.hotbar_1.slot_3={action='Cure'}
 binder:display_action_type_selector(); choose_main('Swap'); binder:update_destination_footer()
 binder:submit_selected_option(); assert(binder.state==23)
 binder:go_back(); assert(binder.state==1)
+-- Page turning: only a quick, clean tap turns the page.
+local spells=L{}
+for i=1,60 do spells:append({id=i,name='Spell '..i,icon='images/s.png',data={target_type={Self=true}}}) end
+binder.display_action_selector=function(self) self.selector:display_options(spells) end
+binder.state,binder.action_type=2,4
+binder.selector:set_page(1); binder:display_action_selector()
+binder:trigger_right(true); tick(.1); binder:trigger_right(false)
+assert(binder.selector.current_page==2, 'quick tap turns the page')
+binder:trigger_right(true); tick(.4); binder:trigger_right(false)
+assert(binder.selector.current_page==2, 'a held trigger does not turn the page')
+binder:trigger_left(true); binder:button_a(true); binder:button_a(false); tick(.05); binder:trigger_left(false)
+assert(binder.selector.current_page==2, 'a trigger used for a slot does not turn the page')
+binder:trigger_left(true); tick(.05); binder:trigger_left(false)
+assert(binder.selector.current_page==1)
 print('Swap screen, title style, title band and menu fade: passed')

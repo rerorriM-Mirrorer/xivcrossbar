@@ -1,3 +1,51 @@
+# Current Development Status - Chain glows, Swap with an empty slot, quick-tap paging (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint a42ca61 (pushed).
+
+REQUEST (Sunshine): Swap may involve one empty slot (a move); Confirm dummied
+out when both are empty. Chain and burst glows on visible banks only (no
+hidden-bank trigger hint). Quick, clean tap for L2/R2 page turning.
+
+CHANGES:
+- ui/chain_glow.lua (new): burst (element colour, 1.2 s breath, 0.4 s in the
+  last 1.5 s), charge (white, alpha 60 -> 220 as the window approaches), open
+  (blue/white from two waves, 8% white arcs, quicker and fading in the last
+  1.5 s).
+- libs/skillchain/skillchains.lua: get_burst_window(), get_skillchain_pending()
+  (weaponskill can close once the delay passes). Note: branch
+  fix/skillchain-element-only-20261115 (e4131ff) also edits this file; review it
+  when porting other branches.
+- ui.lua: check_recasts records a chain state per slot (menu closed, slot
+  available: burst / open / charge for weaponskills); tick_chain_glows()
+  every frame draws one tinted slot-glow image per glowing slot on visible
+  banks; clear_chain_glows() on hide.
+- xivcrossbar.lua: tick each frame; //xb chainglow and //xb burstglow
+  (settings.ChainGlow / BurstGlow, on unless off).
+- action_binder.lua: Swap available with any selected slot; bound flags;
+  can_confirm_swap(); Confirm hint dimmed (alpha 80) while not confirmable;
+  "(empty)" title; quick-tap paging (page_tap_seconds 0.25, nav_clock).
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/chain_glow.lua; xi_layout (glow drawing) and edit_swap (empty slots,
+paging) extended. 7 mutations: 6 made a test fail; the held-trigger page
+mutation survived because the per-frame expiry also blocks the turn. Full
+suite, 70 files, all exit 0. The skillchain timing itself (packets) could not
+be simulated. NOT run: Lua 5.1, Windows, live.
+
+LIVE TESTS PENDING:
+1. Open a skillchain: an eligible weaponskill slot glows white and brightens
+   while waiting, then flickers blue/white when the window opens, sputtering
+   out at the end. Burst-eligible spells glow in their element colour,
+   breathing faster near the end. Only visible banks; none with the menu open.
+2. //xb chainglow off / burstglow off stop each glow; on brings it back.
+3. Swap from an empty slot onto a bound one (and the reverse): moves it. Two
+   empty slots: Confirm dims and refuses.
+4. Quick L2/R2 taps turn pages; holding a trigger, or using it to pick a slot,
+   does not; double-tap banks still work.
+
+---
+
 # Current Development Status - Menu fade on by default (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
