@@ -104,6 +104,7 @@ assert(binder.state==before and binder:get_destination().slot==6)
 
 -- 6. L2+R2 order picks bank 3 or 4 with six banks.
 binder.theme_options.hotbar_number=6
+binder.bind_hold_seconds=0 -- hold tested in edit_hold_undo.lua
 binder:trigger_right(true); binder:trigger_left(true)
 binder:button_y(true); binder:button_y(false)
 d=binder:get_destination(); assert(d.bank==3 and d.slot==8, 'R2 then L2 = bank 3')

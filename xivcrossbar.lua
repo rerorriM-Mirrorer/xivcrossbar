@@ -299,6 +299,46 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     grip_rumble:emit('bind')
 end
 
+-- A: edit-mode Undo history, one per character (see edit_undo.lua).
+edit_undo = require('edit_undo')
+edit_undo_history = nil
+local edit_undo_path = nil
+-- The history follows the logged-in character's crossbar folder.
+function ensure_edit_undo_history()
+    local directory = storage.directory
+    if not directory or directory == '' then edit_undo_history, edit_undo_path = nil, nil; return nil end
+    local path = 'data/hotbar/' .. directory .. '/EditUndo.lua'
+    if path ~= edit_undo_path or not edit_undo_history then
+        local undo_file = file.new(path)
+        edit_undo_history = edit_undo.new({
+            read = function() return undo_file:exists() and undo_file:read() or nil end,
+            write = function(text) undo_file:write(text) end,
+        })
+        edit_undo_path = path
+    end
+    return edit_undo_history
+end
+
+function undo_last_edit()
+    local history = ensure_edit_undo_history()
+    local record = history and history:pop()
+    if not record then return nil end
+    if player.hotbar_load_ok == false then
+        chat_format.say(123, '[XIVCrossbar] Reload successfully before undoing. Existing files were not changed.')
+        return nil
+    end
+    if not player:restore_slot_record(record.environment, record.bank, record.slot, record.before) then
+        chat_format.say(123, '[XIVCrossbar] Undo: the set "' .. tostring(record.environment) .. '" no longer exists.')
+        return nil
+    end
+    player:save_hotbar()
+    reload_hotbar()
+    set_active_environment(player.hotbar_settings.active_environment)
+    chat_format.say(207, '[XIVCrossbar] Undid: ' .. tostring(record.label or 'change') .. ' (' ..
+        tostring(record.environment) .. ', bank ' .. record.bank .. ', slot ' .. record.slot .. ').')
+    return record
+end
+
 -- command to set a crossbar action in action_binder
 function delete_hotkey(hotbar, slot)
     if player.hotbar_load_ok == false then
@@ -739,6 +779,24 @@ function initialize(server_id, expected_name, expected_id)
         action_binder:setup(temp_buttonmapping, set_hotkey, delete_hotkey, theme_options, get_crossbar_sets, 150, 150, windower.get_windower_settings().ui_x_res - 300,
             windower.get_windower_settings().ui_y_res - y_adjust, change_slot_icon, save_global_icon, save_custom_action, update_custom_action, delete_custom_action, create_new_set)
     end
+    -- A: edit-mode Undo (last 9 changes per character, saved with the crossbar files).
+    action_binder.undo_wrap = function(bank, slot, label, change)
+        local environment = shoulder_banks.destination(player.hotbar_settings.active_environment, bank)
+        local before = player:get_slot_record(environment, bank, slot)
+        before = before and edit_undo.copy(before) or nil
+        local ok = change()
+        local history = ok ~= false and ensure_edit_undo_history()
+        if history then history:push(environment, bank, slot, before, label) end
+        return ok
+    end
+    action_binder.undo_binding = function() return undo_last_edit() end
+    action_binder.undo_count = function()
+        local history = ensure_edit_undo_history()
+        return history and history:count() or 0
+    end
+    action_binder.delete_set_binding = function(key) delete_environment_command({key}); ui_dirty = true end
+    action_binder.protected_set_keys = PROTECTED_ENV_KEYS
+    action_binder:set_title_align(settings.MenuTitleAlign)
     -- A: edit-mode footer shows the set name exactly as the crossbar label does.
     action_binder.set_name_provider = function() return ui.set_name_text end
     -- A: edit-mode double-tap banks use the same detection as play.
@@ -1450,6 +1508,21 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(207,'[XIVCrossbar] '..command:sub(1,1):upper()..command:sub(2)..' reloading')
         graceful_restart(false)
         return
+    elseif command == 'menutitle' then
+        -- A: menu title alignment for every screen: left (default) or center.
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        if mode == 'centre' then mode = 'center' end
+        if mode ~= nil and mode ~= 'left' and mode ~= 'center' then
+            chat_format.say(123, '[XIVCrossbar] Use //xb menutitle [left|center].')
+            return
+        end
+        if mode then settings.MenuTitleAlign = mode; config.save(settings) end
+        action_binder:set_title_align(settings.MenuTitleAlign)
+        chat_format.say(207, '[XIVCrossbar] Menu titles: ' .. (settings.MenuTitleAlign == 'center' and 'centered' or 'left-aligned') .. '.')
+    elseif command == 'undo' then
+        -- A: undo the last change made from the XIV Crossbar menu.
+        if not undo_last_edit() then chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.') end
+        ui_dirty = true
     elseif command == 'rendertrace' then
         local mode = (...) or 'start'
         return diagnostic:command(mode=='save' and 'stop' or mode, mode=='mark' and table.concat({...},' ',2) or 'render')

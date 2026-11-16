@@ -820,3 +820,25 @@ moves. Lua simulation only; live testing pending.
 - Main menu: "Remove a Binding" is now "Clear", "Change Slot Icon" is now
   "Change Icon".
 Lua simulation only; live testing pending.
+
+2026-11-16: Edit mode: bind hold, Clear/Change Icon on the slot, Undo, new main menu.
+- The confirmed menu row flashes gold/white together with the slot. The screen
+  holds until the flash ends (0.4 s, input waits), then changes.
+- With a slot selected, Clear clears it at once, and Change Icon changes its
+  icon in place. You stay on the icon list, and the highlighted icon is shown
+  on the slot as a ghost first. With no slot selected, both use their old screens.
+- Undo (main menu, or //xb undo) restores the slot touched by the last menu
+  change and selects that slot. Each character keeps its last 9 changes in
+  data/hotbar/<server>/<name>/EditUndo.lua.
+- Main menu order: Custom Action, Create, Edit, Delete Custom Action / your job's
+  actions, Call Trust, Call Mount, Warps, Use Item, Trade Item, Attack, Ranged
+  Attack, Assist, Switch Target, View Map, Last Synth, Check, Switch, Quick
+  Switch / Clear, Change Icon, Undo / Create Set, Delete Set, Move Crossbar,
+  Credits. Each group starts on a new row. Change Action Icon is no longer in
+  the menu.
+- Delete Set lists your own sets (not the built-in ones). The first Confirm on a
+  set arms it; a second Confirm on the same set deletes it.
+- On the custom action edit screen, "Delete Custom Action" is now "Delete".
+- Menu titles follow one rule on every screen: left-aligned by default, or
+  //xb menutitle center (//xb menutitle left to return).
+Lua simulation only; live testing pending.

@@ -152,6 +152,7 @@ local function close_right_doublepress_window()
 end
 
 local states = {
+    ['DELETE_SET'] = 22,
     ['HIDDEN'] = 0,
     ['SELECT_ACTION_TYPE'] = 1,
     ['SELECT_ACTION'] = 2,
@@ -176,6 +177,9 @@ local states = {
 }
 
 local action_types = {
+    -- A: 2026-11-16 edit-mode main menu entries.
+    ['DELETE_SET'] = 46,
+    ['UNDO'] = 47,
     ['DELETE'] = 0,
     ['JOB_ABILITY'] = 1,
     ['WEAPONSKILL'] = 2,
@@ -593,7 +597,7 @@ function action_binder:update_active_crossbar(left_trigger_just_pressed, right_t
 end
 
 function action_binder:dpad_left(pressed)
-    self:menu_input('left',pressed)
+    if self:menu_input('left',pressed) then return end
     if self.capturing_text then return end
     if self:edit_slot_press(1, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
@@ -614,7 +618,7 @@ function action_binder:dpad_left(pressed)
 end
 
 function action_binder:dpad_right(pressed)
-    self:menu_input('right',pressed)
+    if self:menu_input('right',pressed) then return end
     if self.capturing_text then return end
     if self:edit_slot_press(3, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
@@ -635,7 +639,7 @@ function action_binder:dpad_right(pressed)
 end
 
 function action_binder:dpad_down(pressed)
-    self:menu_input('down',pressed)
+    if self:menu_input('down',pressed) then return end
     if self.capturing_text then return end
     if self:edit_slot_press(2, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
@@ -656,7 +660,7 @@ function action_binder:dpad_down(pressed)
 end
 
 function action_binder:dpad_up(pressed)
-    self:menu_input('up',pressed)
+    if self:menu_input('up',pressed) then return end
     if self.capturing_text then return end
     if self:edit_slot_press(4, pressed) then return end
     if (self.state == states.SELECT_BUTTON_ASSIGNMENT) then
@@ -677,7 +681,7 @@ function action_binder:dpad_up(pressed)
 end
 
 function action_binder:button_a(pressed)
-    self:menu_input('a',pressed)
+    if self:menu_input('a',pressed) then return end
     if self:edit_slot_press(6, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'a' or
             self.button_layout == 'playstation' and self.cancel_button == 'cross' or
@@ -709,7 +713,7 @@ function action_binder:button_a(pressed)
 end
 
 function action_binder:button_b(pressed)
-    self:menu_input('b',pressed)
+    if self:menu_input('b',pressed) then return end
     if self:edit_slot_press(5, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'b' or
             self.button_layout == 'playstation' and self.cancel_button == 'square' or
@@ -741,7 +745,7 @@ function action_binder:button_b(pressed)
 end
 
 function action_binder:button_x(pressed)
-    self:menu_input('x',pressed)
+    if self:menu_input('x',pressed) then return end
     if self:edit_slot_press(7, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'x' or
             self.button_layout == 'playstation' and self.cancel_button == 'circle' or
@@ -773,7 +777,7 @@ function action_binder:button_x(pressed)
 end
 
 function action_binder:button_y(pressed)
-    self:menu_input('y',pressed)
+    if self:menu_input('y',pressed) then return end
     if self:edit_slot_press(8, pressed) then return end
     if self.state == states.SELECT_BUTTON_ASSIGNMENT and pressed and not self.active_crossbar and (self.button_layout == 'gamecube' and self.cancel_button == 'y' or
             self.button_layout == 'playstation' and self.cancel_button == 'triangle' or
@@ -900,8 +904,13 @@ function action_binder:is_bind_ready()
     if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT' then return false end
     if self.state == states.SELECT_ACTION_TYPE then
         immediate_main_menu = immediate_main_menu or {[action_types.CHECK] = true,
-            [action_types.SWITCH_TARGET] = true, [action_types.MAP] = true, [action_types.LAST_SYNTH] = true}
+            [action_types.SWITCH_TARGET] = true, [action_types.MAP] = true, [action_types.LAST_SYNTH] = true,
+            [action_types.DELETE] = true}
         return immediate_main_menu[option.id] == true
+    end
+    if self.state == states.SELECT_ICON then
+        return self.action_type == action_types.CHANGE_ICON and option.data ~= nil
+            and option.data.icon_path ~= nil and not option.data.is_dir
     end
     if self.state ~= states.SELECT_ACTION or self.is_linking_for_custom_action then return false end
     if option.data and (option.data.is_dir or option.data.warp_folder) then return false end
@@ -954,60 +963,182 @@ function action_binder:edit_slot_press(hotkey, pressed)
     return true
 end
 
--- Which flows bind straight to the destination. Slot operations (Remove a
--- Binding, Change Slot Icon, Change Action Icon), new sets and the custom
--- action editor's Save & Bind keep their legacy screens until later steps.
+-- Which flows act straight on the destination: every binding, Clear and
+-- Change Icon. Change Action Icon, new sets and the custom action editor's
+-- Save & Bind keep their legacy screens for now.
 function action_binder:can_bind_to_destination()
     if not self.destination or self.is_hidden or self.chooser_active then return false end
     if self.binding_custom_action_review then return false end
     local t = self.action_type
-    if t == nil or t == action_types.DELETE or t == action_types.CHANGE_ICON
-        or t == action_types.GLOBAL_ICON_SET or t == action_types.CREATE_NEW_SET then
+    if t == action_types.DELETE then return true end
+    if t == action_types.CHANGE_ICON then return self.action_icon ~= nil end
+    if t == nil or t == action_types.GLOBAL_ICON_SET or t == action_types.CREATE_NEW_SET
+        or t == action_types.UNDO or t == action_types.DELETE_SET then
         return false
     end
     return self.action_name ~= nil and self.action_name ~= ''
 end
 
--- Save the chosen action to the destination, flash it, and return to the list
--- the action was chosen from with the cursor where it was. The destination
--- stays selected, so choosing again replaces the same slot. No confirmation.
+-- Run an edit of one slot through the undo history (xivcrossbar.lua keeps it).
+function action_binder:with_undo(bank, slot, label, change)
+    if self.undo_wrap then return self.undo_wrap(bank, slot, label, change) end
+    return change()
+end
+
+-- Act on the destination, flash it together with the confirmed menu row,
+-- hold the screen until the flash has played, then return to where the
+-- Confirm came from. The destination stays selected. No confirmations.
 function action_binder:bind_to_destination()
     if not self:can_bind_to_destination() then return false end
     local d = self.destination
+    local t = self.action_type
     self.active_crossbar, self.hotkey = d.bank, d.slot
-    local ok = self.save_binding(d.bank, d.slot, prefix_lookup[self.action_type], self.action_name,
-        self.action_target, self.action_command, self.action_icon, self.action_linked_action,
-        self.action_linked_type, self.action_alias)
-    if ok ~= false and self.on_bound then self.on_bound(d.bank, d.slot) end
-    if ok ~= false then
+    local origin = self.submit_origin_state or self.state
+    local ok
+    if t == action_types.DELETE then
+        ok = self:with_undo(d.bank, d.slot, 'Clear', function()
+            return self.delete_binding(d.bank, d.slot, prefix_lookup[t], self.action_name, self.action_target)
+        end)
+    elseif t == action_types.CHANGE_ICON then
+        local valid, warning = self:check_slot_bound_in_active_env()
+        if not valid then
+            chat_format.say(123, '[XIVCrossbar] ' .. (warning or 'Nothing is bound on the selected slot.'))
+            ok = false
+        else
+            ok = self:with_undo(d.bank, d.slot, 'Change Icon', function()
+                if self.change_slot_icon == nil then return false end
+                return self.change_slot_icon(d.bank, d.slot, self.action_icon)
+            end)
+        end
+    else
+        ok = self:with_undo(d.bank, d.slot, self.action_name, function()
+            return self.save_binding(d.bank, d.slot, prefix_lookup[t], self.action_name,
+                self.action_target, self.action_command, self.action_icon, self.action_linked_action,
+                self.action_linked_type, self.action_alias)
+        end)
+    end
+    -- The screen that was confirmed stays up (and in edit mode) during the hold.
+    self.state = origin
+    self.active_crossbar, self.hotkey = nil, nil
+    if ok == false then
+        self:return_after_bind(origin)
+        return true
+    end
+    if self.on_bound then self.on_bound(d.bank, d.slot) end
+    if t ~= action_types.DELETE and t ~= action_types.CHANGE_ICON then
         self.ghost_suppressed = {asset = self.binding_preview_icon, bank = d.bank, slot = d.slot}
     end
-    self:return_after_bind()
+    self:start_bind_hold(function() self:return_after_bind(origin) end)
     return true
 end
 
-function action_binder:return_after_bind()
+-- The confirmed row flashes gold/white in step with the slot. Input waits
+-- until it finishes (bind_hold_seconds); then the screen changes.
+action_binder.bind_hold_seconds = .4
+function action_binder:start_bind_hold(after)
+    if (self.bind_hold_seconds or 0) <= 0 then return after() end
+    self.bind_hold = {after = after, started = self.nav_clock}
+    if self.selector.set_flash then self.selector:set_flash(1) end
+end
+
+function action_binder:tick_bind_hold(now)
+    local hold = self.bind_hold
+    if not hold or now == nil then return end
+    hold.started = hold.started or now
+    local t = (now - hold.started) / self.bind_hold_seconds
+    if t >= 1 or self.is_hidden then self:finish_bind_hold()
+    elseif self.selector.set_flash then self.selector:set_flash(1 - t) end
+end
+
+function action_binder:finish_bind_hold()
+    local hold = self.bind_hold
+    if not hold then return end
+    self.bind_hold = nil
+    if self.selector.set_flash then self.selector:set_flash(nil) end
+    if not self.is_hidden then hold.after() end
+end
+
+function action_binder:return_after_bind(origin)
     self:clear_button_entry_ui()
-    self.active_crossbar, self.hotkey = nil, nil
     self.action_name, self.action_target = nil, nil
     self.selection_states[states.SELECT_ACTION_TARGET] = nil
     local t = self.action_type
+    if origin == states.SELECT_ACTION or origin == states.SELECT_ICON then
+        -- The same list is still on screen: stay on it, cursor untouched.
+        self.state = origin
+        self.selection_states[states.SELECT_ACTION] = origin == states.SELECT_ACTION and nil
+            or self.selection_states[states.SELECT_ACTION]
+        if self.selector.is_showing then self.selector:highlight_selection() end
+        return
+    end
     local direct = t == action_types.CHECK or t == action_types.SWITCH_TARGET or t == action_types.MAP
         or t == action_types.LAST_SYNTH or t == action_types.ATTACK or t == action_types.RANGED_ATTACK
-        or t == action_types.ASSIST
+        or t == action_types.ASSIST or t == action_types.DELETE
     local list = not direct and self.selection_states[states.SELECT_ACTION]
     if list then
-        -- Same action list, same page and cursor.
+        -- From the target picker: back to the action list, same page and cursor.
         self.state = states.SELECT_ACTION
         self.selector:set_page(list.page)
         self:display_action_selector()
         self.selector:import_selection_state(list)
         self.selection_states[states.SELECT_ACTION] = nil
     else
-        -- Direct actions (Check, Switch Target, View Map, Last Synth, Attack,
-        -- Ranged Attack, Assist) were chosen from the main menu itself.
+        -- Main-menu actions (Check, View Map, Clear...): back to the main menu,
+        -- rebuilt so Undo's count is current.
         self:return_to_action_type_menu()
     end
+end
+
+-- Undo: restores the slot the last edit-mode change touched, selects that
+-- slot, plays the confirmation and refreshes the main menu.
+function action_binder:undo_last_edit()
+    local record = self.undo_binding and self.undo_binding()
+    self.state = states.SELECT_ACTION_TYPE
+    if not record then
+        chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.')
+        return
+    end
+    self.destination = {bank = record.bank, slot = record.slot}
+    self.ghost_suppressed = nil
+    if self.on_bound then self.on_bound(record.bank, record.slot) end
+    self:start_bind_hold(function() self:return_to_action_type_menu() end)
+end
+
+-- Delete Set: the set list (like Switch). The first Confirm on a set arms it
+-- (its name turns red-pink and the title asks again); a second Confirm on the
+-- same set deletes it. Moving the cursor disarms. Built-in sets are not listed.
+function action_binder:display_delete_set_selector()
+    self:set_title(self.delete_set_armed and ('Delete "' .. self.delete_set_armed.name .. '"? Confirm again')
+        or 'Delete Set')
+    self.title:show()
+    local list = L{}
+    local icon_path = 'images/' .. get_icon_pathbase() .. '/ui/red-x.png'
+    for _, destination in ipairs(self.get_crossbar_sets_binding()) do
+        local name = type(destination)=='table' and destination.name or destination
+        local key = type(destination)=='table' and destination.key or kebab_casify(destination)
+        if not (self.protected_set_keys and self.protected_set_keys[key]) then
+            list:append({id = key, name = name, icon = icon_path, icon_offset = 0, data = {set_key = key}})
+        end
+    end
+    self.selector:display_options(list)
+    self:show_control_hints('Confirm', 'Go Back')
+end
+
+function action_binder:submit_delete_set()
+    local option = self.selector:submit_selected_option()
+    if option.id == 'PREV' then self.selector:decrement_page(); self.delete_set_armed = nil; return
+    elseif option.id == 'NEXT' then self.selector:increment_page(); self.delete_set_armed = nil; return end
+    local key = option.data and option.data.set_key
+    if not key then return end
+    local state = self.selector:export_selection_state()
+    if self.delete_set_armed and self.delete_set_armed.key == key then
+        self.delete_set_armed = nil
+        if self.delete_set_binding then self.delete_set_binding(key) end
+    else
+        self.delete_set_armed = {key = key, name = option.text}
+    end
+    self:display_delete_set_selector()
+    self.selector:import_selection_state(state)
 end
 
 -- Ghost preview: the icon of what would be bound if Confirm were pressed now.
@@ -1022,8 +1153,12 @@ function action_binder:get_ghost()
         if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT'
             or (option.data and option.data.is_dir) then return nil end
         -- Main menu: only entries that bind at once (Check, View Map...).
-        if self.state == states.SELECT_ACTION_TYPE and not self:is_bind_ready() then return nil end
+        if self.state == states.SELECT_ACTION_TYPE and (option.id == action_types.DELETE
+            or not self:is_bind_ready()) then return nil end
         asset = option.asset_path
+    elseif self.state == states.SELECT_ICON and self:is_bind_ready() then
+        -- Change Icon: try each icon on the selected slot before choosing.
+        asset = self.selector:get_selected_option().asset_path
     elseif self.state == states.SELECT_ACTION_TARGET then
         asset = self.binding_preview_icon
     end
@@ -1212,6 +1347,7 @@ function action_binder:is_in_selector_state()
         or self.state == states.SELECT_ACTION_TARGET
         or self.state == states.SELECT_PLAYER_BINDING
         or self.state == states.SELECT_ICON
+        or self.state == states.DELETE_SET
         or self.state == states.SELECT_LINKED_TYPE
         or self.state == states.EDIT_CUSTOM_ACTION_PICK
         or self.state == states.DELETE_CUSTOM_ACTION_PICK
@@ -1223,6 +1359,8 @@ local repeat_navigation = {
 }
 
 function action_binder:tick_navigation(now, focused)
+    self.nav_clock = now
+    self:tick_bind_hold(now)
     local held = self.held_navigation
     if not held then return end
     if not focused or self.is_hidden or self.chooser_active or not self:is_in_selector_state()
@@ -1239,6 +1377,12 @@ end
 
 -- A held trigger previews a page turn; another menu press consumes it.
 function action_binder:menu_input(key,pressed)
+    if self.bind_hold then return true end -- input waits for the bind confirmation
+    if pressed and self.delete_set_armed and repeat_navigation[key] then
+        -- Moving away from an armed set disarms it.
+        self.delete_set_armed = nil
+        if self.state == states.DELETE_SET then self:set_title('Delete Set') end
+    end
     if pressed then
         self.held_navigation = nil
         if repeat_navigation[key] and self:is_in_selector_state() then
@@ -1374,17 +1518,22 @@ function action_binder:decrement_col()
 end
 
 function action_binder:submit_selected_option()
+    if self.bind_hold then return end -- the bind confirmation is still playing
     if self.custom_action_review_field then self:send_enter(); return end
     if self.selector.is_showing and self.selector.get_selected_option then
         local selected = self.selector:get_selected_option()
         if not selected then return end
         if selected.disabled then
-            if selected.disabled_focusable then
+            if selected.id == action_types.UNDO then
+                chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.')
+            elseif selected.disabled_focusable then
                 chat_format.say(207, '[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.')
             end
             return
         end
     end
+    -- A: where this Confirm came from; edit-mode binds return to it.
+    self.submit_origin_state = self.state
     if (self.state == states.SELECT_ACTION_TYPE) then
         self.selection_states[states.SELECT_ACTION_TYPE] = self.selector:export_selection_state()
         local option = self.selector:submit_selected_option()
@@ -1392,7 +1541,14 @@ function action_binder:submit_selected_option()
         self.action_name, self.action_alias = nil, nil
         self.binding_preview_icon = option.asset_path
 
-        if (self.action_type == action_types.SHOW_CREDITS) then
+        if self.action_type == action_types.UNDO then
+            self:undo_last_edit()
+        elseif self.action_type == action_types.DELETE_SET then
+            self.state = states.DELETE_SET
+            self.delete_set_armed = nil
+            self.selector:set_page(1)
+            self:display_delete_set_selector()
+        elseif (self.action_type == action_types.SHOW_CREDITS) then
             self.state = states.SHOW_CREDITS
             self:display_credits()
         elseif (self.action_type == action_types.CREATE_NEW_SET) then
@@ -1466,6 +1622,8 @@ function action_binder:submit_selected_option()
         self.action_name = 'Assist ' .. self.selector:submit_selected_option().text
         self.state = states.SELECT_BUTTON_ASSIGNMENT
         self:display_button_assigner()
+    elseif (self.state == states.DELETE_SET) then
+        self:submit_delete_set()
     elseif (self.state == states.SELECT_ACTION) then
         self.selection_states[states.SELECT_ACTION] = self.selector:export_selection_state()
         local option = self.selector:submit_selected_option()
@@ -1603,6 +1761,8 @@ function action_binder:submit_selected_option()
                 self.state = states.EDIT_CUSTOM_ACTION_REVIEW
                 self:display_edit_custom_action_review()
             elseif self.action_type == action_types.CHANGE_ICON then
+                -- A: with a selected slot, change its icon in place and stay here.
+                if self:bind_to_destination() then return end
                 self.icon_picker_path, self.icon_picker_stack = '', {}
                 self.state=states.SELECT_BUTTON_ASSIGNMENT
                 self:display_button_assigner()
@@ -1805,6 +1965,7 @@ function action_binder:submit_selected_option()
 end
 
 function action_binder:go_back()
+    if self.bind_hold then return end -- the bind confirmation is still playing
     if self.custom_action_review_field then
         self.custom_action_review_field=nil; self:set_capturing_text(false)
         if self.custom_action_name_required then
@@ -1825,6 +1986,11 @@ function action_binder:go_back()
         self.icon_picker_return=nil
         self.state=states.EDIT_CUSTOM_ACTION_REVIEW
         self:display_edit_custom_action_review(); return
+    end
+    if self.state == states.DELETE_SET then
+        self.delete_set_armed = nil
+        self:return_to_action_type_menu()
+        return
     end
     if (self.state == states.SELECT_ACTION_TYPE) then
         self:hide()
@@ -2168,7 +2334,7 @@ end
 
 function action_binder:display_action_type_selector()
     require('ui/menu_background').set_color(windower.prim, 'dialog_bg',150,0,0,0)
-    self.title:text('XIV Crossbar')
+    self:set_title('XIV Crossbar')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -2182,10 +2348,20 @@ function action_binder:display_action_type_selector()
     local action_type_list = L{}
     local empty_catalog = player_data.custom_actions == nil or next(player_data.custom_actions) == nil
     local custom_icon = 'images/' .. get_icon_pathbase() .. '/custom_actions.png'
-    action_type_list:append({id = action_types.CREATE_CUSTOM_ACTION, name = 'Create Custom Action', icon = custom_icon})
+    local red_x = 'images/' .. get_icon_pathbase() .. '/ui/red-x.png'
+    local switch_icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'
+    -- A: Sunshine's order (2026-11-16), in rows of four. 'newline' entries
+    -- start a new row so each group begins at the left edge.
+    local function newline() action_type_list:append({id = 'NEWLINE', name = 'newline', icon = custom_icon}) end
+
+    -- Row 1: custom actions.
     action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon, disabled = empty_catalog, disabled_focusable = true})
+    action_type_list:append({id = action_types.CREATE_CUSTOM_ACTION, name = 'Create Custom Action', icon = custom_icon})
     action_type_list:append({id = action_types.EDIT_CUSTOM_ACTION, name = 'Edit Custom Action', icon = custom_icon, disabled = empty_catalog, disabled_focusable = true})
-    action_type_list:append({id = action_types.DELETE_CUSTOM_ACTION, name = 'Delete Custom Action', icon = 'images/' .. get_icon_pathbase() .. '/ui/red-x.png', disabled = empty_catalog, disabled_focusable = true})
+    action_type_list:append({id = action_types.DELETE_CUSTOM_ACTION, name = 'Delete Custom Action', icon = red_x, disabled = empty_catalog, disabled_focusable = true})
+    newline()
+
+    -- The job combination's own actions, then everyday and combat actions.
     action_type_list:append({id = action_types.JOB_ABILITY, name = 'Job Ability', icon = 'images/icons/abilities/00001.png', icon_offset = 4})
     action_type_list:append({id = action_types.WEAPONSKILL, name = 'Weaponskill', icon = 'images/icons/weapons/sword.png', icon_offset = 4})
 
@@ -2236,25 +2412,33 @@ function action_binder:display_action_type_selector()
 
     action_type_list:append({id = action_types.TRUST, name = 'Call Trust', icon = 'images/' ..get_icon_pathbase() .. '/trust/yoran-oran.png'})
     action_type_list:append({id = action_types.MOUNT, name = 'Call Mount', icon = 'images/' ..get_icon_pathbase() .. '/mount.png'})
+    action_type_list:append({id = action_types.SUPERWARP, name = 'Warps', icon = 'images/' .. get_icon_pathbase() .. '/home-point.png'})
     action_type_list:append({id = action_types.USABLE_ITEM, name = 'Use Item', icon = 'images/' ..get_icon_pathbase() .. '/usable-item.png'})
     action_type_list:append({id = action_types.TRADABLE_ITEM, name = 'Trade Item', icon = 'images/' ..get_icon_pathbase() .. '/item.png'})
-    action_type_list:append({id = action_types.RANGED_ATTACK, name = 'Ranged Attack', icon = 'images/' ..get_icon_pathbase() .. '/ranged.png'})
     action_type_list:append({id = action_types.ATTACK, name = 'Attack', icon = 'images/' ..get_icon_pathbase() .. '/attack.png'})
-    action_type_list:append({id = action_types.CHECK, name = 'Check', icon = 'images/' ..get_icon_pathbase() .. '/check.png'})
+    action_type_list:append({id = action_types.RANGED_ATTACK, name = 'Ranged Attack', icon = 'images/' ..get_icon_pathbase() .. '/ranged.png'})
     action_type_list:append({id = action_types.ASSIST, name = 'Assist', icon = 'images/' ..get_icon_pathbase() .. '/assist.png'})
     action_type_list:append({id = action_types.SWITCH_TARGET, name = 'Switch Target', icon = 'images/' ..get_icon_pathbase() .. '/targetnpc.png'})
     action_type_list:append({id = action_types.MAP, name = 'View Map', icon = 'images/' ..get_icon_pathbase() .. '/map.png'})
-    action_type_list:append({id = action_types.LAST_SYNTH, name = 'Repeat Last Synth', icon = 'images/' ..get_icon_pathbase() .. '/synth.png'})
-	action_type_list:append({id = action_types.SUPERWARP, name = 'Superwarp', icon = 'images/' .. get_icon_pathbase() .. '/home-point.png'})
-    action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch Crossbars', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
-    action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick XB Switch', icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'})
-    action_type_list:append({id = action_types.CREATE_NEW_SET, name = 'Create New Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_' .. self.button_layout .. '.png'})
-    action_type_list:append({id = action_types.MOVE_CROSSBARS, name = 'Move Crossbar', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_ps.png'})
-	action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
-    action_type_list:append({id = action_types.GLOBAL_ICON_SET, name = 'Change Action Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
-    action_type_list:append({id = action_types.DELETE, name = 'Clear', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
+    action_type_list:append({id = action_types.LAST_SYNTH, name = 'Last Synth', icon = 'images/' ..get_icon_pathbase() .. '/synth.png'})
+    action_type_list:append({id = action_types.CHECK, name = 'Check', icon = 'images/' ..get_icon_pathbase() .. '/check.png'})
+    action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch', icon = switch_icon})
+    action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick Switch', icon = switch_icon})
+    newline()
 
-    action_type_list:append({id = action_types.SHOW_CREDITS, name = 'XIVCrossbar Credits', icon = 'images/credit_avatars/xiv.png'})
+    -- Slot row: acts on the selected slot (old screens when none is selected).
+    action_type_list:append({id = action_types.DELETE, name = 'Clear', icon = red_x})
+    action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
+    local undo_count = self.undo_count and self.undo_count() or 0
+    action_type_list:append({id = action_types.UNDO, name = undo_count > 0 and ('Undo (' .. undo_count .. ')') or 'Undo',
+        icon = 'images/' ..get_icon_pathbase() .. '/Swap.png', disabled = undo_count == 0, disabled_focusable = true})
+    newline()
+
+    -- Sets and setup.
+    action_type_list:append({id = action_types.CREATE_NEW_SET, name = 'Create Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_' .. self.button_layout .. '.png'})
+    action_type_list:append({id = action_types.DELETE_SET, name = 'Delete Set', icon = red_x})
+    action_type_list:append({id = action_types.MOVE_CROSSBARS, name = 'Move Crossbar', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_ps.png'})
+    action_type_list:append({id = action_types.SHOW_CREDITS, name = 'Credits', icon = 'images/credit_avatars/xiv.png'})
     self.selector:display_options(action_type_list)
     self:show_control_hints('Confirm', 'Exit')
 end
@@ -2324,7 +2508,7 @@ function action_binder:display_action_selector()
 end
 
 function action_binder:display_target_selector()
-    self.title:text('Select Action Target')
+    self:set_title('Select Action Target')
     self.title:show()
     self.selector:display_options(action_binder.target_options_for(self.target_type, self.action_type,
         self.theme_options.allow_stpc_for_self_targeted_actions))
@@ -2368,6 +2552,26 @@ function action_binder.target_options_for(target_type, action_type, allow_stpc_f
     return options
 end
 
+-- A: one title rule for every menu screen. 'left' (default): left-aligned at
+-- the menu's upper left; 'center': centred on the menu. Before this, a title
+-- stayed centred only after a screen that centred it had been visited.
+function action_binder:set_title(text)
+    self.title:text(text)
+    if self.title_align == 'center' then
+        caption_layout:center(self.title, self.base_x + self.width / 2, self.base_y + 30, self.width - 80)
+    else
+        self.title:pos(self.base_x + 30, self.base_y + 30)
+        caption_layout:fit(self.title, self.width - 80)
+    end
+end
+
+function action_binder:set_title_align(align)
+    self.title_align = align == 'center' and 'center' or 'left'
+    if self.title and not ui_resources.is_disposed(self.title) and self.title:text() then
+        self:set_title(self.title:text())
+    end
+end
+
 -- Center captions using measured glyph widths rather than character counts.
 function action_binder:center_caption(caption, y)
     caption_layout:center(caption, self.base_x + self.width / 2, y, self.width - 80)
@@ -2381,8 +2585,7 @@ function action_binder:show_set_title(label)
     local name = bar and (bar.name or key) or key or ''
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
     local color = defaults[key] and '\\cs(0,128,255)' or '\\cs(255,255,255)'
-    self.title:text(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
-    self:center_caption(self.title, self.base_y + 30)
+    self:set_title(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
     self.title:show()
     if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end
 end
@@ -2807,7 +3010,7 @@ function action_binder:show_control_hints(confirm, go_back)
 end
 
 function action_binder:display_ability_selector()
-    self.title:text('Select Job Ability')
+    self:set_title('Select Job Ability')
     self.title:show()
 
     local LV_1_SP_ABILITY_RECAST_ID = 0
@@ -2853,7 +3056,7 @@ function action_binder:display_ability_selector()
 end
 
 function action_binder:display_weaponskill_selector()
-    self.title:text('Select Weaponskill')
+    self:set_title('Select Weaponskill')
     self.title:show()
 
     local abilities = windower.ffxi.get_abilities().weapon_skills
@@ -2887,7 +3090,7 @@ end
 -- TODO: Add get_drg_pet_commands(mlvl, slvl)
 -- TODO This ↑ comment is by Icydeath. Maybe this has already been implemented? → Test it.
 function action_binder:display_pet_command_selector()
-    self.title:text('Select Pet Command')
+    self:set_title('Select Pet Command')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -2991,7 +3194,7 @@ function action_binder:display_magic_selector_internal(magic_type)
 end
 
 function action_binder:display_white_magic_selector()
-    self.title:text('Select White Magic Spell')
+    self:set_title('Select White Magic Spell')
     self.title:show()
 
     self:display_magic_selector_internal('WhiteMagic')
@@ -2999,7 +3202,7 @@ function action_binder:display_white_magic_selector()
 end
 
 function action_binder:display_black_magic_selector()
-    self.title:text('Select Black Magic Spell')
+    self:set_title('Select Black Magic Spell')
     self.title:show()
 
     self:display_magic_selector_internal('BlackMagic')
@@ -3007,7 +3210,7 @@ function action_binder:display_black_magic_selector()
 end
 
 function action_binder:display_song_selector()
-    self.title:text('Select Song')
+    self:set_title('Select Song')
     self.title:show()
 
     self:display_magic_selector_internal('BardSong')
@@ -3015,7 +3218,7 @@ function action_binder:display_song_selector()
 end
 
 function action_binder:display_ready_selector()
-    self.title:text('Select Ready Ability')
+    self:set_title('Select Ready Ability')
     self.title:show()
 
     local ability_list = L{}
@@ -3042,7 +3245,7 @@ function action_binder:display_ready_selector()
 end
 
 function action_binder:display_ninjutsu_selector()
-    self.title:text('Select Ninjutsu Spell')
+    self:set_title('Select Ninjutsu Spell')
     self.title:show()
 
     self:display_magic_selector_internal('Ninjutsu')
@@ -3050,7 +3253,7 @@ function action_binder:display_ninjutsu_selector()
 end
 
 function action_binder:display_summoning_selector()
-    self.title:text('Select Summoning Spell')
+    self:set_title('Select Summoning Spell')
     self.title:show()
 
     self:display_magic_selector_internal('SummonerPact')
@@ -3061,7 +3264,7 @@ end
 -- pet-command list. Inactive Astral Flow must not hide a bindable pact.
 function action_binder:display_blood_pact_selector(kind)
     local ward=kind=='BloodPactWard'
-    self.title:text(ward and 'Select Blood Pact: Ward' or 'Select Blood Pact: Rage')
+    self:set_title(ward and 'Select Blood Pact: Ward' or 'Select Blood Pact: Rage')
     self.title:show()
     local pacts=require('libs/blood_pacts')
     local ability_list=L{}
@@ -3082,7 +3285,7 @@ function action_binder:display_bp_rage_selector() self:display_blood_pact_select
 function action_binder:display_bp_ward_selector() self:display_blood_pact_selector('BloodPactWard') end
 
 function action_binder:display_blue_magic_selector()
-    self.title:text('Select Blue Magic Spell')
+    self:set_title('Select Blue Magic Spell')
     self.title:show()
 
     self:display_magic_selector_internal('BlueMagic')
@@ -3090,7 +3293,7 @@ function action_binder:display_blue_magic_selector()
 end
 
 function action_binder:display_phantom_roll_selector()
-    self.title:text('Select Phantom Roll')
+    self:set_title('Select Phantom Roll')
     self.title:show()
 
     local abilities = windower.ffxi.get_abilities().job_abilities
@@ -3118,7 +3321,7 @@ function action_binder:display_phantom_roll_selector()
 end
 
 function action_binder:display_quick_draw_selector()
-    self.title:text('Select Quick Draw')
+    self:set_title('Select Quick Draw')
     self.title:show()
 
     local abilities = windower.ffxi.get_abilities().job_abilities
@@ -3146,7 +3349,7 @@ function action_binder:display_quick_draw_selector()
 end
 
 function action_binder:display_stratagem_selector()
-    self.title:text('Select Stratagem')
+    self:set_title('Select Stratagem')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -3161,7 +3364,7 @@ function action_binder:display_stratagem_selector()
 end
 
 function action_binder:display_dance_selector()
-    self.title:text('Select Dance')
+    self:set_title('Select Dance')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -3176,7 +3379,7 @@ function action_binder:display_dance_selector()
 end
 
 function action_binder:display_geomancy_selector()
-    self.title:text('Select Geomancy Spell')
+    self:set_title('Select Geomancy Spell')
     self.title:show()
 
     self:display_magic_selector_internal('Geomancy')
@@ -3184,7 +3387,7 @@ function action_binder:display_geomancy_selector()
 end
 
 function action_binder:display_rune_enchantment_selector()
-    self.title:text('Select Rune Enchantment')
+    self:set_title('Select Rune Enchantment')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -3218,7 +3421,7 @@ function action_binder:display_rune_enchantment_selector()
 end
 
 function action_binder:display_ward_selector()
-    self.title:text('Select Ward')
+    self:set_title('Select Ward')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -3233,7 +3436,7 @@ function action_binder:display_ward_selector()
 end
 
 function action_binder:display_effusion_selector()
-    self.title:text('Select Effusion')
+    self:set_title('Select Effusion')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -3250,9 +3453,9 @@ end
 function action_binder:display_crossbar_sets_selector()
     local is_quick_switch = (self.action_type == action_types.QUICK_SWITCH_CROSSBARS)
     if (is_quick_switch) then
-        self.title:text('Select Crossbar Set (Quick Switch)')
+        self:set_title('Select Crossbar Set (Quick Switch)')
     else
-        self.title:text('Select Crossbar Set')
+        self:set_title('Select Crossbar Set')
     end
     self.title:show()
 
@@ -3291,7 +3494,7 @@ function action_binder:custom_action_icon(record)
 end
 
 function action_binder:display_custom_actions_selector()
-    self.title:text('Select Custom Action')
+    self:set_title('Select Custom Action')
     self.title:show()
 
     local action_list = L{}
@@ -3422,7 +3625,7 @@ function action_binder:display_icon_selector(rel_path)
     if (rel_path ~= nil and rel_path ~= '') then
         title_text = title_text .. ' — ' .. icon_picker_breadcrumb(rel_path)
     end
-    self.title:text(title_text)
+    self:set_title(title_text)
     self.title:show()
 
     local pathbase = get_icon_pathbase()
@@ -3481,7 +3684,7 @@ function action_binder:apply_icon_change()
 end
 
 function action_binder:display_custom_action_field_review(field_label, field_letter, current_value, hint_text)
-    self.title:text('Custom Action: ' .. field_label)
+    self:set_title('Custom Action: ' .. field_label)
     self.title:show()
 
     self.selector:hide()
@@ -3631,7 +3834,7 @@ function action_binder:return_to_custom_actions_list(saved_name)
 end
 
 function action_binder:display_custom_actions_picker(title_text, selected_name)
-    self.title:text(title_text)
+    self:set_title(title_text)
     self.title:show()
     self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
@@ -3701,7 +3904,7 @@ function action_binder:display_edit_custom_action_review()
             disabled=saving and not review.nonempty(d.name)})
     end
     if self.editing_custom_action and self.custom_action_original_name then
-        list:append({id='DELETE_CUSTOM_ACTION', name='Delete Custom Action', icon=path..'ui/red-x.png'})
+        list:append({id='DELETE_CUSTOM_ACTION', name='Delete', icon=path..'ui/red-x.png'})
     end
     self.selector.review_base_x=self.base_x+(self.width-560)/2
     if review.nonempty(d.name) then
@@ -3762,7 +3965,7 @@ end
 
 function action_binder:display_delete_custom_action_confirm()
     local target = self.custom_action_delete_target or '(unknown)'
-    self.title:text('Delete Custom Action')
+    self:set_title('Delete Custom Action')
     self.title:show()
     self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
@@ -3892,7 +4095,7 @@ function action_binder:check_slot_bound_in_active_env()
 end
 
 function action_binder:display_icon_choice_selector()
-    self.title:text('Custom Action: Icon')
+    self:set_title('Custom Action: Icon')
     self.title:show()
     self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
@@ -3909,7 +4112,7 @@ function action_binder:display_icon_choice_selector()
 end
 
 function action_binder:display_linked_type_selector()
-    self.title:text('Custom Action: Linked Action Category')
+    self:set_title('Custom Action: Linked Action Category')
     self.title:show()
     self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
@@ -3977,7 +4180,7 @@ function action_binder:display_linked_type_selector()
 end
 
 function action_binder:display_custom_action_confirm()
-    self.title:text('Custom Action: Review and Save')
+    self:set_title('Custom Action: Review and Save')
     self.title:show()
     self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
@@ -4010,7 +4213,7 @@ function action_binder:display_custom_action_confirm()
 end
 
 function action_binder:display_trust_selector()
-    self.title:text('Select Trust')
+    self:set_title('Select Trust')
     self.title:show()
 
     self:display_magic_selector_internal('Trust')
@@ -4018,7 +4221,7 @@ function action_binder:display_trust_selector()
 end
 
 function action_binder:display_mount_selector()
-    self.title:text('Select Mount')
+    self:set_title('Select Mount')
     self.title:show()
 
     self.selector:display_options(get_mounts())
@@ -4026,7 +4229,7 @@ function action_binder:display_mount_selector()
 end
 
 function action_binder:display_usable_item_selector()
-    self.title:text('Select Usable Item')
+    self:set_title('Select Usable Item')
     self.title:show()
 
     self.selector:display_options(get_usable_items())
@@ -4034,7 +4237,7 @@ function action_binder:display_usable_item_selector()
 end
 
 function action_binder:display_tradable_item_selector()
-    self.title:text('Select Tradable Item')
+    self:set_title('Select Tradable Item')
     self.title:show()
 
     self.selector:display_options(get_tradable_items())
@@ -4042,7 +4245,7 @@ function action_binder:display_tradable_item_selector()
 end
 
 function action_binder:display_execute_command_selector()
-    self.title:text('Select an icon for the command')
+    self:set_title('Select an icon for the command')
     self.title:show()
 
     self.selector:display_options(get_icons())
@@ -4050,7 +4253,7 @@ function action_binder:display_execute_command_selector()
 end
 
 function action_binder:display_superwarp_selector()
-    self.title:text(self.superwarp_folder or 'Select Warp Location')
+    self:set_title(self.superwarp_folder or 'Select Warp Location')
     self.title:show()
 
     self.selector:display_options(get_warp_zones(self.superwarp_folder))
@@ -4058,7 +4261,7 @@ function action_binder:display_superwarp_selector()
 end
 
 function action_binder:display_player_selector(include_self)
-    self.title:text('Select Player to Assist')
+    self:set_title('Select Player to Assist')
     self.title:show()
 
     self.selector:display_options(get_party_names(include_self))
@@ -4067,7 +4270,7 @@ end
 
 -- TODO: Either rename this to better discern it from action_binder:display_icon_selector() or merge the two functions
 function action_binder:display_icon_selector_sylvebits()
-    self.title:text('Select Icon')
+    self:set_title('Select Icon')
     self.title:show()
 
     local icon_list = L{}
@@ -4143,7 +4346,7 @@ function action_binder:display_icon_selector_sylvebits()
 end
 
 function action_binder:display_text_entry(title_text, placeholder)
-    self.title:text(title_text)
+    self:set_title(title_text)
     self.title:show()
 
     self.selector:hide()
@@ -4258,7 +4461,7 @@ function action_binder:is_capturing_text()
 end
 
 function action_binder:display_credits()
-    self.title:text('XIVCrossbar Development Credits')
+    self:set_title('XIVCrossbar Development Credits')
     self.title:show()
 
     local NO_DATA = {target_type = {['None'] = true}}
@@ -4281,7 +4484,7 @@ function action_binder:is_moving_crossbars()
 end
 
 function action_binder:display_crossbar_mover()
-    self.title:text('Move Crossbars')
+    self:set_title('Move Crossbars')
     self.title:show()
     local help = self:create_text('Move with the D-pad, or click and drag.', self.base_x + self.width/2 - 155, self.base_y + self.height/2)
     self.hints:append(help)

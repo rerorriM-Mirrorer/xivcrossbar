@@ -55,6 +55,7 @@ options.button_layout='playstation';options.hotbar_number=6
 local saved,bound={},{}
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function(...)saved[#saved+1]={...}end,function()end,
     options,function()return {'Basic'}end,0,0,1000,600)
+binder.bind_hold_seconds=0 -- hold tested in edit_hold_undo.lua
 
 
 windower.ffxi={get_player=function()return {main_job='WHM',sub_job='BLM',main_job_level=99,sub_job_level=49} end}

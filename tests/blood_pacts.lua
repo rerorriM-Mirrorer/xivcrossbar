@@ -36,7 +36,7 @@ local f=assert(io.open('action_binder.lua'));local source=f:read('*a');f:close()
 local a=assert(source:find('function action_binder:display_blood_pact_selector(kind)',1,true))
 local b=assert(source:find('function action_binder:display_blue_magic_selector()',a,true))
 local shown
-local binder={title={text=function()end,show=function()end},selector={display_options=function(_,x)shown=x end},show_control_hints=function()end}
+local binder={set_title=function()end,title={text=function()end,show=function()end},selector={display_options=function(_,x)shown=x end},show_control_hints=function()end}
 local env=setmetatable({action_binder=binder,res={job_abilities=res,spells=spells},windower={ffxi={get_player=function()return player end,get_spells=function()return known end}},
  file={new=function()return {exists=function()return false end}end},crossbar_abilities={},kebab_casify=function(s)return s:lower():gsub(' ','-')end,get_icon_pathbase=function()return 'icons/default'end,
  L=function()return{append=function(self,v)self[#self+1]=v end}end,

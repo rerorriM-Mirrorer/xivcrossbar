@@ -1,3 +1,72 @@
+# Current Development Status - Edit mode: bind hold, Clear/Change Icon, Undo, menu order, titles (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint d1fab90 (pushed). d1fab90 itself is awaiting live results
+(Sunshine away from the PC).
+
+REQUEST (Sunshine): menu row flash in tandem with the slot flash, menu held
+until the animation ends, then the screen changes; Clear on the selected
+slot; Undo kept per character (last six to nine); the main menu order in rows
+of four with renames (Warps, Last Synth, Switch, Quick Switch, Create Set) and
+a new Delete Set list; Change Action Icon out of the menu; "Delete" as the
+custom action edit screen's last option; menu titles left-aligned by default
+with a centred option. Move/Copy/Swap: later.
+
+CHANGES:
+- action_binder.lua: bind_to_destination() now also handles Clear (DELETE)
+  and Change Icon (CHANGE_ICON, from the icon list; refuses an empty/inherited
+  slot with the old warning and no flash). Every edit goes through with_undo().
+  After a successful change: slot flash (on_bound) + start_bind_hold(): the
+  confirmed row flashes (selector:set_flash 1 -> 0 over bind_hold_seconds 0.4),
+  submit/back/navigation/slot presses are ignored until it ends, then
+  return_after_bind(origin): lists and the icon list stay as they are, the
+  target picker returns to the action list, main-menu entries rebuild the main
+  menu (Undo count). submit_origin_state records where Confirm came from.
+  Main menu rebuilt in the requested order with 'newline' row breaks; new
+  UNDO (46/47 ids), DELETE_SET entries and state DELETE_SET (22) with the
+  two-press arm; set_title() + set_title_align() replace every title:text call.
+  is_bind_ready() adds Clear on the main menu and Change Icon's icon list; the
+  ghost shows icons on the slot there.
+- ui/selectablelist.lua: 'newline' entries become gap cells to the end of the
+  row (the old newline code mispositioned rows); set_flash(level).
+- edit_undo.lua (new): history of the last 9 records {environment, bank, slot,
+  before (slot table or false), label}, saved as a plain Lua table and read
+  back without access to anything (empty environment).
+- player.lua: get_slot_record(), restore_slot_record().
+- xivcrossbar.lua: undo_wrap/undo_binding/undo_count hooks, per-character
+  history (data/hotbar/<server>/<name>/EditUndo.lua, follows the logged-in
+  character), undo_last_edit() (restore, save, reload, chat line),
+  delete_set_binding -> delete_environment_command, protected set keys,
+  //xb undo, //xb menutitle [left|center] (settings.MenuTitleAlign).
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_hold_undo.lua and tests/edit_undo_history.lua; existing tests
+adjusted for set_title and the hold (other edit tests run with
+bind_hold_seconds 0). 10 mutations each made a test fail. Full suite, 67
+files, all exit 0. The history file sandbox was found unsafe under Lua 5.4
+(load without an environment) during testing and fixed to use load(..., {})
+there and setfenv under Lua 5.1. NOT run: Lua 5.1 parse, Windows CI, live.
+
+LIVE TESTS PENDING:
+1. Bind from a spell list: slot and row flash together; ~0.4 s; then ready.
+   From the target list: target list holds during the flash, then the spell
+   list returns with the cursor on the spell.
+2. Clear with a slot selected: slot clears at once, flash, main menu.
+   Without a slot: old Enter Button Combo screens.
+3. Change Icon with a slot selected: browse icons, each previews on the slot;
+   Confirm changes it and you stay on the list; try another. Empty slot:
+   warning, nothing changes.
+4. Undo (n): restores the last change, selects that slot, count drops.
+   //xb undo works with the menu closed. Reload/relog: history kept per
+   character; other characters have their own.
+5. Main menu rows: custom row; job actions from a new row; Clear/Change
+   Icon/Undo row; Create Set/Delete Set/Move Crossbar/Credits row.
+6. Delete Set: built-in sets absent; first Confirm arms (title asks again,
+   moving disarms), second deletes; Back returns to the main menu.
+7. Titles left on every screen; //xb menutitle center makes all centred.
+
+---
+
 # Current Development Status - Edit mode: live-test fixes and all banks (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,

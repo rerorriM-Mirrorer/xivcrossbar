@@ -68,6 +68,7 @@ binder.selector:set_page(2); binder:display_action_selector()
 local left_double,right_double=false,false
 binder.doublepress_provider=function() return left_double,right_double end
 binder.theme_options.hotbar_number=6
+binder.bind_hold_seconds=0 -- hold tested in edit_hold_undo.lua
 
 -- Double-tap banks: tap turns a page, the double press puts it back and picks bank 5.
 local page=binder.selector.current_page

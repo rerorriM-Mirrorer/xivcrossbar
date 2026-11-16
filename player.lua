@@ -903,6 +903,29 @@ function player:remove_action(environment, hotbar, slot)
     if bank then bank['slot_' .. slot] = nil end
 end
 
+-- A: edit-mode undo. The slot table exactly as stored (nil when empty).
+function player:get_slot_record(environment, hotbar, slot)
+    if environment == nil or self.hotbar[environment] == nil and not shoulders.labels[hotbar] then return nil end
+    local bank = shoulders.bar(self.hotbar, environment, hotbar)
+    return bank and bank['slot_' .. slot] or nil
+end
+
+-- Put a saved slot table back (false/nil clears the slot).
+function player:restore_slot_record(environment, hotbar, slot, record)
+    local bank_environment, bar_key = shoulders.destination(environment, hotbar)
+    if not record then
+        local bank = self.hotbar[bank_environment] and self.hotbar[bank_environment][bar_key]
+        if bank then bank['slot_' .. slot] = nil end
+        return true
+    end
+    if self.hotbar[bank_environment] == nil then return false end
+    self.hotbar[bank_environment][bar_key] = self.hotbar[bank_environment][bar_key] or {}
+    local copy = {}
+    for k, v in pairs(record) do copy[k] = v end
+    self.hotbar[bank_environment][bar_key]['slot_' .. slot] = copy
+    return true
+end
+
 -- update a slot's icon
 function player:set_slot_icon(environment, hotbar, slot, icon)
     if (environment == nil) then return false end

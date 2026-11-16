@@ -199,6 +199,25 @@ function selectable_list:create_text(text_string, row, col)
     return text
 end
 
+-- A: edit-mode bind confirmation on the confirmed row. level 1 = gold/white,
+-- fading to the normal highlight at 0; nil restores the normal highlight.
+function selectable_list:set_flash(level)
+    if level == nil then
+        self.flash_level = nil
+        if self.is_showing then self:highlight_selection() end
+        return
+    end
+    self.flash_level = level
+    local function mix(a, b) return math.floor(a + (b - a) * level + .5) end
+    windower.prim.set_color('selectablelist_selection_highlight', mix(150, 235), mix(101, 255), mix(70, 245), mix(41, 205))
+    local selected = self:get_selected_option()
+    for _, entry in ipairs(self.option_objects or {}) do
+        if entry.caption and entry.row == self.selected_row and entry.col == self.selected_col and selected then
+            entry.caption:color(mix(255, 255), mix(216, 255), mix(112, 255))
+        end
+    end
+end
+
 function selectable_list:highlight_selection()
     local x,y=self:get_pos(self.selected_row,self.selected_col)
     local selected=self:get_selected_option()
@@ -294,6 +313,24 @@ function selectable_list:display_options(options, presentation)
     self.height=2*BORDER_PADDING+self.max_row*ROW_HEIGHT
     -- Short child lists (such as spell targets) cannot inherit an out-of-range
     -- parent page. Valid page turns and explicitly restored Back pages survive.
+    -- A: a 'newline' entry starts the next row: it becomes blank gap cells up
+    -- to the end of the current row (never drawn, never selectable).
+    local has_newline = false
+    for _, value in ipairs(options) do if value.name == 'newline' then has_newline = true end end
+    if has_newline then
+        local expanded = L{}
+        for _, value in ipairs(options) do
+            if value.name == 'newline' then
+                local used = #expanded % self.max_col
+                if used ~= 0 then
+                    for _ = used + 1, self.max_col do expanded:append({gap = true, id = 'GAP', name = ''}) end
+                end
+            else
+                expanded:append(value)
+            end
+        end
+        options = expanded
+    end
     local last_page = math.max(1, math.ceil(#options / (self.max_row * self.max_col)))
     local current_page = math.max(1, math.min(self.current_page, last_page))
     self:reset_state()
@@ -317,7 +354,7 @@ function selectable_list:display_options(options, presentation)
         local data = value.data
 
         local abs_row, abs_col = self:get_row_col(i - 1)
-        if (first_row <= abs_row and abs_row <= last_row) then
+        if (not value.gap and first_row <= abs_row and abs_row <= last_row) then
             local row, col = self:get_row_col(i - entries_to_skip)
             row = row + newlines
             if (option_caption == 'newline') then

@@ -15,7 +15,7 @@ local body=assert(source:match('function action_binder:display_credits%(%)\n(.-)
 local env=setmetatable({L=function(seed)seed=seed or {};seed.append=function(t,v)table.insert(t,v)end;return seed end},{__index=_G})
 local draw=assert(load('return function(self)\n'..body..'\nend','actual credits screen','t',env))()
 local rows,page
-local screen={title={text=function()end,show=function()end},selector={set_page=function(_,p)page=p end,display_options=function(_,r)rows=r end},show_control_hints=function()end}
+local screen={set_title=function()end,title={text=function()end,show=function()end},selector={set_page=function(_,p)page=p end,display_options=function(_,r)rows=r end},show_control_hints=function()end}
 draw(screen)
 assert(page==1 and #rows==20 and rows[20].name=='Development\nA')
 for i,row in ipairs(rows)do assert(row.id==i and row.icon_size==32 and row.icon_offset==-1 and row.data.target_type.None and row.icon:find('images/credit_avatars/',1,true)==1)end

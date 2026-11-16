@@ -55,6 +55,7 @@ options.button_layout='playstation';options.hotbar_number=6
 local saved,bound={},{}
 binder:setup({button_layout='playstation',confirm_button='cross',cancel_button='circle'},function(...)saved[#saved+1]={...}end,function()end,
     options,function()return {'Basic'}end,0,0,1000,600)
+binder.bind_hold_seconds=0 -- hold tested in edit_hold_undo.lua
 
 windower.ffxi={get_player=function()return {main_job='WHM',sub_job='BLM',main_job_level=99,sub_job_level=49} end,
     get_abilities=function()return {job_abilities={},weapon_skills={}} end}
@@ -129,10 +130,16 @@ assert(#saved==before+1 and saved[#saved][1]==1 and saved[#saved][2]==4 and save
 assert(binder.state==1, 'direct action returns to the main menu')
 
 -- 7. Slot operations keep their legacy screens for now.
-for _,t in ipairs({0,35,36,42}) do
+for _,t in ipairs({36,42}) do
     binder.state,binder.action_type,binder.action_name=5,t,'x'
-    assert(not binder:can_bind_to_destination(), 'slot operation '..t..' stays legacy')
+    assert(not binder:can_bind_to_destination(), 'operation '..t..' stays legacy')
 end
+binder.state,binder.action_type=5,0
+assert(binder:can_bind_to_destination(), 'Clear acts on the selected slot')
+binder.action_type,binder.action_icon=35,nil
+assert(not binder:can_bind_to_destination(), 'Change Icon needs a chosen icon')
+binder.action_icon='x.png'
+assert(binder:can_bind_to_destination(), 'Change Icon acts on the selected slot')
 binder.binding_custom_action_review=true; binder.action_type=34
 assert(not binder:can_bind_to_destination(), 'custom editor Save & Bind stays legacy')
 binder.binding_custom_action_review=false
