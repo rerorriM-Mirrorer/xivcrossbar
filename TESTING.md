@@ -1,3 +1,25 @@
+# Live results 2026-11-16 afternoon (Sunshine) for bacbe19 and earlier steps
+
+Confirmed live: chain and burst glows ("look so cool", with the animated
+frame borders); one Undo (after a Swap) restored correctly; old Bind-to-Slot
+flow worked the few times tried (across several packages); footer follows
+set changes; faint preview on Check / View Map; two and three clients at
+once work; deeper menu fade by default; quick-tap paging "a little better"
+(revisit only if it becomes a problem); Trust paused pass-through worked
+earlier.
+
+Still pending: Undo of a Swap across two sets; more Undo use (count, //xb
+undo, reload/relog persistence per character); Delete Set; Change Icon on the
+selected slot; Esc on the main menu; Swap onto an empty slot; Confirm dimming
+with two empty slots; double-tap banks with the new paging; GripRumble cue
+list; Trust pass-through items 2, 3 and 5; Cutscene Show-only/Auto
+acceptance (2026-11-12).
+
+Next planned work (Sunshine): entering edit mode (transition), then the
+ALL/JOB/JOB-SUB text covers. Paused here for now.
+
+---
+
 # Current Development Status - Chain glows, Swap with an empty slot, quick-tap paging (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
