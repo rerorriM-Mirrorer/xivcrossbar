@@ -753,3 +753,16 @@ Personal zoom/map and controller behavior are retained. Simultaneous settings
 saving and remaining advanced/private exposure are separate unfinished work;
 see docs/SETTINGS-CLEANUP.md. Optional Default/Me XML examples are references,
 not replacements for installed character settings.
+
+2026-11-15: Trust dialogue pass-through. While Trust reports its controller lease
+as `paused` (NPC dialogue or cutscene), the bridge no longer claims pad buttons:
+Circle reaches FFXI and crossbar binds, including the `//trust menu` bind, keep
+firing. Circle cancelling dialogue and Trust menu navigation afterwards were
+confirmed live; other checks are listed in TESTING.md.
+
+2026-11-15: Optional GripRumble cues. `//xb rumble <slot|trigger|set|bind|all>
+<on|off>` saves each cue for the character (all off by default); `//xb rumble`
+shows status. Cues append `slotpress`, `triggerpull`, `setswitch` and `binding`
+to GripRumble/events.txt, so GripRumble decides what each feels like. `//xb
+slotrumble` remains a this-load override that GripRumble sets when it loads.
+Lua simulation only; live testing pending.

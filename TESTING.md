@@ -1,4 +1,87 @@
-# Current Development Status - Trust paused pass-through (TEST PENDING)
+# Current Development Status - GripRumble cues and paused pass-through (TEST PENDING)
+
+2026-11-15 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar, working
+branch feat/rumble-events-20261115 (local, not yet pushed), based on
+fix/trust-paused-passthrough-20261115 f3171a7, which sits on
+feat/settings-cleanup-20261112 6e1aea11f3dc5315cd61dbd8a0a1c522fd29f655.
+
+LIVE RESULTS REPORTED BY THE USER (paused pass-through, installed): Circle
+cancels NPC dialogue with the Trust menu closed; the Trust menu navigates
+normally again after dialogue. Not yet reported: L1+Triangle running `//trust
+menu` during dialogue, opening dialogue while the Trust menu is open, and the
+two-client check. Those stay pending (see the previous status below).
+Addition to the previous status: the whole Lua suite (58 files) was later run
+on f3171a7 with tests/run_lua.py (Lua 5.4, normalized) and exited 0.
+
+REQUEST: make slot-press rumble persistent, and add separate GripRumble cues for
+trigger presses (L2/R2, plus L1/R1 and combination banks when enabled), crossbar
+set switches and slot binding.
+
+READ BEFORE CHANGING (rerorriM-Mirrorer/GripRumble, branch
+development/0.1.21-chat-style): the helper tails GripRumble/events.txt from its
+launch offset, ignores names it has no pattern for, and already defines cues
+`setswitch` and `binding`. GripRumble also re-sends `//xb slotrumble on|off` to
+XIVCrossbar about a second after it loads (default on). The old flag lived only
+in memory, so reloading XIVCrossbar alone turned the cue off until GripRumble
+reloaded.
+
+CHANGES (Lua only):
+- libs/grip_rumble.lua (new): cue table and emitter. Events: `slotpress`,
+  `triggerpull` (new; ignored by a helper without a pattern), `setswitch`,
+  `binding`. Writes nothing when the feature is off or GripRumble is absent.
+- Settings: `GripRumble = {SlotPress, TriggerPull, SetSwitch, Binding}`, all
+  false by default (libs/preset_base.lua), saved per character like
+  ControllerBridge. Saving happens only when a value changes.
+- `//xb rumble [status]` and `//xb rumble <slot|trigger|set|bind|all> <on|off>`.
+  `//xb slotrumble [on|off]` is unchanged in meaning: a this-load override that
+  is never saved, so GripRumble's load-time sync causes no settings.xml writes.
+  Saving the slot cue clears that override.
+- Hooks in xivcrossbar.lua: accepted slot press (unchanged behavior); L2/R2
+  press that raises a crossbar (rising edge only); enabled L1/R1/combination
+  bank becoming active; `set_active_environment` when the set really changes in
+  a ready addon (rebinding and reloads re-apply the same set and do not cue);
+  successful `set_hotkey` (not clearing a slot). Trigger, set and binding cues
+  also require this client to have focus.
+- Help text, docs/COMMAND-AUDIT.md and the README changelog updated.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+full suite, 60 files, exit 0. New tests/grip_rumble.lua (defaults off, event
+names, saved settings, no repeat saves, focus, absent GripRumble, session
+override) and tests/grip_rumble_wiring.lua (the real `set_active_environment`
+source under mocks, plus static guards for the other hook sites); four
+mutations of the module and two of the wiring each made a test fail.
+tests/crossbar_destinations.lua gained a GripRumble stand-in because the real
+`set_hotkey` now calls the cue module, and checks that a slot save cues
+`binding`. The trigger and bank hooks are covered only by static text checks.
+NOT run: Windows CI, any live FFXI test, GripRumble's helper reading the new
+lines.
+
+LIVE TESTS PENDING (one client first, GripRumble loaded, watch
+GripRumble/events.txt):
+1. Fresh character: `//xb rumble` shows every cue OFF. `//xb rumble all on`.
+2. Reload only XIVCrossbar (`//lua r xivcrossbar`): `//xb rumble` still shows ON
+   without reloading GripRumble.
+3. Pull L2, R2, then both, and double-tap if five/six bars: one `triggerpull`
+   per press, none on holds or releases. Repeat with L1/R1/combination banks
+   enabled (`//xb bank`).
+4. Change sets (chooser, `//xb sw <set>`, personal set cycling): one `setswitch`
+   per real change. Rebinding a slot must not add one.
+5. Bind a slot: one `binding`. Clearing a slot: none.
+6. Slot press: one `slotpress`; an empty or rejected slot: none.
+7. Two clients: only the focused one writes trigger, set and binding lines.
+8. GripRumble unloaded or absent: no errors, no new lines.
+Expect to FEEL `setswitch` and `binding` as soon as those cues are on, because
+GripRumble already has patterns for them; `triggerpull` has none yet.
+
+INSTALL: overlay xivcrossbar.lua, libs/grip_rumble.lua (new), libs/preset_base.lua,
+libs/command_help.lua, controller_bridge.lua, README.md, docs/COMMAND-AUDIT.md,
+TESTING.md and WORKFLOW.md. Keep data/settings and hotbars. Reload one client at a
+time (not `//am all`: simultaneous saves are the unresolved shared-XML race).
+New settings default to off. No controller or DLL restart expected.
+
+---
+
+# Previous Development Status - Trust paused pass-through (2026-11-15, superseded above)
 
 2026-11-15 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar, working
 branch fix/trust-paused-passthrough-20261115 (local, not yet pushed), based on

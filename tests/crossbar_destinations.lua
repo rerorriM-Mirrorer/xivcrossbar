@@ -11,7 +11,8 @@ local binder=require('action_binder')
 local player=package.loaded.player
 player.hotbar=bars;player.hotbar_settings={active_environment='basic',active_hotbar=2}
 local builds,saves=0,0
-local env=setmetatable({player=player,shoulder_banks=require('shoulder_banks'),shoulders=require('shoulder_banks'),theme_options={},action_manager={build=function(_,kind,action,target,alias,icon)
+local cues={} -- GripRumble stand-in: set_hotkey now cues 'bind' after a successful save
+local env=setmetatable({grip_rumble={emit=function(_,feature)cues[#cues+1]=feature end},player=player,shoulder_banks=require('shoulder_banks'),shoulders=require('shoulder_banks'),theme_options={},action_manager={build=function(_,kind,action,target,alias,icon)
     builds=builds+1;return{type=kind,action=action,target=target,alias=alias,icon=icon}
 end},windower={add_to_chat=function()end},chat_format={say=function()end},reload_hotbar=function()return true end,
     set_active_environment=function(key)assert(bars[key]);player.hotbar_settings.active_environment=key end,
@@ -114,4 +115,5 @@ binder.trigger_left_pressed,binder.trigger_right_doublepressed=false,true
 binder:update_active_crossbar(false,true);assert(binder.active_crossbar==6)
 binder:hide();binder:reset_state()
 require('ui/resources').destroy_all()
+assert(#cues>=1 and #cues<=saves);for _,cue in ipairs(cues)do assert(cue=='bind')end -- each real slot save cues 'bind' only
 print('Default destinations, renamed labels, actual binder/slot save, same-slot round trips and quick-switch return passed.')

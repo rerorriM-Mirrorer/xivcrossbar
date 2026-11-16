@@ -38,6 +38,13 @@ local command_help = require('libs/command_help')
 local defaults = require('defaults')
 local default_skillchain_opacity = defaults.SkillchainIndicator.Opacity
 local settings = config.load(defaults)
+-- Optional GripRumble cues (see libs/grip_rumble.lua); off unless enabled.
+local grip_rumble = require('libs/grip_rumble').new(settings, {
+    path = function() return windower.addon_path .. '../GripRumble/events.txt' end,
+    exists = windower.file_exists,
+    open = io.open,
+    focused = windower.has_focus,
+})
 -- Keep new/changed captions transparent until Windower reports a stable width.
 require('ui/text_measure').enabled=settings.TextSettling~=false
 -- A: profile selection replaces the independent legacy backend flags. Existing
@@ -289,6 +296,7 @@ function set_hotkey(hotbar, slot, action_type, action, target, command, icon, li
     set_active_environment(active_environment)
     local feedback=require('binding_feedback')
     chat_format.say(207, feedback.bound(alias or action, feedback.set_name(player.hotbar,environment), hotbar, slot))
+    grip_rumble:emit('bind')
 end
 
 -- command to set a crossbar action in action_binder
@@ -798,18 +806,6 @@ local function check_profile_ready()
     if not ok and reason == 'identity' then profile_gate.loaded = nil end
 end
 
--- Test-only, reset on reload. GripRumble's helper owns the event stream.
-local slot_rumble_enabled = false
-local function emit_slotpress()
-    if not slot_rumble_enabled then return end
-    local path = windower.addon_path .. '../GripRumble/events.txt'
-    if not windower.file_exists(path) then return end
-    local file = io.open(path, 'a')
-    if not file then return end
-    file:write('slotpress\n')
-    file:close()
-end
-
 -- trigger hotbar action
 function trigger_action(slot, bank, input_seq)
     local bar = bank or player.hotbar_settings.active_hotbar
@@ -841,7 +837,7 @@ function trigger_action(slot, bank, input_seq)
     end
 
     ui:trigger_feedback(bar, slot)
-    if accepted then emit_slotpress() end
+    if accepted then grip_rumble:emit('slot', true) end
 end
 
 -- set battle environment
@@ -852,12 +848,15 @@ end
 
 -- set active environment
 function set_active_environment(environment_name)
+    local previous = player.hotbar_settings.active_environment
     player:set_active_environment(environment_name)
     action_binder:refresh_set_title()
     local key=player.hotbar_settings.active_environment
     local bar=key and player.hotbar and player.hotbar[key]
     ui:set_set_name(key and set_display_name(key,bar and (bar.name or key) or key) or '')
     ui:load_player_hotbar(player.hotbar,player.vitals,key)
+    -- Only a real change in a running addon cues; rebinding and reloads re-apply the same set.
+    if xivcrossbar.ready and key ~= previous then grip_rumble:emit('set') end
 end
 
 -- The chooser's Add New Set row is UI state, never an executable hotbar.
@@ -1522,13 +1521,12 @@ windower.register_event('addon command', function(command, ...)
             function(message) chat_format.say(207, '[XIVCrossbar] '..message) end)
     elseif command == 'slotrumble' then
         local mode = (...)
-        if mode == 'on' then slot_rumble_enabled = true
-        elseif mode == 'off' then slot_rumble_enabled = false
-        elseif mode ~= nil then
-            chat_format.say(123, '[XIVCrossbar] //xb slotrumble [on|off]')
-            return
-        end
-        chat_format.say(207, '[XIVCrossbar] Slot rumble ' .. (slot_rumble_enabled and 'ON' or 'OFF'))
+        grip_rumble:session_command(mode, function(message) chat_format.say(207, '[XIVCrossbar] '..message) end)
+        return
+    elseif command == 'rumble' then
+        local feature, mode = ...
+        grip_rumble:command(feature, mode, function() config.save(settings) end,
+            function(message) chat_format.say(207, '[XIVCrossbar rumble] '..message) end)
         return
     elseif command == 'inputtest' or command == 'inputtrace' then
         local mode, extra = ...
@@ -2335,6 +2333,10 @@ local function handle_controller_key(dik, pressed, flags, blocked, input_seq)
     else
         gamepad_state.active_bar = 0
     end
+    -- Each L2/R2 press that raises a crossbar cues once; holds and releases do not.
+    if (left_trigger_just_pressed or right_trigger_just_pressed) and gamepad_state.active_bar ~= 0 then
+        grip_rumble:emit('trigger')
+    end
 
     if (not gamepad_mapper.is_showing and gamepad_state.capturing and gamepad.is_minus(dik) and pressed) then
         if (action_binder:is_capturing_text()) then
@@ -2876,6 +2878,7 @@ windower.register_event('prerender',function()
             transport.down, eligible)
     end
     if bank ~= gamepad_state.shoulder_bank or bank_visible ~= gamepad_state.shoulder_bank_visible then
+        if bank and bank ~= gamepad_state.shoulder_bank then grip_rumble:emit('trigger') end
         gamepad_state.shoulder_bank, gamepad_state.shoulder_bank_visible = bank, bank_visible
         ui_dirty = true
         diagnostic:record('BANK', ('selected=%s visible=%s'):format(tostring(bank), tostring(bank_visible)))

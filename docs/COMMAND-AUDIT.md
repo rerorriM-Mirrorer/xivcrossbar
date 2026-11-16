@@ -74,6 +74,7 @@ classification, not permission to delete compatibility or diagnostic commands.
 | `//xb resources` | Advanced / diagnostic |
 | `//xb restart` | Public |
 | `//xb rn` | Compatibility alias / old spelling |
+| `//xb rumble` | Advanced / diagnostic |
 | `//xb scale` | Public |
 | `//xb set` | Public |
 | `//xb setname` | Public |

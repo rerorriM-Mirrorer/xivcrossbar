@@ -10,6 +10,7 @@ defaults.NativeDetachOnUnload = true
 defaults.ControllerProfile = 'ps5-directinput'
 defaults.ControllerDevice = 1
 defaults.ControllerBridge = {movement='off', menu='off', ps='off'}
+defaults.GripRumble = {SlotPress=false, TriggerPull=false, SetSwitch=false, Binding=false}
 defaults.ShoulderBanks = {
     Targeting = false,
     L1 = {Enabled = false, Visible = true},
