@@ -85,34 +85,31 @@ local clock=100
 local function tick(seconds) clock=clock+seconds; binder:tick_navigation(clock,true) end
 tick(0)
 
--- Main menu order: custom row first, then a new row for the job's actions;
--- Clear / Change Icon / Undo row; Create Set / Delete Set / Move Crossbar / Credits.
+-- Main menu: entries flow in Sunshine's order (no forced rows), WHM/BLM here.
 binder.is_hidden=false
 binder.state=1
 binder:display_action_type_selector()
-local names={}
-for col,rows in pairs(binder.selector.field_coords) do for row,o in pairs(rows) do names[o.text]={row=row,col=col} end end
-assert(names['Custom Action'].row==1 and names['Custom Action'].col==1)
-assert(names['Delete Custom Action'].row==1 and names['Delete Custom Action'].col==4)
-assert(names['Job Ability'].row==2 and names['Job Ability'].col==1, 'job actions start a new row')
-for _,n in ipairs({'Warps','Last Synth','Switch','Quick Switch','Create Set','Delete Set','Credits','Clear','Change Icon','Undo'}) do
-    assert(names[n], 'menu entry '..n)
-end
-assert(names['Clear'].col==1 and names['Create Set'].col==1 and names['Credits'].col==4, 'slot and set rows start at the left')
-for _,n in ipairs({'Change Action Icon','Superwarp','Repeat Last Synth','Switch Crossbars','Quick XB Switch','Create New Set','XIVCrossbar Credits','Remove a Binding'}) do
-    assert(not names[n], 'old entry still present: '..n)
-end
+local order={}
+for _,o in ipairs(binder.selector.current_options) do order[#order+1]=o.name end
+local expected={'Custom Action','Job Ability','Weaponskills','White Magic','Black Magic','Trusts','Warps','Mounts',
+    'Switch','Quick Switch','Use Item','Trade Item','Attack','Ranged Attack','Assist','Switch Target','View Map',
+    'Check','Last Synth','Change Icon','Clear Slot','Undo','Move Crossbar','Delete Set','Credits'}
+assert(table.concat(order,'|')==table.concat(expected,'|'), table.concat(order,'|'))
+for _,o in ipairs(binder.selector.current_options) do assert(o.name~='newline', 'no forced row breaks') end
 local src=io.open('action_binder.lua'):read('*a')
 assert(src:find("name='Delete', icon=path..'ui/red-x.png'",1,true), 'review screen Delete')
+assert(src:find("'Rages'",1,true) and src:find("'Wards'",1,true) and src:find("L_SUMMON_KEEP",1,true)==nil)
+-- Summon keeps its name.
+assert(src:find("name = 'Summon'",1,true))
+-- Clear Slot uses none.png; with no slot selected it stays available (old screens).
+local clear_option
+for _,o in ipairs(binder.selector.current_options) do if o.name=='Clear Slot' then clear_option=o end end
+assert(clear_option.icon:find('/none.png',1,true) and not clear_option.disabled)
 
--- Titles: left by default, centred on request, same rule on every screen.
-assert(binder.title.values.pos==binder.base_x+30, 'left-aligned title')
-binder:set_title_align('center')
+-- Titles: centred on every screen.
 binder:set_title('Another Screen')
-assert(binder.title.values.pos~=binder.base_x+30 or true)
-binder:set_title_align('left')
-binder:set_title('Third Screen')
-assert(binder.title.values.pos==binder.base_x+30)
+assert(binder.title.values.pos~=binder.base_x+30, 'titles are centred')
+assert(not src:find('set_title_align',1,true), 'no title alignment option any more')
 
 -- 1. Bind from a list: slot and row flash together, the screen holds, input waits.
 binder.state,binder.action_type=2,4
@@ -150,9 +147,21 @@ local function choose_main(name)
         if o.text==name then binder.selector.selected_row,binder.selector.selected_col=row,col end end end
     binder.selector:highlight_selection()
 end
-choose_main('Clear')
+choose_main('Clear Slot')
 assert(binder:get_destination().ready==true, 'Clear is bind-ready with a slot selected')
-assert(binder:get_ghost()==nil, 'no ghost of the red X')
+assert((binder:get_ghost() or ''):find('ui/red-x.png',1,true), 'red X breathes over the bound slot')
+-- Over an empty slot: no X, Clear Slot dummied out (updated in place), message on Confirm.
+local cure=player.hotbar.basic.hotbar_2.slot_7
+player.hotbar.basic.hotbar_2.slot_7=nil
+binder:update_destination_footer()
+assert(binder:get_ghost()==nil and not binder:get_destination().ready)
+assert(binder.selector:get_selected_option().disabled, 'Clear Slot dummied out on an empty slot')
+chat={}
+binder:submit_selected_option()
+assert(#deleted==0 and chat[1] and chat[1]:find('already empty'), 'empty-slot message')
+player.hotbar.basic.hotbar_2.slot_7=cure
+binder:update_destination_footer()
+assert(not binder.selector:get_selected_option().disabled, 'available again on a bound slot')
 binder:submit_selected_option()
 assert(#deleted==1 and deleted[1][1]==2 and deleted[1][2]==7, 'Clear acts on the selected slot')
 tick(.5)

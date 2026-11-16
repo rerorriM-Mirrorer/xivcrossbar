@@ -57,8 +57,10 @@ for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,14
     binder:submit_selected_option();binder.custom_action_draft.alias='Pretty label'
     select_id('SAVE_EDIT');returned('Aardvark');assert(player.custom_actions.Aardvark.alias=='Pretty label')
     -- Back returns to the selected main-menu action rather than a stale review.
-    binder.selection_states[1]={page=1,row=1,col=3}
-    binder:go_back();assert(binder.state==1 and binder.selector:get_selected_option().text=='Edit Custom Action')
+    -- (2026-11-16: Create/Edit moved into the Custom Action list; Back lands on
+    -- the main menu entry that was chosen, here Custom Action at row 1 col 1.)
+    binder.selection_states[1]={page=1,row=1,col=1}
+    binder:go_back();assert(binder.state==1 and binder.selector:get_selected_option().text=='Custom Action')
     -- A menu-origin create also remains in the editable list after saving.
     binder:hide();binder:reset_state();assert(binder:new_custom_action('MenuEntry','menu'))
     select_id('SAVE_EDIT');returned('MenuEntry')

@@ -894,27 +894,66 @@ function action_binder:consume_trigger_gesture()
     self.selector:page_highlight(nil)
 end
 
+-- Names the four immediate main-menu entries bind under (see Confirm).
+action_binder.main_menu_action_names = {[action_types.CHECK] = 'Check', [action_types.MAP] = 'View Map',
+    [action_types.LAST_SYNTH] = 'Last Synth', [action_types.SWITCH_TARGET] = 'Switch Target'}
+
 -- True when the next Confirm press would bind to the selected slot, so the
 -- amber selection can step back and let the slot itself read clearly.
 local immediate_main_menu = nil
 function action_binder:is_bind_ready()
     if not self:is_edit_mode() or not self.destination then return false end
-    if self.state == states.SELECT_ACTION_TARGET or self.state == states.SELECT_PLAYER_BINDING then return true end
+    if self.state == states.SELECT_PLAYER_BINDING then return true end
+    if self.state == states.SELECT_ACTION_TARGET then
+        local option = self.selector.is_showing and self.selector:get_selected_option()
+        local target = option and action_targets[option.id]
+        return not self:same_as_bound(self.action_name, target)
+    end
     local option = self.selector.is_showing and self.selector:get_selected_option()
     if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT' then return false end
     if self.state == states.SELECT_ACTION_TYPE then
         immediate_main_menu = immediate_main_menu or {[action_types.CHECK] = true,
             [action_types.SWITCH_TARGET] = true, [action_types.MAP] = true, [action_types.LAST_SYNTH] = true,
             [action_types.DELETE] = true}
-        return immediate_main_menu[option.id] == true
+        if option.id == action_types.DELETE then return not self:destination_slot_empty() end
+        if not immediate_main_menu[option.id] then return false end
+        return not self:same_as_bound(action_binder.main_menu_action_names[option.id])
     end
     if self.state == states.SELECT_ICON then
         return self.action_type == action_types.CHANGE_ICON and option.data ~= nil
             and option.data.icon_path ~= nil and not option.data.is_dir
     end
     if self.state ~= states.SELECT_ACTION or self.is_linking_for_custom_action then return false end
-    if option.data and (option.data.is_dir or option.data.warp_folder) then return false end
-    return self:target_step(option.data and option.data.target_type) ~= 'picker'
+    if option.data and (option.data.is_dir or option.data.warp_folder or option.data.menu_entry) then return false end
+    if self:target_step(option.data and option.data.target_type) == 'picker' then return false end
+    return not self:same_as_bound(option.data and option.data.action_name or option.text)
+end
+
+
+-- The selected slot's own binding in the active set (nil when the slot is
+-- empty there; an action only shown from a default set does not count).
+function action_binder:destination_record()
+    local d = self.destination
+    if not d or not player_data.hotbar_settings then return nil end
+    local env = shoulders.destination(player_data.hotbar_settings.active_environment, d.bank)
+    local bank = player_data.hotbar and shoulders.bar(player_data.hotbar, env, d.bank)
+    local record = bank and bank['slot_' .. d.slot]
+    if record and record.action ~= nil then return record end
+end
+
+-- True while a slot is selected and nothing of this set is bound on it.
+function action_binder:destination_slot_empty()
+    return self.destination ~= nil and self:destination_record() == nil
+end
+
+-- Would Confirm bind what the slot already holds? Then no glow, no ghost and
+-- full amber: nothing would change.
+function action_binder:same_as_bound(name, target)
+    local record = self:destination_record()
+    if not record or name == nil then return false end
+    if record.action ~= name then return false end
+    if target ~= nil and record.target ~= nil and tostring(record.target) ~= tostring(target) then return false end
+    return true
 end
 
 -- The target step for a chosen action: 'self' and 'none' bind at once,
@@ -1147,22 +1186,34 @@ end
 -- path plus the destination bank and slot, or nil.
 function action_binder:get_ghost()
     if not self:is_edit_mode() or not self.destination then return nil end
-    local asset
+    local asset, name
     if self.state == states.SELECT_ACTION or self.state == states.SELECT_ACTION_TYPE then
         local option = self.selector.is_showing and self.selector:get_selected_option()
         if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT'
-            or (option.data and option.data.is_dir) then return nil end
-        -- Main menu: only entries that bind at once (Check, View Map...).
-        if self.state == states.SELECT_ACTION_TYPE and (option.id == action_types.DELETE
-            or not self:is_bind_ready()) then return nil end
-        asset = option.asset_path
+            or (option.data and (option.data.is_dir or option.data.menu_entry)) then return nil end
+        if self.state == states.SELECT_ACTION_TYPE then
+            if option.id == action_types.DELETE then
+                -- Clear Slot: a red X breathes over a bound slot, nothing over an empty one.
+                if not self:is_bind_ready() then return nil end
+                asset = 'images/' .. get_icon_pathbase() .. '/ui/red-x.png'
+            elseif not self:is_bind_ready() then
+                return nil -- only entries that bind at once (Check, View Map...)
+            else
+                asset = option.asset_path
+            end
+        else
+            asset = option.asset_path
+            name = option.data and option.data.action_name or option.text
+        end
+    elseif self.state == states.SELECT_ACTION_TARGET then
+        asset, name = self.binding_preview_icon, self.action_name
     elseif self.state == states.SELECT_ICON and self:is_bind_ready() then
         -- Change Icon: try each icon on the selected slot before choosing.
         asset = self.selector:get_selected_option().asset_path
-    elseif self.state == states.SELECT_ACTION_TARGET then
-        asset = self.binding_preview_icon
     end
     if asset == nil or asset == '' then return nil end
+    -- Nothing to preview when the slot already holds this action.
+    if name and self:same_as_bound(name) then return nil end
     -- Right after a bind the cursor still rests on the action just bound; the
     -- slot already shows it, so no ghost until the cursor or slot changes.
     local d = self.destination
@@ -1213,7 +1264,13 @@ function action_binder:destination_icons(bank, slot)
     elseif bank == 4 then
         icons:append(left); icons:append('ui/binding_icons/arrow_right.png'); icons:append(right)
     elseif bank == 5 then icons:append(left); icons:append('ui/binding_icons/x2.png')
-    elseif bank == 6 then icons:append(right); icons:append('ui/binding_icons/x2.png') end
+    elseif bank == 6 then icons:append(right); icons:append('ui/binding_icons/x2.png')
+    -- L1 / R1 shoulder banks: Xbox trigger pictures as placeholders for now.
+    elseif bank == 7 then icons:append('ui/binding_icons/trigger_xbox_left.png')
+    elseif bank == 8 then icons:append('ui/binding_icons/trigger_xbox_right.png')
+    elseif bank == 9 then
+        icons:append('ui/binding_icons/trigger_xbox_left.png'); icons:append('ui/binding_icons/trigger_xbox_right.png')
+    end
     icons:append('ui/binding_icons/plus.png')
     icons:append('ui/binding_icons/' .. string.format(slot_button_icons[slot], layout) .. '.png')
     return icons
@@ -1240,15 +1297,16 @@ function action_binder:ensure_destination_footer()
     f.label = ui_resources.text({flags = {draggable = false}})
     f.label:bg_alpha(0); f.label:bg_visible(false)
     f.label:font(self.theme_options.font)
-    f.label:size(11 * .94)
+    -- Set-label font, amber text with a black outline, two points larger.
+    f.label:size(11 * .94 + 2)
     f.label:bold(true)
-    f.label:color(255, 255, 255)
-    f.label:stroke_color(255, 216, 112)
+    f.label:color(255, 216, 112)
+    f.label:stroke_color(0, 0, 0)
     f.label:stroke_width(2)
     f.label:alpha(255); f.label:stroke_alpha(255)
     f.label:text('')
     f.label:hide()
-    f.prompt = self:create_text('Choose a slot to bind to', 0, 0)
+    f.prompt = self:create_text('Choose a crossbar slot to bind to:', 0, 0)
     f.prompt:size(14)
     f.prompt:alpha(170)
     f.prompt:hide()
@@ -1268,6 +1326,21 @@ end
 -- Called every rendered frame. Cheap when nothing changed: only the text
 -- measurement is polled until it settles.
 function action_binder:update_destination_footer()
+    -- A: the menu side of edit mode, kept in step every frame (cheap):
+    -- Clear Slot is dummied out while the selected slot is empty, and the
+    -- highlighted entry glows while Confirm would bind it.
+    if self.selector and not self.is_hidden then
+        if self.state == states.SELECT_ACTION_TYPE and self.selector.is_showing and self.selector.set_option_disabled then
+            local empty = self:destination_slot_empty()
+            if empty ~= self.clear_slot_disabled then
+                self.clear_slot_disabled = empty
+                self.selector:set_option_disabled(action_types.DELETE, empty)
+            end
+        end
+        if self.selector.set_option_glow then
+            self.selector:set_option_glow(not self.bind_hold and self:is_bind_ready())
+        end
+    end
     -- Also visible while the set chooser is open over the menu, at full
     -- strength, so the set name visibly changes as sets are browsed.
     local visible = self:is_edit_mode() or self:is_choosing_set_in_edit_mode()
@@ -1287,7 +1360,7 @@ function action_binder:update_destination_footer()
     local y = self.base_y + self.height - 50
     local left_edge = self.base_x + 120              -- right of the Exit hint
     local right_edge = self.base_x + self.width - 260 -- left of Confirm
-    local center = (left_edge + right_edge) / 2
+    local center = self.base_x + self.width / 2      -- centred on the menu
     if key ~= self.destination_footer_key then
         self.destination_footer_key = key
         f.width = nil
@@ -1295,7 +1368,7 @@ function action_binder:update_destination_footer()
             f.label:hide()
             for i = 1, footer_icon_count do f.icons[i]:hide() end
             f.prompt:show()
-            caption_layout:center(f.prompt, center, y + 10, right_edge - left_edge)
+            caption_layout:center(f.prompt, center, y + 10, 2 * math.min(center - left_edge, right_edge - center) + 140)
             return
         end
         f.prompt:hide()
@@ -1322,8 +1395,8 @@ function action_binder:update_destination_footer()
         f.width = width
         local gap, icon_size = 6, 32
         local total = width + gap + f.count * icon_size
-        local x = math.max(left_edge, center - total / 2)
-        f.label:pos(x, y + 12)
+        local x = center - total / 2
+        f.label:pos(x, y + 11)
         x = x + width + gap
         for i = 1, f.count do
             f.icons[i]:pos(x, y + 4)
@@ -1526,6 +1599,8 @@ function action_binder:submit_selected_option()
         if selected.disabled then
             if selected.id == action_types.UNDO then
                 chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.')
+            elseif selected.id == action_types.DELETE then
+                chat_format.say(207, '[XIVCrossbar] That slot is already empty.')
             elseif selected.disabled_focusable then
                 chat_format.say(207, '[XIVCrossbar] No custom actions saved. Choose Create Custom Action to add one.')
             end
@@ -1631,6 +1706,13 @@ function action_binder:submit_selected_option()
             self.selector:decrement_page()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
+        elseif option.id == 'CREATE_CUSTOM_ACTION' and option.data and option.data.menu_entry then
+            self.action_type = action_types.CREATE_CUSTOM_ACTION
+            self:new_custom_action('', 'menu')
+        elseif option.id == 'EDIT_CUSTOM_ACTION' and option.data and option.data.menu_entry then
+            self.action_type = action_types.EDIT_CUSTOM_ACTION
+            self.state = states.EDIT_CUSTOM_ACTION_PICK
+            self:display_custom_actions_picker('Edit Custom Action: Pick Entry')
         elseif self.action_type == action_types.SUPERWARP and option.data and option.data.warp_folder then
             -- Save the selected city in the root so Back returns to it.
             self.superwarp_parent_selection = self.selection_states[states.SELECT_ACTION]
@@ -2346,73 +2428,50 @@ function action_binder:display_action_type_selector()
     local black_magic_jobs = {BLM = true, RDM = true, DRK = true, SCH = true, GEO = true, RUN = true}
 
     local action_type_list = L{}
-    local empty_catalog = player_data.custom_actions == nil or next(player_data.custom_actions) == nil
     local custom_icon = 'images/' .. get_icon_pathbase() .. '/custom_actions.png'
-    local red_x = 'images/' .. get_icon_pathbase() .. '/ui/red-x.png'
     local switch_icon = 'images/' ..get_icon_pathbase() .. '/ui/facebuttons_ps.png'
-    -- A: Sunshine's order (2026-11-16), in rows of four. 'newline' entries
-    -- start a new row so each group begins at the left edge.
-    local function newline() action_type_list:append({id = 'NEWLINE', name = 'newline', icon = custom_icon}) end
-
-    -- Row 1: custom actions.
-    action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon, disabled = empty_catalog, disabled_focusable = true})
-    action_type_list:append({id = action_types.CREATE_CUSTOM_ACTION, name = 'Create Custom Action', icon = custom_icon})
-    action_type_list:append({id = action_types.EDIT_CUSTOM_ACTION, name = 'Edit Custom Action', icon = custom_icon, disabled = empty_catalog, disabled_focusable = true})
-    action_type_list:append({id = action_types.DELETE_CUSTOM_ACTION, name = 'Delete Custom Action', icon = red_x, disabled = empty_catalog, disabled_focusable = true})
-    newline()
-
-    -- The job combination's own actions, then everyday and combat actions.
+    local has = function(job) return main_job == job or sub_job == job end
+    -- A: Sunshine's main menu order (2026-11-16). Entries flow in this order.
+    -- Create/Edit Custom Action live inside Custom Action; Create Set lives
+    -- in the set chooser; Delete Custom Action on the custom action edit screen.
+    action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon})
     action_type_list:append({id = action_types.JOB_ABILITY, name = 'Job Ability', icon = 'images/icons/abilities/00001.png', icon_offset = 4})
-    action_type_list:append({id = action_types.WEAPONSKILL, name = 'Weaponskill', icon = 'images/icons/weapons/sword.png', icon_offset = 4})
-
-    if (pet_jobs[main_job] or pet_jobs[sub_job]) then
-        action_type_list:append({id = action_types.PET_COMMAND, name = 'Pet Command', icon = 'images/' ..get_icon_pathbase() .. '/mounts/crab.png'})
-    end
+    action_type_list:append({id = action_types.WEAPONSKILL, name = 'Weaponskills', icon = 'images/icons/weapons/sword.png', icon_offset = 4})
     if (white_magic_jobs[main_job] or white_magic_jobs[sub_job]) then
         action_type_list:append({id = action_types.WHITE_MAGIC, name = 'White Magic', icon = 'images/' ..get_icon_pathbase() .. '/jobs/WHM.png'})
     end
     if (black_magic_jobs[main_job] or black_magic_jobs[sub_job]) then
         action_type_list:append({id = action_types.BLACK_MAGIC, name = 'Black Magic', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BLM.png'})
     end
-    if (main_job == 'BRD' or sub_job == 'BRD') then
-        action_type_list:append({id = action_types.SONG, name = 'Song', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BRD.png'})
-    end
-    if (main_job == 'BST' or sub_job == 'BST') then
-        action_type_list:append({id = action_types.READY, name = 'Ready', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BST.png'})
-    end
-    if (main_job == 'NIN' or sub_job == 'NIN') then
-        action_type_list:append({id = action_types.NINJUTSU, name = 'Ninjutsu', icon = 'images/' ..get_icon_pathbase() .. '/jobs/NIN.png'})
-    end
-    if (main_job == 'SMN' or sub_job == 'SMN') then
+    if has('BRD') then action_type_list:append({id = action_types.SONG, name = 'Songs', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BRD.png'}) end
+    if has('DNC') then action_type_list:append({id = action_types.DANCES, name = 'Dances', icon = 'images/' ..get_icon_pathbase() .. '/jobs/DNC.png'}) end
+    if has('SMN') then
         action_type_list:append({id = action_types.SUMMON, name = 'Summon', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SMN.png'})
-        action_type_list:append({id = action_types.BP_RAGE, name = 'Blood Pact: Rage', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SMN.png'})
-        action_type_list:append({id = action_types.BP_WARD, name = 'Blood Pact: Ward', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SMN.png'})
+        action_type_list:append({id = action_types.BP_RAGE, name = 'Rages', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SMN.png'})
+        action_type_list:append({id = action_types.BP_WARD, name = 'Wards', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SMN.png'})
     end
-    if (main_job == 'BLU' or sub_job == 'BLU') then
-        action_type_list:append({id = action_types.BLUE_MAGIC, name = 'Blue Magic', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BLU.png'})
+    if (pet_jobs[main_job] or pet_jobs[sub_job]) then
+        action_type_list:append({id = action_types.PET_COMMAND, name = 'Pet Commands', icon = 'images/' ..get_icon_pathbase() .. '/mounts/crab.png'})
     end
-    if (main_job == 'COR' or sub_job == 'COR') then
+    if has('BST') then action_type_list:append({id = action_types.READY, name = 'Ready', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BST.png'}) end
+    if has('NIN') then action_type_list:append({id = action_types.NINJUTSU, name = 'Ninjutsu', icon = 'images/' ..get_icon_pathbase() .. '/jobs/NIN.png'}) end
+    if has('BLU') then action_type_list:append({id = action_types.BLUE_MAGIC, name = 'Blue Magic', icon = 'images/' ..get_icon_pathbase() .. '/jobs/BLU.png'}) end
+    if has('COR') then
         action_type_list:append({id = action_types.PHANTOM_ROLL, name = 'Phantom Roll', icon = 'images/' ..get_icon_pathbase() .. '/jobs/COR.png'})
         action_type_list:append({id = action_types.QUICK_DRAW, name = 'Quick Draw', icon = 'images/' ..get_icon_pathbase() .. '/jobs/COR.png'})
     end
-    if (main_job == 'SCH' or sub_job == 'SCH') then
-        action_type_list:append({id = action_types.STRATAGEMS, name = 'Stratagem', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SCH.png'})
-    end
-    if (main_job == 'DNC' or sub_job == 'DNC') then
-        action_type_list:append({id = action_types.DANCES, name = 'Dance', icon = 'images/' ..get_icon_pathbase() .. '/jobs/DNC.png'})
-    end
-    if (main_job == 'RUN' or sub_job == 'RUN') then
+    if has('SCH') then action_type_list:append({id = action_types.STRATAGEMS, name = 'Stratagem', icon = 'images/' ..get_icon_pathbase() .. '/jobs/SCH.png'}) end
+    if has('RUN') then
         action_type_list:append({id = action_types.RUNE_ENCHANTMENT, name = 'Rune Enchantment', icon = 'images/' ..get_icon_pathbase() .. '/jobs/RUN.png'})
         action_type_list:append({id = action_types.WARD, name = 'Ward', icon = 'images/' ..get_icon_pathbase() .. '/jobs/RUN.png'})
         action_type_list:append({id = action_types.EFFUSION, name = 'Effusion', icon = 'images/' ..get_icon_pathbase() .. '/jobs/RUN.png'})
     end
-    if (main_job == 'GEO' or sub_job == 'GEO') then
-        action_type_list:append({id = action_types.GEOMANCY, name = 'Geomancy', icon = 'images/' ..get_icon_pathbase() .. '/jobs/GEO.png'})
-    end
-
-    action_type_list:append({id = action_types.TRUST, name = 'Call Trust', icon = 'images/' ..get_icon_pathbase() .. '/trust/yoran-oran.png'})
-    action_type_list:append({id = action_types.MOUNT, name = 'Call Mount', icon = 'images/' ..get_icon_pathbase() .. '/mount.png'})
+    if has('GEO') then action_type_list:append({id = action_types.GEOMANCY, name = 'Geomancy', icon = 'images/' ..get_icon_pathbase() .. '/jobs/GEO.png'}) end
+    action_type_list:append({id = action_types.TRUST, name = 'Trusts', icon = 'images/' ..get_icon_pathbase() .. '/trust/yoran-oran.png'})
     action_type_list:append({id = action_types.SUPERWARP, name = 'Warps', icon = 'images/' .. get_icon_pathbase() .. '/home-point.png'})
+    action_type_list:append({id = action_types.MOUNT, name = 'Mounts', icon = 'images/' ..get_icon_pathbase() .. '/mount.png'})
+    action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch', icon = switch_icon})
+    action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick Switch', icon = switch_icon})
     action_type_list:append({id = action_types.USABLE_ITEM, name = 'Use Item', icon = 'images/' ..get_icon_pathbase() .. '/usable-item.png'})
     action_type_list:append({id = action_types.TRADABLE_ITEM, name = 'Trade Item', icon = 'images/' ..get_icon_pathbase() .. '/item.png'})
     action_type_list:append({id = action_types.ATTACK, name = 'Attack', icon = 'images/' ..get_icon_pathbase() .. '/attack.png'})
@@ -2420,24 +2479,20 @@ function action_binder:display_action_type_selector()
     action_type_list:append({id = action_types.ASSIST, name = 'Assist', icon = 'images/' ..get_icon_pathbase() .. '/assist.png'})
     action_type_list:append({id = action_types.SWITCH_TARGET, name = 'Switch Target', icon = 'images/' ..get_icon_pathbase() .. '/targetnpc.png'})
     action_type_list:append({id = action_types.MAP, name = 'View Map', icon = 'images/' ..get_icon_pathbase() .. '/map.png'})
-    action_type_list:append({id = action_types.LAST_SYNTH, name = 'Last Synth', icon = 'images/' ..get_icon_pathbase() .. '/synth.png'})
     action_type_list:append({id = action_types.CHECK, name = 'Check', icon = 'images/' ..get_icon_pathbase() .. '/check.png'})
-    action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch', icon = switch_icon})
-    action_type_list:append({id = action_types.QUICK_SWITCH_CROSSBARS, name = 'Quick Switch', icon = switch_icon})
-    newline()
-
-    -- Slot row: acts on the selected slot (old screens when none is selected).
-    action_type_list:append({id = action_types.DELETE, name = 'Clear', icon = red_x})
+    action_type_list:append({id = action_types.LAST_SYNTH, name = 'Last Synth', icon = 'images/' ..get_icon_pathbase() .. '/synth.png'})
     action_type_list:append({id = action_types.CHANGE_ICON, name = 'Change Icon', icon = 'images/' ..get_icon_pathbase() .. '/icon-set.png'})
+    -- Clear Slot is dummied out while the selected slot is empty (kept in step
+    -- with the selection by refresh_clear_slot_entry).
+    local clear_empty = self:destination_slot_empty()
+    action_type_list:append({id = action_types.DELETE, name = 'Clear Slot', icon = 'images/' ..get_icon_pathbase() .. '/none.png',
+        disabled = clear_empty, disabled_focusable = true})
+    self.clear_slot_disabled = clear_empty
     local undo_count = self.undo_count and self.undo_count() or 0
     action_type_list:append({id = action_types.UNDO, name = undo_count > 0 and ('Undo (' .. undo_count .. ')') or 'Undo',
         icon = 'images/' ..get_icon_pathbase() .. '/Swap.png', disabled = undo_count == 0, disabled_focusable = true})
-    newline()
-
-    -- Sets and setup.
-    action_type_list:append({id = action_types.CREATE_NEW_SET, name = 'Create Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_' .. self.button_layout .. '.png'})
-    action_type_list:append({id = action_types.DELETE_SET, name = 'Delete Set', icon = red_x})
     action_type_list:append({id = action_types.MOVE_CROSSBARS, name = 'Move Crossbar', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_ps.png'})
+    action_type_list:append({id = action_types.DELETE_SET, name = 'Delete Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
     action_type_list:append({id = action_types.SHOW_CREDITS, name = 'Credits', icon = 'images/credit_avatars/xiv.png'})
     self.selector:display_options(action_type_list)
     self:show_control_hints('Confirm', 'Exit')
@@ -2552,24 +2607,11 @@ function action_binder.target_options_for(target_type, action_type, allow_stpc_f
     return options
 end
 
--- A: one title rule for every menu screen. 'left' (default): left-aligned at
--- the menu's upper left; 'center': centred on the menu. Before this, a title
--- stayed centred only after a screen that centred it had been visited.
+-- A: one title rule for every menu screen: centred on the menu. (Before
+-- this, a title stayed centred only after a screen that centred it.)
 function action_binder:set_title(text)
     self.title:text(text)
-    if self.title_align == 'center' then
-        caption_layout:center(self.title, self.base_x + self.width / 2, self.base_y + 30, self.width - 80)
-    else
-        self.title:pos(self.base_x + 30, self.base_y + 30)
-        caption_layout:fit(self.title, self.width - 80)
-    end
-end
-
-function action_binder:set_title_align(align)
-    self.title_align = align == 'center' and 'center' or 'left'
-    if self.title and not ui_resources.is_disposed(self.title) and self.title:text() then
-        self:set_title(self.title:text())
-    end
+    caption_layout:center(self.title, self.base_x + self.width / 2, self.base_y + 30, self.width - 80)
 end
 
 -- Center captions using measured glyph widths rather than character counts.
@@ -2584,7 +2626,8 @@ function action_binder:show_set_title(label)
     local bar = player_data.hotbar[key]
     local name = bar and (bar.name or key) or key or ''
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
-    local color = defaults[key] and '\\cs(0,128,255)' or '\\cs(255,255,255)'
+    -- Set names in amber (the set label's colour), defaults and own sets alike.
+    local color = '\\cs(255,216,112)'
     self:set_title(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
     self.title:show()
     if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end
@@ -3535,6 +3578,13 @@ function action_binder:display_custom_actions_selector()
     end
 
     action_list:sort(sortByName)
+    -- A: Create and Edit lead the Custom Action list (moved from the main menu).
+    local custom_icon = 'images/' .. get_icon_pathbase() .. '/custom_actions.png'
+    local empty_catalog = action_list:length() == 0
+    action_list:insert(1, {id = 'EDIT_CUSTOM_ACTION', name = 'Edit Custom Action', icon = custom_icon,
+        disabled = empty_catalog, disabled_focusable = true, data = {menu_entry = true}})
+    action_list:insert(1, {id = 'CREATE_CUSTOM_ACTION', name = 'Create Custom Action', icon = custom_icon,
+        data = {menu_entry = true}})
     self.selector:display_options(action_list)
     self:show_control_hints('Confirm', 'Go Back')
 end

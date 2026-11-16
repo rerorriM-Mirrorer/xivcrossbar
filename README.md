@@ -842,3 +842,31 @@ Lua simulation only; live testing pending.
 - Menu titles follow one rule on every screen: left-aligned by default, or
   //xb menutitle center (//xb menutitle left to return).
 Lua simulation only; live testing pending.
+
+2026-11-16: Edit mode: menu order, Clear Slot, option glow, styling.
+- The main menu flows in this order with no forced rows: Custom Action, Job
+  Ability, Weaponskills, White Magic, Black Magic, Songs, Dances, Summon, Rages,
+  Wards, Pet Commands, the other job categories, Trusts, Warps, Mounts, Switch,
+  Quick Switch, Use Item, Trade Item, Attack, Ranged Attack, Assist, Switch
+  Target, View Map, Check, Last Synth, Change Icon, Clear Slot, Undo, Move
+  Crossbar, Delete Set, Credits.
+- Create and Edit Custom Action now lead the Custom Action list, with Edit
+  dummied out while no custom actions exist. Delete is on the edit screen.
+  Create Set is in the set chooser only.
+- Clear Slot (none.png icon): a red X breathes over a bound selected slot.
+  While the selected slot is empty, Clear Slot is dummied out and says the slot
+  is already empty.
+- The highlighted entry glows like a pressed slot whenever Confirm would bind
+  it. There's no glow, no ghost and full amber when the slot already holds it.
+- Footer: "Choose a crossbar slot to bind to:" and the "SETNAME: [buttons]"
+  group are centred on the menu. The set name is amber with a black outline,
+  two points larger. L1/R1 banks use placeholder trigger pictures.
+- Menu list icons fill their frame like crossbar slots, so smaller icon packs
+  line up.
+- Titles are always centred (//xb menutitle removed). Set names on the
+  review screens and default sets in the set chooser are amber. The default-set
+  tooltip is gone, and "Choose Crossbar" is larger and sits right above the
+  sets.
+- //xb diagnose alone starts a full log (input and drawing); //xb diagnose again
+  stops and saves it.
+Lua simulation only; live testing pending.

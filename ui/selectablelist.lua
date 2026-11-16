@@ -156,6 +156,7 @@ function selectable_list:decrement_col() self:move_selection(0,-1) end
 
 function selectable_list:hide()
     self.is_showing = false
+    self:set_option_glow(false)
     if self.cursor then self.cursor:hide() end
     self:page_highlight(nil)
     if self.page_backgrounds then
@@ -197,6 +198,49 @@ function selectable_list:create_text(text_string, row, col)
         caption_layout:fit(text, COLUMN_WIDTH - 50 - 30 - stroke - 2)
     end
     return text
+end
+
+-- A: dummy out (or restore) one entry in place, without redrawing the list.
+function selectable_list:set_option_disabled(id, disabled)
+    for col, rows in pairs(self.field_coords or {}) do
+        for row, option in pairs(rows) do
+            if option.id == id then
+                option.disabled = disabled
+                for _, entry in ipairs(self.option_objects or {}) do
+                    if entry.row == row and entry.col == col then
+                        entry.disabled = disabled
+                        for k = 2, #entry.objects do entry.objects[k].ref:alpha(disabled and 90 or 255) end
+                    end
+                end
+            end
+        end
+    end
+    if self.is_showing then self:highlight_selection() end
+end
+
+-- A: the highlighted entry glows like a pressed crossbar slot while Confirm
+-- would bind it to the selected slot. Cheap to call every frame.
+local GLOW_PADDING = 4
+function selectable_list:set_option_glow(on)
+    local key = on and self.is_showing and table.concat({self.current_page or 0, self.selected_row or 0,
+        self.selected_col or 0, tostring(self.current_options)}, ':') or nil
+    if key == self.option_glow_key then return end
+    self.option_glow_key = key
+    if not key then
+        if self.option_glow and not ui_resources.is_disposed(self.option_glow) then self.option_glow:hide() end
+        return
+    end
+    if not self.option_glow or ui_resources.is_disposed(self.option_glow) then
+        self.option_glow = ui_resources.image({draggable = false})
+        self.option_glow:path(windower.addon_path .. 'images/assets/slot-glow.png')
+        self.option_glow:fit(false)
+        self.option_glow:size(40 + 2 * GLOW_PADDING, 40 + 2 * GLOW_PADDING)
+        self.option_glow:alpha(220)
+    end
+    local x, y = self:get_pos(self.selected_row, self.selected_col)
+    -- The highlighted entry is lifted 2px up and left; the glow follows it.
+    self.option_glow:pos(x + 5 - 2 - GLOW_PADDING, y + 5 - 2 - GLOW_PADDING)
+    self.option_glow:show()
 end
 
 -- A: edit-mode bind confirmation on the confirmed row. level 1 = gold/white,
@@ -376,13 +420,15 @@ function selectable_list:display_options(options, presentation)
                 setup_image(icon, icon_path)
                 -- Credit portraits opt into a bounded square; ordinary spell,
                 -- item and ability images keep their established sizing.
-                if value.icon_size then
-                    icon:fit(false)
-                    icon:size(value.icon_size,value.icon_size)
-                end
-                -- Sized portraits are centered relative to the frame at (x,y),
+                -- A: every list icon fills its 40x40 frame, as on the crossbar, so
+                -- icon packs with smaller artwork (32x32 and so on) line up.
+                -- Credit portraits keep their explicit smaller square.
+                local icon_size = value.icon_size or 40
+                icon:fit(false)
+                icon:size(icon_size, icon_size)
+                -- Sized icons are centered relative to the frame at (x,y),
                 -- which already includes the row's 5px inset.
-                local icon_offset = value.icon_size and (40 - value.icon_size) / 2 or (value.icon_offset or 0)
+                local icon_offset = (40 - icon_size) / 2
                 icon:pos(x + icon_offset, y + icon_offset)
                 self.images:append(icon)
 

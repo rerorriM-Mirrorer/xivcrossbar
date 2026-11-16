@@ -120,6 +120,74 @@ binder:clear_destination(); assert(binder:get_destination()==nil and not binder:
 
 -- Main menu renames.
 local src=io.open('action_binder.lua'):read('*a')
-assert(src:find("name = 'Clear'",1,true) and src:find("name = 'Change Icon'",1,true))
+assert(src:find("name = 'Clear Slot'",1,true) and src:find("name = 'Change Icon'",1,true))
 assert(not src:find("'Remove a Binding'",1,true) and not src:find("'Change Slot Icon'",1,true))
+-- Shoulder bank footer pictures (Xbox trigger placeholders).
+icons=binder:destination_icons(7,1); assert(icons[1]:find('trigger_xbox_left') and icons[2]:find('plus'))
+icons=binder:destination_icons(8,1); assert(icons[1]:find('trigger_xbox_right'))
+icons=binder:destination_icons(9,1); assert(icons[1]:find('trigger_xbox_left') and icons[2]:find('trigger_xbox_right'))
+
+-- Option glow: on while Confirm would bind, off when the slot already holds it.
+binder.state,binder.action_type=2,4
+spells=L{}
+for i=1,10 do spells:append({id=i,name='Spell '..i,icon='images/s'..i..'.png',data={target_type={None=true}}}) end
+binder.selector:set_page(1); binder:display_action_selector()
+select_slot=select_slot or nil
+binder.trigger_right_pressed=true; binder:edit_slot_press(7,true); binder:edit_slot_press(7,false); binder.trigger_right_pressed=false
+binder:update_destination_footer()
+local glow=binder.selector.option_glow
+assert(glow and glow:visible(), 'highlighted entry glows when Confirm would bind')
+local x=binder.selector:get_pos(binder.selector.selected_row,binder.selector.selected_col)
+assert(glow.values.pos==x+5-2-4, 'glow sits on the lifted entry')
+player.hotbar.basic.hotbar_2={slot_7={action=binder.selector:get_selected_option().text}}
+binder:update_destination_footer()
+assert(not glow:visible(), 'no glow when the slot already holds that action')
+assert(binder:get_destination().ready==false and binder:get_ghost()==nil, 'full amber and no ghost for the same action')
+player.hotbar.basic.hotbar_2=nil
+binder:update_destination_footer()
+assert(glow:visible())
+binder.selector:hide(); assert(not glow:visible(), 'glow hides with the list')
+
+-- Custom Action list: Create and Edit lead it; Edit dummied out with no custom actions.
+binder.action_type=nil
+player.custom_actions={}
+binder.action_type=34
+binder.state=2
+local real_display=binder.display_action_selector
+binder.display_action_selector=nil
+binder:display_custom_actions_selector()
+local first=binder.selector.current_options
+assert(first[1].name=='Create Custom Action' and first[2].name=='Edit Custom Action' and first[2].disabled, 'Create/Edit first; Edit dummied out')
+assert(binder:get_ghost()==nil and not binder:is_bind_ready(), 'menu entries are not bind targets')
+player.custom_actions={Ready={command='input /ja Ready <me>'}}
+binder:display_custom_actions_selector()
+assert(not binder.selector.current_options[2].disabled and binder.selector.current_options[3].name=='Ready')
+binder.display_action_selector=real_display
+
+-- Footer: amber label with a black outline, two points larger; centred on the menu.
+binder.state=1; binder.is_hidden=false
+binder:update_destination_footer()
+local f=binder.destination_footer_objects
+assert(f.label.values.color==255 and f.label.values.stroke_color==0, 'amber text, black outline')
+local text_measure=require('ui/text_measure')
+for _=1,12 do text_measure.begin_frame(); binder:update_destination_footer() end
+local width=f.label:measure_width()
+if width then
+    local total=width+6+f.count*32
+    assert(math.abs(f.label.values.pos-(binder.base_x+binder.width/2-total/2))<0.01, 'group centred on the menu')
+end
+-- Menu list icons fill their 40x40 frame like crossbar slots (smaller packs line up).
+binder.selector:display_options(L{{id=1,name='Small',icon='images/small.png',icon_offset=4,data={target_type={None=true}}},
+    {id=2,name='Portrait',icon='images/p.png',icon_size=32,data={target_type={None=true}}}})
+local entry1,entry2=binder.selector.option_objects[1],binder.selector.option_objects[2]
+assert(entry1.objects[2].ref.values.size==40 and entry1.objects[2].x==entry1.objects[3].x, '32px pack icon scaled to the frame')
+assert(entry2.objects[2].ref.values.size==32 and entry2.objects[2].x==entry2.objects[3].x+4, 'credit portraits keep their size')
+
+-- Set chooser and diagnostics (source checks).
+local chooser=io.open('environment_chooser.lua'):read('*a')
+assert(chooser:find("\\\\cs(255,216,112)' .. HIDDEN_SPACE .. name",1,true) and not chooser:find("\\\\cs(0,128,255)' .. HIDDEN_SPACE .. name",1,true), 'default sets amber')
+assert(chooser:find('get_name_y(count)-17',1,true) and chooser:find('font_size + 2',1,true), 'heading larger, no gap')
+assert(not chooser:find('self:maybe_show_default_sets_tooltip(',1,true), 'no default-sets tooltip')
+local main=io.open('xivcrossbar.lua'):read('*a')
+assert(main:find("diagnostic:command('start', 'full')",1,true) and not main:find("command == 'menutitle'",1,true))
 print('edit banks, ready and renames: passed')

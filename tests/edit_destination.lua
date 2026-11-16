@@ -137,7 +137,7 @@ assert(resources.is_disposed(label) and binder.destination_footer_objects==nil)
 binder.is_hidden=false
 binder:update_destination_footer()
 assert(binder.destination_footer_objects.prompt:visible(), 'reopened menu: Choose a slot to bind to')
-assert(binder.destination_footer_objects.prompt.values.text=='Choose a slot to bind to')
+assert(binder.destination_footer_objects.prompt.values.text=='Choose a crossbar slot to bind to:')
 
 -- 9. Legacy Bind-to-Slot screen is untouched: edit mode is off there.
 binder.state=5 -- SELECT_BUTTON_ASSIGNMENT

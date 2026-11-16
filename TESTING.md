@@ -1,3 +1,56 @@
+# Current Development Status - Edit mode: menu order, Clear Slot, option glow, styling (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint a179740 (pushed).
+
+LIVE RESULTS for a179740 / d1fab90 (Sunshine): bind flash and hold feel good;
+footer no longer flashes on slot changes; double-tap and L1/R1 banks work in
+the menu; set cycling works in the menu; //xb menutitle center felt better.
+Footer lacked L1/R1 button pictures. Smaller replacement icons looked smaller
+than their frames in menu lists. Forced row breaks were not wanted.
+
+CHANGES:
+- action_binder.lua: main menu rebuilt in the new order, entries flowing (no
+  'newline' breaks); renames (Weaponskills, Songs, Dances, Rages, Wards, Pet
+  Commands, Trusts, Mounts, Clear Slot; Summon unchanged); Create/Edit Custom
+  Action moved to the head of the Custom Action list (menu_entry options,
+  Edit dummied out on an empty catalogue); Delete Custom Action and Create Set
+  off the main menu. Clear Slot: none.png, dummied out in place while the
+  selected slot is empty (refresh each frame via set_option_disabled), red-X
+  ghost over a bound slot, "That slot is already empty." destination_record(),
+  destination_slot_empty(), same_as_bound(): an action already on the slot is
+  not bind-ready (no glow, no ghost, full amber). Option glow each frame via
+  selector:set_option_glow(is_bind_ready). Footer: amber/black label +2pt,
+  prompt "Choose a crossbar slot to bind to:", both centred on the menu; L1/R1
+  placeholders (trigger_xbox_left/right). set_title always centres;
+  set_title_align removed. Review titles: set names amber.
+- ui/selectablelist.lua: icons sized to the 40x40 frame unless icon_size is
+  given (credits keep 32); set_option_disabled(); set_option_glow() using
+  images/assets/slot-glow.png on the lifted entry; hidden with the list.
+- environment_chooser.lua: default sets amber; default-sets tooltip retired
+  (show and unhide); heading +2pt, 17px above the top name (was 29).
+- xivcrossbar.lua: //xb menutitle removed; bare //xb diagnose toggles a full
+  diagnostic (start full / stop and save).
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+edit_hold_undo, edit_banks_ready, edit_destination, custom_action_save_return
+updated/extended. 7 mutations: 6 made a test fail; 1 survived because a
+second guard (the dummied-out entry) covers the same case. Full suite, 67
+files, all exit 0. NOT run: Lua 5.1 parse, Windows CI, live.
+
+LIVE TESTS PENDING:
+1. Main menu order as listed in the README entry; Summon still "Summon".
+2. Custom Action: Create first, Edit second (dummied out with none saved).
+3. Clear Slot: red X breathes on a bound selected slot; on an empty slot it is
+   dummied out and says the slot is already empty; switching slots updates it.
+4. Option glow on bind-ready entries; none for the action already on the slot.
+5. Footer centred; amber name with black outline; L1/R1 pictures.
+6. Smaller icon packs fill the menu frames.
+7. Set chooser: amber default sets, no tooltip, larger heading with no gap.
+8. //xb diagnose starts a full log; //xb diagnose again saves it.
+
+---
+
 # Current Development Status - Edit mode: bind hold, Clear/Change Icon, Undo, menu order, titles (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,

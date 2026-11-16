@@ -796,7 +796,6 @@ function initialize(server_id, expected_name, expected_id)
     end
     action_binder.delete_set_binding = function(key) delete_environment_command({key}); ui_dirty = true end
     action_binder.protected_set_keys = PROTECTED_ENV_KEYS
-    action_binder:set_title_align(settings.MenuTitleAlign)
     -- A: edit-mode footer shows the set name exactly as the crossbar label does.
     action_binder.set_name_provider = function() return ui.set_name_text end
     -- A: edit-mode double-tap banks use the same detection as play.
@@ -1508,17 +1507,6 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(207,'[XIVCrossbar] '..command:sub(1,1):upper()..command:sub(2)..' reloading')
         graceful_restart(false)
         return
-    elseif command == 'menutitle' then
-        -- A: menu title alignment for every screen: left (default) or center.
-        local mode = type((...)) == 'string' and (...):lower() or nil
-        if mode == 'centre' then mode = 'center' end
-        if mode ~= nil and mode ~= 'left' and mode ~= 'center' then
-            chat_format.say(123, '[XIVCrossbar] Use //xb menutitle [left|center].')
-            return
-        end
-        if mode then settings.MenuTitleAlign = mode; config.save(settings) end
-        action_binder:set_title_align(settings.MenuTitleAlign)
-        chat_format.say(207, '[XIVCrossbar] Menu titles: ' .. (settings.MenuTitleAlign == 'center' and 'centered' or 'left-aligned') .. '.')
     elseif command == 'undo' then
         -- A: undo the last change made from the XIV Crossbar menu.
         if not undo_last_edit() then chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.') end
@@ -1539,6 +1527,13 @@ windower.register_event('addon command', function(command, ...)
                 return
             end
             return native_command(note=='block' and 'probe' or note=='pass' and 'off' or note=='auto' and 'auto' or 'status', nil, device)
+        end
+        -- A: bare //xb diagnose toggles one full chronological log: it starts
+        -- input + render capture, and the next //xb diagnose stops and saves.
+        if mode == nil then
+            local active = diagnostic.recorder and diagnostic.recorder.active
+            if active then return diagnostic:command('stop') end
+            return diagnostic:command('start', 'full')
         end
         return diagnostic:command(mode,mode=='mark' and table.concat({...},' ',2) or note)
     elseif command == 'nativepad' then

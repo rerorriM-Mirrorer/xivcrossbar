@@ -128,6 +128,7 @@ function env_chooser:load(theme_options)
     self.heading = new_text(text_setup)
     setup_text(self.heading,theme_options)
     self.heading:text('Choose Crossbar')
+    self.heading:size(theme_options.font_size + 2) -- A: two points larger
     self.heading:color(255,216,112)
     self.heading:hide()
 
@@ -309,10 +310,7 @@ function env_chooser:temp_hide_default_sets_tooltip()
 end
 
 function env_chooser:maybe_unhide_default_sets_tooltip()
-    if (self.is_shown and default_hotbars[kebab_casify(self.current_environment)] and kebab_casify(self.current_environment) ~= 'shared') then
-        prim.set_visibility('tooltip_background', true)
-        self.tooltip:show()
-    end
+    -- A: the default-sets tooltip was retired (2026-11-16); nothing to unhide.
 end
 
 function env_chooser:show_player_environments(player_hotbar, current_environment, anchor_x, anchor_bottom)
@@ -328,7 +326,8 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
         local index = (#environments - i) + 1 -- put first environment at the top instead of bottom
         local name = self.set_display_name and self.set_display_name(environment.key, environment.name) or environment.name
         if (default_hotbars[environment.key]) then
-            self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,128,255)' .. HIDDEN_SPACE .. name)
+            -- A: default sets in amber (the set label's colour), not blue.
+            self.environments[index].name_text:text(HAIRLINE .. '\\cs(255,216,112)' .. HIDDEN_SPACE .. name)
         elseif (environment.name == ADD_NEW_SET) then
             self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. name)
             self.indexof_add_new_set = index
@@ -338,7 +337,7 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
         self.environments[index].name_text:pos(self:get_name_x(index), self:get_name_y(index))
         self.environments[index].name_text:show()
         if (environment.key == current_environment) then
-            self:maybe_show_default_sets_tooltip(environment.key, #environments)
+            -- A: no explanatory tooltip for the default sets any more.
             prim.set_position('menu_highlight', self:get_name_x(index) - 10, self:get_name_y(index) - 2)
         end
     end
@@ -347,7 +346,8 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
     prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(count) - 34)
     prim.set_size('menu_background', 170, 39 + self:get_name_y(0) - self:get_name_y(count))
     if self.heading then
-        self.heading:pos(self:get_name_x(1),self:get_name_y(count)-29)
+        -- A: directly above the top set name (no blank line between them).
+        self.heading:pos(self:get_name_x(1),self:get_name_y(count)-17)
         self.heading:show()
     end
     prim.set_visibility('menu_background', true)
