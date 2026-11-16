@@ -389,7 +389,7 @@ change_slot_icon_func, save_global_icon_func, save_custom_action_func, update_cu
     self.new_set_alias = nil
     self.selector = require('ui/selectablelist')
     self.theme_options = theme_options
-    self.title = self:create_text('Select Action Type', base_x + 50, base_y + 30)
+    self.title = self:create_text('XIV Crossbar', base_x + 50, base_y + 30)
     self.title:size(18)
     self.title:pad(5)
     self.title:bg_color(15, 17, 24)
@@ -1106,7 +1106,9 @@ function action_binder:submit_selected_option()
             self.action_linked_type = option.data.linked_type
             self.action_alias = option.data.alias
 
-            if (self.target_type['Self'] and not (self.theme_options.allow_stpc_for_self_targeted_actions or
+            -- A: self-only weaponskills still open the picker so <st> can be chosen.
+            if (self.target_type['Self'] and self.action_type ~= action_types.WEAPONSKILL and
+                    not (self.theme_options.allow_stpc_for_self_targeted_actions or
                     self.target_type['NPC'] or
                     self.target_type['Enemy'] or
                     self.target_type['Party'] or
@@ -1768,7 +1770,7 @@ end
 
 function action_binder:display_action_type_selector()
     require('ui/menu_background').set_color(windower.prim, 'dialog_bg',150,0,0,0)
-    self.title:text('Select Action Type')
+    self.title:text('XIV Crossbar')
     self.title:show()
 
     local player = windower.ffxi.get_player()
@@ -1926,36 +1928,46 @@ end
 function action_binder:display_target_selector()
     self.title:text('Select Action Target')
     self.title:show()
+    self.selector:display_options(action_binder.target_options_for(self.target_type, self.action_type,
+        self.theme_options.allow_stpc_for_self_targeted_actions))
+end
 
-    local target_options = L{}
+-- A: target picker order. Self-only actions lead with <me>; everything else
+-- that can use <t> leads with it. Self-only weaponskills offer <me> and <st>.
+function action_binder.target_options_for(target_type, action_type, allow_stpc_for_self)
+    local icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'
+    local names = {
+        SELF = 'Self (<me>)', CURRENT_TARGET = 'Current Target (<t>)',
+        SELECT_PARTY = 'Select Party (<stpt>)', SELECT_ALLIANCE = 'Select Ally (<stal>)',
+        SELECT_PLAYER = 'Select Player (<stpc>)', SELECT_NPC = 'Select NPC (<stnpc>)',
+        SELECT_TARGET = 'Select Target (<st>)', BATTLE_TARGET = 'Battle Target (<bt>)',
+    }
+    local ids = L{}
+    local function add(id) if not ids:contains(id) then ids:append(id) end end
 
-    if (self.target_type['Self']) then
-        target_options:append({id = 'SELF', name = 'Self (<me>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Party'] or self.target_type['Corpse']) then
-        target_options:append({id = 'SELECT_PARTY', name = 'Select Party (<stpt>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Ally'] or self.target_type['Corpse']) then
-        target_options:append({id = 'SELECT_ALLIANCE', name = 'Select Ally (<stal>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Player'] or self.target_type['Corpse']) then
-        target_options:append({id = 'SELECT_PLAYER', name = 'Select Player (<stpc>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['NPC'] or self.target_type['Enemy']) then
-        target_options:append({id = 'SELECT_NPC', name = 'Select NPC (<stnpc>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-        target_options:append({id = 'CURRENT_TARGET', name = 'Current Target (<t>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-    if (self.target_type['Enemy']) then
-        target_options:append({id = 'SELECT_TARGET', name = 'Select Target (<st>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-        target_options:append({id = 'BATTLE_TARGET', name = 'Battle Target (<bt>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
+    local self_only = target_type['Self'] and not (target_type['Party'] or target_type['Ally'] or
+        target_type['Player'] or target_type['NPC'] or target_type['Enemy'] or target_type['Corpse'])
+
+    if self_only then
+        add('SELF')
+        if action_type == action_types.WEAPONSKILL then
+            add('SELECT_TARGET')
+        elseif allow_stpc_for_self then
+            add('SELECT_PLAYER')
+        end
+    else
+        if target_type['NPC'] or target_type['Enemy'] then add('CURRENT_TARGET') end
+        if target_type['Self'] then add('SELF') end
+        if target_type['Party'] or target_type['Corpse'] then add('SELECT_PARTY') end
+        if target_type['Ally'] or target_type['Corpse'] then add('SELECT_ALLIANCE') end
+        if target_type['Player'] or target_type['Corpse'] then add('SELECT_PLAYER') end
+        if target_type['NPC'] or target_type['Enemy'] then add('SELECT_NPC') end
+        if target_type['Enemy'] then add('SELECT_TARGET'); add('BATTLE_TARGET') end
     end
 
-    local is_only_self_targeted = self.target_type['Self'] and not (self.target_type['Party'] or self.target_type['Ally'] or self.target_type['Player'] or self.target_type['NPC'])
-    if (is_only_self_targeted and self.theme_options.allow_stpc_for_self_targeted_actions) then
-        target_options:append({id = 'SELECT_PLAYER', name = 'Select Player (<stpc>)', icon = 'images/' .. get_icon_pathbase() .. '/mappoint.png'})
-    end
-
-    self.selector:display_options(target_options)
+    local options = L{}
+    for _, id in ipairs(ids) do options:append({id = id, name = names[id], icon = icon}) end
+    return options
 end
 
 -- Center captions using measured glyph widths rather than character counts.
@@ -2457,7 +2469,11 @@ function action_binder:display_weaponskill_selector()
             icon_offset = 0
         end
 
-        ability_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = {['Enemy'] = true}}})
+        -- A: use the resource's real targets. Self-only weaponskills (Myrkr,
+        -- Dagan, Moonlight, Starlight...) must not offer <t>/<stnpc>/<bt>.
+        local targets = ws.targets
+        if targets == nil or next(targets) == nil then targets = {['Enemy'] = true} end
+        ability_list:append({id = id, name = name, icon = icon_path, icon_offset = icon_offset, data = {target_type = targets}})
     end
 
     -- Experimental: show the highest resource-ID weaponskills first.

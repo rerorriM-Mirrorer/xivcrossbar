@@ -1,3 +1,40 @@
+# Current Development Status - Target picker order and XIV Crossbar title (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116
+(local, not pushed), based on snapshot/known-good-20261115 a766b6e.
+
+REQUEST: self-only weaponskills should offer <me> first and drop <t>, <stnpc>
+and <bt> (keep <st> to subtarget before firing). Everywhere else <t> should be
+the first target option when it is available. Main menu title becomes
+"XIV Crossbar".
+
+CAUSE (read from source): display_weaponskill_selector gave every weaponskill
+target_type {Enemy=true}, ignoring res.weapon_skills[id].targets.
+
+CHANGES (action_binder.lua only):
+- Weaponskills use their resource targets (fallback Enemy if missing).
+- New action_binder.target_options_for(target_type, action_type, allow_stpc):
+  self-only -> <me> first; self-only weaponskill -> <me>, <st>; self-only other
+  actions keep the optional <stpc>. Otherwise <t> first when available, then
+  the previous order (<me>, <stpt>, <stal>, <stpc>, <stnpc>, <st>, <bt>).
+- Self-only weaponskills always open the target picker (so <st> is reachable)
+  instead of auto-binding <me>.
+- Main menu title "Select Action Type" -> "XIV Crossbar".
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/target_order.lua (8 checks) and the whole suite, 61 files, all exit 0.
+NOT run: any live FFXI test.
+
+LIVE TESTS PENDING:
+1. Open the menu: title reads XIV Crossbar.
+2. Weaponskill > a self-only WS (e.g. Myrkr, Dagan, Moonlight, Starlight):
+   picker shows Self (<me>) then Select Target (<st>) only. Bind <me>, fire it.
+3. Weaponskill > an ordinary WS: Current Target (<t>) is first and selected.
+4. A spell such as Dia or Stone: <t> first. Cure: <me> first as before.
+5. A self-only job ability (e.g. Berserk): unchanged.
+
+---
+
 # Current Development Status - GripRumble cues and paused pass-through (TEST PENDING)
 
 2026-11-15 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar, working
