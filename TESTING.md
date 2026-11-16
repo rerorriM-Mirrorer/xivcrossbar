@@ -1,4 +1,50 @@
-# Current Development Status - Settings cleanup test
+# Current Development Status - Trust paused pass-through (TEST PENDING)
+
+2026-11-15 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar, working
+branch fix/trust-paused-passthrough-20261115 (local, not yet pushed), based on
+feat/settings-cleanup-20261112 tip 6e1aea11f3dc5315cd61dbd8a0a1c522fd29f655,
+which the user's 2026-11-15 known-good snapshot matches in all Lua/AHK code.
+
+REQUEST (relayed from Trust testing): while Trust's controller status is
+`paused` (NPC dialogue or cutscene, Trust status Event), pass every pad button
+through to FFXI and keep crossbar binds firing, including the `//trust menu`
+bind. Observed: Circle did not leave dialogue and L1+Triangle did not run.
+
+CAUSE (verified by reading source): controller_bridge.lua treated a fresh
+lease in any state as a claim on the pad. `mask()` returned the navigation
+button mask whenever a token existed, which makes `gamepad_state.trust_menu_live`
+true, and `edge()` claimed each mapped press and sent nothing to Trust while
+`paused` ("trust-paused-held"). xivcrossbar.lua then returned
+'trust-menu-priority' for every other press, so crossbar binds were skipped too.
+
+CHANGE (Lua only, controller_bridge.lua): `mask()` returns 0 while the lease
+state is `paused`; `edge()` does not claim a press that starts while paused. A
+button already claimed before the pause still has its release consumed once, so
+no stray release reaches FFXI. Navigation and text states are unchanged.
+tests/controller_bridge.lua gained a paused case. No Trust, AHK or native change.
+
+CHECKS THAT RAN: tests/controller_bridge.lua passes under texlua (Lua 5.3, not
+Lua 5.1 and not Windower); removing either half of the fix makes it fail;
+both changed files parse. NOT run: the other Lua suites, GitHub CI, Windows
+build, and any live FFXI test. The path from lease state to native mask to key
+handler was read in source but is not simulated end to end.
+
+LIVE TESTS PENDING (one client first, then two):
+1. Trust menu closed, talk to an NPC: Circle cancels dialogue.
+2. In dialogue: L1+Triangle (the `//trust menu` bind) still runs.
+3. Trust menu open, then start dialogue (or a cutscene): Circle leaves dialogue
+   and the pad is not stuck afterward.
+4. After dialogue ends: Trust menu navigation, confirm and back work again.
+5. Two clients: pausing one does not change the other client's behavior.
+Optional later Trust-side change: let Trust accept `close` while paused.
+
+INSTALL: overlay xivcrossbar/controller_bridge.lua (plus the tests and docs in
+the ZIP). Keep data/settings and hotbars. Reload one client at a time; no
+controller or DLL restart is expected because only Lua changed.
+
+---
+
+# Previous Development Status - Settings cleanup test (2026-11-12, superseded above)
 
 2026-11-12 (America/Chicago), rerorriM-Mirrorer/xivcrossbar,
 feat/settings-cleanup-20261112. Integrated source baselines: credits

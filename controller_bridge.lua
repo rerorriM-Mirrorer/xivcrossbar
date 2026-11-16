@@ -80,7 +80,9 @@ function M.new(clock, execute, report)
         end
     end
     function self:mask(mapping)
-        if not self.token or self.mode ~= 'on' then return 0 end
+        -- Trust publishes 'paused' during NPC dialogue and cutscenes. It rejects
+        -- every pad action then, so XIVCrossbar must not claim any button.
+        if not self.token or self.mode ~= 'on' or self.state == 'paused' then return 0 end
         local mask = 0
         for dik=59,66 do
             if action_for(dik,mapping) then mask = mask + 2^(dik-59) end
@@ -103,6 +105,9 @@ function M.new(clock, execute, report)
             return hold and hold.live
         end
         if hold then return hold.live end
+        -- A press that starts while Trust is paused belongs to FFXI (Circle must
+        -- cancel dialogue) and to ordinary crossbar binds, including //trust menu.
+        if self.state == 'paused' then return false end
         local action = action_for(dik,mapping)
         if not self.token or not action or (self.mode == 'on' and not live) then return false end
         hold = {live=self.mode=='on',token=self.token,mode=self.mode,next=clock()+.4}

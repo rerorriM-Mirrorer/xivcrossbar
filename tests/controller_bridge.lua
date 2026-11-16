@@ -48,5 +48,32 @@ now=11.1
 menu:update('on',path,7)
 assert(menu:edge(61,true,buttons,true) and #sent==4)
 assert(menu:edge(63,true,buttons,true) and sent[5]:match('token%-2 1 .* confirm$'))
+-- Paused (NPC dialogue or cutscene): Trust rejects pad input, so nothing may be
+-- claimed. Circle must reach FFXI and crossbar binds must keep firing.
+menu:edge(61,false,buttons,true);menu:edge(63,false,buttons,true) -- release the text-policy holds above
+now=12
+lease('token-3','navigation',now)
+menu:update('on',path,7)
+assert(menu:mask(buttons)==95)
+local before=#sent
+assert(menu:edge(59,true,buttons,true) and #sent==before+1) -- up held before the pause
+lease('token-3','paused',now)
+now=12.06
+lease('token-3','paused',now)
+menu:update('on',path,7)
+assert(menu.state=='paused' and menu.token)
+assert(menu:mask(buttons)==0)
+assert(not menu:edge(65,true,buttons,true) and #sent==before+1) -- Circle passes through
+assert(not menu:edge(63,true,buttons,true) and #sent==before+1) -- Cross passes through
+assert(not menu:edge(61,true,buttons,true) and #sent==before+1) -- D-pad passes through
+assert(not menu:edge(65,false,buttons,true))
+assert(menu:edge(59,false,buttons,true)) -- release of the pre-pause hold is still consumed
+menu:tick(true)
+assert(#sent==before+1) -- no repeats while paused
+now=12.12
+lease('token-3','navigation',now)
+menu:update('on',path,7)
+assert(menu:mask(buttons)==95)
+assert(menu:edge(65,true,buttons,true) and sent[#sent]:match(' back$')) -- claiming resumes
 os.remove(path)
-print('Bridge modes, dry-run routing, face mapping, stale leases, held ownership and text policy passed.')
+print('Bridge modes, dry-run routing, face mapping, stale leases, held ownership, text policy and paused pass-through passed.')
