@@ -30,7 +30,8 @@ LIVE TESTS PENDING:
 2. Weaponskill > a self-only WS (e.g. Myrkr, Dagan, Moonlight, Starlight):
    picker shows Self (<me>) then Select Target (<st>) only. Bind <me>, fire it.
 3. Weaponskill > an ordinary WS: Current Target (<t>) is first and selected.
-4. A spell such as Dia or Stone: <t> first. Cure: <me> first as before.
+4. Dia or Stone: <t> first. Cure (can target anything) and Haste (can target NPCs):
+   <t> first, then <me>. Curaga and Regen (self/party only): <me> first as before.
 5. A self-only job ability (e.g. Berserk): unchanged.
 
 ---
