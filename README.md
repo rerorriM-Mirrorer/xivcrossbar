@@ -766,3 +766,9 @@ shows status. Cues append `slotpress`, `triggerpull`, `setswitch` and `binding`
 to GripRumble/events.txt, so GripRumble decides what each feels like. `//xb
 slotrumble` remains a this-load override that GripRumble sets when it loads.
 Lua simulation only; live testing pending.
+
+2026-11-15: Skillchain element-only fix. Abilities that carry only a Magic Burst
+element, such as Carbuncle's Searing Light, no longer create a skillchain window
+that raised repeating Lua errors in skillchains.lua. Skillchain openers,
+chainbound and Magic Burst behavior are unchanged. Lua simulation only; live
+check pending.

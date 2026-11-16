@@ -1,4 +1,70 @@
-# Current Development Status - GripRumble cues and paused pass-through (TEST PENDING)
+# Current Development Status - Skillchain element-only flood fix (TEST PENDING)
+
+2026-11-15 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar, working
+branch fix/skillchain-element-only-20261115, based on
+snapshot/known-good-20261115 and feat/rumble-events-20261115 at
+a766b6eebf612c76664fb8ef8aaee1133b743b62. Published branches: both of those,
+pushed 2026-11-15. The relay used for pushes refuses tags (only branch updates
+are permitted), so the known-good marker is a branch, not a tag.
+
+LIVE RESULTS REPORTED BY THE USER (recorded here, previously only stated in
+conversation): L1+Triangle ran `//trust menu` during NPC dialogue; Circle
+cancelled dialogue and the Trust menu navigated normally afterwards (paused
+pass-through). `//xb rumble all on` worked and slot rumble stayed on after
+reloading XIVCrossbar alone. Still not live-tested: the trigger, set switch and
+binding cues, and the focus rule with two clients (see the previous status).
+
+PROBLEM: after Carbuncle used Searing Light on a target (character Cioara), the
+console filled with repeating errors from xivcrossbar/libs/skillchain/
+skillchains.lua: line 251 `bad argument #1 to 'format' (number expected, got
+nil)` about ten times a second, and line 119 `attempt to get length of local
+'old' (a nil value)` whenever a recast check ran. In the supplied console log
+the final burst was 377 lines over 11 seconds (21:38:52 to 21:39:02), and the
+same two errors appear in earlier bursts that day.
+
+CAUSE (verified by reading source and data): skills.lua lists Searing Light
+(job ability 518) with a Magic Burst `element` but no `skillchain`, as it does
+for 57 of 132 job abilities (Meteorite, Holy Mist, Smiting Breath and others).
+The action handler treated any listed ability with a matching damage message as
+a skillchain opener, so aeonic_prop() returned nil and apply_properties() stored
+a resonating entry with active=nil. The per-frame display then evaluated
+`'Chainbound Lv.%d':format(reson.bound)` with bound=nil (line 251), and recast
+checks passed active=nil to check_sc_props (line 119) until the entry expired
+(about ten seconds after the window opened).
+
+CHANGE (Lua only, libs/skillchain/skillchains.lua): apply_properties() ignores a
+call with no properties and no chainbound level; check_sc_props() and
+check_burst_props() return no result for a nil property list. Real openers,
+chainbound entries and Magic Burst checks are unchanged. The skill data is not
+edited. Not changed: whether an element-only ability should ever show a window
+of its own (it never did; only openers and bursts are tracked).
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Windower): new
+tests/skillchain_element_only.lua runs the real aeonic_prop, apply_properties,
+check_sc_props and check_burst_props source against the real skills.lua data.
+Removing either guard, or widening the apply_properties guard so it blocks
+chainbound entries, makes it fail. Reproduced the logged format error from the
+pre-fix entry shape. Full suite: 61 files, exit 0.
+NOT run: Windows CI, any live FFXI test.
+
+LIVE TESTS PENDING: with the fix installed, have Carbuncle use Searing Light
+(and Meteorite or Holy Mist) on an enemy: no console errors. Then a real
+opener (for example Poison Nails, or any weaponskill) and a follow-up
+weaponskill: the skillchain window and prompt still appear. Check a slot bound
+to a weaponskill while the target is engaged.
+
+OTHER FLOODS IN THE SAME CONSOLE LOG (not addressed here): Trust pather.lua
+`path_target` nil (4,035 lines), Trust skillchainer.lua (1,123), GilFinder
+glint.lua (1,783), XIVCrossbar ui.lua index nil (1,216 lines, earlier build)
+and `get_binding_preview_bank` nil (5,131 lines, earlier build; the method
+exists in this source).
+
+INSTALL: overlay libs/skillchain/skillchains.lua with the other files in the
+ZIP. Keep data/settings and hotbars. Reload one client at a time. Lua only.
+
+---
+
+# Previous Development Status - GripRumble cues and paused pass-through (2026-11-15, superseded above)
 
 2026-11-15 (America/Chicago). Repository rerorriM-Mirrorer/xivcrossbar, working
 branch feat/rumble-events-20261115 (local, not yet pushed), based on

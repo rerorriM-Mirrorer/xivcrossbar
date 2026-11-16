@@ -116,6 +116,9 @@ function build_module()
 
     -- Checks for Skillchain properties
     function check_sc_props(old, new)
+        -- An element-only action (most Blood Pacts, spells) has no skillchain
+        -- property; there is nothing to compare, so report no result.
+        if not old or not new then return end
         for k = 1, #old do
             local first = old[k]
             local combo = sc_info[first]
@@ -134,6 +137,7 @@ function build_module()
 
     -- Checks for Magic Burst properties
 	function check_burst_props(old, new)
+        if not old or not new then return end
         for k = 1, #old do
             local first = old[k]
             local combo = sc_elements[first]
@@ -279,6 +283,11 @@ function build_module()
     }
 
     function apply_properties(target, resource, action_id, properties, delay, step, closed, bound)
+        -- Abilities that only carry a Magic Burst `element` (Searing Light,
+        -- Meteorite, Holy Mist, ...) have no skillchain properties. Recording
+        -- them left a resonating entry with active=nil that raised a Lua error
+        -- on every display frame and every recast check until it expired.
+        if not properties and not bound then return end
         local clock = os.clock()
         resonating[target] = {
             res=resource,
