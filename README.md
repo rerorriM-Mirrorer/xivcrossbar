@@ -790,3 +790,12 @@ Synth, Attack, Ranged Attack and Assist return to the main menu. With no slot
 selected, the old Bind-to-Slot screens work as before. Remove a Binding, the two
 icon tools, Create New Set and the custom action editor's Save & Bind keep their
 old screens for now. Lua simulation only; live testing pending.
+
+2026-11-16: Edit mode: set chooser carry-over and ghost preview. With a slot
+selected, opening the set chooser keeps that slot selected and the footer up. The
+footer's set name follows the sets you browse, and choosing again binds to the
+same slot position on the new set. Slot presses wait until the chooser closes.
+While you browse an action list, the highlighted action's icon breathes faintly
+in the selected slot (1.5 s pulse, under the amber selection). It pauses during
+the bind flash and doesn't repeat the action you just bound until the cursor
+moves. Lua simulation only; live testing pending.

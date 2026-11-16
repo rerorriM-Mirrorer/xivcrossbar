@@ -210,4 +210,16 @@ assert(ui.hotbars[1].slot_icon[3]:color()>205, 'bound icon starts brighter than 
 ui:clear_action_success()
 assert(not ui:has_binding_flash())
 assert(not ui:flash_binding(7,3), 'no flash on an undrawn bank')
+-- Ghost preview: shows on a drawn bank within its alpha range, hides otherwise.
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3})
+assert(ui:update_ghost('addon/images/a.png',1,3,true) and ui.ghost_icon:visible())
+local a=ui.ghost_icon:alpha(); assert(a>=40 and a<=140, 'ghost alpha '..tostring(a))
+assert(ui.ghost_icon:pos()==ui:get_slot_x(1,3))
+assert(not ui:update_ghost('addon/images/a.png',1,3,false) and not ui.ghost_icon:visible(), 'hidden when the menu closes')
+assert(not ui:update_ghost('addon/images/a.png',7,3,true), 'hidden on an undrawn bank')
+assert(not ui:update_ghost(nil,1,3,true), 'hidden with nothing highlighted')
+ui:flash_binding(1,3)
+assert(not ui:update_ghost('addon/images/a.png',1,3,true), 'no ghost during the bind flash')
+ui:clear_action_success()
 print('XI compact spacing, Legacy reversibility, empty frames and fitted trigger fields passed.')

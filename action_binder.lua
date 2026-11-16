@@ -843,6 +843,16 @@ function action_binder:is_edit_mode()
         and (states.MOVE_CROSSBARS == nil or self.state ~= states.MOVE_CROSSBARS)
 end
 
+-- Set chooser carry-over: the destination is a position, so it simply stays
+-- selected while sets change. Slot presses are off while the chooser has the
+-- controller, but the amber slot and the footer stay up and follow the set.
+function action_binder:is_choosing_set_in_edit_mode()
+    return not self.is_hidden and self.chooser_active == true
+        and self.state ~= states.HIDDEN
+        and self.state ~= states.SELECT_BUTTON_ASSIGNMENT
+        and self.state ~= states.CONFIRM_BUTTON_ASSIGNMENT
+end
+
 -- Bank under the held trigger(s). L2+R2 follows the normal rule: the trigger
 -- pressed second decides bank 3 or 4 when four or six banks exist.
 -- Not yet supported here: double-tap banks (5/6) and L1/R1 shoulder banks.
@@ -911,6 +921,9 @@ function action_binder:bind_to_destination()
         self.action_target, self.action_command, self.action_icon, self.action_linked_action,
         self.action_linked_type, self.action_alias)
     if ok ~= false and self.on_bound then self.on_bound(d.bank, d.slot) end
+    if ok ~= false then
+        self.ghost_suppressed = {asset = self.binding_preview_icon, bank = d.bank, slot = d.slot}
+    end
     self:return_after_bind()
     return true
 end
@@ -937,6 +950,31 @@ function action_binder:return_after_bind()
         -- Ranged Attack, Assist) were chosen from the main menu itself.
         self:return_to_action_type_menu()
     end
+end
+
+-- Ghost preview: the icon of what would be bound if Confirm were pressed now.
+-- Action lists: the highlighted entry (not page buttons, folders or disabled
+-- entries). Target picker: the action already chosen. Returns an absolute
+-- path plus the destination bank and slot, or nil.
+function action_binder:get_ghost()
+    if not self:is_edit_mode() or not self.destination then return nil end
+    local asset
+    if self.state == states.SELECT_ACTION then
+        local option = self.selector.is_showing and self.selector:get_selected_option()
+        if not option or option.disabled or option.id == 'PREV' or option.id == 'NEXT'
+            or (option.data and option.data.is_dir) then return nil end
+        asset = option.asset_path
+    elseif self.state == states.SELECT_ACTION_TARGET then
+        asset = self.binding_preview_icon
+    end
+    if asset == nil or asset == '' then return nil end
+    -- Right after a bind the cursor still rests on the action just bound; the
+    -- slot already shows it, so no ghost until the cursor or slot changes.
+    local d = self.destination
+    local bound = self.ghost_suppressed
+    if bound and bound.asset == asset and bound.bank == d.bank and bound.slot == d.slot then return nil end
+    self.ghost_suppressed = nil
+    return windower.addon_path .. asset, d.bank, d.slot
 end
 
 function action_binder:get_destination()
@@ -989,7 +1027,9 @@ end
 -- Footer between the Exit and Confirm/Go Back hints. Called every rendered
 -- frame; rebuilds its few objects only when what it shows changes.
 function action_binder:update_destination_footer()
-    local visible = self:is_edit_mode()
+    -- Also visible while the set chooser is open over the menu, at full
+    -- strength, so the set name visibly changes as sets are browsed.
+    local visible = self:is_edit_mode() or self:is_choosing_set_in_edit_mode()
     local d = self.destination
     local name = visible and active_set_name() or ''
     local key = visible and (d and (name .. '|' .. d.bank .. '|' .. d.slot) or 'none') or nil

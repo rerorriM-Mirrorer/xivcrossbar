@@ -2909,6 +2909,9 @@ windower.register_event('prerender',function()
         ui:tick_action_success()
         -- Keep redrawing while an edit-mode bind flash fades the slot's icon.
         if ui:has_binding_flash() then ui_dirty = true end
+        -- Ghost preview of the highlighted action in the selected slot.
+        local ghost_path, ghost_bank, ghost_slot = action_binder:get_ghost()
+        ui:update_ghost(ghost_path, ghost_bank, ghost_slot, not action_binder.is_hidden)
         if success_confirmed then
             ui:flash_action_success(success_confirmed[1],success_confirmed[2])
             success_confirmed=nil

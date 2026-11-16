@@ -1,3 +1,48 @@
+# Current Development Status - Edit mode: set chooser carry-over and ghost preview (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint 6dc7aa9 (step 2, pushed). Steps 1 and 2 below are still
+awaiting live results.
+
+REQUEST: set chooser carry-over and the ghost preview icon.
+
+CHANGES:
+- action_binder.lua: is_choosing_set_in_edit_mode(). The footer stays visible
+  at full strength while the set chooser is open over the menu (it is not
+  among the objects the chooser dims) and rebuilds when the browsed set
+  changes its name. The destination is untouched by the chooser (it is a
+  position). Slot presses and the ghost are off while the chooser has the
+  controller; set_chooser_active already clears trigger state.
+- action_binder.lua: get_ghost() returns the icon of what Confirm would bind:
+  the highlighted entry in an action list (not page buttons, folders or
+  disabled entries) or the chosen action on the target picker. After a bind,
+  the just-bound icon is suppressed until the cursor or slot changes.
+- ui.lua: ghost_icon (40x40, created before the destination tint so amber
+  draws over it). update_ghost() runs every frame from prerender: alpha
+  40-140 on a 1.5 s cosine breath from the moment the icon changes. It is
+  hidden when the menu is closed, on an undrawn bank, with nothing to show,
+  and during that slot's bind flash.
+- xivcrossbar.lua: prerender passes get_ghost() to ui:update_ghost().
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_chooser_ghost.lua; tests/xi_layout.lua gains ghost checks.
+6 mutations each made a test fail. Full suite, 64 files, all exit 0.
+NOT run: Lua 5.1 parse, Windows CI, live FFXI.
+
+LIVE TESTS PENDING:
+1. Select a slot, open White Magic: the highlighted spell breathes faintly in
+   the amber slot; moving the cursor changes it smoothly.
+2. Bind it: flash, no ghost of the same spell; move the cursor: ghost returns.
+3. Pages: on Next/Previous Page entries there is no ghost.
+4. With a slot selected, hold Share and browse sets: the amber slot stays, the
+   footer's set name changes with each set. Release: same slot, new set. Bind:
+   it lands on the new set at that slot.
+5. Cancel the chooser (Circle/Esc): back to the first set, footer follows.
+6. Slot presses during the chooser do nothing; after it closes they work.
+7. Ghost on a bank 3/4 destination appears only while that bank is shown.
+
+---
+
 # Current Development Status - Edit mode step 2: immediate bind (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,

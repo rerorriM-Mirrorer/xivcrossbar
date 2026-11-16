@@ -744,6 +744,15 @@ function ui:load(theme_options)
     self.binding_tint:alpha(105)
     self.binding_tint:hide()
 
+    -- A: ghost preview, created before the destination tint so the amber
+    -- selection draws over it.
+    self.ghost_icon = new_image(images_setup)
+    prepare_image(self.ghost_icon, windower.addon_path .. '/images/icons/iconpacks/default/ui/square.png')
+    self.ghost_icon:fit(false)
+    self.ghost_icon:size(40, 40)
+    self.ghost_icon:hide()
+    self.ghost_visible, self.ghost_path = false, nil
+
     -- A: edit-mode destination (step 1). Amber = selected slot in the shared
     -- palette; the green binding_tint above stays for the legacy Bind-to-Slot.
     self.destination_tint = new_image(images_setup)
@@ -972,6 +981,7 @@ function ui:hide()
     self.battle_notice:hide()
     self.binding_tint:hide()
     self.destination_tint:hide()
+    self.ghost_icon:hide(); self.ghost_visible = false; self.ghost_path = nil
     self.feedback_icon:hide()
     self:clear_slot_pulses()
 
@@ -2004,6 +2014,33 @@ function ui:flash_binding(hotbar,slot)
     local flash=self.success_flashes[(hotbar-1)*8+slot]
     if flash then flash.binding=true end
     return flash ~= nil
+end
+
+-- A: ghost preview (edit mode). The highlighted list action is shown faintly
+-- in the destination slot, breathing over 1.5 s under the amber selection.
+-- Called every frame; returns true while it is showing.
+local ghost_period, ghost_low, ghost_high = 1.5, 40, 140
+function ui:update_ghost(path, bank, slot, menu_open)
+    local show = menu_open and path ~= nil and bank ~= nil and self.hotbars[bank] ~= nil
+        and self.pulse_visible_bars[bank] and slot ~= nil and slot >= 1 and slot <= 8
+        and not (self.success_flashes[(bank-1)*8+slot] or {}).binding
+    if not show then
+        if self.ghost_visible then self.ghost_icon:hide() end
+        self.ghost_visible, self.ghost_path = false, nil
+        return false
+    end
+    local now = self.recast_flash_clock()
+    if path ~= self.ghost_path then
+        self.ghost_icon:path(path)
+        self.ghost_path, self.ghost_started = path, now
+    end
+    local t = (now - self.ghost_started) % ghost_period
+    local wave = .5 - .5 * math.cos(2 * math.pi * t / ghost_period)
+    self.ghost_icon:alpha(math.floor(ghost_low + (ghost_high - ghost_low) * wave + .5))
+    self.ghost_icon:pos(self:get_slot_x(bank, slot), self:get_slot_y(bank, slot))
+    self.ghost_icon:show()
+    self.ghost_visible = true
+    return true
 end
 
 function ui:has_binding_flash()
