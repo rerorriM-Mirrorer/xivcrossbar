@@ -904,6 +904,10 @@ local immediate_main_menu = nil
 function action_binder:is_bind_ready()
     if not self:is_edit_mode() or not self.destination then return false end
     if self.state == states.SELECT_PLAYER_BINDING then return true end
+    if self.state == states.EDIT_CUSTOM_ACTION_REVIEW then
+        local option = self.selector.is_showing and self.selector:get_selected_option()
+        return option ~= nil and option.id == 'SAVE_BIND' and not option.disabled
+    end
     if self.state == states.SELECT_ACTION_TARGET then
         local option = self.selector.is_showing and self.selector:get_selected_option()
         local target = option and action_targets[option.id]
@@ -1102,6 +1106,15 @@ function action_binder:return_after_bind(origin)
     self.action_name, self.action_target = nil, nil
     self.selection_states[states.SELECT_ACTION_TARGET] = nil
     local t = self.action_type
+    if origin == states.EDIT_CUSTOM_ACTION_REVIEW then
+        -- Save & Bind: back on the (now "Review and Edit") screen, same entry.
+        self.state = origin
+        self.action_type = action_types.EDIT_CUSTOM_ACTION
+        self:display_edit_custom_action_review()
+        if self.review_selection then self.selector:import_selection_state(self.review_selection) end
+        self.review_selection = nil
+        return
+    end
     if origin == states.SELECT_ACTION or origin == states.SELECT_ICON then
         -- The same list is still on screen: stay on it, cursor untouched.
         self.state = origin
@@ -1207,6 +1220,9 @@ function action_binder:get_ghost()
         end
     elseif self.state == states.SELECT_ACTION_TARGET then
         asset, name = self.binding_preview_icon, self.action_name
+    elseif self.state == states.EDIT_CUSTOM_ACTION_REVIEW and self:is_bind_ready() then
+        -- Save & Bind: the custom action's icon (or the gear) on the selected slot.
+        asset = self:custom_action_icon(self.custom_action_draft or {})
     elseif self.state == states.SELECT_ICON and self:is_bind_ready() then
         -- Change Icon: try each icon on the selected slot before choosing.
         asset = self.selector:get_selected_option().asset_path
@@ -2010,6 +2026,17 @@ function action_binder:submit_selected_option()
                 local d = self.custom_action_draft
                 self.editing_custom_action = true
                 self.custom_action_original_name = d.name
+                -- A: with a selected slot, bind straight to it and stay on this screen.
+                if self.destination then
+                    self.action_type = action_types.CUSTOM_ACTION
+                    self.action_name,self.action_alias = d.name,review.alias(d)
+                    self.action_command,self.action_icon = d.command,d.icon
+                    self.binding_preview_icon = self:custom_action_icon(d)
+                    self.action_linked_action,self.action_linked_type = d.linked_action,d.linked_type
+                    self.action_target = nil
+                    self.review_selection = self.selector:export_selection_state()
+                    if self:bind_to_destination() then return end
+                end
                 self.binding_custom_action_review = true
                 self.action_type = action_types.CUSTOM_ACTION
                 self.action_name,self.action_alias = d.name,review.alias(d)
@@ -2419,6 +2446,12 @@ function action_binder:display_action_type_selector()
     self:set_title('XIV Crossbar')
     self.title:show()
 
+    self.selector:display_options(self:main_menu_options())
+    self:show_control_hints('Confirm', 'Exit')
+end
+
+-- A: the main menu entries, also used to give sets matching icons.
+function action_binder:main_menu_options()
     local player = windower.ffxi.get_player()
     local main_job = player.main_job
     local sub_job = player.sub_job
@@ -2485,17 +2518,17 @@ function action_binder:display_action_type_selector()
     -- Clear Slot is dummied out while the selected slot is empty (kept in step
     -- with the selection by refresh_clear_slot_entry).
     local clear_empty = self:destination_slot_empty()
-    action_type_list:append({id = action_types.DELETE, name = 'Clear Slot', icon = 'images/' ..get_icon_pathbase() .. '/none.png',
+    -- Clear Slot looks like an empty crossbar slot (its frame and nothing else).
+    action_type_list:append({id = action_types.DELETE, name = 'Clear Slot', icon = 'images/' ..get_icon_pathbase() .. '/ui/blank.png',
         disabled = clear_empty, disabled_focusable = true})
     self.clear_slot_disabled = clear_empty
     local undo_count = self.undo_count and self.undo_count() or 0
     action_type_list:append({id = action_types.UNDO, name = undo_count > 0 and ('Undo (' .. undo_count .. ')') or 'Undo',
-        icon = 'images/' ..get_icon_pathbase() .. '/Swap.png', disabled = undo_count == 0, disabled_focusable = true})
+        icon = 'images/' ..get_icon_pathbase() .. '/none.png', disabled = undo_count == 0, disabled_focusable = true})
     action_type_list:append({id = action_types.MOVE_CROSSBARS, name = 'Move Crossbar', icon = 'images/' ..get_icon_pathbase() .. '/ui/dpad_ps.png'})
     action_type_list:append({id = action_types.DELETE_SET, name = 'Delete Set', icon = 'images/' ..get_icon_pathbase() .. '/ui/red-x.png'})
     action_type_list:append({id = action_types.SHOW_CREDITS, name = 'Credits', icon = 'images/credit_avatars/xiv.png'})
-    self.selector:display_options(action_type_list)
-    self:show_control_hints('Confirm', 'Exit')
+    return action_type_list
 end
 
 function action_binder:display_action_selector()
@@ -2563,7 +2596,9 @@ function action_binder:display_action_selector()
 end
 
 function action_binder:display_target_selector()
-    self:set_title('Select Action Target')
+    -- A: the action being targeted follows the title in amber.
+    local name = self.action_name and (' - \\cs(255,216,112)' .. self.action_name .. '\\cr') or ''
+    self:set_title('Select Action Target' .. name)
     self.title:show()
     self.selector:display_options(action_binder.target_options_for(self.target_type, self.action_type,
         self.theme_options.allow_stpc_for_self_targeted_actions))
@@ -3512,11 +3547,29 @@ function action_binder:display_crossbar_sets_selector()
         local key = type(destination)=='table' and destination.key or kebab_casify(destination)
         local data = {target_type={None=true},icon_path=icon,alias=name,action_name=key}
         if not is_quick_switch then data.command='xb bar '..key end
-        crossbar_set_list:append({id=key,name=name,icon=icon_path,icon_offset=0,data=data})
+        crossbar_set_list:append({id=key,name=name,icon=self:set_icon(key, name) or icon_path,icon_offset=0,data=data})
     end
 
     self.selector:display_options(crossbar_set_list)
     self:show_control_hints('Confirm', 'Go Back')
+end
+
+-- A: list icon for a crossbar set. JOB and JOB/SUB defaults use the job
+-- icons (main job and subjob), ALL its cover; a set named like a main menu
+-- entry ("Black Magic", "Songs"...) uses that entry's icon. nil = default.
+function action_binder:set_icon(key, name)
+    local base = 'images/' .. get_icon_pathbase() .. '/'
+    local player = windower.ffxi and windower.ffxi.get_player and windower.ffxi.get_player()
+    if key == 'job-default' and player and player.main_job then return base .. 'jobs/' .. player.main_job .. '.png' end
+    if key == 'default' and player and player.sub_job then return base .. 'jobs/' .. player.sub_job .. '.png' end
+    if key == 'all-jobs-default' then return base .. 'ui/all-jobs-default.png' end
+    local wanted = tostring(name or ''):lower():gsub('s$', '')
+    if wanted == '' then return nil end
+    local ok, options = pcall(self.main_menu_options, self)
+    if not ok then return nil end
+    for _, option in ipairs(options) do
+        if tostring(option.name):lower():gsub('s$', '') == wanted then return option.icon end
+    end
 end
 
 -- Explicit artwork wins; valid linked metadata can supply a catalog icon.
@@ -3940,23 +3993,31 @@ function action_binder:display_edit_custom_action_review()
     windower.prim.set_visibility('button_entry_bg',false)
     local path='images/'..get_icon_pathbase()..'/'
     local list=L{}
+    -- A: four across, like the main menu (2026-11-16):
+    -- Save & Bind | Save Changes | Link Action | Choose Icon
+    -- Edit Name | Edit Alias | Edit Command | Delete Custom Action
     for _,option in ipairs({
         {'SAVE_BIND','Save & Bind','custom_actions'},
         {'SAVE_EDIT',self.editing_custom_action and 'Save Changes' or 'Save Only','custom_actions'},
+        {'CHANGE_LINKED','Link Action','custom_actions'},
+        {'CHANGE_ICON','Choose Icon','icon-set'},
         {'CHANGE_NAME','Edit Name','custom_actions'},
         {'CHANGE_ALIAS','Edit Alias','custom_actions'},
         {'CHANGE_COMMAND','Edit Command','custom_actions'},
-        {'CHANGE_ICON','Choose Icon','icon-set'},
-        {'CHANGE_LINKED','Link Action','custom_actions'},
     }) do
         local saving = option[1]=='SAVE_BIND' or option[1]=='SAVE_EDIT'
-        list:append({id=option[1],name=option[2],icon=path..option[3]..'.png',
+        local icon,offset=path..option[3]..'.png',nil
+        -- Save & Bind shows the action's own icon once it has one (chosen or linked).
+        if option[1]=='SAVE_BIND' and (review.nonempty(d.icon) or review.nonempty(d.linked_action)) then
+            icon,offset=self:custom_action_icon(d)
+        end
+        list:append({id=option[1],name=option[2],icon=icon,icon_offset=offset,
             disabled=saving and not review.nonempty(d.name)})
     end
     if self.editing_custom_action and self.custom_action_original_name then
-        list:append({id='DELETE_CUSTOM_ACTION', name='Delete', icon=path..'ui/red-x.png'})
+        list:append({id='DELETE_CUSTOM_ACTION', name='Delete Custom Action', icon=path..'ui/red-x.png'})
     end
-    self.selector.review_base_x=self.base_x+(self.width-560)/2
+    self.selector.review_base_x=self.base_x+(self.width-740)/2
     if review.nonempty(d.name) then
         self.selector:set_page(1); self.selector:display_options(list,'review')
     else
@@ -3965,18 +4026,21 @@ function action_binder:display_edit_custom_action_review()
     end
     self:show_control_hints('Confirm','Go Back')
     self.custom_action_value_texts={}
-    self.review_value_x=self.base_x+self.width*.40
-    self.review_rows_y=self.base_y+(review.nonempty(d.name) and 250 or 150)
+    -- Fields sit nearer the middle of the menu (labels at 26%, values at 46%).
+    self.review_value_x=self.base_x+self.width*.46
+    self.review_rows_y=self.base_y+(review.nonempty(d.name) and 205 or 150)
+    local icon_value=review.nonempty(d.icon) and d.icon
+        or review.nonempty(d.linked_action) and ('from ' .. d.linked_action) or 'none'
     local rows={
         {'Custom Action Name',d.name or '',false,'name'},
         {'Alias',review.alias(d),not review.nonempty(d.alias),'alias'},
         {'Command',review.command(d),not review.nonempty(d.command),'command'},
-        {'Icon',review.nonempty(d.icon) and d.icon or 'none',not review.nonempty(d.icon)},
         {'Linked',review.nonempty(d.linked_action) and d.linked_action or 'none',not review.nonempty(d.linked_action)},
+        {'Icon',icon_value,not review.nonempty(d.icon)},
     }
     for i,row in ipairs(rows) do
         local y=self.review_rows_y+(i-1)*29
-        local label=self:create_text(row[1]..':',self.base_x+self.width*.17,y)
+        local label=self:create_text(row[1]..':',self.base_x+self.width*.26,y)
         local value=row[3] and ('('..(row[2]~='' and row[2] or 'none')..')') or row[2]
         local text=self:create_text(value:len()>48 and value:sub(1,45)..'...' or value,self.review_value_x,y)
         label:size(i==1 and 14 or 12); text:size(i==1 and 14 or 12)
@@ -4447,6 +4511,10 @@ end
 
 -- Own physical navigation across the custom-action workflow. Inline
 -- fields have their own Enter and Escape behavior in the root router.
+function action_binder:is_main_menu()
+    return not self.is_hidden and self.state == states.SELECT_ACTION_TYPE
+end
+
 function action_binder:is_keyboard_review()
     if self.is_hidden or self.chooser_active or self.capturing_text then return false end
     local state = self.state
@@ -4457,6 +4525,8 @@ function action_binder:is_keyboard_review()
         or state==states.ENTER_CUSTOM_ACTION_COMMAND or state==states.SELECT_CUSTOM_ACTION_ICON_CHOICE
         or (self.custom_action_draft ~= nil and (state==states.SELECT_ICON
             or state==states.SELECT_LINKED_TYPE or state==states.SELECT_ACTION))
+        -- A: arrow keys, Enter and Esc work on every menu screen.
+        or self:is_in_selector_state() or state==states.SHOW_CREDITS
 end
 
 function action_binder:set_capturing_text(enabled)

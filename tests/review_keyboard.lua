@@ -29,11 +29,17 @@ local predicate=assert(source:match('(function action_binder:is_keyboard_review%
 local states=assert(load("return "..assert(source:match("local states = (%b{})"))))()
 local env=setmetatable({action_binder=binder,states=states},{__index=_G})
 assert(load(predicate,'actual review predicate','t',env))()
+-- 2026-11-16: every selector screen and Credits take the keys too.
+function binder:is_in_selector_state() return self.selector_showing == true end
+function binder:is_main_menu() return not self.is_hidden and self.state==1 end
 binder.is_hidden=false;binder.state=17;assert(binder:is_keyboard_review())
 binder.state=15;assert(binder:is_keyboard_review())
 binder.capturing_text=true;assert(not binder:is_keyboard_review());binder.capturing_text=false
 binder.chooser_active=true;assert(not binder:is_keyboard_review());binder.chooser_active=false
-binder.state=1;assert(not binder:is_keyboard_review());binder.state=17
+binder.state=1;assert(not binder:is_keyboard_review())
+binder.selector_showing=true;assert(binder:is_keyboard_review(),'main menu arrows/Enter')
+binder.state=7;binder.selector_showing=false;assert(binder:is_keyboard_review(),'credits'); binder.state=1;binder.selector_showing=true
+binder.selector_showing=false;binder.state=17
 
 for _, state in ipairs({10,11,12,13,16,18,19}) do
     binder.state=state
@@ -77,8 +83,11 @@ assert(dispatch(156,false,0,false))
 binder.capturing_text=true
 assert(dispatch(1,true,0,false) and sent[#sent]==1 and closed==0)
 assert(dispatch(1,false,0,false))
-binder.state=1
-assert(dispatch(1,true,0,false) and closed==1)
+binder.state=1;binder.selector_showing=true
+assert(dispatch(200,true,0,false) and calls[#calls]=='dpad_up','arrow keys on the main menu')
+dispatch(200,false,0,false)
+assert(dispatch(1,true,0,false) and closed==1,'Esc on the main menu still closes the menus')
+binder.selector_showing=false
 assert(dispatch(1,true,0,false) and dispatch(1,false,0,false) and closed==1)
 binder.is_hidden=false;binder.state=17
 assert(not dispatch(28,true,0,true),'preblocked Enter must not submit')

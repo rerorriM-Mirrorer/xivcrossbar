@@ -350,7 +350,8 @@ function selectable_list:display_options(options, presentation)
     self.max_row,self.max_col=self.normal_max_row,self.normal_max_col
     self.base_x=self.normal_base_x
     if presentation == 'review' then
-        self.max_row,self.max_col=3,3
+        -- A: review screens use the main menu's four columns (two rows).
+        self.max_row,self.max_col=2,4
         self.base_x=self.review_base_x or self.base_x
     end
     self.width=2*BORDER_PADDING+self.max_col*COLUMN_WIDTH

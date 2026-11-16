@@ -101,7 +101,10 @@ end
 assert(binder:new_custom_action('Aardvark','command'))
 assert(binder.editing_custom_action)
 local options=binder.selector.current_options
-assert(options[#options-1].id=='CHANGE_LINKED' and options[#options].id=='DELETE_CUSTOM_ACTION')
+-- 2026-11-16 order: Save & Bind, Save Changes, Link Action, Choose Icon, Edit Name, Edit Alias, Edit Command, Delete.
+local ids={};for _,o in ipairs(options) do ids[#ids+1]=o.id end
+assert(table.concat(ids,',')=='SAVE_BIND,SAVE_EDIT,CHANGE_LINKED,CHANGE_ICON,CHANGE_NAME,CHANGE_ALIAS,CHANGE_COMMAND,DELETE_CUSTOM_ACTION',table.concat(ids,','))
+assert(options[#options].name=='Delete Custom Action')
 binder.custom_action_draft.name='Unsaved Rename'
 select_id('DELETE_CUSTOM_ACTION')
 assert(binder.state==19 and binder.custom_action_delete_target=='Aardvark' and binder:is_keyboard_review())

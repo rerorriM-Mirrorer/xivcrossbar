@@ -97,14 +97,15 @@ local expected={'Custom Action','Job Ability','Weaponskills','White Magic','Blac
 assert(table.concat(order,'|')==table.concat(expected,'|'), table.concat(order,'|'))
 for _,o in ipairs(binder.selector.current_options) do assert(o.name~='newline', 'no forced row breaks') end
 local src=io.open('action_binder.lua'):read('*a')
-assert(src:find("name='Delete', icon=path..'ui/red-x.png'",1,true), 'review screen Delete')
+assert(src:find("name='Delete Custom Action', icon=path..'ui/red-x.png'",1,true), 'review screen Delete Custom Action')
 assert(src:find("'Rages'",1,true) and src:find("'Wards'",1,true) and src:find("L_SUMMON_KEEP",1,true)==nil)
 -- Summon keeps its name.
 assert(src:find("name = 'Summon'",1,true))
 -- Clear Slot uses none.png; with no slot selected it stays available (old screens).
 local clear_option
 for _,o in ipairs(binder.selector.current_options) do if o.name=='Clear Slot' then clear_option=o end end
-assert(clear_option.icon:find('/none.png',1,true) and not clear_option.disabled)
+assert(clear_option.icon:find('/ui/blank.png',1,true) and not clear_option.disabled, 'Clear Slot looks like an empty slot')
+for _,o in ipairs(binder.selector.current_options) do if o.name:find('^Undo') then assert(o.icon:find('/none.png',1,true), 'Undo uses none.png') end end
 
 -- Titles: centred on every screen.
 binder:set_title('Another Screen')

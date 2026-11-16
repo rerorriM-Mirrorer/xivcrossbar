@@ -1,3 +1,56 @@
+# Current Development Status - Edit mode: custom action Save & Bind, review grid, keyboard (TEST PENDING)
+
+2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,
+source checkpoint eb6d8f2 (pushed).
+
+LIVE RESULTS for eb6d8f2 (Sunshine): menu order good; Clear Slot dummied out on
+an empty slot (also when bound only on a default set); Create first, Edit
+second; red-X ghost; option glow works and is absent for the same action;
+footer centring, amber/black style and L1/R1 placeholders good; menu icons
+fill their frames. Still to fix (done below): target title should name the
+action; remove "Choose Crossbar"; set name must step aside for double-tap and
+combined banks while the menu is open; Switch/Quick Switch set icons.
+
+CHANGES:
+- action_binder.lua: review grid order and labels (Delete Custom Action);
+  Save & Bind uses the action's icon (chosen or linked) once it has one;
+  is_bind_ready/get_ghost cover Save & Bind on the review screen; with a
+  destination, Save & Bind saves then bind_to_destination(); return_after_bind
+  for the review origin redisplays Review and Edit on the same entry. Review
+  fields at 26%/46% of the width, starting under the two-row grid; Linked
+  before Icon; Icon shows "(from <linked>)". Target title + amber action name.
+  main_menu_options() split out of display_action_type_selector(); set_icon()
+  for Switch/Quick Switch lists. Clear Slot icon ui/blank.png, Undo none.png.
+  is_keyboard_review() also true for every selector screen and Credits;
+  is_main_menu().
+- ui/selectablelist.lua: review presentation 2 rows x 4 columns.
+- environment_chooser.lua: heading hidden; background from the top name -5
+  to the bottom name +5.
+- xivcrossbar.lua: Esc on the main menu still closes the menus; context labels
+  use the held edit-mode bank while the menu is open.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/edit_custom_save_bind.lua; review_keyboard, custom_action_save_return,
+edit_banks_ready and edit_hold_undo updated. 6 mutations: 5 made a test fail;
+the review-cursor restore survived because Save & Bind is also the default
+cursor position. The set-name label bank change in xivcrossbar.lua has no
+automated test. Full suite, 68 files, all exit 0. NOT run: Lua 5.1, Windows,
+live.
+
+LIVE TESTS PENDING:
+1. Custom action: grid four across in the new order; fields centred-ish.
+2. Slot selected + cursor on Save & Bind: glow, breathing icon (gear or the
+   assigned/linked icon), Save & Bind shows the assigned icon. Confirm: saved,
+   bound, flash, stays on Review and Edit. Without a slot: old screens.
+3. Select Action Target - <name in amber>.
+4. Arrow keys/Enter/Esc on the main menu, lists, target list, icon list, Delete
+   Set, Credits; Esc on the main menu closes.
+5. Set chooser: no heading; background hugs the list.
+6. Switch / Quick Switch: JOB = main job icon, JOB/SUB = subjob icon.
+7. Holding L2+R2 or a double-tap bank in the menu: set name steps aside.
+
+---
+
 # Current Development Status - Edit mode: menu order, Clear Slot, option glow, styling (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116,

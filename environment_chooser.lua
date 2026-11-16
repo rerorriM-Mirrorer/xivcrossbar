@@ -343,13 +343,10 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
     end
 
     local count = #environments
-    prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(count) - 34)
-    prim.set_size('menu_background', 170, 39 + self:get_name_y(0) - self:get_name_y(count))
-    if self.heading then
-        -- A: directly above the top set name (no blank line between them).
-        self.heading:pos(self:get_name_x(1),self:get_name_y(count)-17)
-        self.heading:show()
-    end
+    -- A: no "Choose Crossbar" heading; the background fits the set list.
+    prim.set_position('menu_background', self:get_name_x(1) - 10, self:get_name_y(count) - 5)
+    prim.set_size('menu_background', 170, 10 + self:get_name_y(0) - self:get_name_y(count))
+    if self.heading then self.heading:hide() end
     prim.set_visibility('menu_background', true)
 
     prim.set_size('menu_highlight', 170, 16)

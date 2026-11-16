@@ -870,3 +870,26 @@ Lua simulation only; live testing pending.
 - //xb diagnose alone starts a full log (input and drawing); //xb diagnose again
   stops and saves it.
 Lua simulation only; live testing pending.
+
+2026-11-16: Edit mode: custom action Save & Bind, review grid, keyboard everywhere.
+- The custom action review screen is four across: Save & Bind, Save Changes,
+  Link Action, Choose Icon / Edit Name, Edit Alias, Edit Command, Delete Custom
+  Action. The fields below sit nearer the middle, with Linked above Icon. The
+  Icon field notes when the icon comes from the linked action.
+- With a slot selected, Save & Bind saves and binds straight to it: flash,
+  short hold, then you stay on the (now Review and Edit) screen. Save & Bind
+  glows and the slot breathes the action's icon (or the gear). An assigned
+  icon also replaces Save & Bind's own picture. Without a slot selected, the
+  old screens are used.
+- Select Action Target shows the action's name in amber after the title.
+- Arrow keys, Enter and Esc work on every menu screen. Esc on the main menu
+  still closes the menus.
+- The set chooser has no "Choose Crossbar" heading; its background fits the
+  list.
+- In Switch and Quick Switch, the JOB default set uses the main job's icon,
+  JOB/SUB the subjob's, and ALL its cover. Sets named like a main menu entry use
+  that entry's icon.
+- Clear Slot looks like an empty slot; Undo uses none.png.
+- In the menu, the crossbar's set name steps aside for double-tap and combined
+  bank labels as in play.
+Lua simulation only; live testing pending.

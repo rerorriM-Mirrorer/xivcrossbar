@@ -2505,7 +2505,9 @@ local function controller_keyboard(dik, pressed, flags, blocked)
                 handle_controller_key(dik == 156 and keyboard.enter or dik, true, flags, blocked)
             end
         end
-    elseif dik == keyboard.esc and crossbar_menu_open() and not action_binder:is_keyboard_review() then
+    elseif dik == keyboard.esc and crossbar_menu_open() and (not action_binder:is_keyboard_review()
+        or (action_binder.is_main_menu and action_binder:is_main_menu())) then
+        -- Esc on the main menu (or any non-keyboard screen) closes the menus.
         modal_action = function()
             text_input_guard:update(false, windower.send_command, true)
             close_addon_menus()
@@ -3053,7 +3055,10 @@ windower.register_event('prerender',function()
             ui.public_visible = ui:show(player.hotbar, player.hotbar_settings.active_environment) == true
         else ui:hide(); ui.public_visible = false end
     end
-    if ui.is_setup then ui:update_context_labels(display_bank or 0, visible, menu_open) end
+    -- A: in the menu the held edit-mode bank decides, so the set name steps
+    -- aside for double-tap and combined bank labels exactly as in play.
+    local label_bank = menu_open and action_binder:get_binding_preview_bank() or display_bank or 0
+    if ui.is_setup then ui:update_context_labels(label_bank, visible, menu_open) end
 
     if visible and ui.feedback.is_active then
         ui:show_feedback()
