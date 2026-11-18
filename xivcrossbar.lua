@@ -1571,6 +1571,7 @@ windower.register_event('addon command', function(command, ...)
         require('ui/menu_background').deep_fade = on
         chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (on and 'ON (deeper at the bottom)' or 'OFF') ..
             '. Shown from the next menu screen.')
+        return
     elseif command == 'menumouse' then
         -- A: mouse clicks in the XIV Crossbar menus; off unless turned on.
         local mode = type((...)) == 'string' and (...):lower() or nil
@@ -1584,6 +1585,7 @@ windower.register_event('addon command', function(command, ...)
         config.save(settings)
         action_binder.mouse_enabled = on
         chat_format.say(207, '[XIVCrossbar] Menu mouse input: ' .. (on and 'ON' or 'OFF') .. '.')
+        return
     elseif command == 'chainglow' or command == 'burstglow' then
         -- A: skillchain glow (charging white, then blue/white flicker) and
         -- Magic Burst glow (element colour) on crossbar slot borders.
@@ -1602,10 +1604,12 @@ windower.register_event('addon command', function(command, ...)
         if not on and ui.is_setup then ui:clear_chain_glows() end
         chat_format.say(207, '[XIVCrossbar] ' .. (command == 'chainglow' and 'Skillchain' or 'Magic Burst') ..
             ' glow: ' .. (on and 'ON' or 'OFF') .. '.')
+        return
     elseif command == 'undo' then
         -- A: undo the last change made from the XIV Crossbar menu.
         if not undo_last_edit() then chat_format.say(207, '[XIVCrossbar] Nothing to undo yet.') end
         ui_dirty = true
+        return
     elseif command == 'rendertrace' then
         local mode = (...) or 'start'
         return diagnostic:command(mode=='save' and 'stop' or mode, mode=='mark' and table.concat({...},' ',2) or 'render')
@@ -2639,7 +2643,8 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
     if dik>=200 and dik<=208 then
         if settings.InputTrace then chat_format.say(207,'[XIVCrossbar test] '..item.name..' '..edge) end
         if pressed and dik==203 and personal.TouchpadMap and native_gamepad.extra_revision==1
-            and context=='gameplay' and windower.has_focus() and info and not info.menu_open
+            -- A: FFXI menus (battle menus included) still allow the L1 maps.
+            and context=='gameplay' and windower.has_focus() and info and not info.chat_open
             and transport.down[89] and not transport.down[90] and not transport.down[87] and not transport.down[88]
             and not transport.down[67] and not transport.down[68] then
             local blocked=false
@@ -2809,12 +2814,15 @@ local function poll_directlink()
     local actor = windower.ffxi.get_player()
     local gameplay = xivcrossbar.ready and not crossbar_menu_open() and info and not info.chat_open
         and not info.menu_open and actor and actor.status ~= 4 and not controller_bridge.menu.token
+    -- A: camera zoom also works with an FFXI menu open (battle menus count as menus).
+    local zoomable = xivcrossbar.ready and not crossbar_menu_open() and info and not info.chat_open
+        and actor and actor.status ~= 4 and not controller_bridge.menu.token
     message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,
         message_bridge.ack,shoulders,{movement=controller_bridge.mode(settings,'movement'),
             ps=require('libs/personal_controls').options(settings).PSButton and controller_bridge.mode(settings,'ps') or 'off',
             movement_arm=require('libs/personal_controls').options(settings).MovementArm or 'client',
             gameplay=gameplay,bank=gamepad_state.active_bar,extras=extras,
-            zoom=extras and gameplay and not settings.InputTest and require('libs/personal_controls').options(settings).CameraZoom,
+            zoom=extras and zoomable and not settings.InputTest and require('libs/personal_controls').options(settings).CameraZoom,
             handoff=native_gamepad.handoff_revision==1})
 end
 
@@ -2997,7 +3005,8 @@ do
         local personal_sets=native_gamepad.personal_revision==1 and require('libs/personal_controls').options(settings).SetCycling
         if native_gamepad.extra_capture then
             local personal=require('libs/personal_controls').options(settings)
-            local eligible=context==1 and info and not info.menu_open and trust_slots==0
+            -- A: FFXI menus (battle menus included) keep zoom and the map toggle.
+            local eligible=context==1 and info and not info.chat_open and trust_slots==0
             local extra_mask=eligible and ((personal.CameraZoom and (2^19+2^21) or 0)
                 +(personal.TouchpadMap and 2^17 or 0)) or 0
             native_gamepad.extra_capture(0,extra_mask)

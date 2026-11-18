@@ -946,3 +946,9 @@ Lua simulation only; live testing pending.
 - Mouse input in the menu is off by default. //xb menumouse on turns it on
   (saved); //xb menumouse off turns it back off.
 Lua simulation only; live testing pending.
+
+2026-11-18: //xb menufade, menumouse, chainglow, burstglow and undo no longer
+also print "Unknown command". L1+touchpad (map toggle) and L1+right stick
+(camera zoom) now work with an FFXI menu open, battle menus included; they stay
+off while chat is open, in cutscenes, and in the Trust and XIV Crossbar menus.
+Lua simulation only; live testing pending.

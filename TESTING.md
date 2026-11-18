@@ -547,6 +547,27 @@ LIVE TESTS PENDING (one client first, then two):
 
 ---
 
+# Current Development Status - Command fall-through and L1 maps in FFXI menus (TEST PENDING)
+
+2026-11-18 (America/Chicago). Same branch.
+
+1. //xb menufade, menumouse, chainglow/burstglow and undo worked but then fell
+   through to "Unknown command" (their branches had no return). Fixed; new
+   tests/command_returns.lua checks every branch of that chain returns.
+2. Sunshine's diagnose log (20261118-222332, menu_open=true): L1 was held by the
+   L1 bank and masked from FFXI, while touchpad (button 18) and right stick
+   (20/22) came through as extra-observe with no capture, because the map
+   toggle, the native zoom/map capture mask and the AHK zoom lease all required
+   `not info.menu_open`. FFXI reports battle menus as menus. Those three now
+   require only no chat, no cutscene (status 4), no Trust menu and no XIV
+   Crossbar menu. Three mutations restoring the old guard fail the test.
+
+LIVE CHECKS: with the battle menu open, L1+touchpad toggles ffxidb and
+L1+right stick zooms; with chat open, neither fires; //xb menumouse on/off
+prints once with no "Unknown command".
+
+---
+
 # Current Development Status - Menu return paths and mouse option (TEST PENDING)
 
 2026-11-18 (America/Chicago). Branch feat/target-order-and-menu-title-20261116.
