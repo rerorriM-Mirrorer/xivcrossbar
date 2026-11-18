@@ -98,6 +98,14 @@ BridgePoll(states, active) {
     }
     ; bridge_zoom already carries eligibility; menus, chat and cutscenes do not block zoom.
     zoomEligible := CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.zoom && CM.count=23
+    ; Diagnostics: log the zoom gate whenever one of its inputs changes.
+    zoomGate := "zoom gate eligible=" . (zoomEligible ? 1 : 0) . " lease_zoom=" . (CB.zoom ? 1 : 0)
+        . " requested=" . (CM.requested ? 1 : 0) . " phase=" . CM.phase
+        . " fresh=" . (A_TickCount-CM.seen<=350 ? 1 : 0) . " buttons=" . CM.count
+    if (!CB.HasOwnProp("lastZoomGate") || CB.lastZoomGate != zoomGate) {
+        CB.lastZoomGate := zoomGate
+        DiagRecord(zoomGate)
+    }
     ZoomPoll(states,active,zoomEligible)
     if (!CM.requested or CM.phase != "messages" or A_TickCount - CM.seen > 350)
         return
@@ -184,10 +192,27 @@ ZoomPoll(states,active,eligible) {
     }
     eligible := eligible && !GetKeyState("Alt","P") && !GetKeyState("Ctrl","P") && !GetKeyState("Shift","P") && !GetKeyState("LWin","P") && !GetKeyState("RWin","P")
     key := ZoomDecision(CB.zoomState,states,eligible)
-    if (CB.zoomKey != key)
+    if (CB.zoomKey != key) {
+        if (CB.zoomKey != "")
+            DiagRecord("zoom release key=" . CB.zoomKey)
         ZoomRelease()
+    }
     if (key != "" && !CB.zoomOwner && active && WinActive("ahk_class FFXiClass")=active) {
         CB.zoomOwner := active, CB.zoomKey := key
         SendEvent("{Blind}{" . key . " down}")
+        DiagRecord("zoom send key=" . key . (key = "vkBE" ? " (.)" : " (,)"))
+    }
+    ; L1 held with the right stick pushed but zoom not armed or not eligible.
+    l1Only := states.Length>=23 && states[13] && !states[14] && !states[11] && !states[12] && !states[9] && !states[10]
+    stick := states.Length>=23 && (states[20] || states[22])
+    attempt := ""
+    if (l1Only && stick && key = "")
+        attempt := "zoom blocked eligible=" . (eligible ? 1 : 0) . " armed=" . (CB.zoomState.armed ? 1 : 0)
+    else if (key != "" && !CB.zoomOwner)
+        attempt := "zoom wanted key=" . key . " but the FFXI window is not active"
+    if (!CB.HasOwnProp("lastZoomAttempt") || CB.lastZoomAttempt != attempt) {
+        CB.lastZoomAttempt := attempt
+        if (attempt != "")
+            DiagRecord(attempt)
     }
 }

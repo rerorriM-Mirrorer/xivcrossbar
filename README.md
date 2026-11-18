@@ -961,3 +961,9 @@ to chat and never picks an option in an XIV Crossbar menu. Moving the mouse over
 the menu no longer moves the selection unless //xb menumouse on. Requires
 //lua r xivcrossbar and a reader restart (//xb controller stop, then start).
 Lua simulation only; live testing pending.
+
+2026-11-18: Attack slots with nothing targeted now only target (/targetnpc); the
+second press attacks. Applies to every Attack slot on <t>, <bt> or no target,
+with or without an avatar or spirit out; <st> slots, /attack off and Attack
+while engaged are unchanged. //xb diagnose now records the camera zoom
+decisions (gate, keys sent, blocked attempts).

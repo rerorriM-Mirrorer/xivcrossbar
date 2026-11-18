@@ -547,6 +547,30 @@ LIVE TESTS PENDING (one client first, then two):
 
 ---
 
+# Current Development Status - Attack targets first; zoom diagnostics (TEST PENDING)
+
+2026-11-18 (America/Chicago). Same branch.
+
+1. Attack with nothing targeted (new libs/attack_target.lua, player:dispatch_action):
+   an Attack slot ('a' type: Attack / a / on) whose target is <t>, <bt> or none,
+   pressed while not engaged and with no current target, sends only
+   `input /targetnpc`. The second press attacks normally (with an avatar or
+   spirit out: Assault + attack as before). No success flash is requested for the
+   target-only press, and a Quick Switch set stays active for the second press.
+   Unchanged: <st*> selector targets, /attack off, Attack while engaged.
+   tests/attack_target.lua runs the real execute_action/dispatch_action; four
+   mutations fail it.
+2. Zoom still did not work with Sunshine's menu open (live, Step 13). Lua sends
+   bridge_zoom; the reader had no zoom logging, so controller_bridge.ahk now
+   records "zoom gate ..." whenever its inputs change, "zoom send key=" /
+   "zoom release key=", and "zoom blocked eligible=.. armed=.." or "zoom wanted
+   ... window is not active" when L1 + right stick does not zoom. Next: a
+   //xb diagnose capture of L1 + right stick with the menu open.
+
+INSTALL: //lua r xivcrossbar, then //xb controller stop and //xb controller start.
+
+---
+
 # Current Development Status - Personal maps everywhere, chat Enter, menu mouse (TEST PENDING)
 
 2026-11-18 (America/Chicago). Same branch. Supersedes the guard list in the

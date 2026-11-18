@@ -695,6 +695,8 @@ function player:execute_action(slot, bank_override)
 
     local accepted, stay = self:dispatch_action(action)
     if not accepted then return false end
+    -- A target-only Attack press is not an attack: no success flash is requested.
+    if self.last_dispatch_targeted then return true end
 
     if self.temp_switch_previous_env ~= nil and not stay then
         self.pending_env_switch = self.temp_switch_previous_env
@@ -709,6 +711,15 @@ end
 
 function player:dispatch_action(action)
     if not action.type then return false end
+    self.last_dispatch_targeted = nil
+    -- A: Attack with nothing targeted only targets; the next press attacks.
+    local retarget = require('libs/attack_target').redirect(action, windower.ffxi)
+    if retarget then
+        self:cancel_summon_swap()
+        windower.send_command(retarget)
+        self.last_dispatch_targeted = true
+        return true
+    end
     local policy = require('libs/pet_actions')
     local typed = action.type
     local state
