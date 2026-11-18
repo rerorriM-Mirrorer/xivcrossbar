@@ -189,6 +189,9 @@ for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,14
         binder.active_crossbar,binder.hotkey=2,4
         binder:assign_action()
         assert(saved[1]==2 and saved[2]==4 and saved[3]=='ma' and saved[4]=='Shellra II' and saved[5]=='me')
+        -- 2026-11-18: the old flow returns to the main menu with that slot selected.
+        assert(binder.state==1 and binder.destination.bank==2 and binder.destination.slot==4)
+        binder:hide(); binder:reset_state()
         assert(totals()==baseline)
     end
 end

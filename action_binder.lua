@@ -1594,6 +1594,7 @@ end
 -- measurement is polled until it settles.
 function action_binder:update_destination_footer()
     self:update_title_band()
+    if self.delete_header then self:layout_delete_header() end
     -- A: the menu side of edit mode, kept in step every frame (cheap):
     -- Clear Slot is dummied out while the selected slot is empty, and the
     -- highlighted entry glows while Confirm would bind it.
@@ -1879,7 +1880,9 @@ end
 function action_binder:submit_selected_option()
     if self.bind_hold then return end -- the bind confirmation is still playing
     if self.custom_action_review_field then self:send_enter(); return end
-    if self.selector.is_showing and self.selector.get_selected_option then
+    -- Disabled entries only matter on screens that show the list.
+    if self.selector.is_showing and self.selector.get_selected_option
+        and (self:is_in_selector_state() or self.state == states.EDIT_CUSTOM_ACTION_REVIEW) then
         local selected = self.selector:get_selected_option()
         if not selected then return end
         if selected.disabled then
@@ -1998,13 +2001,6 @@ function action_binder:submit_selected_option()
             self.selector:decrement_page()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
-        elseif option.id == 'CREATE_CUSTOM_ACTION' and option.data and option.data.menu_entry then
-            self.action_type = action_types.CREATE_CUSTOM_ACTION
-            self:new_custom_action('', 'menu')
-        elseif option.id == 'EDIT_CUSTOM_ACTION' and option.data and option.data.menu_entry then
-            self.action_type = action_types.EDIT_CUSTOM_ACTION
-            self.state = states.EDIT_CUSTOM_ACTION_PICK
-            self:display_custom_actions_picker('Edit Custom Action: Pick Entry')
         elseif self.action_type == action_types.SUPERWARP and option.data and option.data.warp_folder then
             -- Save the selected city in the root so Back returns to it.
             self.superwarp_parent_selection = self.selection_states[states.SELECT_ACTION]
@@ -2086,9 +2082,9 @@ function action_binder:submit_selected_option()
                 self:display_button_assigner()
                 return
             end
-            self:apply_icon_change()
-            self:hide()
-            self:reset_state()
+            local bank, slot = self.active_crossbar, self.hotkey
+            local ok = self:with_undo(bank, slot, 'Change Icon', function() return self:apply_icon_change() end)
+            self:finish_legacy_bind(bank, slot, ok)
         elseif (self.action_type == action_types.GLOBAL_ICON_SET) then
             local name = self:capture_global_icon_source_name()
             if (name == nil) then
@@ -2262,11 +2258,13 @@ function action_binder:submit_selected_option()
         elseif (option.id == 'NEXT') then
             self.selector:increment_page()
         elseif option.id == 'CHANGE_NAME' or option.id == 'CHANGE_ALIAS' or option.id == 'CHANGE_COMMAND' then
+            self.review_return = self.selector:export_selection_state()
             self.custom_action_review_field = ({CHANGE_NAME='name',CHANGE_ALIAS='alias',CHANGE_COMMAND='command'})[option.id]
             self.text_entry_buffer = self.custom_action_draft[self.custom_action_review_field] or ''
             self:set_capturing_text(true)
             self:display_inline_custom_action_entry()
         elseif (option.id == 'CHANGE_ICON') then
+            self.review_return = self.selector:export_selection_state()
             -- Review may have left a trigger down or a page gesture pending.
             -- The icon picker starts with a fresh trigger press.
             self:reset_gamepad_triggers()
@@ -2281,10 +2279,12 @@ function action_binder:submit_selected_option()
             self.custom_action_draft.icon = nil
             self:display_edit_custom_action_review()
         elseif (option.id == 'CHANGE_LINKED') then
+            self.review_return = self.selector:export_selection_state()
             self.action_type = action_types.EDIT_CUSTOM_ACTION
             self.state = states.SELECT_LINKED_TYPE
             self:display_linked_type_selector()
         elseif option.id == 'DELETE_CUSTOM_ACTION' and self.editing_custom_action and self.custom_action_original_name then
+            self.review_return = self.selector:export_selection_state()
             self.custom_action_delete_target = self.custom_action_original_name
             self.custom_action_delete_from_review = true
             self.state = states.DELETE_CUSTOM_ACTION_CONFIRM
@@ -2344,8 +2344,7 @@ function action_binder:submit_selected_option()
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_CONFIRM) then
         if not self:apply_custom_action_delete() then return end
-        self:hide()
-        self:reset_state()
+        self:return_to_custom_action_list_after_delete()
     end
 end
 
@@ -2440,6 +2439,8 @@ function action_binder:go_back()
             self.is_linking_for_custom_action = false
             self.state = states.SELECT_LINKED_TYPE
             self:display_linked_type_selector()
+            local previous = self.selection_states[states.SELECT_LINKED_TYPE]
+            if previous then self.selector:import_selection_state(previous) end
             return
         end
         self.state = states.SELECT_ACTION_TYPE
@@ -2606,11 +2607,13 @@ function action_binder:go_back()
         end
     elseif (self.state == states.EDIT_CUSTOM_ACTION_REVIEW) then
         local origin=self.custom_action_entry_origin
+        local editing_name=self.custom_action_original_name
+        self.review_return=nil
         self.custom_action_draft=nil; self.custom_action_original_name=nil
         self.editing_custom_action=false
         if origin == 'command' then self:hide(); self:reset_state()
         elseif origin == 'menu' then self:return_to_action_type_menu()
-        else self.state=states.EDIT_CUSTOM_ACTION_PICK; self:display_custom_actions_picker('Edit Custom Action: Pick Entry') end
+        else self.state=states.EDIT_CUSTOM_ACTION_PICK; self:display_custom_actions_picker('Edit Custom Action: Pick Entry', editing_name) end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_PICK) then
         self.state = states.SELECT_ACTION_TYPE
         self.action_type = nil
@@ -2623,14 +2626,15 @@ function action_binder:go_back()
             self.selection_states[states.SELECT_ACTION_TYPE] = nil
         end
     elseif (self.state == states.DELETE_CUSTOM_ACTION_CONFIRM) then
-        self.custom_action_delete_target = nil
         if self.custom_action_delete_from_review then
+            self.custom_action_delete_target = nil
             self.custom_action_delete_from_review = false
             self.state = states.EDIT_CUSTOM_ACTION_REVIEW
             self:display_edit_custom_action_review()
         else
+            local name = self.custom_action_delete_target
             self.state = states.DELETE_CUSTOM_ACTION_PICK
-            self:display_custom_actions_picker('Delete Custom Action: Pick Entry')
+            self:display_custom_actions_picker('Delete Custom Action: Pick Entry', name)
         end
     end
 end
@@ -2734,7 +2738,8 @@ end
 
 -- A: the main menu entries, also used to give sets matching icons.
 function action_binder:main_menu_options()
-    local player = windower.ffxi.get_player()
+    -- (No player while zoning or logging in: list the job-free entries only.)
+    local player = windower.ffxi and windower.ffxi.get_player and windower.ffxi.get_player() or {}
     local main_job = player.main_job
     local sub_job = player.sub_job
 
@@ -2749,7 +2754,14 @@ function action_binder:main_menu_options()
     -- A: Sunshine's main menu order (2026-11-16). Entries flow in this order.
     -- Create/Edit Custom Action live inside Custom Action; Create Set lives
     -- in the set chooser; Delete Custom Action on the custom action edit screen.
-    action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon})
+    -- Custom actions: the list (dummied out while none exist), then Create and
+    -- Edit (moved back to the main menu, 2026-11-18).
+    local empty_catalog = player_data.custom_actions == nil or next(player_data.custom_actions) == nil
+    action_type_list:append({id = action_types.CUSTOM_ACTION, name = 'Custom Action', icon = custom_icon,
+        disabled = empty_catalog, disabled_focusable = true})
+    action_type_list:append({id = action_types.CREATE_CUSTOM_ACTION, name = 'Create Custom Action', icon = custom_icon})
+    action_type_list:append({id = action_types.EDIT_CUSTOM_ACTION, name = 'Edit Custom Action', icon = custom_icon,
+        disabled = empty_catalog, disabled_focusable = true})
     -- Swap: dummied out until a slot is selected (kept current each frame).
     local swap_off = self.destination == nil
     action_type_list:append({id = action_types.SWAP, name = 'Swap', icon = custom_icon, disabled = swap_off, disabled_focusable = true})
@@ -3120,15 +3132,42 @@ function action_binder:display_button_confirmer()
 end
 
 function action_binder:assign_action()
-    self.save_binding(self.active_crossbar, self.hotkey, prefix_lookup[self.action_type], self.action_name, self.action_target, self.action_command, self.action_icon, self.action_linked_action, self.action_linked_type, self.action_alias)
-    self:hide()
-    self:reset_state()
+    local bank, slot = self.active_crossbar, self.hotkey
+    local ok = self:with_undo(bank, slot, self.action_name, function()
+        return self.save_binding(bank, slot, prefix_lookup[self.action_type], self.action_name, self.action_target, self.action_command, self.action_icon, self.action_linked_action, self.action_linked_type, self.action_alias)
+    end)
+    self:finish_legacy_bind(bank, slot, ok)
 end
 
 function action_binder:delete_action()
-    self.delete_binding(self.active_crossbar, self.hotkey, prefix_lookup[self.action_type], self.action_name, self.action_target)
-    self:hide()
-    self:reset_state()
+    local bank, slot = self.active_crossbar, self.hotkey
+    local ok = self:with_undo(bank, slot, 'Clear', function()
+        return self.delete_binding(bank, slot, prefix_lookup[self.action_type], self.action_name, self.action_target)
+    end)
+    self:finish_legacy_bind(bank, slot, ok)
+end
+
+-- A: the old Bind-to-Slot flow (2026-11-18) no longer closes the menu: it
+-- returns to the main menu with the slot it just changed selected, ready
+-- for more binding in edit mode. Undo covers these changes too.
+function action_binder:finish_legacy_bind(bank, slot, ok)
+    local custom = self.binding_custom_action_review
+    self:clear_button_entry_ui()
+    self.action_name, self.action_target, self.action_command, self.action_icon = nil, nil, nil, nil
+    self.action_linked_action, self.action_linked_type, self.action_alias = nil, nil, nil
+    self.binding_preview_icon, self.target_type = nil, nil
+    self.selection_states[states.SELECT_ACTION] = nil
+    self.selection_states[states.SELECT_ACTION_TARGET] = nil
+    self.selection_states[states.SELECT_ICON] = nil
+    if custom then
+        self.binding_custom_action_review = false
+        self.custom_action_draft, self.custom_action_original_name = nil, nil
+        self.custom_action_entry_origin, self.editing_custom_action = nil, false
+        self.review_return = nil
+    end
+    if bank and slot then self.destination = {bank = bank, slot = slot} end
+    if ok ~= false and bank and slot and self.on_bound then self.on_bound(bank, slot) end
+    self:return_to_action_type_menu()
 end
 
 function action_binder:show_icon(path, x, y)
@@ -3990,13 +4029,6 @@ function action_binder:display_custom_actions_selector()
     end
 
     action_list:sort(sortByName)
-    -- A: Create and Edit lead the Custom Action list (moved from the main menu).
-    local custom_icon = 'images/' .. get_icon_pathbase() .. '/custom_actions.png'
-    local empty_catalog = action_list:length() == 0
-    action_list:insert(1, {id = 'EDIT_CUSTOM_ACTION', name = 'Edit Custom Action', icon = custom_icon,
-        disabled = empty_catalog, disabled_focusable = true, data = {menu_entry = true}})
-    action_list:insert(1, {id = 'CREATE_CUSTOM_ACTION', name = 'Create Custom Action', icon = custom_icon,
-        data = {menu_entry = true}})
     self.selector:display_options(action_list)
     self:show_control_hints('Confirm', 'Go Back')
 end
@@ -4140,9 +4172,9 @@ end
 function action_binder:apply_icon_change()
     if (self.change_slot_icon == nil) then
         chat_format.say(123, '[XIVCrossbar] Change Icon: callback not wired (please reload addon).')
-        return
+        return false
     end
-    self.change_slot_icon(self.active_crossbar, self.hotkey, self.action_icon)
+    return self.change_slot_icon(self.active_crossbar, self.hotkey, self.action_icon)
 end
 
 function action_binder:display_custom_action_field_review(field_label, field_letter, current_value, hint_text)
@@ -4279,6 +4311,27 @@ end
 
 -- Saving without binding stays in the catalog, ready to edit another entry.
 -- Preserve the main-menu Back selection, but discard all completed draft state.
+-- A: after deleting a custom action, show the Custom Action list (the main
+-- menu, on Custom Action, when none are left). The menu stays open.
+function action_binder:return_to_custom_action_list_after_delete()
+    self.custom_action_draft, self.custom_action_original_name = nil, nil
+    self.custom_action_review_field, self.custom_action_entry_origin = nil, nil
+    self.editing_custom_action, self.binding_custom_action_review = false, false
+    self.custom_action_delete_target, self.custom_action_delete_from_review = nil, false
+    self.review_return = nil
+    self:set_capturing_text(false)
+    windower.prim.set_visibility('button_entry_bg', false)
+    if player_data.custom_actions and next(player_data.custom_actions) ~= nil then
+        self.state, self.action_type = states.SELECT_ACTION, action_types.CUSTOM_ACTION
+        self.selection_states[states.SELECT_ACTION] = nil
+        self.selector:set_page(1)
+        self:display_action_selector()
+    else
+        self.selection_states[states.SELECT_ACTION_TYPE] = nil
+        self:return_to_action_type_menu()
+    end
+end
+
 function action_binder:return_to_custom_actions_list(saved_name)
     self.custom_action_draft, self.custom_action_original_name = nil, nil
     self.custom_action_review_field, self.custom_action_entry_origin = nil, nil
@@ -4418,6 +4471,12 @@ function action_binder:display_edit_custom_action_review()
         local help=self:create_text(line,self.base_x+30,y)
         help:size(10);self:center_caption(help,y);self.hints:append(help)
     end
+    -- A: back on Review: the cursor returns to the entry that left it. While a
+    -- field is being typed in, keep the saved entry for when typing ends.
+    if self.review_return and self.selector.import_selection_state then
+        self.selector:import_selection_state(self.review_return)
+        if not self.custom_action_review_field then self.review_return = nil end
+    end
 end
 
 function action_binder:display_inline_custom_action_entry()
@@ -4447,6 +4506,24 @@ function action_binder:display_delete_custom_action_confirm()
 
     self:show_control_hints('Confirm', 'Go Back')
 
+    -- A: the action's icon and name under the title, as on the crossbar.
+    local record = player_data.custom_actions and player_data.custom_actions[target] or {}
+    local icon_path = self:custom_action_icon(record)
+    local cx = self.base_x + self.width / 2
+    local name_text = self:create_text('"' .. target .. '"', cx, self.base_y + 100)
+    name_text:size(16)
+    name_text:color(255, 216, 112); name_text:stroke_color(0, 0, 0); name_text:stroke_width(2)
+    self.hints:append(name_text)
+    local frame = ui_resources.image({draggable = false})
+    frame:path(windower.addon_path .. 'images/' .. get_icon_pathbase() .. '/ui/frame.png')
+    frame:fit(false); frame:size(40, 40); frame:show()
+    local icon = ui_resources.image({draggable = false})
+    icon:path(windower.addon_path .. icon_path)
+    icon:fit(false); icon:size(40, 40); icon:show()
+    self.images:append(icon); self.images:append(frame)
+    self.delete_header = {name = name_text, icon = icon, frame = frame, cx = cx, y = self.base_y + 92}
+    self:layout_delete_header()
+
     local lines = {
         'Delete custom action "' .. target .. '"?',
         '',
@@ -4463,6 +4540,20 @@ function action_binder:display_delete_custom_action_confirm()
         t:size(13)
         self.hints:append(t)
     end
+end
+
+-- Icon left of the name, the pair centred; re-run until the name is measured.
+function action_binder:layout_delete_header()
+    local h = self.delete_header
+    if not h or ui_resources.is_disposed(h.name) then self.delete_header = nil; return end
+    local width = h.name:measure_width()
+    if width == nil then return end
+    local total = 40 + 10 + width
+    local x = h.cx - total / 2
+    h.icon:pos(x, h.y); h.frame:pos(x, h.y)
+    h.name:pos(x + 50, h.y + 8)
+    h.name:commit_measurement()
+    if width == h.width then self.delete_header = nil else h.width = width end
 end
 
 function action_binder:apply_custom_action_update()
@@ -5559,8 +5650,11 @@ local click_col = nil
 
 windower.register_event('prerender', function() caption_layout:update() end)
 
+-- A: mouse clicks in the menus are off unless //xb menumouse on (2026-11-18).
+action_binder.mouse_enabled = false
+
 windower.register_event('mouse', function(type, x, y, delta, blocked)
-    if blocked then
+    if blocked or not action_binder.mouse_enabled then
         return
     end
 

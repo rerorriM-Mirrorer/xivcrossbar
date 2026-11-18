@@ -817,6 +817,8 @@ function initialize(server_id, expected_name, expected_id)
         action_binder:setup(temp_buttonmapping, set_hotkey, delete_hotkey, theme_options, get_crossbar_sets, 150, 150, windower.get_windower_settings().ui_x_res - 300,
             windower.get_windower_settings().ui_y_res - y_adjust, change_slot_icon, save_global_icon, save_custom_action, update_custom_action, delete_custom_action, create_new_set)
     end
+    -- A: menu mouse input stays off unless //xb menumouse on.
+    action_binder.mouse_enabled = settings.MenuMouse == true
     -- A: chain glows follow the saved switches (on unless turned off).
     ui.chain_glow_enabled = settings.ChainGlow ~= false
     ui.burst_glow_enabled = settings.BurstGlow ~= false
@@ -1569,6 +1571,19 @@ windower.register_event('addon command', function(command, ...)
         require('ui/menu_background').deep_fade = on
         chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (on and 'ON (deeper at the bottom)' or 'OFF') ..
             '. Shown from the next menu screen.')
+    elseif command == 'menumouse' then
+        -- A: mouse clicks in the XIV Crossbar menus; off unless turned on.
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        if mode ~= nil and mode ~= 'on' and mode ~= 'off' then
+            chat_format.say(123, '[XIVCrossbar] Use //xb menumouse [on|off].')
+            return
+        end
+        local on = settings.MenuMouse == true
+        if mode == nil then on = not on else on = mode == 'on' end
+        settings.MenuMouse = on
+        config.save(settings)
+        action_binder.mouse_enabled = on
+        chat_format.say(207, '[XIVCrossbar] Menu mouse input: ' .. (on and 'ON' or 'OFF') .. '.')
     elseif command == 'chainglow' or command == 'burstglow' then
         -- A: skillchain glow (charging white, then blue/white flicker) and
         -- Magic Burst glow (element colour) on crossbar slot borders.

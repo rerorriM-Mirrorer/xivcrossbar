@@ -547,6 +547,42 @@ LIVE TESTS PENDING (one client first, then two):
 
 ---
 
+# Current Development Status - Menu return paths and mouse option (TEST PENDING)
+
+2026-11-18 (America/Chicago). Branch feat/target-order-and-menu-title-20261116.
+
+REQUEST (section 2 of the 2026-11-18 notes): Back returns to the entry that
+opened a screen; deleting a custom action returns to the list; Delete screen
+shows icon and name; Create/Edit Custom Action on the main menu only; the old
+bind flow returns to the main menu with the slot selected; mouse off by default.
+
+CHANGES: action_binder.lua (main_menu_options, review review_return cursor,
+return_to_custom_action_list_after_delete, delete header, finish_legacy_bind,
+mouse_enabled), xivcrossbar.lua (//xb menumouse, settings.MenuMouse). The
+disabled-entry guard in submit_selected_option now only applies on list screens.
+
+CHECKS THAT RAN (Lua 5.4 via tests/run_lua.py, not Lua 5.1, not Windower):
+new tests/menu_return_paths.lua; updated custom_action_save_return,
+edit_banks_ready, edit_hold_undo, menu_resources, crossbar_destinations
+expectations; whole suite (72 files) exit 0. Seven mutations (review cursor,
+delete return, mouse gate x2, Create on main menu, legacy destination, legacy
+menu return) all fail the new test.
+NOT run: any live FFXI test.
+
+LIVE CHECKS:
+1. Main menu: Custom Action, Create Custom Action, Edit Custom Action, Swap...
+   The Custom Action list has no Create/Edit entries.
+2. Open any main-menu entry, press Back: cursor is on that entry.
+3. Edit a custom action, open Choose Icon / Link Action / Edit Alias, back out:
+   cursor is on the entry you opened.
+4. Delete a custom action: icon + amber name under the title; confirming shows
+   the Custom Action list (main menu if it was the last one).
+5. Without selecting a slot, bind via the old flow: menu stays open on the main
+   menu with that slot selected and flashing; Undo reverts it.
+6. Mouse clicks do nothing in the menu; //xb menumouse on enables them.
+
+---
+
 # Current Development Status - Target picker order and XIV Crossbar title (TEST PENDING)
 
 2026-11-16 (America/Chicago). Branch feat/target-order-and-menu-title-20261116

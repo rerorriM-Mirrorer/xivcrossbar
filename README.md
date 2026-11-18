@@ -929,3 +929,20 @@ turns it off (saved), and //xb menufade on turns it back on.
   with no other button). A held trigger, or one used to pick a slot, never
   turns the page.
 Lua simulation only; live testing pending.
+
+2026-11-18: Menu return paths and mouse option.
+- Create Custom Action and Edit Custom Action are back on the main menu, right
+  after Custom Action, and only there (the Custom Action list now shows just
+  your saved actions). Custom Action and Edit are dummied out when none exist.
+- Back puts the cursor on the entry that opened the screen (main menu entries,
+  the custom action you were editing, Choose Icon, Link Action, Edit Name/
+  Alias/Command, Delete Custom Action).
+- Deleting a custom action returns to the Custom Action list (or the main menu
+  when it was the last one) instead of closing the menu. The Delete screen
+  shows the action's icon and its name in amber under the title.
+- The old Bind-to-Slot flow (no slot selected first) now keeps the menu open
+  after binding: it returns to the main menu with that slot selected, flashes
+  the slot, and records the change for Undo. Clear and Change Icon do the same.
+- Mouse input in the menu is off by default. //xb menumouse on turns it on
+  (saved); //xb menumouse off turns it back off.
+Lua simulation only; live testing pending.

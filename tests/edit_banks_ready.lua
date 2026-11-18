@@ -148,20 +148,16 @@ binder:update_destination_footer()
 assert(glow:visible())
 binder.selector:hide(); assert(not glow:visible(), 'glow hides with the list')
 
--- Custom Action list: Create and Edit lead it; Edit dummied out with no custom actions.
+-- Custom Action list: only the custom actions (Create/Edit are on the main menu, 2026-11-18).
 binder.action_type=nil
-player.custom_actions={}
 binder.action_type=34
 binder.state=2
 local real_display=binder.display_action_selector
 binder.display_action_selector=nil
-binder:display_custom_actions_selector()
-local first=binder.selector.current_options
-assert(first[1].name=='Create Custom Action' and first[2].name=='Edit Custom Action' and first[2].disabled, 'Create/Edit first; Edit dummied out')
-assert(binder:get_ghost()==nil and not binder:is_bind_ready(), 'menu entries are not bind targets')
 player.custom_actions={Ready={command='input /ja Ready <me>'}}
 binder:display_custom_actions_selector()
-assert(not binder.selector.current_options[2].disabled and binder.selector.current_options[3].name=='Ready')
+local first=binder.selector.current_options
+assert(#first==1 and first[1].name=='Ready', 'no Create/Edit entries in the list')
 binder.display_action_selector=real_display
 
 -- Footer: amber label with a black outline, two points larger; centred on the menu.

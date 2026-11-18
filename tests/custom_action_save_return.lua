@@ -85,7 +85,10 @@ for _,resolution in ipairs({{960,540},{1280,720},{1600,900},{1920,1080},{2560,14
     assert(binder.state==5 and binder.binding_custom_action_review and not binder.selector.is_showing)
     binder:go_back();assert(binder.state==17 and binder.custom_action_draft.name=='BindMe')
     select_id('SAVE_BIND');binder.active_crossbar,binder.hotkey=2,4;binder:assign_action()
-    assert(saved_binding[4]=='BindMe' and saved_binding[6]=='input /echo bound' and binder.is_hidden)
+    -- 2026-11-18: the old Bind-to-Slot flow returns to the main menu with that slot selected.
+    assert(saved_binding[4]=='BindMe' and saved_binding[6]=='input /echo bound' and binder.state==1
+        and binder.destination.bank==2 and binder.destination.slot==4)
+    binder:hide();binder:reset_state();binder:clear_destination()
     -- Cancel without saving still follows the original command-origin exit.
     assert(binder:new_custom_action('Unsaved','command'));binder:go_back()
     assert(binder.is_hidden and not player.custom_actions.Unsaved)
@@ -116,7 +119,15 @@ binder:submit_selected_option()
 assert(binder.state==19 and player.custom_actions.Aardvark,'failed delete lost action or confirmation')
 failing=false
 binder:submit_selected_option()
-assert(binder.is_hidden and not player.custom_actions.Aardvark)
+-- 2026-11-18: deleting returns to the Custom Action list (main menu when empty).
+assert(not player.custom_actions.Aardvark)
+if next(player.custom_actions) then
+    assert(binder.state==2 and binder.action_type==34, 'back on the Custom Action list')
+    for _,o in ipairs(binder.selector.current_options) do assert(o.name~='Aardvark') end
+else
+    assert(binder.state==1)
+end
+binder:hide();binder:reset_state()
 assert(binder:new_custom_action('Quests','command'))
 windower.get_dir=function()
     local files={}
