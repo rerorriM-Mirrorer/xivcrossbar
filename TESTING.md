@@ -547,6 +547,46 @@ LIVE TESTS PENDING (one client first, then two):
 
 ---
 
+# Current Development Status - Personal maps everywhere, chat Enter, menu mouse (TEST PENDING)
+
+2026-11-18 (America/Chicago). Same branch. Supersedes the guard list in the
+entry below: Sunshine wants the personal controls on unless there is a real reason.
+
+1. L1+touchpad (ffxidb toggle): works in chat, cutscenes, FFXI menus, the Trust
+   menu and XIV Crossbar menus. Checked before the Trust-menu press priority
+   (Trust only claims keys 59-66). Only the setup screen and login keep it raw.
+2. L1+right stick zoom: the same, except while typing (FFXI chat open, an XIV
+   Crossbar text field, set-name entry), because AHK zooms by sending the '.'
+   and ',' keys, which would type into the text. Lua `zoomable` replaces the
+   gameplay gate; controller_bridge.ahk no longer requires bridge_gameplay for
+   zoom. Native capture mask: map bit always (except setup), zoom bits not
+   while typing.
+3. Enter (main and numpad) with FFXI chat open is never taken by any XIV
+   Crossbar menu, text fields included; arrows and Esc unchanged.
+4. ui/selectablelist.lua had its own mouse handler: moving the pointer over an
+   option selected it. It is now off unless //xb menumouse on, like clicks.
+
+Still gated by gameplay elsewhere (unchanged, reported to Sunshine): movement
+bridge "Ready" Trust policy waits for bridge_gameplay; R1 targeting (Tab /
+targetnpc) needs no crossbar/Trust menu; L1/R1 bank capture already works in
+all in-world states; PS has no gameplay gate.
+
+CHECKS: tests/command_returns.lua (static guards) and tests/review_keyboard.lua
+(runs the real controller_keyboard: chat Enter not submitted, not into a text
+field, arrows still move, Enter back after chat closes); whole suite exit 0;
+seven mutations all fail a test.
+
+INSTALL: //lua r xivcrossbar, then //xb controller stop and //xb controller start
+(the AHK reader changed).
+
+LIVE CHECKS: L1+touchpad and L1+right stick in the battle menu, the Trust menu,
+the XIV Crossbar menu and a cutscene; L1+touchpad with chat open; zoom does
+nothing with chat open (no '.'/',' typed); Enter with chat open sends the chat
+line and does not pick a menu option; mouse over the menu does not move the
+selection with menumouse off, and does with it on.
+
+---
+
 # Current Development Status - Command fall-through and L1 maps in FFXI menus (TEST PENDING)
 
 2026-11-18 (America/Chicago). Same branch.

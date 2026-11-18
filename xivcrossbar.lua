@@ -819,6 +819,7 @@ function initialize(server_id, expected_name, expected_id)
     end
     -- A: menu mouse input stays off unless //xb menumouse on.
     action_binder.mouse_enabled = settings.MenuMouse == true
+    require('ui/selectablelist').mouse_enabled = action_binder.mouse_enabled
     -- A: chain glows follow the saved switches (on unless turned off).
     ui.chain_glow_enabled = settings.ChainGlow ~= false
     ui.burst_glow_enabled = settings.BurstGlow ~= false
@@ -1584,6 +1585,7 @@ windower.register_event('addon command', function(command, ...)
         settings.MenuMouse = on
         config.save(settings)
         action_binder.mouse_enabled = on
+        require('ui/selectablelist').mouse_enabled = action_binder.mouse_enabled
         chat_format.say(207, '[XIVCrossbar] Menu mouse input: ' .. (on and 'ON' or 'OFF') .. '.')
         return
     elseif command == 'chainglow' or command == 'burstglow' then
@@ -2595,6 +2597,11 @@ local function input_context()
     return 'gameplay'
 end
 local function controller_keyboard(dik, pressed, flags, blocked)
+    -- A: with FFXI chat open, Enter belongs to chat on every XIV Crossbar menu.
+    if pressed and (dik == keyboard.enter or dik == 156) and crossbar_menu_open() then
+        local info = windower.ffxi.get_info()
+        if info and info.chat_open then return false end
+    end
     local modal_action
     local field = (not action_binder.chooser_active and action_binder:is_capturing_text()) or env_chooser.capturing
     if field then
@@ -2638,13 +2645,13 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
         local claimed, decision = controller_bridge.menu:edge(dik, pressed, buttonmapping,gamepad_state.trust_menu_live)
         if claimed then return decision or 'trust-menu-release',context end
     end
-    if gamepad_state.trust_menu_live and pressed then return 'trust-menu-priority',context end
     local personal=require('libs/personal_controls').options(settings)
+    -- A: L1+touchpad works in chat, cutscenes, FFXI/Trust/XIV Crossbar menus.
+    -- Only setup (button mapping) and login keep the touchpad raw.
     if dik>=200 and dik<=208 then
         if settings.InputTrace then chat_format.say(207,'[XIVCrossbar test] '..item.name..' '..edge) end
         if pressed and dik==203 and personal.TouchpadMap and native_gamepad.extra_revision==1
-            -- A: FFXI menus (battle menus included) still allow the L1 maps.
-            and context=='gameplay' and windower.has_focus() and info and not info.chat_open
+            and context~='setup' and context~='login' and windower.has_focus() and info
             and transport.down[89] and not transport.down[90] and not transport.down[87] and not transport.down[88]
             and not transport.down[67] and not transport.down[68] then
             local blocked=false
@@ -2654,6 +2661,7 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
         end
         return 'extra-observe',context
     end
+    if gamepad_state.trust_menu_live and pressed then return 'trust-menu-priority',context end
     -- A: L2>L1 / R2>R1 set cycling also works in the XIV Crossbar menu (edit
     -- mode); the selected slot stays selected and the trigger turns no page.
     local edit_menu = context:sub(1,5)=='menu:' and action_binder.is_edit_mode ~= nil and action_binder:is_edit_mode()
@@ -2814,9 +2822,12 @@ local function poll_directlink()
     local actor = windower.ffxi.get_player()
     local gameplay = xivcrossbar.ready and not crossbar_menu_open() and info and not info.chat_open
         and not info.menu_open and actor and actor.status ~= 4 and not controller_bridge.menu.token
-    -- A: camera zoom also works with an FFXI menu open (battle menus count as menus).
-    local zoomable = xivcrossbar.ready and not crossbar_menu_open() and info and not info.chat_open
-        and actor and actor.status ~= 4 and not controller_bridge.menu.token
+    -- A: camera zoom works in cutscenes, FFXI menus (battle menus included), Trust
+    -- and XIV Crossbar menus. Zoom is sent as the '.' and ',' keys, so it stays off
+    -- while text is being typed (FFXI chat or an XIV Crossbar text field) and on
+    -- the setup screen.
+    local typing = (info and info.chat_open) or action_binder:is_capturing_text() or env_chooser.capturing
+    local zoomable = xivcrossbar.ready and info and actor and not gamepad_mapper.is_showing and not typing
     message_lease:update(directory,pid,settings.ControllerProfile,settings.ControllerDevice,message_bridge.token,
         message_bridge.ack,shoulders,{movement=controller_bridge.mode(settings,'movement'),
             ps=require('libs/personal_controls').options(settings).PSButton and controller_bridge.mode(settings,'ps') or 'off',
@@ -3005,9 +3016,12 @@ do
         local personal_sets=native_gamepad.personal_revision==1 and require('libs/personal_controls').options(settings).SetCycling
         if native_gamepad.extra_capture then
             local personal=require('libs/personal_controls').options(settings)
-            -- A: FFXI menus (battle menus included) keep zoom and the map toggle.
-            local eligible=context==1 and info and not info.chat_open and trust_slots==0
-            local extra_mask=eligible and ((personal.CameraZoom and (2^19+2^21) or 0)
+            -- A: the map toggle works everywhere in-world (chat, cutscenes, FFXI/Trust/
+            -- XIV Crossbar menus); zoom too, except while typing (it sends '.'/',').
+            -- Only the setup screen keeps both raw.
+            local eligible=(context==1 or (context==2 and not gamepad_mapper.is_showing)) and info
+            local typing=info and (info.chat_open or action_binder:is_capturing_text() or env_chooser.capturing)
+            local extra_mask=eligible and ((personal.CameraZoom and not typing and (2^19+2^21) or 0)
                 +(personal.TouchpadMap and 2^17 or 0)) or 0
             native_gamepad.extra_capture(0,extra_mask)
         end

@@ -952,3 +952,12 @@ also print "Unknown command". L1+touchpad (map toggle) and L1+right stick
 (camera zoom) now work with an FFXI menu open, battle menus included; they stay
 off while chat is open, in cutscenes, and in the Trust and XIV Crossbar menus.
 Lua simulation only; live testing pending.
+
+2026-11-18 (later): L1+touchpad (map toggle) works everywhere in-world: chat,
+cutscenes, FFXI menus, the Trust menu and XIV Crossbar menus. L1+right stick
+zoom does too, except while you are typing (FFXI chat or an XIV Crossbar text
+field), because zoom is sent as the '.' and ',' keys. With chat open, Enter goes
+to chat and never picks an option in an XIV Crossbar menu. Moving the mouse over
+the menu no longer moves the selection unless //xb menumouse on. Requires
+//lua r xivcrossbar and a reader restart (//xb controller stop, then start).
+Lua simulation only; live testing pending.

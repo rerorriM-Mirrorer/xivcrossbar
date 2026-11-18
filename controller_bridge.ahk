@@ -96,7 +96,8 @@ BridgePoll(states, active) {
         CB.client := active, CB.neutral := false, CB.fired := false, CB.neutralSince := 0
         CB.nextTrust := 0
     }
-    zoomEligible := CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.gameplay && CB.zoom && CM.count=23
+    ; bridge_zoom already carries eligibility; menus, chat and cutscenes do not block zoom.
+    zoomEligible := CM.requested && CM.phase = "messages" && A_TickCount-CM.seen<=350 && CB.zoom && CM.count=23
     ZoomPoll(states,active,zoomEligible)
     if (!CM.requested or CM.phase != "messages" or A_TickCount - CM.seen > 350)
         return

@@ -524,8 +524,12 @@ function setup_image(image, path)
     image:show()
 end
 
+-- A: off unless //xb menumouse on. Hovering used to move the selection and
+-- pull it away from the keyboard and controller.
+selectable_list.mouse_enabled = false
+
 windower.register_event('mouse', function(type, x, y, delta, blocked)
-    if blocked then
+    if blocked or not selectable_list.mouse_enabled then
         return
     end
 

@@ -56,6 +56,7 @@ local start=assert(source:find('local function controller_keyboard(dik, pressed,
 local stop=assert(source:find("windower.register_event('keyboard', controller_keyboard)",start,true))
 local prefix=source:sub(start,stop-1)..'return controller_keyboard'
 local sent, closed = {}, 0
+chat_open=false
 function binder:is_capturing_text() return self.capturing_text end
 local rootenv=setmetatable({
     review_keyboard=require('libs/controller/review_keyboard').new(),
@@ -68,7 +69,8 @@ local rootenv=setmetatable({
         if pressed then sent[#sent+1]=dik;binder.capturing_text=false end
         return false
     end,
-    windower={has_focus=function()return true end,send_command=function() end}
+    windower={has_focus=function()return true end,send_command=function() end,
+        ffxi={get_info=function() return {chat_open=chat_open} end}}
 },{__index=_G})
 local dispatch=assert(load(prefix,'actual review router','t',rootenv))()
 binder.is_hidden=false;binder.chooser_active=false;binder.capturing_text=false;binder.state=13
@@ -91,6 +93,26 @@ binder.selector_showing=false
 assert(dispatch(1,true,0,false) and dispatch(1,false,0,false) and closed==1)
 binder.is_hidden=false;binder.state=17
 assert(not dispatch(28,true,0,true),'preblocked Enter must not submit')
+dispatch(28,false,0,false)
+-- 2026-11-18: with FFXI chat open, Enter never reaches an XIV Crossbar menu,
+-- not even a text field; the arrows and Esc still do.
+chat_open=true
+binder.state=17
+count=#calls
+assert(not dispatch(28,true,0,false) and #calls==count, 'chat Enter goes to FFXI')
+assert(not dispatch(156,true,0,false) and #calls==count, 'chat numpad Enter goes to FFXI')
+dispatch(28,false,0,false);dispatch(156,false,0,false)
+binder.capturing_text=true
+local sent_before=#sent
+assert(not dispatch(28,true,0,false) and #sent==sent_before and binder.capturing_text, 'not even into a text field')
+dispatch(28,false,0,false);binder.capturing_text=false
+binder.state=13
+assert(dispatch(200,true,0,false) and calls[#calls]=='dpad_up', 'arrows still move with chat open')
+dispatch(200,false,0,false)
+chat_open=false
+binder.state=17
+count=#calls
+assert(dispatch(28,true,0,false), 'Enter works again once chat closes')
 dispatch(28,false,0,false)
 local guard=require('text_input_guard')
 local commands={}
