@@ -95,6 +95,9 @@ local action_success = require('libs/action_success').new({
         return success_policy.resolve(action,state,require('resources/crossbar_spells'))
     end,
     emit=function(bar,slot) success_confirmed={bar,slot} end,
+    targeted=function(name)
+        chat_format.say(207, '[XIVCrossbar] Targeting ' .. tostring(name or 'target') .. '.')
+    end,
 })
 local env_chooser = require('environment_chooser')
 local action_binder = require('action_binder')

@@ -547,6 +547,27 @@ LIVE TESTS PENDING (one client first, then two):
 
 ---
 
+# Current Development Status - Attack slot shows Target; flash and chat on target (TEST PENDING)
+
+2026-11-18 (America/Chicago). Same branch. Sunshine confirmed live: Attack with no
+target targets first and the second press attacks.
+
+1. Attack slots ('a' / alias Attack) now show what the next press does:
+   Target (targetnpc.png, nothing targeted, not engaged), Attack, Disengage
+   (engaged). Uses libs/attack_target.redirect, so the label matches dispatch.
+2. A target-only press requests a new 'target' success kind
+   (libs/action_success.lua): within 3 s of a target appearing the slot gets
+   the gold success flash and chat says "[XIVCrossbar] Targeting <name>."
+   pet_actions.snapshot now carries target / target_name.
+CHECKS: tests/attack_target.lua (tracker: no flash before a target, flash +
+name once targeted, expiry, already-targeted); four mutations fail it; suite 0.
+
+LIVE CHECKS: Attack slot reads Target with nothing targeted; press: target
+acquired, slot flashes, chat line names it, label becomes Attack; press again:
+engage, flash, label Disengage; press: disengage, flash, label Attack/Target.
+
+---
+
 # Current Development Status - Attack targets first; zoom diagnostics (TEST PENDING)
 
 2026-11-18 (America/Chicago). Same branch.

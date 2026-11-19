@@ -967,3 +967,8 @@ second press attacks. Applies to every Attack slot on <t>, <bt> or no target,
 with or without an avatar or spirit out; <st> slots, /attack off and Attack
 while engaged are unchanged. //xb diagnose now records the camera zoom
 decisions (gate, keys sent, blocked attempts).
+
+
+2026-11-18: Attack slots show Target when nothing is targeted, Attack when a
+target is selected, and Disengage while engaged. The target-only press flashes
+the slot once the target is acquired and prints "[XIVCrossbar] Targeting <name>."

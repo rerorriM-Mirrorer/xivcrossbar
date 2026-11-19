@@ -13,7 +13,8 @@ function M.snapshot(ffxi)
     local alive=pet~=nil and (pet.hpp==nil or pet.hpp>0)
     local name=alive and key(pet.name) or ''
     local player=ffxi.get_player and ffxi.get_player()
-    return {pet=alive,avatar=alive and avatars[name]==true,summon=alive and (avatars[name]==true or spirits[name]==true),
+    local target=ffxi.get_mob_by_target and ffxi.get_mob_by_target('t')
+    return {target=target~=nil,target_name=target and target.name,pet=alive,avatar=alive and avatars[name]==true,summon=alive and (avatars[name]==true or spirits[name]==true),
         trust=require('libs/trust_actions').snapshot(ffxi),pet_name=name,pet_id=alive and (pet.id or pet.index),pet_engaged=alive and pet.status==1,engaged=player and (player.status==1 or player.status==3),player=player}
 end
 -- Resolve transient display/dispatch values without changing the saved slot.

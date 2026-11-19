@@ -13,9 +13,14 @@ function M:request(action,before,bar,slot,context)
     self:cancel()
     if not action then return end
     local o=self.options
-    action=o.resolve(action,before) or action
     local p={bar=bar,slot=slot,context=context,actor=before.player and before.player.id,
         before=before,expires=o.clock()+3}
+    -- A: an Attack press that only targeted succeeds when a target appears.
+    if action.target_only then
+        if before.target then return end
+        p.kind='target'; self.pending=p; return
+    end
+    action=o.resolve(action,before) or action
     local name=key(action.action)
     if action.trust_dismiss then
         p.kind,p.trust='return',key((action.action:match('^refa "(.-)"$') or action.trust_spell_name):gsub('%s*%(UC%)',''))
@@ -47,9 +52,10 @@ function M:current()
     if p and (self.options.clock()>p.expires or self.options.context()~=p.context) then self:cancel();return end
     return p
 end
-function M:finish(p)
+function M:finish(p,state)
     self:cancel()
     self.options.emit(p.bar,p.slot)
+    if p.kind=='target' and self.options.targeted then self.options.targeted(state and state.target_name) end
 end
 function M:action(act)
     local p=self:current()
@@ -76,6 +82,7 @@ function M:tick(state)
         or p.kind=='release' and not state.pet
         or p.kind=='pet' and state.pet_id==p.before.pet_id and state.pet_engaged==p.engaged and state.pet
         or p.kind=='return' and p.before.trust.trusts[p.trust] and not state.trust.trusts[p.trust]
-    if done then self:finish(p) end
+        or p.kind=='target' and state.target
+    if done then self:finish(p,state) end
 end
 return M

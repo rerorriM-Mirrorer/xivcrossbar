@@ -695,8 +695,8 @@ function player:execute_action(slot, bank_override)
 
     local accepted, stay = self:dispatch_action(action)
     if not accepted then return false end
-    -- A target-only Attack press is not an attack: no success flash is requested.
-    if self.last_dispatch_targeted then return true end
+    -- A target-only Attack press is not an attack: its success is a target appearing.
+    if self.last_dispatch_targeted then return true, {type='a', action='Attack', target_only=true} end
 
     if self.temp_switch_previous_env ~= nil and not stay then
         self.pending_env_switch = self.temp_switch_previous_env

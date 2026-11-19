@@ -2308,7 +2308,11 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 end
 
                 if (action ~= nil and action.type == 'a' and action.action == 'a' and action.alias == 'Attack') then
-                    if (in_battle) then
+                    -- A: what the next press does: Target (nothing targeted), Attack, Disengage.
+                    if (not in_battle and require('libs/attack_target').redirect(action, windower.ffxi)) then
+                        self.hotbars[h].slot_icon[i]:path(windower.addon_path..'/images/' .. get_icon_pathbase() .. '/targetnpc.png')
+                        self.hotbars[h].slot_text[i]:text('Target')
+                    elseif (in_battle) then
                         self.hotbars[h].slot_icon[i]:path(windower.addon_path..'/images/' .. get_icon_pathbase() .. '/disengage.png')
                         self.hotbars[h].slot_text[i]:text('Disengage')
                     else

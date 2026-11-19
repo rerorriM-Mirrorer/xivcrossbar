@@ -27,9 +27,9 @@ local a=assert(source:find('function player:execute_action(',1,true))
 local b=assert(source:find('-- remove action from slot',a,true))
 assert(load(source:sub(a,b-1),'actual player dispatch','t',env))()
 
--- No target: only target; no action returned (so no success flash request).
+-- No target: only target; the returned marker asks for a "target appeared" flash.
 local accepted, action = p:execute_action(1)
-assert(accepted and action==nil and sent[#sent]=='input /targetnpc' and #sent==1, 'first press targets')
+assert(accepted and action and action.target_only and sent[#sent]=='input /targetnpc' and #sent==1, 'first press targets')
 -- Target now exists: the second press attacks.
 target={id=9,name='Rabbit'}
 accepted, action = p:execute_action(1)
@@ -66,4 +66,38 @@ target=nil
 assert(attack_target.redirect({type='a',action='off',target='t'},ffxi)==nil)
 assert(attack_target.redirect({type='ma',action='Fire',target='t'},ffxi)==nil)
 assert(attack_target.redirect({type='a',action='on',target='t'},ffxi)=='input /targetnpc')
-print('Attack with no target: target first, second press attacks, all Attack slots: passed')
+
+-- Success tracker: target-only press flashes once a target appears, with a chat line.
+local clock=10
+local flashes,said={},{}
+local tracker=require('libs/action_success').new({clock=function() return clock end,
+    context=function() return 'basic' end, resolve=function() end, resources={},
+    emit=function(bar,slot) flashes[#flashes+1]={bar,slot} end,
+    targeted=function(name) said[#said+1]=name end})
+local pet_actions=require('libs/pet_actions')
+target,pet,status=nil,nil,0
+tracker:request({type='a',action='Attack',target_only=true},pet_actions.snapshot(ffxi),2,5,'basic')
+assert(tracker.pending and tracker.pending.kind=='target')
+tracker:tick(pet_actions.snapshot(ffxi)); assert(#flashes==0, 'no flash before a target appears')
+target={id=9,name='Mandragora'}
+tracker:tick(pet_actions.snapshot(ffxi))
+assert(#flashes==1 and flashes[1][1]==2 and flashes[1][2]==5 and said[1]=='Mandragora' and not tracker.pending)
+-- Timed out: no flash.
+target=nil
+tracker:request({type='a',action='Attack',target_only=true},pet_actions.snapshot(ffxi),1,1,'basic')
+clock=clock+4; target={id=3,name='Bee'}; tracker:tick(pet_actions.snapshot(ffxi))
+assert(#flashes==1 and #said==1, 'expired after 3 s')
+-- Already targeted: nothing to wait for.
+tracker:request({type='a',action='Attack',target_only=true},pet_actions.snapshot(ffxi),1,1,'basic')
+assert(not tracker.pending)
+-- The real trigger path passes the marker to the tracker and names the target in chat.
+local main=io.open('xivcrossbar.lua'):read('*a')
+assert(main:find("targeted=function(name)",1,true) and main:find("'[XIVCrossbar] Targeting '",1,true))
+-- The slot shows what the next press does: Target, Attack, Disengage.
+local ui_src=io.open('ui.lua'):read('*a')
+local a=ui_src:find("-- A: what the next press does: Target",1,true); assert(a)
+local block=ui_src:sub(a,a+900)
+assert(block:find("not in_battle and require('libs/attack_target').redirect(action, windower.ffxi)",1,true)
+    and block:find("targetnpc.png",1,true) and block:find("text('Target')",1,true)
+    and block:find("disengage.png",1,true) and block:find("attack.png",1,true))
+print('Attack with no target: target first, flash + chat on target, Target/Attack/Disengage label: passed')
