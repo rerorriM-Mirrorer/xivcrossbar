@@ -1,5 +1,22 @@
 ## Current Development Status — 2026-11-20 (America/Chicago)
 
+**Balloon advance notice.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/balloon-advance-20261120`, from the canon branch `feat/target-order-and-menu-title-20261116` head `f2e4be8` (runtime = `d6d8f21`). installed_base: assumed to be that canon head (A: "probably the one with all the latest patches"; Inferred, not confirmed).
+
+**Why:** Balloon B08 (Live-confirmed by A 2026-11-20) hides its continue prompt on keyboard Enter and on `//bl advance`. Windower cannot read gamepad buttons, so Balloon cannot see Cross. On this branch DirectLink gives FFXI the untouched native press (Verified, comment and code in `route_controller_message`), so a notice can be sent alongside it without touching game input.
+
+**Changes**
+- `action_binder.lua`: `is_confirm_button(face)`, same positional mapping as the existing `is_cancel_button`.
+- `xivcrossbar.lua` `route_controller_message`: on the first down edge of the configured confirm button, in `gameplay` context (no XIV Crossbar menu, no trigger held), with player status 4 (event), focus, chat closed and not InputTest, send `balloon advance`. It sits after the Trust-menu priority return, so an open Trust menu keeps Cross. Nothing else is sent or changed.
+- `tests/balloon_advance.lua` (new); AGENTS.md REPO INTERFACES line for Balloon.
+
+**Checks run (host):** Lua 5.1 compile of both changed files (lupa, Windower syntax normalized): OK. `python3 tests/run_lua.py` on `tests/balloon_advance.lua` (one notice per press, repeats ignored, only confirm notifies, no notice outside events, with chat open, unfocused, in crossbar/menu context or InputTest; remapped confirm; Xbox layout) and on the existing router tests `personal_controls.lua`, `login_input.lua`, `focus_handoff.lua`: all pass. The full `tests/*.lua` run stops at the same missing Windower `lists` library before and after the change (environment), with identical output.
+
+**Pending (live):** Cross in NPC dialogue hides Balloon's cursor and still advances; nothing happens outside dialogue; with Balloon unloaded, whether Windower prints anything for `balloon advance` (Inferred: silent; report any console line).
+
+---
+
+## Current Development Status — 2026-11-20 (America/Chicago)
+
 - Docs sync to canon 2026-11-20.1 (`agents_shared_version` and `workflow_version`); project-specific lines moved to the AGENTS REPO block: none; no runtime change, no FFXI test.
 
 ---
