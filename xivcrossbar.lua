@@ -2665,6 +2665,18 @@ local function route_controller_message(dik, pressed, chord, seq, handoff_press)
         return 'extra-observe',context
     end
     if gamepad_state.trust_menu_live and pressed then return 'trust-menu-priority',context end
+    -- Balloon cannot see controller buttons (Windower has no gamepad event).
+    -- During an NPC event, tell it the confirm button was pressed so it hides
+    -- its continue prompt like keyboard Enter. Notice only: FFXI still gets the
+    -- untouched native press. Balloon ignores it when no balloon is open.
+    if pressed and edge == 'down' and context == 'gameplay' and not settings.InputTest
+        and action_binder and action_binder.is_confirm_button then
+        local face = ({cross='a', square='b', circle='x', triangle='y'})[item.button or '']
+        local player = face and action_binder:is_confirm_button(face) and windower.ffxi.get_player()
+        if player and player.status == 4 and windower.has_focus() and info and not info.chat_open then
+            windower.send_command('balloon advance')
+        end
+    end
     -- A: L2>L1 / R2>R1 set cycling also works in the XIV Crossbar menu (edit
     -- mode); the selected slot stays selected and the trigger turns no page.
     local edit_menu = context:sub(1,5)=='menu:' and action_binder.is_edit_mode ~= nil and action_binder:is_edit_mode()
