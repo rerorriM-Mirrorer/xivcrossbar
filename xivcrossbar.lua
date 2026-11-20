@@ -3191,7 +3191,9 @@ windower.register_event('prerender',function()
     end
     -- A: in the menu the held edit-mode bank decides, so the set name steps
     -- aside for double-tap and combined bank labels exactly as in play.
-    local label_bank = menu_open and action_binder:get_binding_preview_bank() or display_bank or 0
+    -- With no trigger held, a selected slot on a hidden bank keeps its bank up.
+    local label_bank = menu_open and (action_binder:get_binding_preview_bank()
+        or (ui.is_setup and ui:menu_rest_bank(action_binder:get_destination()))) or display_bank or 0
     if ui.is_setup then ui:update_context_labels(label_bank, visible, menu_open) end
 
     if visible and ui.feedback.is_active then

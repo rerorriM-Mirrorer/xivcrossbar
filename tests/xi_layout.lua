@@ -194,7 +194,12 @@ ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
 assert(ui.destination_tint:visible() and ui.destination_tint:pos()==ui:get_slot_x(1,3), 'destination tint on bank 1 slot 3')
 ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
     {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=7,slot=3})
-assert(not ui.destination_tint:visible(), 'destination on an undrawn bank stays hidden')
+-- A (2026-11-20): with no trigger held, the selected slot's hidden bank stays up.
+assert(ui.destination_tint:visible() and ui.destination_tint:pos()==ui:get_slot_x(7,3),
+    'destination bank stays drawn after the triggers are released')
+ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
+    {get_skillchain_window=function()return 0,0 end},{},false,false,true,1,nil,nil,{bank=7,slot=3})
+assert(not ui.destination_tint:visible(), 'destination hides while another bank is held')
 ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
     {get_skillchain_window=function()return 0,0 end},{},false,false,false,nil,nil,nil,{bank=1,slot=3})
 assert(not ui.destination_tint:visible(), 'no destination tint outside the menu')

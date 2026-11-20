@@ -1,5 +1,25 @@
 ## Current Development Status — 2026-11-20 (America/Chicago)
 
+**Menu keeps the selected slot's bank up.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/menu-rest-bank-20261120`, from `feat/balloon-advance-20261120` head `ed12602`. installed_base: assumed `ed12602` (A: "I believe is the latest work"; Inferred, not confirmed).
+
+**Why (A):** in the menu, the bank holding the selected slot stays on screen once the triggers are released. Binds on hidden banks become visible without drawing every bank. This is rule 4 of the edit-mode spec ("letting go returns to showing the destination's bank"), which was never built: with no trigger held the menu drew bank 0 (base bars only), so a selection on bank 3/4, 5/6 (auto-hide) or 7-9 vanished (Verified, `ui:check_recasts` active_bar).
+
+**Changes**
+- `ui.lua`: `ui:menu_rest_bank(destination)` returns the destination's bank only when it is normally hidden (3, 4, 7-9; 5/6 when AutoHideExtraBars). `check_recasts` uses it in the menu when no trigger is held. Base-bank selections return nil, so their look is unchanged (no bank background). The amber tint, ghost preview and bind flash already follow whichever bank is drawn.
+- `xivcrossbar.lua`: the context label bank uses the same fallback, so the set name steps aside for the held-open bank's label as it does while holding.
+- Holding any trigger still previews that bank (the selection hides while another bank is held). Swap highlights its second slot, so that slot's bank is the one kept up. The Set Chooser keeps the bank up too.
+- `tests/edit_rest_bank.lua` (new). `tests/xi_layout.lua`: the assertion "destination on an undrawn bank stays hidden" pinned the old behaviour; now asserts the bank stays drawn after release and hides while another bank is held.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa, Windower syntax normalized) on `ui.lua`, `xivcrossbar.lua` and both tests: OK. `python3 tests/run_lua.py` on edit_rest_bank, xi_layout, edit_destination, edit_banks_ready, edit_chooser_ghost, edit_bind, edit_swap, slot_glow, trigger_scale, recast_flash, legacy_extra_bars, combat_ui_beta1, personal_controls, balloon_advance: all pass.
+
+**Pending (live):** select a slot on L2+R2, double-tap and L1/R1 banks, release: bank stays, amber slot and ghost visible, binds land with the flash; holding another trigger previews it, releasing brings the selection's bank back; base-bank selection looks as before; Swap to a hidden-bank slot; Set Chooser with a hidden-bank selection; closing the menu returns to normal play display.
+
+**Next:** A's live check.
+
+---
+
+## Current Development Status — 2026-11-20 (America/Chicago)
+
 **Balloon advance notice.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/balloon-advance-20261120`, from the canon branch `feat/target-order-and-menu-title-20261116` head `f2e4be8` (runtime = `d6d8f21`). installed_base: assumed to be that canon head (A: "probably the one with all the latest patches"; Inferred, not confirmed).
 
 **Why:** Balloon B08 (Live-confirmed by A 2026-11-20) hides its continue prompt on keyboard Enter and on `//bl advance`. Windower cannot read gamepad buttons, so Balloon cannot see Cross. On this branch DirectLink gives FFXI the untouched native press (Verified, comment and code in `route_controller_message`), so a notice can be sent alongside it without touching game input.

@@ -1063,6 +1063,19 @@ end
 -- Addon menus keep the set name visible independently of their bank preview,
 -- while Share/Options hints retain the existing menu suppression.
 -- Context hides are immediate; normal HUD autohide still fades through ui:hide.
+-- A (2026-11-20): in the menu, once the triggers are released, the bank that
+-- holds the selected slot stays on screen if it is a bank that is normally
+-- hidden (combined 3/4, shoulder 7-9, double-tap 5/6 when extra bars
+-- auto-hide). Base-bank selections return nil, so nothing changes for them.
+function ui:menu_rest_bank(destination)
+    local bank = destination and tonumber(destination.bank)
+    if not bank or not self.hotbars or self.hotbars[bank] == nil then return nil end
+    if bank == 3 or bank == 4 or bank >= 7 or (bank >= 5 and self.AutoHideExtraBars) then
+        return bank
+    end
+    return nil
+end
+
 function ui:update_context_labels(bank, visible, menu_open)
     if not visible then return end
     local normal_bank = bank == 0 or bank == 1 or bank == 2
@@ -2192,7 +2205,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     local chain_states = {}
     self:display_aa_indicator()
 
-    local active_bar = menu_open and (preview_bank or 0) or display_bank
+    local active_bar = menu_open and (preview_bank or self:menu_rest_bank(destination) or 0) or display_bank
         or (gamepad_state.active_bar ~= 0 and gamepad_state.active_bar or gamepad_state.shoulder_display or 0)
     if menu_open and preview_bank and preview_bank >= 1 and self.hotbars[preview_bank] ~= nil
         and tentative_slot and tentative_slot >= 1 and tentative_slot <= 8 then
