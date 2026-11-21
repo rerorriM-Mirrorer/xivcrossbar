@@ -826,6 +826,9 @@ function initialize(server_id, expected_name, expected_id)
     -- A: chain glows follow the saved switches (on unless turned off).
     ui.chain_glow_enabled = settings.ChainGlow ~= false
     ui.burst_glow_enabled = settings.BurstGlow ~= false
+    -- A: set-switch cue (label flash, 1 px settle); on unless turned off.
+    ui.set_flash_enabled = settings.SetFlash ~= false
+    ui.set_settle_enabled = settings.SetSettle ~= false
     -- A: edit-mode Undo (last 9 changes per character, saved with the crossbar files).
     action_binder.undo_wrap = function(bank, slot, label, change)
         local environment = shoulder_banks.destination(player.hotbar_settings.active_environment, bank)
@@ -978,7 +981,11 @@ function set_active_environment(environment_name)
     ui:set_set_name(key and set_display_name(key,bar and (bar.name or key) or key) or '')
     ui:load_player_hotbar(player.hotbar,player.vitals,key)
     -- Only a real change in a running addon cues; rebinding and reloads re-apply the same set.
-    if xivcrossbar.ready and key ~= previous then grip_rumble:emit('set') end
+    if xivcrossbar.ready and key ~= previous then
+        grip_rumble:emit('set')
+        -- A: the same real-change test gates the visual cue (label flash, settle).
+        if ui.is_setup then ui:cue_set_switch() end
+    end
 end
 
 -- The chooser's Add New Set row is UI state, never an executable hotbar.
@@ -1609,6 +1616,25 @@ windower.register_event('addon command', function(command, ...)
         if not on and ui.is_setup then ui:clear_chain_glows() end
         chat_format.say(207, '[XIVCrossbar] ' .. (command == 'chainglow' and 'Skillchain' or 'Magic Burst') ..
             ' glow: ' .. (on and 'ON' or 'OFF') .. '.')
+        return
+    elseif command == 'setflash' or command == 'setsettle' then
+        -- A: set-switch cue. setflash: the set name's stroke brightens and its
+        -- opacity lifts briefly. setsettle: the banks drop 1 px into place.
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        if mode ~= nil and mode ~= 'on' and mode ~= 'off' then
+            chat_format.say(123, '[XIVCrossbar] Use //xb ' .. command .. ' [on|off].')
+            return
+        end
+        local key = command == 'setflash' and 'SetFlash' or 'SetSettle'
+        local on = settings[key] ~= false
+        if mode == nil then on = not on else on = mode == 'on' end
+        settings[key] = on
+        config.save(settings)
+        ui.set_flash_enabled = settings.SetFlash ~= false
+        ui.set_settle_enabled = settings.SetSettle ~= false
+        if not ui.set_flash_enabled and ui.is_setup then ui:clear_set_flash() end
+        chat_format.say(207, '[XIVCrossbar] Set switch ' .. (command == 'setflash' and 'label flash' or 'settle') ..
+            ': ' .. (on and 'ON' or 'OFF') .. '.')
         return
     elseif command == 'undo' then
         -- A: undo the last change made from the XIV Crossbar menu.
@@ -3122,6 +3148,7 @@ windower.register_event('prerender',function()
         ui:tick_recast_flashes()
         ui:tick_action_success()
         ui:tick_chain_glows()
+        ui:tick_set_flash()
         -- Keep redrawing while an edit-mode bind flash fades the slot's icon.
         if ui:has_binding_flash() then ui_dirty = true end
         -- Ghost preview of the highlighted action in the selected slot.

@@ -532,6 +532,7 @@ function ui:setup(theme_options, enchanted_items)
     self.set_name_enabled = theme_options.set_name_visible ~= false
     self.set_name_offset_x = tonumber(theme_options.set_name_offset_x) or 0
     self.set_name_offset_y = tonumber(theme_options.set_name_offset_y) or 0
+    self.set_flash = nil
     self.context_labels_visible = nil
     self.bank_label_offset_x = tonumber(theme_options.bank_label_offset_x) or 0
     self.bank_label_offset_y = tonumber(theme_options.bank_label_offset_y) or 0
@@ -975,6 +976,7 @@ function ui:hide()
     self:clear_recast_flashes()
     self:clear_chain_glows()
     self:clear_action_success()
+    self:clear_set_flash()
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
         'gcd_indicator_bg','gcd_indicator','aa_indicator_bg','aa_indicator_red','aa_indicator_green'}) do
@@ -1049,6 +1051,69 @@ function ui:set_set_name(name)
         self.set_name_label:text(text)
         if text == '' then self.set_name_label:hide(true) end
     end
+end
+
+-- A: a brief, subtle cue when the active set changes. The set name's amber
+-- stroke brightens toward pale gold and its opacity lifts part of the way to
+-- full (quick 60 ms rise, 340 ms fall), then both return exactly to the
+-- configured values. Separately, the visible banks start one screen pixel
+-- above their layout and settle into place, through ui_geometry's own settle
+-- channel so trigger scale and held-trigger slides are unaffected.
+-- Switches: ui.set_flash_enabled / ui.set_settle_enabled (//xb setflash,
+-- //xb setsettle). Only text colour/alpha change, never size, so the centred
+-- label cannot shift or re-measure.
+local set_flash_rise, set_flash_fall = .06, .34
+local set_flash_stroke = {255, 242, 200}
+local set_flash_lift = .45
+
+function ui:cue_set_switch()
+    if self.set_flash_enabled ~= false and self.set_name_label then
+        self.set_flash = {started=self.recast_flash_clock()}
+        self:tick_set_flash()
+    end
+    if self.set_settle_enabled ~= false and geometry.banks then
+        local dy = -1/((geometry.scale or 1) > 0 and geometry.scale or 1)
+        for _, h in ipairs(self.render_banks or {}) do
+            geometry:set_bank_settle(h, dy, .12)
+        end
+    end
+end
+
+local function restore_set_name_style(self)
+    self.set_name_label:stroke_color(unpack(amber_stroke))
+    self.set_name_label:alpha(self.bank_label_opacity)
+    self.set_name_label:stroke_alpha(self.bank_label_opacity)
+end
+
+function ui:tick_set_flash()
+    local flash = self.set_flash
+    if not flash or not self.set_name_label then return end
+    local t = self.recast_flash_clock() - flash.started
+    -- Rising: 0 -> 1. Falling: 1 -> 0; only the fall can end the flash.
+    local k = t < set_flash_rise and t/set_flash_rise or 1 - (t-set_flash_rise)/set_flash_fall
+    if (t >= set_flash_rise and k <= 0) or self.set_flash_enabled == false then
+        self.set_flash = nil
+        restore_set_name_style(self)
+        return
+    end
+    k = math.min(1, k)
+    k = k*k*(3-2*k)
+    local base = self.bank_label_opacity
+    -- Zero opacity means the label is turned off; never reveal it.
+    if base <= 0 then return end
+    local alpha = math.floor(base + (255-base)*set_flash_lift*k + .5)
+    self.set_name_label:alpha(alpha)
+    self.set_name_label:stroke_alpha(alpha)
+    self.set_name_label:stroke_color(
+        math.floor(amber_stroke[1] + (set_flash_stroke[1]-amber_stroke[1])*k + .5),
+        math.floor(amber_stroke[2] + (set_flash_stroke[2]-amber_stroke[2])*k + .5),
+        math.floor(amber_stroke[3] + (set_flash_stroke[3]-amber_stroke[3])*k + .5))
+end
+
+function ui:clear_set_flash()
+    if not self.set_flash then return end
+    self.set_flash = nil
+    if self.set_name_label then restore_set_name_style(self) end
 end
 
 function ui:set_set_name_visible(enabled)
