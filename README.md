@@ -972,3 +972,14 @@ decisions (gate, keys sent, blocked attempts).
 2026-11-18: Attack slots show Target when nothing is targeted, Attack when a
 target is selected, and Disengage while engaged. The target-only press flashes
 the slot once the target is acquired and prints "[XIVCrossbar] Targeting <name>."
+
+2026-11-21: Trust Controls. The main menu has a new **Trust Controls** entry
+with two toggles for the Trust addon: **Ready / Stand Down** and **Start / Stop**.
+Each slot switches its label, icon and command with the party state Trust
+publishes (needs Trust with control-state publishing, `test/control-publish`).
+Ready sends `trust actall`, Stand Down `trust pauseall`, Start `trust startall`
+and Stop `trust stopall`. Ready shows after Pause; Stand Down after Act, Start
+or Stop. Stop shows in Act and Start and whenever you are engaged; Start shows
+otherwise. A Custom Action whose command is one of those four (or
+`trust standdown`) toggles the same way. Your own label or icon on the slot is
+kept. Without Trust's file the slot simply works as bound.

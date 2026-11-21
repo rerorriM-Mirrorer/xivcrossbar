@@ -721,6 +721,11 @@ function player:dispatch_action(action)
         return true
     end
     local policy = require('libs/pet_actions')
+    -- A: a Trust toggle slot sends the face it currently shows.
+    if action.type == 'ex' and require('libs/trust_control').pair(action) then
+        local trust_control = require('libs/trust_control')
+        action = trust_control.resolve(action, trust_control.shared():snapshot(), trust_control.engaged()) or action
+    end
     local typed = action.type
     local state
     if typed == 'pet' or typed == 'ja' or typed == 'ma' or typed == 'a' then

@@ -91,7 +91,7 @@ binder.state=1
 binder:display_action_type_selector()
 local order={}
 for _,o in ipairs(binder.selector.current_options) do order[#order+1]=o.name end
-local expected={'Custom Action','Create Custom Action','Edit Custom Action','Swap','Job Ability','Weaponskills','White Magic','Black Magic','Trusts','Warps','Mounts',
+local expected={'Custom Action','Create Custom Action','Edit Custom Action','Swap','Job Ability','Weaponskills','White Magic','Black Magic','Trusts','Trust Controls','Warps','Mounts',
     'Switch','Quick Switch','Use Item','Trade Item','Attack','Ranged Attack','Assist','Switch Target','View Map',
     'Check','Last Synth','Change Icon','Clear Slot','Undo','Move Crossbar','Delete Set','Credits'}
 assert(table.concat(order,'|')==table.concat(expected,'|'), table.concat(order,'|'))

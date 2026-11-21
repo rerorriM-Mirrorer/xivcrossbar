@@ -1,3 +1,24 @@
+## Current Development Status — 2026-11-21 (America/Chicago)
+
+**Trust Controls toggles.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/trust-toggles-20261121`, from `feat/menu-rest-bank-20261120` head `9f18ebd`. installed_base: assumed `ed12602` (Inferred, from the 2026-11-20 handoff; MenuRestBank Test1 install not confirmed), so the package carries every file changed since `ed12602`. Needs Trust `test/control-publish` (`f2edfe5`).
+
+**Why (A):** one L1 slot toggles Ready (actall) / Stand Down (pauseall), another Start (startall) / Stop (stopall), following the party state, which frees slots on the L1 crossbar.
+
+**Changes (Verified, read this session)**
+- `libs/trust_control.lua` (new): a Custom (`ex`) slot whose command is `trust actall|pauseall|standdown` (Ready pair) or `trust startall|stopall` (Start pair) resolves at draw and press time to the face for Trust's state. Party state = Trust's last party-wide request from this client, else this client's state. Ready pair: Stand Down in act/start/stop, Ready in pause/retreat. Start pair: Stop in act/start or while engaged, Start otherwise. Default faces: Ready `assist`, Stand Down `follow`, Start `engage`, Stop `disengage` icons. A label/icon the user set is kept; command-text or face labels are replaced. Saved slots are never rewritten. Reads `addons/trust/data/control-state-<server>-<id>.txt` at most every 0.25 s; wrong id, bad format or stamp older than 15 s = no resolution (slot as bound).
+- `ui.lua`: resolves those slots in the draw pass (same place as the pet/Trust-spell toggles); an icon change also redraws.
+- `player.lua`: dispatch sends the resolved face.
+- `action_binder.lua`: main menu **Trust Controls** (after Trusts) lists Ready / Stand Down and Start / Stop; binds as Custom (`ex`) with command, alias and icon.
+- `tests/trust_control.lua` (new, 35 checks). `tests/edit_hold_undo.lua`: menu order includes Trust Controls.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa, Windower syntax normalized) on the changed files: OK. `python3 tests/run_lua.py` on every file in `tests/`: all pass except `profile_lifecycle.lua`, which fails the same way at `9f18ebd` without these changes (pre-existing).
+
+**Inferred risks.** Icon names come from the default pack; a pack without `assist/follow/engage/disengage.png` shows a blank icon. The main menu gains one entry, which can move later entries by one position.
+
+**Pending (live):** see the delivered checklist. **Next:** A's live check.
+
+---
+
 ## Current Development Status — 2026-11-20 (America/Chicago)
 
 **Menu keeps the selected slot's bank up.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/menu-rest-bank-20261120`, from `feat/balloon-advance-20261120` head `ed12602`. installed_base: assumed `ed12602` (A: "I believe is the latest work"; Inferred, not confirmed).

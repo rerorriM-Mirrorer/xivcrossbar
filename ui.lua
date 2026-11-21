@@ -2,6 +2,7 @@ local config = require('libs/settings_config')
 local shoulders = require('shoulder_banks')
 local pet_policy = require('libs/pet_actions')
 local trust_policy = require('libs/trust_actions')
+local trust_control = require('libs/trust_control')
 local ui_resources = require('ui/resources')
 local item_icons = require('ui/item_icons')
 local kebab_casify = require('libs/kebab_casify')
@@ -2297,11 +2298,15 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     local effective = resolved or action
                     unavailable_reason = pet_policy.unavailable(effective, pet_state, crossbar_abilities)
                         or trust_policy.unavailable(effective, pet_state.trust, crossbar_spells)
+                elseif action and action.type == 'ex' and trust_control.pair(action) then
+                    -- A: Trust toggle slots follow Trust's published party state.
+                    resolved = trust_control.resolve(action, trust_control.shared():snapshot(), trust_control.engaged())
                 end
                 local slot_key = h * 8 + i
                 local previous = self.resolved_slots[slot_key]
                 if resolved and (not previous or previous.type ~= resolved.type or previous.action ~= resolved.action
-                    or previous.target ~= resolved.target or previous.alias ~= resolved.alias)
+                    or previous.target ~= resolved.target or previous.alias ~= resolved.alias
+                    or previous.icon ~= resolved.icon)
                     or previous and not resolved then
                     self:load_action(player_hotbar, environment, h, i, resolved or action, player_vitals, not inherited_set)
                     self.resolved_slots[slot_key] = resolved

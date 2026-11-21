@@ -182,6 +182,7 @@ local action_types = {
     ['DELETE_SET'] = 46,
     ['UNDO'] = 47,
     ['SWAP'] = 48,
+    ['TRUST_CONTROLS'] = 49,
     ['DELETE'] = 0,
     ['JOB_ABILITY'] = 1,
     ['WEAPONSKILL'] = 2,
@@ -274,6 +275,7 @@ local prefix_lookup = {
     [action_types.GS_MACRO] = 'gs',
     [action_types.CREATE_NEW_SET] = 'ex',
 	[action_types.EXECUTE_COMMAND] = 'ex',
+    [action_types.TRUST_CONTROLS] = 'ex',
 	[action_types.SUPERWARP] = 'ex',
 }
 
@@ -2811,6 +2813,8 @@ function action_binder:main_menu_options()
     end
     if has('GEO') then action_type_list:append({id = action_types.GEOMANCY, name = 'Geomancy', icon = 'images/' ..get_icon_pathbase() .. '/jobs/GEO.png'}) end
     action_type_list:append({id = action_types.TRUST, name = 'Trusts', icon = 'images/' ..get_icon_pathbase() .. '/trust/yoran-oran.png'})
+    -- A: party control toggles for the Trust addon (libs/trust_control.lua).
+    action_type_list:append({id = action_types.TRUST_CONTROLS, name = 'Trust Controls', icon = 'images/' ..get_icon_pathbase() .. '/assist.png'})
     action_type_list:append({id = action_types.SUPERWARP, name = 'Warps', icon = 'images/' .. get_icon_pathbase() .. '/home-point.png'})
     action_type_list:append({id = action_types.MOUNT, name = 'Mounts', icon = 'images/' ..get_icon_pathbase() .. '/mount.png'})
     action_type_list:append({id = action_types.SWITCH_CROSSBARS, name = 'Switch', icon = switch_icon})
@@ -2898,6 +2902,8 @@ function action_binder:display_action_selector()
         self:display_crossbar_sets_selector()
     elseif (self.action_type == action_types.CUSTOM_ACTION) then
         self:display_custom_actions_selector()
+    elseif (self.action_type == action_types.TRUST_CONTROLS) then
+        self:display_trust_controls_selector()
     elseif (self.action_type == action_types.EXECUTE_COMMAND) then
         self:display_execute_command_selector()
 	elseif (self.action_type == action_types.SUPERWARP) then
@@ -4817,6 +4823,26 @@ function action_binder:display_tradable_item_selector()
     self.title:show()
 
     self.selector:display_options(get_tradable_items())
+    self:show_control_hints('Confirm', 'Go Back')
+end
+
+-- A: each entry binds one command of a toggle pair; the slot then switches
+-- faces with Trust's published party state (libs/trust_control.lua).
+function action_binder:display_trust_controls_selector()
+    self:set_title('Select Trust Control')
+    self.title:show()
+    local faces = require('libs/trust_control').faces
+    local pathbase = 'images/' .. get_icon_pathbase() .. '/'
+    local options = L{}
+    for _, entry in ipairs({
+        {name = 'Ready / Stand Down', face = faces.ready},
+        {name = 'Start / Stop', face = faces.start},
+    }) do
+        options:append({id = entry.name, name = entry.name, icon = pathbase .. entry.face.icon .. '.png',
+            data = {command = entry.face.command, icon_path = entry.face.icon, alias = entry.face.alias,
+                target_type = {['None'] = true}}})
+    end
+    self.selector:display_options(options)
     self:show_control_hints('Confirm', 'Go Back')
 end
 
