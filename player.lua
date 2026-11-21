@@ -1007,6 +1007,12 @@ function player:create_new_environment(name)
         chat_format.say(123, '[XIVCrossbar] Use a set name starting with a letter, with letters, numbers, spaces, hyphens or underscores.')
         return false
     end
+    if key == 'main' then
+        -- A: "Main" is the XI label for Basic; a second set by that name
+        -- would look identical in every list.
+        chat_format.say(123, '[XIVCrossbar] "Main" is the name shown for the Basic set; choose another name.')
+        return false
+    end
     if key == 'default' or key == 'job-default' or key == 'all-jobs-default' or key == 'shared' or self.hotbar[key] ~= nil then
         chat_format.say(123, '[XIVCrossbar] Crossbar set already exists or is reserved: ' .. name)
         return false

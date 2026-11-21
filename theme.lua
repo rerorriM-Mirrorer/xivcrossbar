@@ -52,6 +52,7 @@ theme.apply = function (settings)
     else
         options.UseSharedSet = settings.UseSharedSet
     end
+    options.UseBasicSet = settings.UseBasicSet == true
 
     options.skillchain_window_opacity = settings.SkillchainIndicator.Opacity
     options.skillchain_waiting_color_red = settings.SkillchainIndicator.WindowWaitingColor.Red

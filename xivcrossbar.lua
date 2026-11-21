@@ -403,12 +403,28 @@ local function set_display_name(key, name)
     return name
 end
 
+-- A (2026-11-21): Basic is hidden unless UseBasicSet is on (//xb basicset).
+local function basic_hidden() return theme_options.UseBasicSet ~= true end
+
 function get_crossbar_sets()
     return require('crossbar_destinations').build(player.hotbar, set_display_name,
-        {hide_shared = theme_options.UseSharedSet == false})
+        {hide_shared = theme_options.UseSharedSet == false, hide_basic = basic_hidden()})
+end
+
+-- Names a hidden set that already exists, so Create explains instead of
+-- saying only "already exists".
+local function hidden_set_notice(name)
+    local key = type(name) == 'string' and kebab_casify(name) or nil
+    if key == 'basic' and basic_hidden() and player.hotbar and player.hotbar.basic then
+        return 'Basic already exists but is hidden. //xb basicset on shows it.'
+    elseif key == 'shared' and theme_options.UseSharedSet == false then
+        return 'Shared already exists but is hidden. //xb sharedset on shows it.'
+    end
 end
 
 function create_new_set(name)
+    local notice = hidden_set_notice(name)
+    if notice then chat_format.say(123, '[XIVCrossbar] ' .. notice); return false end
     if not player:create_new_environment(name) then return false end
     player:save_hotbar()
     reload_hotbar()
@@ -883,7 +899,7 @@ function initialize(server_id, expected_name, expected_id)
         config.save(settings)
     end)
 
-    local default_active_environment = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment)
+    local default_active_environment = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment, basic_hidden())
     if not default_active_environment then
         chat_format.say(123, '[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.')
         xivcrossbar.ready = false
@@ -892,6 +908,21 @@ function initialize(server_id, expected_name, expected_id)
     end
     set_active_environment(default_active_environment)
     ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
+    if basic_hidden() and player.hotbar.basic then
+        -- A: hiding Basic never deletes it; say so once if it holds bindings.
+        local bound = 0
+        for h, bar in pairs(player.hotbar.basic) do
+            if type(bar) == 'table' then
+                for _, slot in pairs(bar) do
+                    if type(slot) == 'table' and slot.action ~= nil then bound = bound + 1 end
+                end
+            end
+        end
+        if bound > 0 then
+            chat_format.say(207, '[XIVCrossbar] The Basic set is hidden but has ' .. bound
+                .. ' binding(s). //xb basicset on shows it.')
+        end
+    end
 
     consumables:setup()
     env_chooser:setup(theme_options, set_display_name)
@@ -1012,8 +1043,9 @@ function reload_hotbar()
     if player:load_hotbar() == false then return false end
     -- Keep a valid shared/current set; otherwise choose from the newly loaded
     -- job, not the previous job's table. This does not rename or save any set.
-    if not player:is_valid_environment(player.hotbar_settings.active_environment) then
-        local selected = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment)
+    if not player:is_valid_environment(player.hotbar_settings.active_environment)
+        or (basic_hidden() and player.hotbar_settings.active_environment == 'basic') then
+        local selected = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment, basic_hidden())
         if not selected then
             chat_format.say(123, '[XIVCrossbar] No crossbar sets are available. Check the XML files and reload.')
             ui:hide()
@@ -1245,6 +1277,8 @@ function new_environment_command(args)
         return
     end
 
+    local notice = hidden_set_notice(environment)
+    if notice then chat_format.say(123, '[XIVCrossbar] ' .. notice); return false end
     if not player:create_new_environment(environment) then return false end
     player:save_hotbar()
     reload_hotbar()
@@ -1394,7 +1428,7 @@ function delete_environment_command(args)
     -- If the deleted env was active, switch to a safe fallback computed
     -- by env_chooser (same path as the addon's normal startup recovery).
     if (player.hotbar_settings.active_environment == target_key) then
-        local fallback = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment)
+        local fallback = env_chooser:get_default_active_environment(player.hotbar, settings.StartupEnvironment, basic_hidden())
         set_active_environment(fallback)
     end
 
@@ -1582,6 +1616,39 @@ windower.register_event('addon command', function(command, ...)
         require('ui/menu_background').deep_fade = on
         chat_format.say(207, '[XIVCrossbar] Menu background fade: ' .. (on and 'ON (deeper at the bottom)' or 'OFF') ..
             '. Shown from the next menu screen.')
+        return
+    elseif command == 'basicset' or command == 'sharedset' then
+        -- A (2026-11-21): show or hide Basic / Shared in the set lists
+        -- (UseBasicSet / UseSharedSet, saved). Hiding never deletes bindings;
+        -- shoulder banks keep using Shared.
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        if mode ~= nil and mode ~= 'on' and mode ~= 'off' then
+            chat_format.say(123, '[XIVCrossbar] Use //xb ' .. command .. ' [on|off].')
+            return
+        end
+        local field = command == 'basicset' and 'UseBasicSet' or 'UseSharedSet'
+        local key = command == 'basicset' and 'basic' or 'shared'
+        local on
+        if field == 'UseBasicSet' then on = theme_options.UseBasicSet == true
+        else on = theme_options.UseSharedSet ~= false end
+        if mode ~= nil then
+            local wanted = mode == 'on'
+            if wanted ~= on then
+                on = wanted
+                settings[field] = on
+                theme_options[field] = on
+                config.save(settings)
+                env_chooser.theme.use_basic_set = theme_options.UseBasicSet == true
+                env_chooser.theme.use_shared_set = theme_options.UseSharedSet ~= false
+                if not on and player.hotbar_settings.active_environment == key then
+                    set_active_environment(env_chooser:get_default_active_environment(
+                        player.hotbar, settings.StartupEnvironment, basic_hidden()))
+                end
+                ui_dirty = true
+            end
+        end
+        chat_format.say(207, '[XIVCrossbar] ' .. (key == 'basic' and 'Basic' or 'Shared') .. ' set: '
+            .. (on and 'SHOWN' or 'HIDDEN') .. '.')
         return
     elseif command == 'menumouse' then
         -- A: mouse clicks in the XIV Crossbar menus; off unless turned on.
@@ -2505,7 +2572,11 @@ local function handle_controller_key(dik, pressed, flags, blocked, input_seq)
                 ui_dirty=true
             end
         else
-            windower.send_command('input /echo [XIVCrossbar] Crossbar set name "' .. env_chooser:get_new_set_name() .. '" is reserved. Unable to create.')
+            local notice = hidden_set_notice(env_chooser:get_new_set_name())
+            if notice then chat_format.say(123, '[XIVCrossbar] ' .. notice)
+            else
+                windower.send_command('input /echo [XIVCrossbar] Crossbar set name "' .. env_chooser:get_new_set_name() .. '" is reserved. Unable to create.')
+            end
         end
         return true
     end

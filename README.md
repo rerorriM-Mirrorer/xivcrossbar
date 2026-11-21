@@ -1002,3 +1002,14 @@ behind the text so the inherited icon stays visible underneath. These replace
 the opaque "Default Set" cover pictures on the crossbar. Binding the slot
 locally, or closing the menu, removes the cover. Lua simulation only; live
 testing pending.
+
+2026-11-21: Basic set hidden by default. Basic works like any set you create
+(it inherits JOB/SUB, then JOB, then ALL, and nothing inherits from it), so
+it now stays out of the set chooser, Switch / Quick Switch lists, set cycling
+and startup fallbacks unless you turn it on. Hiding never deletes it: if it
+holds bindings, a chat line says so at load. //xb basicset [on|off] and
+//xb sharedset [on|off] show or hide Basic and Shared (saved as BasicSet /
+SharedSet in settings.xml). Shoulder banks keep using Shared either way.
+Creating a set named Basic or Shared while it is hidden explains how to show
+it; "Main" (Basic's name in the XI display preset) can't be used for a new
+set. Lua simulation only; live testing pending.

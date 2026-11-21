@@ -17,7 +17,7 @@ local profiles={ps='ps5-directinput',xbox='xinput',xboxrb='xinput-r1-chooser',f7
 local short={['ps5-directinput']='PS',xinput='Xbox',['xinput-r1-chooser']='XboxRB',['f710-directinput']='F710',['fightpadpro-directinput']='FightPad'}
 local visibility={show='always',hide='hidden',auto='oninput'}
 local public_visibility={always='Show',hidden='Hide',oninput='Auto'}
-local top={Controller='ControllerProfile',Device='ControllerDevice',Preset='SettingsPreset',Layout='iscompact',Scale='CrossbarScale',Visibility='VisibilityMode',StartupSet='StartupEnvironment',SharedSet='UseSharedSet'}
+local top={Controller='ControllerProfile',Device='ControllerDevice',Preset='SettingsPreset',Layout='iscompact',Scale='CrossbarScale',Visibility='VisibilityMode',StartupSet='StartupEnvironment',SharedSet='UseSharedSet',BasicSet='UseBasicSet'}
 local texts={CrossbarLabels='BankLabels',CrossbarLabelOffsetX='BankLabelOffsetX',CrossbarLabelOffsetY='BankLabelOffsetY',LabelOpacity='BankLabelOpacity'}
 local slots={Labels='HideActionName',Costs='HideActionCost',RecastText='HideRecastText',RecastAnimation='HideRecastAnimation',Elements='HideActionElement'}
 local animations={Fading='Enabled',SlotGlow='SlotGlow',RecastFlash='RecastFlash',TriggerScale='TriggerScale'}

@@ -29,6 +29,9 @@ defaults.AutoCreateXML = true
 defaults.UseAltLayout = false
 defaults.AutoHideExtraBars = true
 defaults.UseSharedSet = true
+-- A (2026-11-21): Basic is an ordinary set (it inherits like any other and
+-- nothing inherits from it), so it is hidden unless turned on.
+defaults.UseBasicSet = false
 
 defaults.SkillchainIndicator = {}
 defaults.SkillchainIndicator.Opacity = 220

@@ -96,6 +96,7 @@ function env_chooser:setup(theme_options, set_display_name)
     self.theme.disabled_slot_opacity = theme_options.disabled_slot_opacity
     self.theme.button_layout = theme_options.button_layout
     self.theme.use_shared_set = theme_options.UseSharedSet ~= false
+    self.theme.use_basic_set = theme_options.UseBasicSet == true
 
     self:setup_metrics(theme_options)
     self:load(theme_options)
@@ -204,7 +205,8 @@ function env_chooser:position_tooltip()
     self.tooltip:pos(x+10,y+5)
 end
 
-function env_chooser:get_default_active_environment(player_hotbar, startup)
+-- hide_basic: UseBasicSet is off, so Basic is never chosen as a fallback.
+function env_chooser:get_default_active_environment(player_hotbar, startup, hide_basic)
     if startup=='job-sub' and player_hotbar.default then return 'default' end
     local names = L{}
     for environment_name, environment in pairs(player_hotbar) do
@@ -212,7 +214,8 @@ function env_chooser:get_default_active_environment(player_hotbar, startup)
     end
     names:sort()
     for i, name in ipairs(names) do
-        if (not default_hotbars[kebab_casify(name)]) then
+        local key = kebab_casify(name)
+        if (not default_hotbars[key]) and not (hide_basic and key == 'basic') then
             return name
         end
     end
@@ -234,7 +237,9 @@ function env_chooser:get_player_environments(player_hotbar)
     for environment_name, environment in pairs(player_hotbar) do
         local kebab_name = kebab_casify(environment_name)
         environment = {key=kebab_name, name=environment.name or environment_name}
-        if (not default_hotbars[kebab_name]) then
+        if (kebab_name == 'basic' and self.theme.use_basic_set == false) then
+            -- hidden (UseBasicSet off)
+        elseif (not default_hotbars[kebab_name]) then
             non_defaults:append(environment)
         elseif (kebab_name == 'default') then
             default = environment
@@ -419,7 +424,8 @@ end
 
 function env_chooser:validate_new_set_name()
     local new_name = kebab_casify(self.new_set_name)
-    if (new_name == 'default' or new_name == 'job-default' or new_name == 'all-jobs-default' or new_name == 'shared') then
+    if (new_name == 'default' or new_name == 'job-default' or new_name == 'all-jobs-default' or new_name == 'shared'
+        or new_name == 'basic' or new_name == 'main') then
         return false
     end
 

@@ -1,3 +1,25 @@
+## Current Development Status — 2026-11-21 (America/Chicago), Basic set option
+
+**UseBasicSet (off by default).** Branch `feat/text-covers-20261121`, on `9484d38` (Text Covers). installed_base: still assumed `ed12602` (Inferred). Neither commit is pushed yet: push access was denied this session.
+
+**Live results from A (2026-11-21), Text Covers Test1 and earlier packages**
+- Text covers (Live): easy to read; wash good; centred on the slot; bind on a covered slot removes the cover with the bind flash; Undo and Clear Slot bring it back; no covers after menu close; combined banks correct while holding and after release. Requests: slightly less opaque text; JOB/SUB on two centred lines. Switch lists to use the four-button image for ALL and sets without a picture.
+- Set Switch Cue (Live): flash looks great; pale gold works on amber; works with the menu open; quick switches restart it cleanly; bars keep scale and position during trigger moves. SetSettle works but is jarring: A turned it off and prefers it off by default. Seen: the unavailable-action dim disappears and returns when the set switches (A suggests using a dim fade as the set transition; revisit in the Appearance pass).
+- Trust Controls (Live): fresh load shows Ready and Start; Ready makes everyone act and the slot turns to Stand Down; engaging turns Start into Stop. Change Icon did not change a Trust toggle slot (A: fine). Requests: Start uses Ready's assist icon; a success flash when a toggle changes face.
+- Seen: Insert (console) is blocked while the menu is open. Verified cause: menu navigation sends `keyboard_blockinput 1` (`text_input_guard`). Not fixed yet.
+- Camera zoom (L1 + right stick) works in battle and with the menu open (A).
+
+**Changes (Verified, read this session)**
+- `UseBasicSet` (settings.xml `BasicSet`), false in `preset_base` and `personal_preset`. Basic (Verified: an ordinary set; inherits default -> job-default -> all-jobs-default, nothing inherits from it) is left out of: `env_chooser:get_player_environments` (set chooser, set cycling), `crossbar_destinations.build` (`hide_basic`; Switch / Quick Switch), `get_default_active_environment` (new `hide_basic` arg; all three callers pass it). Job change moves off Basic when it is hidden.
+- `//xb basicset [on|off]` and `//xb sharedset [on|off]` (new; Shared had no command): saved, live-applied; hiding the active set switches to the fallback.
+- Create (`create_new_set`, `//xb createset`, chooser "+ Add New Set"): Basic or Shared while hidden gets "already exists but is hidden. //xb basicset|sharedset on shows it." `player:create_new_environment` refuses "Main" (Basic's XI label). Chooser validation also refuses Basic and Main.
+- Startup chat note when Basic is hidden but holds bindings.
+- `tests/basic_set_hidden.lua` (new); command help; README.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on every changed .lua: OK. `tests/run_lua.py` on all tests: 79 pass, `profile_lifecycle` pre-existing fail.
+
+**Live:** none for this change. **Pending:** checklist. **Next:** the small batch (Insert fix, cover opacity and two-line JOB/SUB, Trust Start icon and toggle flash, SetSettle off by default, four-button list image).
+
 ## Current Development Status — 2026-11-21 (America/Chicago)
 
 **Default-set text covers.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/text-covers-20261121`, from `feat/set-switch-flash-20261121` head `aa01545` (A: covers before the edit-mode transition). installed_base: still assumed `ed12602` (Inferred), so the package carries every file changed since `ed12602`, including Set Switch Cue, Trust Controls and Menu Rest Bank (all untested live).

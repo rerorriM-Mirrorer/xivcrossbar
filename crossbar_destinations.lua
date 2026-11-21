@@ -13,12 +13,15 @@ function M.xi_label(key, name, main_job, sub_job)
     return name
 end
 
--- options.hide_shared: leave the Shared set out (UseSharedSet off).
+-- options.hide_shared / hide_basic: leave Shared or Basic out (UseSharedSet /
+-- UseBasicSet off).
 function M.build(hotbar, label, options)
     local entries = {}
     local hide_shared = options and options.hide_shared
+    local hide_basic = options and options.hide_basic
     for key, bar in pairs(hotbar or {}) do
-        if type(bar) == 'table' and not (hide_shared and key == 'shared') then
+        if type(bar) == 'table' and not (hide_shared and key == 'shared')
+            and not (hide_basic and key == 'basic') then
             local name = bar.name or key
             entries[#entries+1] = {key=key, name=label and label(key, name) or name}
         end

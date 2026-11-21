@@ -11,6 +11,8 @@ local topics = {
         {'new <name>', 'Create a crossbar set.'},
         {'rename <old> <new>', 'Rename a set (rn).'},
         {'deleteset <name>', 'Delete a set and its bindings.'},
+        {'basicset [on|off]', 'Show or hide the Basic set in set lists (hidden by default; saved).'},
+        {'sharedset [on|off]', 'Show or hide the Shared set in set lists (saved). Shoulder banks keep using it.'},
         {'crossbars [3|4|5|6]', 'Set the crossbar count and reload. Five shares the combined crossbar and keeps both double taps.'},
         {'jobsets', 'Create missing category sets for the current job combination.'},
     },

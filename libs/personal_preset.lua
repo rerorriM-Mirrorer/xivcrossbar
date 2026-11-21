@@ -188,6 +188,7 @@ return {
         Slot = "ffxiv",
     },
     UseAltLayout = false,
+    UseBasicSet = false,
     UseSharedSet = false,
     VisibilityMode = "always",
     WeaponskillLockoutIndicator = {
