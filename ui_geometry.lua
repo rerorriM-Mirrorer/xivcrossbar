@@ -22,6 +22,11 @@ function geometry:point(x, y, right, bank)
     if bank and bank.slide then
         x, y = x + bank.slide_x * (1-bank.slide.value), y + bank.slide_y * (1-bank.slide.value)
     end
+    -- A: set-switch settle is its own channel, so it adds to a held trigger's
+    -- scale and centre slide instead of replacing them.
+    if bank and bank.settle then
+        y = y + bank.settle_y * (1-bank.settle.value)
+    end
     return self.screen_x + (x - self.x) * self.scale - width,
         self.screen_y + (y - self.y) * self.scale
 end
@@ -123,6 +128,18 @@ function geometry:set_bank_slide(number, dx, dy, entering, instant)
     end
 end
 
+-- A: a new set starts dy units off its layout and eases back into place.
+-- Slots still follow the bank's scale and slide; only y is offset.
+function geometry:set_bank_settle(number, dy, duration)
+    local bank = self.banks[number]
+    if not bank or not bank.settle then return end
+    bank.settle_y = dy or 0
+    bank.settle.active = false
+    bank.settle:to(0, 0)
+    bank.settle:to(1, duration or .12)
+    redraw_bank(self, bank)
+end
+
 function geometry:setup_bank_scales(count)
     local clock = require('socket').gettime
     local fade = require('ui_fade')
@@ -130,6 +147,7 @@ function geometry:setup_bank_scales(count)
     for i=1,count do
         local bank = fade.new(clock, 1, 1.25)
         bank.slide, bank.slide_x, bank.slide_y = fade.new(clock, 1), 0, 0
+        bank.settle, bank.settle_y = fade.new(clock, 1), 0
         self.banks[i] = bank
     end
 end
@@ -321,6 +339,10 @@ function geometry:tick()
         if bank.slide.active then
             local previous = bank.slide.value
             if bank.slide:step() ~= previous then redraw_bank(self, bank) end
+        end
+        if bank.settle and bank.settle.active then
+            local previous = bank.settle.value
+            if bank.settle:step() ~= previous then redraw_bank(self, bank) end
         end
     end
     for _,m in pairs(self.surfaces) do
