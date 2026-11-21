@@ -983,3 +983,13 @@ or Stop. Stop shows in Act and Start and whenever you are engaged; Start shows
 otherwise. A Custom Action whose command is one of those four (or
 `trust standdown`) toggles the same way. Your own label or icon on the slot is
 kept. Without Trust's file the slot simply works as bound.
+
+2026-11-21: Set switch cue. When the active set really changes (Switch, Quick
+Switch, set cycling, the set chooser), the set name between L2 and R2 gives a
+brief, subtle flash: its amber outline brightens toward pale gold and its
+opacity lifts part of the way to full, over about 0.4 s, then returns exactly
+to your settings. At the same moment the visible crossbars start one pixel
+above their place and settle in (0.12 s), following trigger scale and a held
+trigger. Reloads, rebinds and job-change reloads of the same set do not cue.
+//xb setflash [on|off] and //xb setsettle [on|off]; both on by default (saved).
+Lua simulation only; live testing pending.

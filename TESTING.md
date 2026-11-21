@@ -1,5 +1,24 @@
 ## Current Development Status — 2026-11-21 (America/Chicago)
 
+**Set switch cue.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/set-switch-flash-20261121`, from `feat/trust-toggles-20261121` head `26abf9e` (A: the base to build on; not installed yet). installed_base: still assumed `ed12602` (Inferred, as for Trust Controls), so the package carries every file changed since `ed12602`. It includes Trust Controls and Menu Rest Bank, which are also untested live.
+
+**Why (A):** a brief, pleasing but subtle sign that the set has switched.
+
+**Changes (Verified, read this session)**
+- `ui_geometry.lua`: each bank gets its own `settle` fade and `settle_y`. `point()` adds the settle offset after scale and slide, so it adds to a held trigger's scale and centre slide instead of replacing them. `set_bank_settle(bank, dy, duration)`; stepped in `tick()`.
+- `ui.lua`: `ui:cue_set_switch()` starts the set-name flash and settles every rendered bank 1 screen pixel up (`-1/scale` layout units), 0.12 s. `ui:tick_set_flash()`: 60 ms rise, 340 ms fall (smoothstep). Stroke colour goes from amber `255,216,112` toward `255,242,200`. Text and stroke alpha lift 45% of the way from `bank_label_opacity` to 255, and both are restored exactly at the end. Size is never touched. Opacity 0 (label off) is never revealed. `ui:hide()` clears a running flash.
+- `xivcrossbar.lua`: cue called beside the `set` GripRumble event, so it fires only on a real change in a running addon (`key ~= previous`). Flash ticked each frame with the other slot effects. `//xb setflash [on|off]` and `//xb setsettle [on|off]`; settings `SetFlash` / `SetSettle`, on unless false (saved).
+- `tests/set_switch_cue.lua` (new): flash rise/peak/exact restore, size unchanged, off switches, zero opacity, settle 1 px and exact rest, settle plus trigger scale, hide clears, wiring.
+- README changelog entry.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa `lua51`, Windower string-method syntax normalized) on `ui.lua`, `ui_geometry.lua`, `xivcrossbar.lua` and the new test: OK. `python3 tests/run_lua.py` on every file in `tests/` (Lua 5.4): 77 pass. `profile_lifecycle.lua` fails, and fails the same way at `26abf9e` without these changes (pre-existing).
+
+**Inferred risks.** Windower may round image positions, so the 1 px settle reads as a single one-pixel step at scale 1, not a glide. The bar background and trigger captions do not settle (they are not bank-posed), so for 0.12 s the icons sit 1 px off the background; that is intended as the "slot into place" feel. Two quick switches restart the flash from zero.
+
+**Live:** none. **Pending:** the delivered checklist. **Next:** A's live look. Tune the peak (45%), the pale-gold colour and the timings, or turn the settle off, from what A sees.
+
+## Current Development Status — 2026-11-21 (America/Chicago)
+
 **Trust Controls toggles.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/trust-toggles-20261121`, from `feat/menu-rest-bank-20261120` head `9f18ebd`. installed_base: assumed `ed12602` (Inferred, from the 2026-11-20 handoff; MenuRestBank Test1 install not confirmed), so the package carries every file changed since `ed12602`. Needs Trust `test/control-publish` (`f2edfe5`).
 
 **Why (A):** one L1 slot toggles Ready (actall) / Stand Down (pauseall), another Start (startall) / Stop (stopall), following the party state, which frees slots on the L1 crossbar.
