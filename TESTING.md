@@ -1,5 +1,23 @@
 ## Current Development Status — 2026-11-21 (America/Chicago)
 
+**Default-set text covers.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/text-covers-20261121`, from `feat/set-switch-flash-20261121` head `aa01545` (A: covers before the edit-mode transition). installed_base: still assumed `ed12602` (Inferred), so the package carries every file changed since `ed12602`, including Set Switch Cue, Trust Controls and Menu Rest Bank (all untested live).
+
+**Why (A, spec 2026-11-16 B.10):** replace the opaque cover images with ALL / JOB / JOB/SUB text in amber with a black outline, centred like a timer, the icon still visible underneath. Done first so the later 150 ms edit-mode transition fades the final covers.
+
+**Changes (Verified, read this session)**
+- `ui.lua`: `ui:mark_default_set_action()` now draws a `black-square.png` wash at alpha 110 (cooldown uses 150) on `slot_recast`, and puts the label on the slot's timer text (`slot_recast_text`, already centred at the timer point): bold, amber `255,216,112`, black stroke, size 10 (9 for JOB/SUB). `all-jobs-default` = ALL, `job-default` = JOB, `default` = JOB/SUB; any other environment draws nothing. Cost stays hidden; icon, frame and name stay as before. `ui:clear_default_cover()` restores the timer look (not bold, size 10, white, empty, hidden) when the slot stops inheriting, and when its bank is not drawn. State in `ui.default_covers`, reset in setup. Tunables beside the function: `default_cover_labels`, `_wash`, `_size`, `_long_size`, `_color`.
+- The old images (`ui/default.png`, `job-default.png`, `all-jobs-default.png`) stay in the pack: the Switch / Quick Switch list still uses the ALL picture (spec B.11, not built).
+- `tests/default_set_covers.lua` (new). `tests/ui_lifecycle.lua`: the assertion that pinned the cover image path now expects the wash and ALL text.
+- README changelog entry.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa `lua51`, Windower syntax normalized) on `ui.lua` and both tests: OK. `python3 tests/run_lua.py` on every file in `tests/`: 78 pass; `profile_lifecycle.lua` fails as before (pre-existing).
+
+**Inferred risks.** JOB/SUB at size 9 bold may be tight on a 40 px slot at small UI scales. Text measurement for centring after the bold/size change is untested in Windower. A theme's timer font size other than 10 is not restored (setup always uses 10).
+
+**Live:** none. **Pending:** checklist. **Next:** A's look; then the 150 ms edit-mode transition (dim and covers fade in, GripRumble tick).
+
+## Current Development Status — 2026-11-21 (America/Chicago)
+
 **Set switch cue.** Repo `rerorriM-Mirrorer/xivcrossbar`, branch `feat/set-switch-flash-20261121`, from `feat/trust-toggles-20261121` head `26abf9e` (A: the base to build on; not installed yet). installed_base: still assumed `ed12602` (Inferred, as for Trust Controls), so the package carries every file changed since `ed12602`. It includes Trust Controls and Menu Rest Bank, which are also untested live.
 
 **Why (A):** a brief, pleasing but subtle sign that the set has switched.

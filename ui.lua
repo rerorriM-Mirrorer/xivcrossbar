@@ -581,6 +581,7 @@ function ui:load(theme_options)
     end
     geometry:setup_bank_scales(theme_options.shoulder_banks and 9 or self.render_banks[#self.render_banks])
     self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
+    self.default_covers = {}
     self.success_flashes, self.success_views = {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
@@ -2030,16 +2031,51 @@ end
 
 local last_log = os.clock()
 
+-- A (2026-11-21): default-set covers are text over the inherited action's
+-- icon, centred like a recast timer: amber with a black outline on a light
+-- wash, so the icon stays visible. They replace the opaque cover images.
+-- The wash is lighter than a cooldown's (150) so a cover never reads as one.
+ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='JOB/SUB'}
+ui.default_cover_wash = 110
+ui.default_cover_size = 10
+ui.default_cover_long_size = 9 -- labels longer than 3 letters (JOB/SUB)
+ui.default_cover_color = {255, 216, 112}
+
 function ui:mark_default_set_action(h, i, environment)
-    if (environment ~= nil) then
-        self.hotbars[h].slot_recast[i]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/' .. environment ..'.png')
-        self.hotbars[h].slot_recast[i]:alpha(255)
-        self.hotbars[h].slot_recast[i]:size(40, 40)
-        self.hotbars[h].slot_recast[i]:pos(self:get_slot_x(h, i), self:get_slot_y(h, i))
-        self.hotbars[h].slot_recast[i]:show()
-        self.hotbars[h].slot_recast_text[i]:hide()
-        self.hotbars[h].slot_cost[i]:hide()
-    end
+    local label = environment and self.default_cover_labels[environment]
+    if not label then return end
+    local bar = self.hotbars[h]
+    local wash = bar.slot_recast[i]
+    wash:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
+    wash:alpha(self.default_cover_wash)
+    wash:size(40, 40)
+    wash:pos(self:get_slot_x(h, i), self:get_slot_y(h, i))
+    wash:show()
+    local text = bar.slot_recast_text[i]
+    text:bold(true)
+    text:size(#label > 3 and self.default_cover_long_size or self.default_cover_size)
+    text:color(unpack(self.default_cover_color))
+    text:stroke_color(0, 0, 0)
+    text:alpha(255)
+    text:text(label)
+    text:show()
+    bar.slot_cost[i]:hide()
+    self.default_covers[(h-1)*8+i] = true
+end
+
+-- Returns the timer text to its recast look once a slot stops inheriting.
+function ui:clear_default_cover(h, i)
+    local key = (h-1)*8+i
+    if not self.default_covers[key] then return end
+    self.default_covers[key] = nil
+    local bar = self.hotbars[h]
+    local text = bar.slot_recast_text[i]
+    text:bold(false)
+    text:size(10)
+    text:color(255, 255, 255)
+    text:text('')
+    text:hide()
+    bar.slot_recast[i]:hide()
 end
 
 local recast_flash_duration = .15
@@ -2430,6 +2466,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 local effective_type = action and (action.linked_type or action.type) or nil
                 -- In binding previews the source badge owns this overlay and
                 -- replaces the cost and recast display for inherited slots.
+                if not inherited_set then self:clear_default_cover(h, i) end
                 if inherited_set then
                     self.hotbars[h].slot_warmup[i]:hide()
                     self:mark_default_set_action(h, i, inherited_set)
@@ -2892,6 +2929,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self.hotbars[h].slot_text[i]:hide()
                 self.hotbars[h].slot_cost[i]:hide()
                 self.hotbars[h].slot_recast_text[i]:hide()
+                self:clear_default_cover(h, i)
                 self:clear_recast(h, i)
                 if observe_recasts then self:clear_recast_flash(h,i) end
             end

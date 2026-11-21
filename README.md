@@ -993,3 +993,12 @@ above their place and settle in (0.12 s), following trigger scale and a held
 trigger. Reloads, rebinds and job-change reloads of the same set do not cue.
 //xb setflash [on|off] and //xb setsettle [on|off]; both on by default (saved).
 Lua simulation only; live testing pending.
+
+2026-11-21: Default-set text covers. In the menu, a slot that shows an action
+inherited from a default set now says which one in amber text with a black
+outline, centred like a recast timer: ALL (All Jobs Default), JOB (Job
+Default) or JOB/SUB (the job/subjob Default set). A light dark wash sits
+behind the text so the inherited icon stays visible underneath. These replace
+the opaque "Default Set" cover pictures on the crossbar. Binding the slot
+locally, or closing the menu, removes the cover. Lua simulation only; live
+testing pending.

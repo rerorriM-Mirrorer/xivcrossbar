@@ -97,7 +97,9 @@ for _, compact in ipairs({false,true}) do
     for _=1,3 do
         ui:check_recasts(actions,{},'basic',{},selected,skillchains,{},true,false,true)
     end
-    assert(badge:visible() and badge:path():match('/all%-jobs%-default%.png$'))
+    -- A (2026-11-21): the cover is a light wash plus ALL text, not the cover image.
+    assert(badge:visible() and badge:path():match('/black%-square%.png$'))
+    assert(ui.hotbars[1].slot_recast_text[1]:text()=='ALL')
     assert(not cost:visible() and hides==0 and shows==0,'inherited badge or cost toggled during render')
     ui:check_recasts(actions,{},'basic',{},selected,skillchains,{},false,false,true)
     assert(not badge:visible() and cost:visible(),'regular overlay did not return')
