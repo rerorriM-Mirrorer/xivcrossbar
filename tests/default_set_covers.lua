@@ -34,7 +34,8 @@ local function cover(i, label)
     local r,g,b = text:color(); assert(r==255 and g==216 and b==112, 'amber')
     r,g,b = text:stroke_color(); assert(r==0 and g==0 and b==0, 'black outline')
     assert(text:bold() == true)
-    assert(text:size() == (#label > 3 and 9 or 10), 'size')
+    assert(text:size() == (label:find('\n',1,true) and 9 or 10), 'size')
+    assert(text:alpha() == 200, 'slightly see-through text')
     assert(wash:visible() and wash:path():find('ui/black-square.png',1,true), 'wash, not a cover image')
     assert(wash:alpha() == 110, 'light wash')
     assert(bar.slot_icon[i]:visible(), 'icon visible underneath')
@@ -43,13 +44,13 @@ end
 local function plain(i)
     local text = bar.slot_recast_text[i]
     assert(not ui.default_covers[i], 'cover state cleared')
-    assert(text:bold() == false and text:size() == 10)
+    assert(text:bold() == false and text:size() == 10 and text:alpha() == 255)
     local r,g,b = text:color(); assert(r==255 and g==255 and b==255, 'timer colour back')
 end
 
 -- Edit mode: inherited slots show their set's text cover; local slots none.
 draw(true)
-cover(2, 'ALL'); cover(3, 'JOB'); cover(4, 'JOB/SUB'); cover(5, 'ALL')
+cover(2, 'ALL'); cover(3, 'JOB'); cover(4, 'JOB\nSUB'); cover(5, 'ALL')
 assert(not ui.default_covers[1] and not bar.slot_recast_text[1]:visible(), 'local slot has no cover')
 for _, i in ipairs({2,3,4,5}) do
     assert(not bar.slot_recast[i]:path():find('default.png',1,true), 'old cover image unused')

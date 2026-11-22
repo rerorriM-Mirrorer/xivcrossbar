@@ -3971,14 +3971,15 @@ function action_binder:display_crossbar_sets_selector()
 end
 
 -- A: list icon for a crossbar set. JOB and JOB/SUB defaults use the job
--- icons (main job and subjob), ALL its cover; a set named like a main menu
--- entry ("Black Magic", "Songs"...) uses that entry's icon. nil = default.
+-- icons (main job and subjob); a set named like a main menu entry ("Black
+-- Magic", "Songs"...) uses that entry's icon. nil = the four face buttons,
+-- which ALL now uses too (A, 2026-11-21: the old cover picture is retired).
 function action_binder:set_icon(key, name)
     local base = 'images/' .. get_icon_pathbase() .. '/'
     local player = windower.ffxi and windower.ffxi.get_player and windower.ffxi.get_player()
     if key == 'job-default' and player and player.main_job then return base .. 'jobs/' .. player.main_job .. '.png' end
     if key == 'default' and player and player.sub_job then return base .. 'jobs/' .. player.sub_job .. '.png' end
-    if key == 'all-jobs-default' then return base .. 'ui/all-jobs-default.png' end
+    if key == 'all-jobs-default' then return nil end
     local wanted = tostring(name or ''):lower():gsub('s$', '')
     if wanted == '' then return nil end
     local ok, options = pcall(self.main_menu_options, self)

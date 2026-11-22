@@ -142,7 +142,7 @@ assert(binder.title.values.text=='Select Action Target - \\cs(255,216,112)Cure\\
 -- Set icons in Switch / Quick Switch.
 assert(binder:set_icon('job-default','SMN'):find('jobs/SMN.png',1,true), 'JOB default uses the main job icon')
 assert(binder:set_icon('default','SMN/WHM'):find('jobs/WHM.png',1,true), 'JOB/SUB default uses the subjob icon')
-assert(binder:set_icon('all-jobs-default','ALL'):find('ui/all-jobs-default.png',1,true))
+assert(binder:set_icon('all-jobs-default','ALL')==nil, 'ALL uses the face-button picture (A, 2026-11-21)')
 assert(binder:set_icon('black','Black Magic')==nil, 'WHM/SMN has no Black Magic entry')
 assert(binder:set_icon('songs','Song')==nil)
 assert(binder:set_icon('rage','Rage'):find('jobs/SMN.png',1,true), 'a set named like a menu entry uses its icon')

@@ -96,5 +96,6 @@ local cue = main:find("grip_rumble:emit('set')", 1, true)
 assert(cue and main:find('ui:cue_set_switch()', cue, true), 'cue beside the set rumble')
 assert(main:find('ui:tick_set_flash()', 1, true), 'ticked every frame')
 assert(main:find("command == 'setflash' or command == 'setsettle'", 1, true), 'commands')
-assert(main:find('settings.SetFlash ~= false', 1, true) and main:find('settings.SetSettle ~= false', 1, true), 'on by default')
+-- A (2026-11-21): flash on by default, settle off by default.
+assert(main:find('settings.SetFlash ~= false', 1, true) and main:find('settings.SetSettle == true', 1, true), 'flash on, settle off by default')
 print('set switch cue: ok')

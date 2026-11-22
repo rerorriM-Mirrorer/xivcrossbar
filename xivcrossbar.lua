@@ -844,7 +844,7 @@ function initialize(server_id, expected_name, expected_id)
     ui.burst_glow_enabled = settings.BurstGlow ~= false
     -- A: set-switch cue (label flash, 1 px settle); on unless turned off.
     ui.set_flash_enabled = settings.SetFlash ~= false
-    ui.set_settle_enabled = settings.SetSettle ~= false
+    ui.set_settle_enabled = settings.SetSettle == true -- A (2026-11-21): off unless turned on
     -- A: edit-mode Undo (last 9 changes per character, saved with the crossbar files).
     action_binder.undo_wrap = function(bank, slot, label, change)
         local environment = shoulder_banks.destination(player.hotbar_settings.active_environment, bank)
@@ -1694,11 +1694,12 @@ windower.register_event('addon command', function(command, ...)
         end
         local key = command == 'setflash' and 'SetFlash' or 'SetSettle'
         local on = settings[key] ~= false
+        if key == 'SetSettle' then on = settings[key] == true end
         if mode == nil then on = not on else on = mode == 'on' end
         settings[key] = on
         config.save(settings)
         ui.set_flash_enabled = settings.SetFlash ~= false
-        ui.set_settle_enabled = settings.SetSettle ~= false
+        ui.set_settle_enabled = settings.SetSettle == true -- A (2026-11-21): off unless turned on
         if not ui.set_flash_enabled and ui.is_setup then ui:clear_set_flash() end
         chat_format.say(207, '[XIVCrossbar] Set switch ' .. (command == 'setflash' and 'label flash' or 'settle') ..
             ': ' .. (on and 'ON' or 'OFF') .. '.')
@@ -2697,6 +2698,13 @@ local function input_context()
     return 'gameplay'
 end
 local function controller_keyboard(dik, pressed, flags, blocked)
+    -- A (2026-11-21): Insert opens the Windower console at all times. Menu
+    -- navigation holds keyboard_blockinput, which swallows it, so toggle
+    -- the console ourselves while the block is on.
+    if dik == 210 and text_input_guard.active then
+        if pressed then windower.send_command('console_toggle') end
+        return true
+    end
     -- A: with FFXI chat open, Enter belongs to chat on every XIV Crossbar menu.
     if pressed and (dik == keyboard.enter or dik == 156) and crossbar_menu_open() then
         local info = windower.ffxi.get_info()

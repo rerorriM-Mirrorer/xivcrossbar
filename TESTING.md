@@ -1,3 +1,19 @@
+## Current Development Status — 2026-11-21 (America/Chicago), polish batch
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/text-covers-20261121`, on `b588be6` (Basic Set) <- `9484d38` (Text Covers) <- `aa01545`. installed_base: assumed `ed12602` (Inferred). Not pushed: GitHub push access was denied again this session.
+
+**Changes (Verified, read this session)**
+- Insert: `controller_keyboard` returns true for DIK 210 while `text_input_guard.active` and sends `console_toggle` on press. Cause (Verified): menu navigation holds `keyboard_blockinput 1`. That `console_toggle` opens the console is Inferred (Windower 4 command); Pending live.
+- Covers: `ui.default_cover_alpha = 200` on the text (restored to 255 on clear); JOB/SUB label is `JOB\nSUB` at size 9.
+- Trust Controls: `start` face icon `assist` (was `engage`). In `check_recasts`, when a resolved Trust toggle's `trust_face` differs from the previous resolved face for that slot, `ui:flash_action_success(h, i)` runs once (not on first draw).
+- SetSettle off unless `SetSettle` is true (startup, `//xb setsettle`, `ui:cue_set_switch`). SetFlash unchanged (on unless false).
+- `action_binder:set_icon('all-jobs-default')` returns nil, so ALL uses the face-button picture.
+- Tests: new `tests/trust_toggle_flash.lua`; updated `default_set_covers`, `trust_control`, `set_switch_cue`, `edit_custom_save_bind`, `command_returns` (slice widened for the Insert lines).
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on every changed .lua: OK. `tests/run_lua.py` on all tests: 80 pass, `profile_lifecycle` pre-existing fail.
+
+**Live:** none for this batch. **Pending:** checklist. **Next:** A's live check; then L2+R2+L1/R1 quick sets (bank collision check), and the Appearance pass (set-switch dim flicker, menu and edit-mode transitions).
+
 ## Current Development Status — 2026-11-21 (America/Chicago), Basic set option
 
 **UseBasicSet (off by default).** Branch `feat/text-covers-20261121`, on `9484d38` (Text Covers). installed_base: still assumed `ed12602` (Inferred). Neither commit is pushed yet: push access was denied this session.

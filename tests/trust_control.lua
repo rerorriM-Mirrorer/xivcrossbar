@@ -46,7 +46,7 @@ check(bound.action == 'trust actall' and bound.alias == 'Ready', 'saved slot unt
 out = T.resolve({type='ex', action='trust actall', alias='Go Team', icon='cheer'}, {state='act', intent='act'})
 check(out.action == 'trust pauseall' and out.alias == 'Go Team' and out.icon == 'cheer', 'custom label/icon kept')
 out = T.resolve({type='ex', action='trust stopall', alias='trust stopall'}, {state='pause', intent='pause'})
-check(out.action == 'trust startall' and out.alias == 'Start' and out.icon == 'engage', 'command-text label replaced')
+check(out.action == 'trust startall' and out.alias == 'Start' and out.icon == 'assist', 'command-text label replaced')
 check(T.resolve(bound, nil) == nil, 'no fresh file: slot as bound')
 
 -- Reader: cached, at most every 0.25 s.

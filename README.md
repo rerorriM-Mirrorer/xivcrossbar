@@ -1013,3 +1013,17 @@ SharedSet in settings.xml). Shoulder banks keep using Shared either way.
 Creating a set named Basic or Shared while it is hidden explains how to show
 it; "Main" (Basic's name in the XI display preset) can't be used for a new
 set. Lua simulation only; live testing pending.
+
+2026-11-21: Polish batch from A's live notes.
+- Insert opens the Windower console even while an XIV Crossbar menu has the
+  keyboard (the menu blocks keys while you navigate; Insert now toggles the
+  console directly).
+- Default-set covers: the text is slightly see-through (alpha 200), and
+  JOB/SUB is two centred lines, JOB over SUB.
+- Trust Controls: Start uses the same assist icon as Ready, and a toggle slot
+  plays the success flash once when it changes face (Ready <-> Stand Down,
+  Start <-> Stop).
+- Set switch settle is off by default (//xb setsettle on to use it); the set
+  name flash stays on.
+- Switch / Quick Switch: ALL uses the face-button picture like any set
+  without its own icon.

@@ -1072,7 +1072,7 @@ function ui:cue_set_switch()
         self.set_flash = {started=self.recast_flash_clock()}
         self:tick_set_flash()
     end
-    if self.set_settle_enabled ~= false and geometry.banks then
+    if self.set_settle_enabled == true and geometry.banks then
         local dy = -1/((geometry.scale or 1) > 0 and geometry.scale or 1)
         for _, h in ipairs(self.render_banks or {}) do
             geometry:set_bank_settle(h, dy, .12)
@@ -2035,10 +2035,12 @@ local last_log = os.clock()
 -- icon, centred like a recast timer: amber with a black outline on a light
 -- wash, so the icon stays visible. They replace the opaque cover images.
 -- The wash is lighter than a cooldown's (150) so a cover never reads as one.
-ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='JOB/SUB'}
+-- A (2026-11-21, live): JOB/SUB on two centred lines; text a little see-through.
+ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='JOB\nSUB'}
+ui.default_cover_alpha = 200
 ui.default_cover_wash = 110
 ui.default_cover_size = 10
-ui.default_cover_long_size = 9 -- labels longer than 3 letters (JOB/SUB)
+ui.default_cover_long_size = 9 -- two-line labels (JOB/SUB)
 ui.default_cover_color = {255, 216, 112}
 
 function ui:mark_default_set_action(h, i, environment)
@@ -2053,10 +2055,10 @@ function ui:mark_default_set_action(h, i, environment)
     wash:show()
     local text = bar.slot_recast_text[i]
     text:bold(true)
-    text:size(#label > 3 and self.default_cover_long_size or self.default_cover_size)
+    text:size(label:find('\n',1,true) and self.default_cover_long_size or self.default_cover_size)
     text:color(unpack(self.default_cover_color))
     text:stroke_color(0, 0, 0)
-    text:alpha(255)
+    text:alpha(self.default_cover_alpha)
     text:text(label)
     text:show()
     bar.slot_cost[i]:hide()
@@ -2073,6 +2075,7 @@ function ui:clear_default_cover(h, i)
     text:bold(false)
     text:size(10)
     text:color(255, 255, 255)
+    text:alpha(255)
     text:text('')
     text:hide()
     bar.slot_recast[i]:hide()
@@ -2410,6 +2413,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                     or previous.icon ~= resolved.icon)
                     or previous and not resolved then
                     self:load_action(player_hotbar, environment, h, i, resolved or action, player_vitals, not inherited_set)
+                    -- A (2026-11-21): a Trust toggle that changes face
+                    -- (Ready <-> Stand Down, Start <-> Stop) plays the
+                    -- success flash once.
+                    if resolved and resolved.trust_face and previous and previous.trust_face
+                        and previous.trust_face ~= resolved.trust_face then
+                        self:flash_action_success(h, i)
+                    end
                     self.resolved_slots[slot_key] = resolved
                 end
                 action = resolved or action

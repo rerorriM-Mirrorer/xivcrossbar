@@ -12,7 +12,7 @@ M.STALE = 15 -- seconds; Trust rewrites the file at least every 5 s
 M.faces = {
     ready     = {command='trust actall',   alias='Ready',      icon='assist'},
     standdown = {command='trust pauseall', alias='Stand Down', icon='follow'},
-    start     = {command='trust startall', alias='Start',      icon='engage'},
+    start     = {command='trust startall', alias='Start',      icon='assist'}, -- A: same as Ready
     stop      = {command='trust stopall',  alias='Stop',       icon='disengage'},
 }
 local pair_of = {
