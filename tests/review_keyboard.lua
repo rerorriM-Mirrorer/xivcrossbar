@@ -109,8 +109,18 @@ local sent_before=#sent
 assert(not dispatch(28,true,0,false) and #sent==sent_before and binder.capturing_text, 'not even into a text field')
 dispatch(28,false,0,false);binder.capturing_text=false
 binder.state=13
-assert(dispatch(200,true,0,false) and calls[#calls]=='dpad_up', 'arrows still move with chat open')
+-- 2026-11-22: the arrows belong to chat (history) while it is open.
+count=#calls
+assert(not dispatch(200,true,0,false) and #calls==count, 'chat arrows go to FFXI')
 dispatch(200,false,0,false)
+-- A key whose release went to chat leaves no stale hold behind.
+chat_open=false
+binder.state=13
+local rk=rootenv.review_keyboard
+rk.held[1]=true -- as if a press reached the router before chat took the release
+chat_open=true
+dispatch(1,false,0,false)
+assert(rk.held[1]==nil, 'release handed to chat clears the hold')
 -- 2026-11-22: Esc with chat open closes chat, never the menu.
 local closed_before=closed
 assert(not dispatch(1,true,0,false) and closed==closed_before and not binder.is_hidden, 'chat Esc goes to FFXI')

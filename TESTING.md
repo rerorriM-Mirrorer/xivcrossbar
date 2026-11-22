@@ -1,3 +1,26 @@
+## Current Development Status — 2026-11-22 (America/Chicago), console, chat keys, polish
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `206dabe`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: assumed `ed12602` (Inferred; A has Test3 installed per the live notes, likely `206dabe`; OPEN_Q); package cumulative since `ed12602`.
+
+**Live (A, 2026-11-22, Test3):** edit glow excellent ("didn't even notice it at first"); A prefers subtle changes like this from now on. `//xb coveroffset 1 -3` centres the covers. Darker depth layering better. Press animation on select/deselect good. Seen: Esc dead after closing chat until refocus; Enter with chat open still selects menu options; Up arrow in chat moved the menu cursor; white squares on menu button icons when moving between screens and on footer button images; hints redraw on every screen change.
+
+**Insert log (Verified, A's `client.log`, searched for CONSOLE):** one line, `insert pressed=true guard=true menu=true`; no release and no second Insert. Once the console is open the addon receives no keyboard events, and with `keyboard_blockinput 1` Windower's own Insert can't close it either (Esc also can't reach the menu; Circle could).
+
+**Changes (Verified, read this session)**
+- Insert: on the press with the guard active, set `console_assumed_open`, release `text_input_guard`, send `console_toggle`. While the flag is set, prerender keeps navigation off (no block). The next keyboard event that reaches the addon clears it (Inferred: means the console closed). Diagnose lines `CONSOLE first key after console`.
+- Chat keys: arrows pass to FFXI while chat is open with the menu up. Any key handed to chat (pass or swallow) clears `review_keyboard.held[dik]`, and on release `owned[dik]` (Inferred cause of the dead Esc: a stale held mark made the next Esc count as a repeat). Diagnose lines `CHATKEY dik pressed chat verdict` to trace the Enter bleed.
+- ALL colour: `crossbar_destinations.all_color` {222,178,86} for the set chooser ALL row, the menu title when ALL is active, and ALL covers.
+- Covers default offset 1, -3 (A, live).
+- Custom action review/edit screens: plain title (no "<set> Crossbar"); `refresh_set_title` only for the button-combo screens.
+- `//xb glowfade <s>` (GlowFadeTime, default 0): quadratic release tail on the press glow (`glow_tails`, `has_glow_tail`).
+- Tests: `review_keyboard` (chat arrows, stale hold cleared), `slot_glow` (release tail), `command_returns`, `default_set_covers` (ALL colour, offset default), `edit_banks_ready` (chooser colour source).
+
+**Not done (verified cause, next batch):** menu button-hint icons and captions are destroyed and recreated on every screen change (`show_control_hints` -> `ui_resources.clear`, then new images in `show_hint`), which is the likely source of the white squares (a new image shown in its first frame) and the unnecessary hint redraws. Fix: keep the hint images/captions and only change what differs.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on all changed .lua: OK. `python3 tests/run_lua.py tests/<each>.lua`: 81 pass, `profile_lifecycle` fails (KNOWN_FAILS).
+
+**Live:** none for this batch. **Pending:** checklist; diagnose log of an Enter bleed. **Next:** reusable menu hints (white squares, redraws); selected-slot amber animation; Esc order with chat open (A undecided).
+
 ## Current Development Status — 2026-11-22 (America/Chicago), edit glow and cover polish
 
 **Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `74f2995`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: assumed `ed12602` (Inferred; A has Test2 installed per the live notes, so likely `74f2995`; OPEN_Q); package cumulative since `ed12602`.

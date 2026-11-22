@@ -332,7 +332,9 @@ function env_chooser:show_player_environments(player_hotbar, current_environment
         local name = self.set_display_name and self.set_display_name(environment.key, environment.name) or environment.name
         if (default_hotbars[environment.key]) then
             -- A: default sets in amber (the set label's colour), not blue.
-            self.environments[index].name_text:text(HAIRLINE .. '\\cs(255,216,112)' .. HIDDEN_SPACE .. name)
+            local color = environment.key == 'all-jobs-default' and require('crossbar_destinations').all_cs()
+                or '\\cs(255,216,112)'
+            self.environments[index].name_text:text(HAIRLINE .. color .. HIDDEN_SPACE .. name)
         elseif (environment.name == ADD_NEW_SET) then
             self.environments[index].name_text:text(HAIRLINE .. '\\cs(0,255,128)' .. HIDDEN_SPACE .. name)
             self.indexof_add_new_set = index

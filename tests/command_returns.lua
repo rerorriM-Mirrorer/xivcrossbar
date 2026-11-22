@@ -49,10 +49,11 @@ assert(not ahk:find('CB.gameplay && CB.zoom',1,true) and ahk:find('A_TickCount-C
 
 -- Enter with FFXI chat open is never taken by an XIV Crossbar menu.
 -- 800: the Insert console passthrough (2026-11-21) now comes first.
-local kb=slice("local function controller_keyboard(dik, pressed, flags, blocked)",1600)
+local kb=slice("local function controller_keyboard(dik, pressed, flags, blocked)",3200)
 assert(kb:find("if dik == 210 and text_input_guard.active then",1,true) and kb:find("console_toggle",1,true), "Insert opens the console while the menu blocks keys")
-assert(kb:find("if dik == keyboard.enter or dik == 156 or dik == keyboard.esc then",1,true)
-    and kb:find("chat_enter:edge(true, pressed, menu, info and info.chat_open)",1,true)
+assert(kb:find("console_assumed_open = true",1,true) and src:find("if console_assumed_open then navigation = false end",1,true), "the block steps aside while the console is open")
+assert(kb:find("local chat_key = dik == keyboard.enter or dik == 156 or dik == keyboard.esc",1,true)
+    and kb:find("chat_enter:edge(true, pressed, menu, chat_open)",1,true)
     and kb:find("if verdict == 'pass' then return false end",1,true))
 
 -- Menu mouse: the list widget no longer follows the pointer unless menumouse is on.

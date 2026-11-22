@@ -1033,6 +1033,16 @@ animation while the amber selection fades in (0.06 s) and out (0.14 s). With
 chat open, Esc now closes chat rather than the menu, and the Enter/Esc grace is
 0.45 s. Lua simulation only; live testing pending.
 
+2026-11-22: Console, chat keys and small polish. Insert with the menu open
+now lets the menu's keyboard block step aside while the console is open, so a
+second Insert (Windower's own) closes it. With chat open, the arrow keys go to
+chat (message history) instead of the menu, and Esc no longer goes dead after
+closing chat. ALL is named in a slightly darker amber (set chooser, menu title,
+crossbar cover). Cover labels default to the 1, -3 px offset. The custom action
+review screens no longer show the "<set> Crossbar" title. //xb glowfade
+<seconds> lets the pressed-slot border glow fade out after release (default 0,
+the old cut). Lua simulation only; live testing pending.
+
 2026-11-21: Default-set text covers. In the menu, a slot that shows an action
 inherited from a default set now says which one in amber text with a black
 outline, centred like a recast timer: ALL (All Jobs Default), JOB (Job

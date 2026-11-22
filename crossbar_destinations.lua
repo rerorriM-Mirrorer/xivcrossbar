@@ -1,6 +1,11 @@
 -- A: labels are presentation; saved switch actions use the actual environment
 -- key, including fallback sets and custom sets with renamed display labels.
 local M = {}
+-- A (2026-11-22): ALL (All Jobs Default) is the deepest layer, so its amber
+-- is a little darker than the other set names wherever ALL is named (set
+-- chooser, menu title, crossbar cover). The usual amber is 255,216,112.
+M.all_color = {222, 178, 86}
+function M.all_cs() return ('\\cs(%d,%d,%d)'):format(M.all_color[1], M.all_color[2], M.all_color[3]) end
 function M.xi_label(key, name, main_job, sub_job)
     if key == 'all-jobs-default' then return 'ALL' end
     if key == 'basic' then return 'Main' end

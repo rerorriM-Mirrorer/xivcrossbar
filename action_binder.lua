@@ -3054,7 +3054,8 @@ function action_binder:show_set_title(label)
     local name = bar and (bar.name or key) or key or ''
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
     -- Set names in amber (the set label's colour), defaults and own sets alike.
-    local color = '\\cs(255,216,112)'
+    -- ALL is a little darker (crossbar_destinations.all_color).
+    local color = key == 'all-jobs-default' and require('crossbar_destinations').all_cs() or '\\cs(255,216,112)'
     self:set_title(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
     self.title:show()
     if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end
@@ -3062,8 +3063,7 @@ end
 
 function action_binder:refresh_set_title()
     if not self.title or self.is_hidden then return end
-    if self.state == states.SELECT_BUTTON_ASSIGNMENT or self.state == states.CONFIRM_BUTTON_ASSIGNMENT or
-        self.state == states.EDIT_CUSTOM_ACTION_REVIEW then
+    if self.state == states.SELECT_BUTTON_ASSIGNMENT or self.state == states.CONFIRM_BUTTON_ASSIGNMENT then
         if self.set_title_base then self:show_set_title(self.set_title_base) end
     end
 end
@@ -4418,7 +4418,12 @@ end
 -- A: actions above, aligned values below; optional metadata is secondary.
 function action_binder:display_edit_custom_action_review()
     local d=self.custom_action_draft or {}
-    self:show_set_title(self.editing_custom_action and 'Custom Action: Review and Edit' or 'New Custom Action: Review and Save')
+    -- A (2026-11-22): no "<set> Crossbar" here; only the button-combo screens
+    -- name the destination set.
+    self.set_title_base = nil
+    self:set_title(self.editing_custom_action and 'Custom Action: Review and Edit' or 'New Custom Action: Review and Save')
+    self.title:show()
+    if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end
     self.title:show(); self.selector:hide()
     ui_resources.clear(self.images); self.images = L{}
     ui_resources.clear(self.hints); self.hints = L{}

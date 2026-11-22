@@ -56,4 +56,17 @@ local moved = g.surfaces[glow[2]]
 assert(moved.x==ui:get_slot_x(1,2)-4 and moved.y==ui:get_slot_y(1,2)-4)
 ui:clear_slot_pulses()
 assert(not glow[2]:visible() and not glow[3]:visible())
-print('Gold slot border: eligibility levels, independent holds, release, layer controls and cleanup passed.')
+-- A (2026-11-22): optional release tail (//xb glowfade).
+ui.slot_glow_fade = .5
+ui:press_slot_pulse(1,1); now=now+1; draw(1)
+assert(glow[1]:visible() and glow[1]:alpha()==250)
+ui:release_slot_pulse(1); draw(1)
+assert(glow[1]:visible() and glow[1]:alpha()==250 and ui:has_glow_tail(), 'tail starts at full')
+now=now+.25; draw(1)
+local mid=glow[1]:alpha(); assert(mid>0 and mid<250, 'tail fading: '..mid)
+now=now+.3; draw(1)
+assert(not glow[1]:visible() and not ui:has_glow_tail(), 'tail done after 0.5 s')
+ui.slot_glow_fade = 0
+ui:press_slot_pulse(1,1); now=now+1; draw(1); ui:release_slot_pulse(1); draw(1)
+assert(not glow[1]:visible(), 'fade 0 cuts on release')
+print('Gold slot border: eligibility levels, independent holds, release, layer controls and cleanup, release tail passed.')

@@ -83,6 +83,7 @@ ui.slot_pulse = nil
 ui.recast_samples, ui.recast_flashes, ui.recast_flash_views = {}, {}, {}
 ui.success_flashes, ui.success_views = {}, {}
 ui.wave_views, ui.wave_peaks = {}, {}
+ui.glow_tails, ui.slot_glow_fade = {}, 0 -- //xb glowfade <seconds>
 
 ui.disabled_slots = {}
 ui.disabled_slots.actions = {}
@@ -2205,7 +2206,7 @@ local last_log = os.clock()
 --   default_cover_depth_text  {200,135,85}  text alpha at depth 1/2/3
 --                             (A 2026-11-22: stronger; old darkest = step 1)
 --   default_cover_size        10
---   cover_offset_x, _y        0, 0  px nudge of the label (//xb coveroffset x y)
+--   cover_offset_x, _y        1, -3 px nudge of the label (//xb coveroffset x y; A live)
 --   cover_depth_enabled      true  //xb coverdepth on|off (off = depth 1 always)
 --   cover_fade_out            .06  s, cover fade-out (menu close, set switch)
 ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='/SUB'}
@@ -2214,7 +2215,7 @@ ui.default_cover_wash = 110
 ui.default_cover_depth_wash = {110, 148, 185}
 ui.default_cover_depth_text = {200, 135, 85}
 ui.default_cover_size = 10
-ui.cover_offset_x, ui.cover_offset_y = 0, 0
+ui.cover_offset_x, ui.cover_offset_y = 1, -3 -- A 2026-11-22, live
 ui.default_cover_color = {255, 216, 112}
 ui.cover_depth_enabled = true
 ui.cover_fade_out = .06
@@ -2276,6 +2277,9 @@ function ui:mark_default_set_action(h, i, environment, current)
         local text = bar.cover_text[i]
         text:size(self.default_cover_size)
         text:text(label)
+        -- A (2026-11-22): ALL in its slightly darker amber.
+        text:color(unpack(environment == 'all-jobs-default'
+            and require('crossbar_destinations').all_color or self.default_cover_color))
         -- A bank that just came back on screen (trigger held) shows its
         -- covers at once, like its dim; otherwise a new cover fades in.
         if track then track:set('c' .. key, self.cover_snap[key] and 1 or 0) end
@@ -3457,6 +3461,7 @@ function ui:clear_slot_pulses()
     self.pulse_tracks,self.pulse_visible_bars={},{}
     for _,view in ipairs(self.pulse_views) do view:hide() end
     for _,view in ipairs(self.glow_views) do view:hide() end
+    self.glow_tails = {}
 end
 
 function ui:set_slot_pulse_enabled(enabled)
@@ -3508,6 +3513,11 @@ function ui:release_slot_pulse(slot)
     if self.slot_pulse then self.slot_pulse:release(slot) end
 end
 
+-- True while a released slot's glow is still fading (keeps the redraw going).
+function ui:has_glow_tail()
+    return next(self.glow_tails or {}) ~= nil and (tonumber(self.slot_glow_fade) or 0) > 0
+end
+
 function ui:show_slot_pulse(menu_open)
     if not (self.slot_pulse_enabled or self.slot_glow_enabled) or not self.slot_pulse then return end
     for slot,view in ipairs(self.pulse_views) do
@@ -3527,8 +3537,25 @@ function ui:show_slot_pulse(menu_open)
             if visible and held and track.brightness and self.slot_glow_enabled then
                 glow:alpha(track.brightness)
                 glow:show()
+                self.glow_tails[slot] = {hotbar=track.hotbar, alpha=track.brightness}
             else
-                glow:hide()
+                -- A (2026-11-22): optional release tail (slot_glow_fade
+                -- seconds, quadratic; 0 = cut on release as before).
+                local tail = self.glow_tails[slot]
+                local fade = tonumber(self.slot_glow_fade) or 0
+                if tail and fade > 0 and self.slot_glow_enabled and self.pulse_visible_bars[tail.hotbar] then
+                    local now = self.recast_flash_clock()
+                    tail.started = tail.started or now
+                    local left = 1 - (now - tail.started)/fade
+                    if left > 0 then
+                        glow:alpha(math.floor(tail.alpha*left*left + .5))
+                        glow:show()
+                    else
+                        glow:hide(); self.glow_tails[slot] = nil
+                    end
+                else
+                    glow:hide(); self.glow_tails[slot] = nil
+                end
             end
         end
         if alpha <= 0 then self.pulse_tracks[slot]=nil end

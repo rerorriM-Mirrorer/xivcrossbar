@@ -82,6 +82,7 @@ local transport = require('controller_transport')
 local shoulder_banks = require('shoulder_banks')
 local text_input_guard = require('text_input_guard')
 local chat_enter = require('libs/chat_enter_grace').new(require('socket').gettime)
+local console_assumed_open = false
 local review_keyboard = require('libs/controller/review_keyboard').new()
 local visibility = require('visibility')
 local player = require('player')
@@ -1020,8 +1021,11 @@ function apply_appearance_settings()
     if t and t >= 0 then ui.slot_wave_duration = t end
     if not ui.slot_wave_enabled and ui.is_setup then ui:clear_slot_wave() end
     ui.cover_depth_enabled = settings.CoverDepth ~= false
-    ui.cover_offset_x = tonumber(settings.CoverOffsetX) or 0
-    ui.cover_offset_y = tonumber(settings.CoverOffsetY) or 0
+    -- A (2026-11-22, live): 1, -3 centres the labels on A's screen.
+    ui.cover_offset_x = tonumber(settings.CoverOffsetX) or 1
+    ui.cover_offset_y = tonumber(settings.CoverOffsetY) or -3
+    t = tonumber(settings.GlowFadeTime)
+    ui.slot_glow_fade = t and t >= 0 and t or 0
     ui.edit_glow_enabled = settings.EditGlow ~= false
     t = tonumber(settings.EditGlowAlpha)
     if t and t >= 0 then ui.edit_glow_alpha = t end
@@ -1766,6 +1770,19 @@ windower.register_event('addon command', function(command, ...)
             ui.cover_depth_enabled and 'ON' or 'OFF', tostring(ui.cover_offset_x), tostring(ui.cover_offset_y),
             tostring(ui.label_menu_lift), ui.edit_glow_enabled and 'ON' or 'OFF', tostring(ui.edit_glow_alpha)))
         ui_dirty = true
+        return
+    elseif command == 'glowfade' then
+        -- A (2026-11-22): seconds the pressed-slot border glow takes to fade
+        -- after release (0 = cut on release, the old look).
+        local value = tonumber((...))
+        if not value or value < 0 or value > 2 then
+            chat_format.say(123, '[XIVCrossbar] Use //xb glowfade <seconds 0-2> (now ' .. tostring(ui.slot_glow_fade) .. ').')
+            return
+        end
+        settings.GlowFadeTime = value
+        config.save(settings)
+        apply_appearance_settings()
+        chat_format.say(207, ('[XIVCrossbar] Slot glow fade: %.2f s.'):format(ui.slot_glow_fade))
         return
     elseif command == 'dimchange' then
         -- A (2026-11-22): seconds for a slot's dim and cover fade-in on set
@@ -2835,17 +2852,45 @@ local function controller_keyboard(dik, pressed, flags, blocked)
         diagnostic:record('CONSOLE', ('insert pressed=%s guard=%s menu=%s'):format(tostring(pressed),
             tostring(text_input_guard.active), tostring(crossbar_menu_open())))
     end
+    -- A (2026-11-22, log): once the console is open the addon receives no
+    -- keys at all (not even the Insert release), and the menu's input block
+    -- also stops Windower's own Insert from closing it. So the block steps
+    -- aside while the console is assumed open; the next key that reaches the
+    -- addon means the console has closed (Inferred).
+    if console_assumed_open then
+        console_assumed_open = false
+        if diagnostic then diagnostic:record('CONSOLE', 'first key after console: dik=' .. tostring(dik)) end
+    end
     if dik == 210 and text_input_guard.active then
-        if pressed then windower.send_command('console_toggle') end
+        if pressed then
+            console_assumed_open = true
+            text_input_guard:update(false, windower.send_command, false)
+            windower.send_command('console_toggle')
+        end
         return true
     end
     -- A: with FFXI chat open, Enter belongs to chat on every XIV Crossbar menu.
     -- A (2026-11-21): plus a short grace after it (libs/chat_enter_grace).
-    -- A (2026-11-22): Esc with chat open closes chat, not the menu.
-    if dik == keyboard.enter or dik == 156 or dik == keyboard.esc then
+    -- A (2026-11-22): Esc with chat open closes chat, not the menu; the arrows
+    -- belong to chat too (history). Keys handed to chat never leave a stale
+    -- "held" mark in the review router (that left Esc dead until refocus).
+    local chat_key = dik == keyboard.enter or dik == 156 or dik == keyboard.esc
+    local arrow = dik == 200 or dik == 208 or dik == 203 or dik == 205
+    if chat_key or arrow then
         local menu = crossbar_menu_open()
         local info = menu and windower.ffxi.get_info()
-        local verdict = chat_enter:edge(true, pressed, menu, info and info.chat_open)
+        local chat_open = info and info.chat_open
+        local verdict
+        if chat_key then verdict = chat_enter:edge(true, pressed, menu, chat_open)
+        elseif menu and chat_open then verdict = 'pass' end
+        if verdict and diagnostic then
+            diagnostic:record('CHATKEY', ('dik=%s pressed=%s chat=%s verdict=%s'):format(tostring(dik),
+                tostring(pressed), tostring(chat_open), verdict))
+        end
+        if verdict then
+            review_keyboard.held[dik] = nil
+            if not pressed then review_keyboard.owned[dik] = nil end
+        end
         if verdict == 'pass' then return false end
         if verdict == 'swallow' then return true end
     end
@@ -3362,6 +3407,7 @@ windower.register_event('prerender',function()
         local chat_info = windower.ffxi.get_info()
         if chat_info and chat_info.chat_open then navigation = false end
     end
+    if console_assumed_open then navigation = false end
     text_input_guard:update(keyboard_context and (action_binder:is_capturing_text() or env_chooser.capturing),
         windower.send_command, navigation)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
@@ -3376,7 +3422,7 @@ windower.register_event('prerender',function()
         ui:tick_slot_wave()
         -- Keep redrawing while an edit-mode bind flash fades the slot's icon,
         -- and while the eased dim / cover fade is still moving.
-        if ui:has_binding_flash() or ui:has_dim_fade() then ui_dirty = true end
+        if ui:has_binding_flash() or ui:has_dim_fade() or ui:has_glow_tail() then ui_dirty = true end
         -- Ghost preview of the highlighted action in the selected slot.
         local ghost_path, ghost_bank, ghost_slot = action_binder:get_ghost()
         ui:update_ghost(ghost_path, ghost_bank, ghost_slot, not action_binder.is_hidden)
