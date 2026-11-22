@@ -39,10 +39,11 @@ local function cover(i, label, depth)
     local r,g,b = text:color(); assert(r==255 and g==216 and b==112, 'amber')
     r,g,b = text:stroke_color(); assert(r==0 and g==0 and b==0, 'black outline')
     assert(text:bold() == true)
-    assert(text:size() == (label:find('\n',1,true) and 9 or 10), 'size')
-    assert(text:alpha() == ({200,165,135})[depth], i..' text alpha depth '..depth..': '..text:alpha())
+    assert(text:size() == 10, 'one size for every label')
+    assert(ui.cover_states[i].cx == ui:get_slot_x(1, i) + 20, 'centred on the slot (x+20)')
+    assert(text:alpha() == ({200,135,85})[depth], i..' text alpha depth '..depth..': '..text:alpha())
     assert(wash:visible() and wash:path():find('ui/black-square.png',1,true), 'wash, not a cover image')
-    assert(wash:alpha() == ({110,130,148})[depth], i..' wash depth '..depth..': '..wash:alpha())
+    assert(wash:alpha() == ({110,148,185})[depth], i..' wash depth '..depth..': '..wash:alpha())
     assert(bar.slot_icon[i]:visible(), 'icon visible underneath')
     assert(not bar.slot_cost[i]:visible(), 'cost hidden')
     assert(not bar.slot_recast_text[i]:visible(), 'timer text not used by the cover')
@@ -54,22 +55,21 @@ end
 
 -- Edit mode on Basic: JOB/SUB one layer down, JOB two, ALL three.
 draw(true)
-cover(2, 'ALL', 3); cover(3, 'JOB', 2); cover(4, 'JOB\nSUB', 1); cover(5, 'ALL', 3)
+cover(2, 'ALL', 3); cover(3, 'JOB', 2); cover(4, '/SUB', 1); cover(5, 'ALL', 3)
 assert(not ui.default_covers[1] and not bar.cover_text[1]:visible(), 'local slot has no cover')
 
--- Two-line labels sit higher so the block is centred on the slot.
-local one, two = surface(bar.cover_text[3]), surface(bar.cover_text[4])
-local lifted = two.center_y
-ui.default_cover_long_lift = 0; ui.cover_states[4].cx = nil; draw(true)
-local flat = surface(bar.cover_text[4]).center_y
-assert(ui.default_cover_long_lift == 0 and lifted < flat, 'two-line label sits higher: ' .. lifted .. ' vs ' .. flat)
-ui.default_cover_long_lift = 7; ui.cover_states[4].cx = nil; draw(true)
-assert(surface(bar.cover_text[4]).center_y == lifted)
+-- The cover label offset nudges every label the same way.
+local base_cy = ui.cover_states[3].cy
+ui.cover_offset_x, ui.cover_offset_y = 1, -2
+draw(true)
+assert(ui.cover_states[3].cx == ui:get_slot_x(1, 3) + 21 and ui.cover_states[3].cy == base_cy - 2, 'offset applied')
+ui.cover_offset_x, ui.cover_offset_y = 0, 0
+draw(true)
 
 -- Real job names once the jobs are known.
 ui.cover_main_job, ui.cover_sub_job = 'WHM', 'SCH'
 draw(true)
-cover(3, 'WHM', 2); cover(4, 'WHM\nSCH', 1); cover(2, 'ALL', 3)
+cover(3, 'WHM', 2); cover(4, '/SCH', 1); cover(2, 'ALL', 3)
 ui.cover_sub_job = 'NON'
 draw(true)
 cover(4, 'WHM', 1)
@@ -117,4 +117,4 @@ assert(not next(ui.default_covers))
 -- Unknown environments draw nothing.
 ui:mark_default_set_action(1, 6, 'shared', 'basic')
 assert(not ui.default_covers[6])
-print('Default-set covers: ALL/job-name text over a light wash on their own surfaces, depth by inheritance, two-line lift, cleared on local bind, cooldown and menu close.')
+print('Default-set covers: ALL / WHM / /SCH text over a light wash on their own surfaces, depth by inheritance, centred with offset, cleared on local bind, cooldown and menu close.')

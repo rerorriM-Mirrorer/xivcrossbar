@@ -228,6 +228,7 @@ ui:flash_binding(1,3)
 assert(not ui:update_ghost('addon/images/a.png',1,3,true), 'no ghost during the bind flash')
 ui:clear_action_success()
 -- Bind-ready: the amber selection is 60% lighter.
+ui.dest_tint_in = 0 -- A (2026-11-22): the fade-in is timed in tests/edit_transition.lua
 ui:check_recasts(actions,{},'basic',{}, {active_bar=0},
     {get_skillchain_window=function()return 0,0 end},{},false,false,true,nil,nil,nil,{bank=1,slot=3,ready=true})
 assert(ui.destination_tint:alpha()==48, 'bind-ready amber alpha '..tostring(ui.destination_tint:alpha()))

@@ -1,10 +1,11 @@
 -- A (2026-11-21): Enter while FFXI chat is open belongs to chat, even with an
--- XIV Crossbar menu open. After that Enter, a short grace swallows further
+-- XIV Crossbar menu open. A (2026-11-22): Esc too (it closes chat), and the
+-- grace is a little longer after live bleed-through. After that Enter, a short grace swallows further
 -- Enter presses (a held key's repeats or an accidental double press), so
 -- they neither confirm a menu row nor reopen chat in the game. Each swallowed
 -- press extends the grace, so holding Enter never leaks into the menu.
--- Tunable: grace (seconds, default .3).
-local M = {grace = .3}
+-- Tunable: grace (seconds, default .45).
+local M = {grace = .45}
 
 function M.new(clock)
     local self = {until_at = 0}

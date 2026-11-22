@@ -1,3 +1,22 @@
+## Current Development Status — 2026-11-22 (America/Chicago), edit glow and cover polish
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `74f2995`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: assumed `ed12602` (Inferred; A has Test2 installed per the live notes, so likely `74f2995`; OPEN_Q); package cumulative since `ed12602`.
+
+**Live (A, 2026-11-22, Test2):** depth dimming good but subtle; cover fades on set switch look and feel good; label lift good; A likes dimfade 0.9 and slotwave 0.9. A asks: /SUB instead of a two-line JOB/SUB; stronger depth; no wave on menu open; an amber edit glow; press animations in edit mode with a quick tint fade. Seen: white squares on first appearance of some images; Enter/Esc bleed-through with chat open (still being explored). Insert log not yet sent.
+
+**Changes (Verified, read this session)**
+- Covers: `default` label = `/` .. sub (fallback `/SUB`; no sub = main job); one size (10), no lift. Centred at slot x+20 (was x+22, the timer point) plus `cover_offset_x/_y` (`//xb coveroffset <x> <y>`, settings CoverOffsetX/Y; replaces coverlift). Depth wash `{110,148,185}`, text `{200,135,85}`.
+- Fades: defaults `dim_fade_enter` .9, `dim_fade_exit` .6, `dim_fade_change` .15. `//xb dimfade <s>` sets enter/exit only; new `//xb dimchange <s>` (DimChangeTime). Cover fade-in uses enter on the menu-open edge, change otherwise (`cover_fade_in`).
+- Wave: no longer on menu open (set change only). Wave views preallocated at setup with their texture (white-square cause, Inferred from the 2026-11-10 recast-glow fix: an image created and shown in the same frame draws untextured).
+- Edit glow: `edit_glow_views` (preallocated, `slot-glow.png` tinted {190,120,40}) on every drawn slot, alpha `edit_glow_alpha` 70 x eased level over enter/exit. `//xb editglow on|off|<alpha>` (EditGlow, EditGlowAlpha).
+- Edit-mode presses: `action_binder.edit_press_hook` -> `ui:press_slot_pulse` / `release_slot_pulse`; the press glow is no longer hidden while the menu is open. Destination tint fades in over `dest_tint_in` .06 s (restarting on a new slot) and out over `dest_tint_out` .14 s in place.
+- Chat: Esc joins Enter in `chat_enter_grace` (chat open -> passes to FFXI, not the menu close); grace .45 s.
+- Tests: `edit_transition` rewritten for the new timings, edit glow, tint fade and set-switch cover fade; `default_set_covers` (/SUB, centre, offset, depth); `slot_glow` (glow in edit mode); `xi_layout` (tint fade-in off for its alpha check); `review_keyboard` (chat Esc); `command_returns`.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on all changed .lua: OK. `python3 tests/run_lua.py tests/<each>.lua`: 81 pass, `profile_lifecycle` fails (KNOWN_FAILS).
+
+**Live:** none for this batch. **Pending:** checklist; Insert CONSOLE log; where the white squares appear. **Next:** A's look; selected-slot amber glow animation.
+
 ## Current Development Status — 2026-11-21 (America/Chicago), covers/labels/chat Enter
 
 **Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `25b452f`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: assumed `ed12602` (Inferred; OPEN_Q to A); package cumulative since `ed12602`.

@@ -847,6 +847,12 @@ function initialize(server_id, expected_name, expected_id)
     ui.set_flash_enabled = settings.SetFlash ~= false
     ui.set_settle_enabled = settings.SetSettle == true -- A (2026-11-21): off unless turned on
     apply_appearance_settings()
+    -- A (2026-11-22): edit-mode slot presses animate like play presses.
+    action_binder.edit_press_hook = function(bank, slot, pressed)
+        if not ui.is_setup then return end
+        if pressed and bank then ui:press_slot_pulse(bank, slot) else ui:release_slot_pulse(slot) end
+        ui_dirty = true
+    end
     -- A: edit-mode Undo (last 9 changes per character, saved with the crossbar files).
     action_binder.undo_wrap = function(bank, slot, label, change)
         local environment = shoulder_banks.destination(player.hotbar_settings.active_environment, bank)
@@ -1004,14 +1010,21 @@ end
 function apply_appearance_settings()
     ui.dim_fade_enabled = settings.DimFade ~= false
     local t = tonumber(settings.DimFadeTime)
-    if t and t >= 0 then ui.dim_fade_enter, ui.dim_fade_change, ui.dim_fade_exit = t, t, t*2/3 end
+    -- A (2026-11-22): dimfade = menu open/close only; dimchange = set switch
+    -- and availability changes.
+    if t and t >= 0 then ui.dim_fade_enter, ui.dim_fade_exit = t, t*2/3 end
+    t = tonumber(settings.DimChangeTime)
+    if t and t >= 0 then ui.dim_fade_change = t end
     ui.slot_wave_enabled = settings.SlotWave ~= false
     t = tonumber(settings.SlotWaveTime)
     if t and t >= 0 then ui.slot_wave_duration = t end
     if not ui.slot_wave_enabled and ui.is_setup then ui:clear_slot_wave() end
     ui.cover_depth_enabled = settings.CoverDepth ~= false
-    t = tonumber(settings.CoverLift)
-    if t then ui.default_cover_long_lift = t end
+    ui.cover_offset_x = tonumber(settings.CoverOffsetX) or 0
+    ui.cover_offset_y = tonumber(settings.CoverOffsetY) or 0
+    ui.edit_glow_enabled = settings.EditGlow ~= false
+    t = tonumber(settings.EditGlowAlpha)
+    if t and t >= 0 then ui.edit_glow_alpha = t end
     t = tonumber(settings.LabelLift)
     if t and t >= 0 then ui.label_menu_lift = t end
 end
@@ -1703,10 +1716,11 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(207, '[XIVCrossbar] ' .. (command == 'chainglow' and 'Skillchain' or 'Magic Burst') ..
             ' glow: ' .. (on and 'ON' or 'OFF') .. '.')
         return
-    elseif command == 'coverdepth' or command == 'coverlift' or command == 'labellift' then
-        -- A (2026-11-21): coverdepth [on|off] = deeper inherited covers look
-        -- recessed; coverlift <px> = how far two-line covers (WHM over SCH)
-        -- move up; labellift <0-255> = alpha the labels gain in the menu (0 off).
+    elseif command == 'coverdepth' or command == 'coveroffset' or command == 'labellift' or command == 'editglow' then
+        -- A (2026-11-21/22): coverdepth [on|off] = deeper inherited covers look
+        -- recessed; coveroffset <x> <y> = px nudge of the cover labels;
+        -- labellift <0-255> = alpha the labels gain in the menu (0 off);
+        -- editglow on|off|<0-255> = edit-mode amber border glow.
         local mode = type((...)) == 'string' and (...):lower() or nil
         local value = mode and tonumber(mode)
         if command == 'coverdepth' then
@@ -1717,13 +1731,23 @@ windower.register_event('addon command', function(command, ...)
             local on = settings.CoverDepth ~= false
             if mode == nil then on = not on else on = mode == 'on' end
             settings.CoverDepth = on
-        elseif command == 'coverlift' then
-            if not value or value < -20 or value > 20 then
-                chat_format.say(123, '[XIVCrossbar] Use //xb coverlift <pixels -20 to 20> (now '
-                    .. tostring(ui.default_cover_long_lift) .. ').')
+        elseif command == 'coveroffset' then
+            local y = tonumber((select(2, ...)))
+            if not value or not y or math.abs(value) > 20 or math.abs(y) > 20 then
+                chat_format.say(123, '[XIVCrossbar] Use //xb coveroffset <x> <y> in pixels, -20 to 20 (now '
+                    .. tostring(ui.cover_offset_x) .. ' ' .. tostring(ui.cover_offset_y) .. ').')
                 return
             end
-            settings.CoverLift = value
+            settings.CoverOffsetX, settings.CoverOffsetY = value, y
+        elseif command == 'editglow' then
+            if mode == 'on' or mode == 'off' then settings.EditGlow = mode == 'on'
+            elseif value and value >= 0 and value <= 255 then settings.EditGlowAlpha = value; settings.EditGlow = true
+            elseif mode == nil then settings.EditGlow = settings.EditGlow == false
+            else
+                chat_format.say(123, '[XIVCrossbar] Use //xb editglow on|off|<alpha 0-255> (now '
+                    .. tostring(ui.edit_glow_alpha) .. ').')
+                return
+            end
         else
             if mode == 'off' then value = 0 elseif mode == 'on' then value = 50 end
             if not value or value < 0 or value > 255 then
@@ -1738,9 +1762,23 @@ windower.register_event('addon command', function(command, ...)
         if ui.is_setup then
             for key in pairs(ui.cover_states or {}) do ui.cover_states[key].cx = nil end
         end
-        chat_format.say(207, ('[XIVCrossbar] Cover depth %s, two-line cover lift %s px, menu label lift %s.'):format(
-            ui.cover_depth_enabled and 'ON' or 'OFF', tostring(ui.default_cover_long_lift), tostring(ui.label_menu_lift)))
+        chat_format.say(207, ('[XIVCrossbar] Cover depth %s, cover offset %s %s px, menu label lift %s, edit glow %s (%s).'):format(
+            ui.cover_depth_enabled and 'ON' or 'OFF', tostring(ui.cover_offset_x), tostring(ui.cover_offset_y),
+            tostring(ui.label_menu_lift), ui.edit_glow_enabled and 'ON' or 'OFF', tostring(ui.edit_glow_alpha)))
         ui_dirty = true
+        return
+    elseif command == 'dimchange' then
+        -- A (2026-11-22): seconds for a slot's dim and cover fade-in on set
+        -- switch and availability changes (menu open/close is //xb dimfade).
+        local value = tonumber((...))
+        if not value or value < 0 or value > 2 then
+            chat_format.say(123, '[XIVCrossbar] Use //xb dimchange <seconds 0-2> (now ' .. tostring(ui.dim_fade_change) .. ').')
+            return
+        end
+        settings.DimChangeTime = value
+        config.save(settings)
+        apply_appearance_settings()
+        chat_format.say(207, ('[XIVCrossbar] Dim change: %.2f s.'):format(ui.dim_fade_change))
         return
     elseif command == 'dimfade' or command == 'slotwave' then
         -- A (2026-11-21): dimfade = eased slot dim (menu entry, set switch,
@@ -2803,7 +2841,8 @@ local function controller_keyboard(dik, pressed, flags, blocked)
     end
     -- A: with FFXI chat open, Enter belongs to chat on every XIV Crossbar menu.
     -- A (2026-11-21): plus a short grace after it (libs/chat_enter_grace).
-    if dik == keyboard.enter or dik == 156 then
+    -- A (2026-11-22): Esc with chat open closes chat, not the menu.
+    if dik == keyboard.enter or dik == 156 or dik == keyboard.esc then
         local menu = crossbar_menu_open()
         local info = menu and windower.ffxi.get_info()
         local verdict = chat_enter:edge(true, pressed, menu, info and info.chat_open)

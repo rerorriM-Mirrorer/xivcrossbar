@@ -111,6 +111,10 @@ dispatch(28,false,0,false);binder.capturing_text=false
 binder.state=13
 assert(dispatch(200,true,0,false) and calls[#calls]=='dpad_up', 'arrows still move with chat open')
 dispatch(200,false,0,false)
+-- 2026-11-22: Esc with chat open closes chat, never the menu.
+local closed_before=closed
+assert(not dispatch(1,true,0,false) and closed==closed_before and not binder.is_hidden, 'chat Esc goes to FFXI')
+dispatch(1,false,0,false)
 chat_open=false
 binder.state=17
 count=#calls

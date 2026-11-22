@@ -588,7 +588,9 @@ function ui:load(theme_options)
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
     for _, view in pairs(self.wave_views or {}) do view:hide() end
+    for _, view in pairs(self.edit_glow_views or {}) do view:hide() end
     self.wave_views, self.wave_peaks, self.slot_wave = {}, {}, nil
+    self.edit_glow_views, self.edit_glow_level, self.dest_shown = {}, 0, nil
     self.dim_track = require('ui/fade_track').new(self.recast_flash_clock)
     self.last_menu_open, self.menu_changed_at = nil, nil
     self.scale_visible, self.scale_active_bar = false, 0
@@ -722,7 +724,7 @@ function ui:load(theme_options)
             cover:size(10)
             cover:color(unpack(ui.default_cover_color))
             cover:stroke_color(0, 0, 0)
-            cover:center(slot_pos_x + 22, slot_pos_y + 13)
+            cover:center(slot_pos_x + 20, slot_pos_y + 13)
             cover:hide()
         end
 
@@ -731,6 +733,25 @@ function ui:load(theme_options)
         self.hotbars[h].slot_recast[10] = new_image(images_setup)
         for _, slots in pairs(self.hotbars[h]) do
             for _, surface in ipairs(slots) do geometry:assign_bank(surface, h) end
+        end
+    end
+
+    -- A (2026-11-22): set-switch wave and edit-mode amber glow views, one per
+    -- slot, made here with their texture and kept hidden until needed (a view
+    -- created and shown in one frame flashes as a white square).
+    for _, h in ipairs(self.render_banks) do
+        for i = 1, 8 do
+            local key = (h-1)*8+i
+            for _, pool in ipairs({self.wave_views, self.edit_glow_views}) do
+                local view = new_image(images_setup)
+                prepare_image(view, windower.addon_path .. 'images/assets/slot-glow.png')
+                view:size(40+2*slot_glow_padding, 40+2*slot_glow_padding)
+                view:alpha(0)
+                view:hide()
+                geometry:assign_bank(view, h)
+                pool[key] = view
+            end
+            self.edit_glow_views[key]:color(unpack(ui.edit_glow_color))
         end
     end
 
@@ -1004,6 +1025,8 @@ function ui:hide()
     self:clear_set_flash()
     self:clear_slot_wave()
     if self.dim_track then self.dim_track:clear() end
+    for _, view in pairs(self.edit_glow_views or {}) do view:hide() end
+    self.dest_shown = nil
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
         'gcd_indicator_bg','gcd_indicator','aa_indicator_bg','aa_indicator_red','aa_indicator_green'}) do
@@ -1096,29 +1119,48 @@ local set_flash_lift = .45
 
 -- A (2026-11-21): appearance pass. Tunables (seconds unless noted):
 --   dim_fade_enabled  true  //xb dimfade on|off; off = old instant writes
---   dim_fade_enter    .15   slots dim to menu strength when the menu opens
---   dim_fade_exit     .10   slots brighten when the menu closes
---   dim_fade_change   .15   a slot's dim follows availability / set changes
+--   dim_fade_enter    .9    slots dim / labels lift / edit glow in on menu open
+--   dim_fade_exit     .6    the same, back out, on menu close
+--   dim_fade_change   .15   a slot's dim and cover fade-in on set switch and
+--                           availability changes (//xb dimchange <seconds>)
 --   cover_fade_delay  .04   ALL/JOB/SUB covers start after the dim begins
 --   slot_wave_enabled true  //xb slotwave on|off
 --   slot_wave_duration .9   all-slots glow fade (quadratic); A 2026-11-21: 0.9 s
 --   slot_wave_peak     .8   fraction of the pressed-glow levels (250/190/145)
 --   label_menu_lift    50   alpha added to bank labels and set name in the menu
 --                           (about what the slots lose); //xb labellift <0-255>
--- //xb dimfade <seconds> sets enter and change (exit = 2/3 of it);
+-- //xb dimfade <seconds> sets enter (exit = 2/3 of it);
 -- //xb slotwave <seconds> sets the wave length.
 ui.dim_fade_enabled = true
-ui.dim_fade_enter, ui.dim_fade_exit, ui.dim_fade_change = .15, .10, .15
+-- A (2026-11-22): menu fades 0.9 s in / 0.6 s out (A's choice). Set and
+-- availability changes stay quick and have their own switch (//xb dimchange).
+ui.dim_fade_enter, ui.dim_fade_exit, ui.dim_fade_change = .9, .6, .15
 ui.cover_fade_delay = .04
 ui.slot_wave_enabled = true
 ui.slot_wave_duration = .9
 ui.slot_wave_peak = .8
 ui.label_menu_lift = 50
+-- A (2026-11-22): edit-mode amber glow. In the menu every drawn slot's border
+-- (the pressed-slot glow image, tinted) eases to a subtle dark amber over the
+-- menu fade, near the amber of the trigger fields. Later reused for the
+-- selected slot and the bind moment.
+--   edit_glow_enabled true           //xb editglow on|off|<alpha>
+--   edit_glow_alpha   70             0-255 at full strength
+--   edit_glow_color   {190,120,40}   multiplies slot-glow.png
+ui.edit_glow_enabled = true
+ui.edit_glow_alpha = 70
+ui.edit_glow_color = {190, 120, 40}
+-- A (2026-11-22): the selected-slot amber tint fades in time with the press
+-- animation (press pulse 0.06 s, release fade 0.14 s).
+--   dest_tint_in .06, dest_tint_out .14 (s)
+ui.dest_tint_in, ui.dest_tint_out = .06, .14
 
 -- All-slots glow wave: every drawn slot lights with the pressed-slot border
 -- glow (same image and brightness levels) and fades out together. Played on
--- menu open (Options) and on a real set change. Opening the set chooser
--- (Share) does not wave by itself; the change of set does.
+-- a real set change only (A 2026-11-22: not on menu open, not on Share).
+-- Views are made at setup with their texture, never on first use: an image
+-- created and shown in the same frame draws as a white square until
+-- Windower has loaded its texture.
 function ui:start_slot_wave()
     if self.slot_wave_enabled == false or not self.wave_views then return end
     self.slot_wave = {started=self.recast_flash_clock()}
@@ -1141,14 +1183,7 @@ function ui:tick_slot_wave()
         for slot = 1, 8 do
             local key = (h-1)*8+slot
             local view = self.wave_views[key]
-            if drawn then
-                if not view then
-                    view = new_image(images_setup)
-                    view:path(windower.addon_path .. 'images/assets/slot-glow.png')
-                    view:size(40+2*slot_glow_padding, 40+2*slot_glow_padding)
-                    geometry:assign_bank(view, h)
-                    self.wave_views[key] = view
-                end
+            if drawn and view then
                 view:pos(self:get_slot_x(h, slot)-slot_glow_padding, self:get_slot_y(h, slot)-slot_glow_padding)
                 view:alpha(math.floor((self.wave_peaks[key] or 145)*(tonumber(self.slot_wave_peak) or 1)*left*left + .5))
                 view:show()
@@ -2158,27 +2193,28 @@ local last_log = os.clock()
 -- A (2026-11-21, live): text a little see-through; two-line labels.
 -- A (2026-11-21, second pass): the covers have their own surfaces (cover_wash,
 -- cover_text), so they can fade in and out independently of recast timers.
--- Labels name the real jobs (ALL, WHM, WHM over SCH), falling back to JOB and
--- JOB/SUB before a job is known. Depth: the further down the inheritance a
+-- Labels name the real jobs: ALL, the main job (WHM), and the subjob with a
+-- slash for the job/subjob set (/SCH; A 2026-11-22), falling back to JOB and
+-- /SUB before a job is known. All labels are one line, centred on the slot. Depth: the further down the inheritance a
 -- slot's action comes from (default -> job-default -> all-jobs-default), the
 -- darker its wash and the dimmer its text, so deeper layers look recessed.
 -- Tunables:
 --   default_cover_alpha       200  text alpha at depth 1
 --   default_cover_wash        110  wash alpha at depth 1 (cooldown wash is 150)
---   default_cover_depth_wash  {110,130,148} wash alpha at depth 1/2/3
---   default_cover_depth_text  {200,165,135} text alpha at depth 1/2/3
---   default_cover_size 10, default_cover_long_size 9 (two-line labels)
---   default_cover_long_lift    7   px a two-line label moves up (//xb coverlift)
+--   default_cover_depth_wash  {110,148,185} wash alpha at depth 1/2/3
+--   default_cover_depth_text  {200,135,85}  text alpha at depth 1/2/3
+--                             (A 2026-11-22: stronger; old darkest = step 1)
+--   default_cover_size        10
+--   cover_offset_x, _y        0, 0  px nudge of the label (//xb coveroffset x y)
 --   cover_depth_enabled      true  //xb coverdepth on|off (off = depth 1 always)
 --   cover_fade_out            .06  s, cover fade-out (menu close, set switch)
-ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='JOB\nSUB'}
+ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='/SUB'}
 ui.default_cover_alpha = 200
 ui.default_cover_wash = 110
-ui.default_cover_depth_wash = {110, 130, 148}
-ui.default_cover_depth_text = {200, 165, 135}
+ui.default_cover_depth_wash = {110, 148, 185}
+ui.default_cover_depth_text = {200, 135, 85}
 ui.default_cover_size = 10
-ui.default_cover_long_size = 9
-ui.default_cover_long_lift = 7
+ui.cover_offset_x, ui.cover_offset_y = 0, 0
 ui.default_cover_color = {255, 216, 112}
 ui.cover_depth_enabled = true
 ui.cover_fade_out = .06
@@ -2191,7 +2227,7 @@ function ui:cover_label(inherited)
     if inherited == 'job-default' then return main end
     if inherited == 'default' then
         if not sub or sub == '' or sub == 'NON' or sub == 'NOSUB' then return main end
-        return main .. '\n' .. sub
+        return '/' .. sub
     end
     return self.default_cover_labels[inherited]
 end
@@ -2213,10 +2249,13 @@ local function draw_cover(self, h, i, state, level)
     wash:pos(x, y)
     wash:alpha(math.floor(wash_alpha*level + .5))
     wash:show()
-    local cy = y + 13 - (state.label:find('\n',1,true) and (tonumber(self.default_cover_long_lift) or 0) or 0)
-    if state.cx ~= x + 22 or state.cy ~= cy then
-        text:center(x + 22, cy)
-        state.cx, state.cy = x + 22, cy
+    -- Centred on the slot (x+20, as the slot names are); the old timer
+    -- point (x+22) sat 2 px right of centre.
+    local cx = x + 20 + (tonumber(self.cover_offset_x) or 0)
+    local cy = y + 13 + (tonumber(self.cover_offset_y) or 0)
+    if state.cx ~= cx or state.cy ~= cy then
+        text:center(cx, cy)
+        state.cx, state.cy = cx, cy
     end
     text:alpha(math.floor(text_alpha*level + .5))
     text:stroke_alpha(math.floor((self.text_stroke_alpha or 255)*(text_alpha/255)*level + .5))
@@ -2235,7 +2274,7 @@ function ui:mark_default_set_action(h, i, environment, current)
         state = {label=label}
         self.cover_states[key] = state
         local text = bar.cover_text[i]
-        text:size(label:find('\n',1,true) and self.default_cover_long_size or self.default_cover_size)
+        text:size(self.default_cover_size)
         text:text(label)
         -- A bank that just came back on screen (trigger held) shows its
         -- covers at once, like its dim; otherwise a new cover fades in.
@@ -2246,7 +2285,7 @@ function ui:mark_default_set_action(h, i, environment, current)
     local level = 1
     if track then
         local on = self.dim_fade_enabled ~= false
-        level = track:value('c' .. key, 1, on and self.dim_fade_enter or 0, on and self.cover_fade_delay or 0)
+        level = track:value('c' .. key, 1, on and (self.cover_fade_in or self.dim_fade_enter) or 0, on and self.cover_fade_delay or 0)
     end
     draw_cover(self, h, i, state, level)
     bar.slot_cost[i]:hide()
@@ -2507,13 +2546,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     local dim_now = self.recast_flash_clock()
     menu_open = menu_open and true or false
     if menu_open ~= self.last_menu_open then
-        if menu_open and self.last_menu_open ~= nil and not self.chooser_open then self:start_slot_wave() end
         self.last_menu_open, self.menu_changed_at = menu_open, dim_now
     end
     local dim_on = dim_track and self.dim_fade_enabled ~= false
     local menu_edge = self.menu_changed_at and dim_now - self.menu_changed_at < .05
     local slot_fade = not dim_on and 0 or menu_edge
         and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or self.dim_fade_change
+    self.cover_fade_in = menu_edge and self.dim_fade_enter or self.dim_fade_change
     if dim_track then
         local lift = dim_track:value('labels', menu_open and (tonumber(self.label_menu_lift) or 0) or 0,
             dim_on and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or 0)
@@ -3197,14 +3236,59 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     end
 
     -- Edit-mode destination: shown on its bank whenever that bank is drawn.
+    -- A (2026-11-22): the tint fades in with the press (dest_tint_in) and out
+    -- on deselect (dest_tint_out) at the slot it left.
     local d = menu_open and destination
-    if d and self.hotbars[d.bank] and self.pulse_visible_bars[d.bank] and d.slot >= 1 and d.slot <= 8 then
+    local shown = d and self.hotbars[d.bank] and self.pulse_visible_bars[d.bank] and d.slot >= 1 and d.slot <= 8
+    local tint_on = dim_track and self.dim_fade_enabled ~= false
+    if shown then
+        local last = self.dest_shown
+        if not last or last.bank ~= d.bank or last.slot ~= d.slot or last.gone then
+            self.dest_shown = {bank=d.bank, slot=d.slot}
+            if dim_track then dim_track:set('dest', 0) end
+        end
         self.destination_tint:pos(self:get_slot_x(d.bank, d.slot), self:get_slot_y(d.bank, d.slot))
         -- 60% lighter when the next Confirm would bind here.
-        self.destination_tint:alpha(d.ready and 48 or 120)
+        local target = d.ready and 48 or 120
+        local alpha = dim_track and dim_track:value('dest', target, tint_on and self.dest_tint_in or 0) or target
+        self.destination_tint:alpha(math.floor(alpha + .5))
         self.destination_tint:show()
+    elseif self.dest_shown and not self.dest_shown.gone and menu_open and dim_track
+        and self.pulse_visible_bars[self.dest_shown.bank] then
+        local alpha = dim_track:value('dest', 0, tint_on and self.dest_tint_out or 0)
+        if alpha <= 0 then
+            self.dest_shown.gone = true
+            self.destination_tint:hide()
+        else
+            self.destination_tint:alpha(math.floor(alpha + .5))
+        end
     else
+        if self.dest_shown then self.dest_shown.gone = true end
         self.destination_tint:hide()
+    end
+
+    -- A (2026-11-22): edit-mode amber border glow on every drawn slot.
+    if dim_track and self.edit_glow_views then
+        local on = self.edit_glow_enabled ~= false
+        local level = dim_track:value('editglow', (menu_open and on) and 1 or 0,
+            self.dim_fade_enabled ~= false and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or 0)
+        self.edit_glow_level = level
+        local alpha = math.floor((tonumber(self.edit_glow_alpha) or 0)*level + .5)
+        for _, h in ipairs(self.render_banks) do
+            local drawn = alpha > 0 and self.pulse_visible_bars[h] and self.hotbars[h]
+            for i = 1, 8 do
+                local view = self.edit_glow_views[(h-1)*8+i]
+                if view then
+                    if drawn then
+                        view:pos(self:get_slot_x(h, i)-slot_glow_padding, self:get_slot_y(h, i)-slot_glow_padding)
+                        view:alpha(alpha)
+                        view:show()
+                    else
+                        view:hide()
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -3439,7 +3523,8 @@ function ui:show_slot_pulse(menu_open)
         end
         local glow=self.glow_views[slot]
         if glow then
-            if visible and held and track.brightness and self.slot_glow_enabled and not menu_open then
+            -- A (2026-11-22): edit-mode slot presses show the same glow as play.
+            if visible and held and track.brightness and self.slot_glow_enabled then
                 glow:alpha(track.brightness)
                 glow:show()
             else

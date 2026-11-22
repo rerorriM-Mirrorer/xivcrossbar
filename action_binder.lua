@@ -1004,6 +1004,7 @@ function action_binder:edit_slot_press(hotkey, pressed)
         -- trigger was let go first.
         if not pressed and self.edit_consumed and self.edit_consumed[hotkey] then
             self.edit_consumed[hotkey] = nil
+            if self.edit_press_hook then self.edit_press_hook(nil, hotkey, false) end
             return true
         end
         return false
@@ -1011,6 +1012,9 @@ function action_binder:edit_slot_press(hotkey, pressed)
     -- A trigger held for a slot press never repeats menu navigation.
     self.held_navigation = nil
     self.edit_consumed = self.edit_consumed or {}
+    -- A (2026-11-22): the slot shows the normal press animation (pulse and
+    -- glow) in edit mode too; xivcrossbar.lua sets edit_press_hook.
+    if self.edit_press_hook then self.edit_press_hook(bank, hotkey, pressed) end
     if pressed and self.state == states.SWAP then
         self.edit_consumed[hotkey] = true
         self:choose_swap_target(bank, hotkey)

@@ -51,7 +51,7 @@ assert(not ahk:find('CB.gameplay && CB.zoom',1,true) and ahk:find('A_TickCount-C
 -- 800: the Insert console passthrough (2026-11-21) now comes first.
 local kb=slice("local function controller_keyboard(dik, pressed, flags, blocked)",1600)
 assert(kb:find("if dik == 210 and text_input_guard.active then",1,true) and kb:find("console_toggle",1,true), "Insert opens the console while the menu blocks keys")
-assert(kb:find("if dik == keyboard.enter or dik == 156 then",1,true)
+assert(kb:find("if dik == keyboard.enter or dik == 156 or dik == keyboard.esc then",1,true)
     and kb:find("chat_enter:edge(true, pressed, menu, info and info.chat_open)",1,true)
     and kb:find("if verdict == 'pass' then return false end",1,true))
 

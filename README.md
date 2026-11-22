@@ -1017,8 +1017,21 @@ pressed-glow brightness, and opening the set chooser no longer plays it (a
 real set change still does). With FFXI chat open, the menu lets go of the
 keyboard so typing and Enter reach chat; for 0.3 s after that Enter, further
 Enter presses (a held key or a double press) are ignored by both the menu and
-the game. //xb coverdepth [on|off], //xb coverlift <px> (default 7),
+the game. //xb coverdepth [on|off], //xb coverlift <px> (default 7; replaced
+2026-11-22 by //xb coveroffset),
 //xb labellift <0-255|on|off> (default 50). Lua simulation only; live testing pending.
+
+2026-11-22: Edit mode glow and cover polish. The job/subjob cover now reads
+/SCH (slash = subjob) on one line like the others; every cover label is
+centred on the slot (//xb coveroffset <x> <y> nudges them). Depth steps are
+stronger. The menu fade is 0.9 s in and 0.6 s out (//xb dimfade); set switches
+and availability changes keep their quick 0.15 s (new //xb dimchange). The
+all-slots glow now plays only on a set change. In edit mode every slot's
+border eases to a subtle dark amber over the menu fade (//xb editglow
+on|off|<alpha>, default 70), and selecting a slot shows the normal press
+animation while the amber selection fades in (0.06 s) and out (0.14 s). With
+chat open, Esc now closes chat rather than the menu, and the Enter/Esc grace is
+0.45 s. Lua simulation only; live testing pending.
 
 2026-11-21: Default-set text covers. In the menu, a slot that shows an action
 inherited from a default set now says which one in amber text with a black
