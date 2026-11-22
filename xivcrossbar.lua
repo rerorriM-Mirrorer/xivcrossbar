@@ -2884,8 +2884,8 @@ local function controller_keyboard(dik, pressed, flags, blocked)
         if chat_key then verdict = chat_enter:edge(true, pressed, menu, chat_open)
         elseif menu and chat_open then verdict = 'pass' end
         if verdict and diagnostic then
-            diagnostic:record('CHATKEY', ('dik=%s pressed=%s chat=%s verdict=%s'):format(tostring(dik),
-                tostring(pressed), tostring(chat_open), verdict))
+            diagnostic:record('CHATKEY', ('dik=%s pressed=%s chat=%s recent=%s verdict=%s'):format(tostring(dik),
+                tostring(pressed), tostring(chat_open), tostring(chat_enter:recently_open()), verdict))
         end
         if verdict then
             review_keyboard.held[dik] = nil
@@ -3362,6 +3362,8 @@ windower.register_event('prerender',function()
     require('ui/text_measure').begin_frame()
     -- Diagnostic timing is observed before rendering/transport work begins.
     diagnostic:tick(input_context())
+    -- A (2026-11-22): remember when chat was last open (libs/chat_enter_grace).
+    do local chat_info = windower.ffxi.get_info(); chat_enter:observe(chat_info and chat_info.chat_open) end
     if not restart_pending and profile_clock() >= next_identity_retry then
         next_identity_retry = profile_clock() + .25
         check_profile_ready()

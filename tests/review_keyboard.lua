@@ -139,6 +139,19 @@ dispatch(28,false,0,false)
 enter_now=1
 assert(dispatch(28,true,0,false), 'Enter works again once chat closes')
 dispatch(28,false,0,false)
+-- 2026-11-22 (Test4 log): after a refocus the Enter can reach the addon only
+-- after FFXI has closed chat. Chat seen open a frame ago still owns it.
+enter_now=5;rootenv.chat_enter:observe(true)
+chat_open=false;enter_now=5.1
+count=#calls
+assert(not dispatch(28,true,0,false) and #calls==count, 'late chat Enter goes to FFXI, not the menu')
+dispatch(28,false,0,false)
+enter_now=5.3
+assert(dispatch(28,true,0,false) and #calls==count, 'and arms the grace')
+dispatch(28,false,0,false)
+enter_now=7
+assert(dispatch(28,true,0,false) and #calls==count+1, 'Enter selects again once chat is long closed')
+dispatch(28,false,0,false)
 local guard=require('text_input_guard')
 local commands={}
 local function send(command) commands[#commands+1]=command end
