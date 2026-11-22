@@ -1,3 +1,22 @@
+## Current Development Status — 2026-11-22 (America/Chicago), job colour, late chat Enter
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `4794fb5`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: `4794fb5` (Live: A installed Test4). Package cumulative since `4794fb5`.
+
+**Live (A, 2026-11-22, Test4):** Esc behaviour as built works great. ALL in the darker amber looks good. Insert with the menu open opens and closes the console; Esc goes to the console while it is open; the menu works after. Up/Down scroll chat history, not the menu. Esc closes the menu after closing chat (A: chat first, as built). Enter still bled through a couple of times near the end of testing (A suspects focus/refocus). glowfade: liked so far, still trying. A asks: JOB and JOB/SUB slightly brighter in covers, set chooser and the menu.
+
+**Enter log (Verified, A's 30 s `client.log`, all non-render lines read):** before the window refocus (07:40:54, generation 1559 -> 1564) every chat Enter was logged `CHATKEY chat=true verdict=pass`. After it, three Enter presses (07:40:58.94, 07:41:01.74, 07:41:06.86) left no CHATKEY line: chat closed (AHK zoom gate eligible 0 -> 1) in the same frame as the menu moved (CONTEXT menu:2 at 58.94 and 06.86). So the addon saw those presses with chat already closed and no grace running, and `review_keyboard` confirmed a row. Cause of the order change: Inferred (refocus).
+
+**Changes (Verified, read this session)**
+- `libs/chat_enter_grace.lua`: `observe(chat_open)` each prerender; `recently_open()`; an Enter/Esc press within `recent` (.25 s) of chat last seen open, with no grace running, is treated as a chat key (pass to FFXI, arm the grace). CHATKEY lines gain `recent=`.
+- `crossbar_destinations.lua`: `job_color` {255,232,150} for `job-default` and `default`; `color_for(key)` / `cs_for(key)` (ALL {222,178,86}, others amber {255,216,112}). Used by covers (`ui.lua`), set chooser, menu set title, destination footer label and swap-screen slot lines.
+- Tests: `review_keyboard` (late chat Enter passes, arms grace, then Enter selects again), new `set_colors`, `default_set_covers` and `edit_banks_ready` updated.
+
+**Tunables:** `chat_enter_grace.grace` .45 s, `.recent` .25 s; `crossbar_destinations.all_color`, `.job_color`, `.amber` (RGB).
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on all changed .lua: OK. `python3 tests/run_lua.py tests/<each>.lua`: 82 pass, `profile_lifecycle` fails (KNOWN_FAILS).
+
+**Live:** none for this batch. **Pending:** checklist. **Next:** reusable menu hints and footer icons (white squares, redraws); selected-slot amber animation.
+
 ## Current Development Status — 2026-11-22 (America/Chicago), console, chat keys, polish
 
 **Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `206dabe`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: assumed `ed12602` (Inferred; A has Test3 installed per the live notes, likely `206dabe`; OPEN_Q); package cumulative since `ed12602`.

@@ -1043,6 +1043,14 @@ review screens no longer show the "<set> Crossbar" title. //xb glowfade
 <seconds> lets the pressed-slot border glow fade out after release (default 0,
 the old cut). Lua simulation only; live testing pending.
 
+2026-11-22: Brighter job sets and a late chat Enter. JOB and JOB/SUB are named
+in a slightly brighter amber than other sets (crossbar covers, set chooser,
+menu title, the footer set name and the swap screen), with ALL still a little
+darker. An Enter that reaches XIV Crossbar a moment after FFXI has already
+closed chat (seen after refocusing the window) now still counts as the chat
+Enter and no longer selects a menu row. Lua simulation only; live testing
+pending.
+
 2026-11-21: Default-set text covers. In the menu, a slot that shows an action
 inherited from a default set now says which one in amber text with a black
 outline, centred like a recast timer: ALL (All Jobs Default), JOB (Job
