@@ -994,6 +994,17 @@ trigger. Reloads, rebinds and job-change reloads of the same set do not cue.
 //xb setflash [on|off] and //xb setsettle [on|off]; both on by default (saved).
 Lua simulation only; live testing pending.
 
+2026-11-21: Edit-mode entry and set-switch transition. A slot's dim now eases
+instead of snapping: opening the menu dims the slots over 0.15 s, closing
+brightens them over 0.1 s, and a set switch or a change in availability
+(MP, TP, recast) glides over 0.15 s. The ALL / JOB / JOB/SUB covers fade in
+just after the dim starts. A bank that appears when you hold a trigger shows
+at once. Opening the menu and a real set change (Share, set chooser) also play
+an all-slots glow: every visible slot lights with the pressed-slot border glow
+and fades out together over 0.4 s.
+//xb dimfade [on|off|<seconds>] and //xb slotwave [on|off|<seconds>|test];
+both on by default (saved). Lua simulation only; live testing pending.
+
 2026-11-21: Default-set text covers. In the menu, a slot that shows an action
 inherited from a default set now says which one in amber text with a black
 outline, centred like a recast timer: ALL (All Jobs Default), JOB (Job

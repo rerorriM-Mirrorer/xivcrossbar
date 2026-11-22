@@ -845,6 +845,7 @@ function initialize(server_id, expected_name, expected_id)
     -- A: set-switch cue (label flash, 1 px settle); on unless turned off.
     ui.set_flash_enabled = settings.SetFlash ~= false
     ui.set_settle_enabled = settings.SetSettle == true -- A (2026-11-21): off unless turned on
+    apply_appearance_settings()
     -- A: edit-mode Undo (last 9 changes per character, saved with the crossbar files).
     action_binder.undo_wrap = function(bank, slot, label, change)
         local environment = shoulder_banks.destination(player.hotbar_settings.active_environment, bank)
@@ -997,6 +998,18 @@ function trigger_action(slot, bank, input_seq)
 end
 
 -- set battle environment
+-- A (2026-11-21): appearance pass switches. DimFade / SlotWave are on unless
+-- false; DimFadeTime / SlotWaveTime (seconds) override the ui defaults.
+function apply_appearance_settings()
+    ui.dim_fade_enabled = settings.DimFade ~= false
+    local t = tonumber(settings.DimFadeTime)
+    if t and t >= 0 then ui.dim_fade_enter, ui.dim_fade_change, ui.dim_fade_exit = t, t, t*2/3 end
+    ui.slot_wave_enabled = settings.SlotWave ~= false
+    t = tonumber(settings.SlotWaveTime)
+    if t and t >= 0 then ui.slot_wave_duration = t end
+    if not ui.slot_wave_enabled and ui.is_setup then ui:clear_slot_wave() end
+end
+
 function set_battle_environment(in_battle)
     player:set_battle_environment(in_battle)
     ui:load_player_hotbar(player.hotbar, player.vitals, player.hotbar_settings.active_environment)
@@ -1683,6 +1696,38 @@ windower.register_event('addon command', function(command, ...)
         if not on and ui.is_setup then ui:clear_chain_glows() end
         chat_format.say(207, '[XIVCrossbar] ' .. (command == 'chainglow' and 'Skillchain' or 'Magic Burst') ..
             ' glow: ' .. (on and 'ON' or 'OFF') .. '.')
+        return
+    elseif command == 'dimfade' or command == 'slotwave' then
+        -- A (2026-11-21): dimfade = eased slot dim (menu entry, set switch,
+        -- availability); slotwave = all-slots glow on menu open and set change.
+        -- //xb <cmd> [on|off|<seconds>|test]
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        local key = command == 'dimfade' and 'DimFade' or 'SlotWave'
+        local name = command == 'dimfade' and 'Dim fade' or 'Slot wave'
+        if mode == 'test' and command == 'slotwave' then
+            if ui.is_setup then ui:start_slot_wave() end
+            return
+        end
+        local seconds = mode and tonumber(mode)
+        if mode ~= nil and mode ~= 'on' and mode ~= 'off' and not (seconds and seconds >= 0 and seconds <= 2) then
+            chat_format.say(123, '[XIVCrossbar] Use //xb ' .. command .. ' [on|off|<seconds 0-2>]'
+                .. (command == 'slotwave' and ' or //xb slotwave test.' or '.'))
+            return
+        end
+        if seconds then
+            settings[key .. 'Time'] = seconds
+            settings[key] = true
+        else
+            local on = settings[key] ~= false
+            if mode == nil then on = not on else on = mode == 'on' end
+            settings[key] = on
+        end
+        config.save(settings)
+        apply_appearance_settings()
+        local length = command == 'dimfade' and ui.dim_fade_enter or ui.slot_wave_duration
+        chat_format.say(207, ('[XIVCrossbar] %s: %s (%.2f s).'):format(name,
+            settings[key] ~= false and 'ON' or 'OFF', length or 0))
+        ui_dirty = true
         return
     elseif command == 'setflash' or command == 'setsettle' then
         -- A: set-switch cue. setflash: the set name's stroke brightens and its
@@ -3228,8 +3273,10 @@ windower.register_event('prerender',function()
         ui:tick_action_success()
         ui:tick_chain_glows()
         ui:tick_set_flash()
-        -- Keep redrawing while an edit-mode bind flash fades the slot's icon.
-        if ui:has_binding_flash() then ui_dirty = true end
+        ui:tick_slot_wave()
+        -- Keep redrawing while an edit-mode bind flash fades the slot's icon,
+        -- and while the eased dim / cover fade is still moving.
+        if ui:has_binding_flash() or ui:has_dim_fade() then ui_dirty = true end
         -- Ghost preview of the highlighted action in the selected slot.
         local ghost_path, ghost_bank, ghost_slot = action_binder:get_ghost()
         ui:update_ghost(ghost_path, ghost_bank, ghost_slot, not action_binder.is_hidden)

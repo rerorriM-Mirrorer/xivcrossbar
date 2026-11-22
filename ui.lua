@@ -82,6 +82,7 @@ ui.pulse_visible_bars = {}
 ui.slot_pulse = nil
 ui.recast_samples, ui.recast_flashes, ui.recast_flash_views = {}, {}, {}
 ui.success_flashes, ui.success_views = {}, {}
+ui.wave_views, ui.wave_peaks = {}, {}
 
 ui.disabled_slots = {}
 ui.disabled_slots.actions = {}
@@ -523,6 +524,7 @@ function ui:setup(theme_options, enchanted_items)
     self.theme.slot_opacity = theme_options.slot_opacity
     self.theme.disabled_slot_opacity = theme_options.disabled_slot_opacity
     self.slot_label_color = {theme_options.font_color_red, theme_options.font_color_green, theme_options.font_color_blue}
+    self.text_stroke_alpha = tonumber(theme_options.font_stroke_alpha) or 255
     self.theme.hotbar_number = theme_options.hotbar_number
     self.AutoHideExtraBars = theme_options.AutoHideExtraBars
     self.UseAltLayout = theme_options.UseAltLayout
@@ -585,6 +587,10 @@ function ui:load(theme_options)
     self.success_flashes, self.success_views = {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
+    for _, view in pairs(self.wave_views or {}) do view:hide() end
+    self.wave_views, self.wave_peaks, self.slot_wave = {}, {}, nil
+    self.dim_track = require('ui/fade_track').new(self.recast_flash_clock)
+    self.last_menu_open, self.menu_changed_at, self.cover_level = nil, nil, 1
     self.scale_visible, self.scale_active_bar = false, 0
     self.display_bank, self.center_release_deadline = 0, nil
     self.auto_hold = {}
@@ -978,6 +984,8 @@ function ui:hide()
     self:clear_chain_glows()
     self:clear_action_success()
     self:clear_set_flash()
+    self:clear_slot_wave()
+    if self.dim_track then self.dim_track:clear() end
     geometry:transition(false)
     for _, name in ipairs({'skillchain_indicator_bg','skillchain_indicator',
         'gcd_indicator_bg','gcd_indicator','aa_indicator_bg','aa_indicator_red','aa_indicator_green'}) do
@@ -1067,7 +1075,72 @@ local set_flash_rise, set_flash_fall = .06, .34
 local set_flash_stroke = {255, 242, 200}
 local set_flash_lift = .45
 
+-- A (2026-11-21): appearance pass. Tunables (seconds unless noted):
+--   dim_fade_enabled  true  //xb dimfade on|off; off = old instant writes
+--   dim_fade_enter    .15   slots dim to menu strength when the menu opens
+--   dim_fade_exit     .10   slots brighten when the menu closes
+--   dim_fade_change   .15   a slot's dim follows availability / set changes
+--   cover_fade_delay  .04   ALL/JOB/SUB covers start after the dim begins
+--   slot_wave_enabled true  //xb slotwave on|off
+--   slot_wave_duration .4   all-slots glow fade (quadratic, like the success flash)
+-- //xb dimfade <seconds> sets enter and change (exit = 2/3 of it);
+-- //xb slotwave <seconds> sets the wave length.
+ui.dim_fade_enabled = true
+ui.dim_fade_enter, ui.dim_fade_exit, ui.dim_fade_change = .15, .10, .15
+ui.cover_fade_delay = .04
+ui.slot_wave_enabled = true
+ui.slot_wave_duration = .4
+
+-- All-slots glow wave: every drawn slot lights with the pressed-slot border
+-- glow (same image and brightness levels) and fades out together. Played on
+-- menu open (Options) and on a real set change (Share, chooser).
+function ui:start_slot_wave()
+    if self.slot_wave_enabled == false or not self.wave_views then return end
+    self.slot_wave = {started=self.recast_flash_clock()}
+    self:tick_slot_wave()
+end
+
+function ui:clear_slot_wave()
+    self.slot_wave = nil
+    for _, view in pairs(self.wave_views or {}) do view:hide() end
+end
+
+function ui:tick_slot_wave()
+    local wave = self.slot_wave
+    if not wave then return end
+    local duration = tonumber(self.slot_wave_duration) or .4
+    local left = duration > 0 and 1 - (self.recast_flash_clock() - wave.started) / duration or 0
+    if left <= 0 or self.slot_wave_enabled == false then self:clear_slot_wave(); return end
+    for _, h in ipairs(self.render_banks or {}) do
+        local drawn = self.pulse_visible_bars[h] and self.hotbars[h]
+        for slot = 1, 8 do
+            local key = (h-1)*8+slot
+            local view = self.wave_views[key]
+            if drawn then
+                if not view then
+                    view = new_image(images_setup)
+                    view:path(windower.addon_path .. 'images/assets/slot-glow.png')
+                    view:size(40+2*slot_glow_padding, 40+2*slot_glow_padding)
+                    geometry:assign_bank(view, h)
+                    self.wave_views[key] = view
+                end
+                view:pos(self:get_slot_x(h, slot)-slot_glow_padding, self:get_slot_y(h, slot)-slot_glow_padding)
+                view:alpha(math.floor((self.wave_peaks[key] or 145)*left*left + .5))
+                view:show()
+            elseif view then
+                view:hide()
+            end
+        end
+    end
+end
+
+-- True while the eased dim or covers are still moving.
+function ui:has_dim_fade()
+    return self.dim_track ~= nil and self.dim_track:busy()
+end
+
 function ui:cue_set_switch()
+    self:start_slot_wave()
     if self.set_flash_enabled ~= false and self.set_name_label then
         self.set_flash = {started=self.recast_flash_clock()}
         self:tick_set_flash()
@@ -1557,7 +1630,10 @@ function ui:clear_slot(hotbar, slot)
     self:clear_recast(hotbar, slot)
     self.hotbars[hotbar].slot_background[slot]:alpha(self.theme.slot_opacity)
     self.hotbars[hotbar].slot_icon[slot]:alpha(255)
-    self.hotbars[hotbar].slot_icon[slot]:color(255, 255, 255)
+    -- A (2026-11-21): no colour reset here. check_recasts submits each drawn
+    -- slot's final colour through the eased dim; a white write on reload
+    -- could render for a frame before it and blink the unavailable dim.
+    if not self.dim_track then self.hotbars[hotbar].slot_icon[slot]:color(255, 255, 255) end
     self.hotbars[hotbar].slot_element[slot]:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/blank.png')
     self.hotbars[hotbar].slot_element[slot]:alpha(255)
     self.hotbars[hotbar].slot_element[slot]:hide()
@@ -2049,7 +2125,8 @@ function ui:mark_default_set_action(h, i, environment)
     local bar = self.hotbars[h]
     local wash = bar.slot_recast[i]
     wash:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
-    wash:alpha(self.default_cover_wash)
+    local level = math.max(0, math.min(1, tonumber(self.cover_level) or 1))
+    wash:alpha(math.floor(self.default_cover_wash*level + .5))
     wash:size(40, 40)
     wash:pos(self:get_slot_x(h, i), self:get_slot_y(h, i))
     wash:show()
@@ -2058,7 +2135,8 @@ function ui:mark_default_set_action(h, i, environment)
     text:size(label:find('\n',1,true) and self.default_cover_long_size or self.default_cover_size)
     text:color(unpack(self.default_cover_color))
     text:stroke_color(0, 0, 0)
-    text:alpha(self.default_cover_alpha)
+    text:alpha(math.floor(self.default_cover_alpha*level + .5))
+    text:stroke_alpha(math.floor((self.text_stroke_alpha or 255)*level + .5))
     text:text(label)
     text:show()
     bar.slot_cost[i]:hide()
@@ -2076,6 +2154,7 @@ function ui:clear_default_cover(h, i)
     text:size(10)
     text:color(255, 255, 255)
     text:alpha(255)
+    text:stroke_alpha(self.text_stroke_alpha or 255)
     text:text('')
     text:hide()
     bar.slot_recast[i]:hide()
@@ -2302,6 +2381,25 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     if menu_open then self:clear_action_success(nil, nil, true) end
     local observe_recasts = self.recast_flash_enabled and not menu_open
     if menu_open and next(self.recast_samples) then self:clear_recast_flashes() end
+
+    -- A (2026-11-21): edit-mode entry/exit drives the eased dim, the cover
+    -- fade-in and (on open) the all-slots glow wave.
+    local dim_track = self.dim_track
+    local dim_now = self.recast_flash_clock()
+    menu_open = menu_open and true or false
+    if menu_open ~= self.last_menu_open then
+        if menu_open and self.last_menu_open ~= nil then self:start_slot_wave() end
+        self.last_menu_open, self.menu_changed_at = menu_open, dim_now
+    end
+    local dim_on = dim_track and self.dim_fade_enabled ~= false
+    local menu_edge = self.menu_changed_at and dim_now - self.menu_changed_at < .05
+    local slot_fade = not dim_on and 0 or menu_edge
+        and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or self.dim_fade_change
+    if dim_track then
+        self.cover_level = dim_track:value('cover', menu_open and 1 or 0,
+            dim_on and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or 0,
+            menu_open and self.cover_fade_delay or 0)
+    end
 
     local skillchain_delay, skillchain_window = skillchains.get_skillchain_window()
     self:display_skillchain_indicator(player_vitals, skillchain_delay, skillchain_window)
@@ -2908,15 +3006,35 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 end
                 -- Submit only the final colour. White-then-grey writes on the
                 -- same surface can be rendered between Lua calls by Windower.
-                if availability_unavailable then
-                    self.hotbars[h].slot_icon[i]:color(130, 130, 130)
-                    self.hotbars[h].slot_text[i]:color(130, 130, 130)
-                elseif unavailable_reason then
-                    self.hotbars[h].slot_icon[i]:color(130, 130, 130)
-                    self.hotbars[h].slot_text[i]:color(unpack(self.slot_label_color))
+                -- A (2026-11-21): the target brightness eases (fade_track) so
+                -- menu entry, set switches and availability changes glide
+                -- instead of snapping; a bind flash still drives it directly.
+                local icon_target = (availability_unavailable or unavailable_reason) and 130 or shade
+                local grey_target = availability_unavailable and 1 or 0
+                local icon_level, grey = icon_target, grey_target
+                if dim_track then
+                    local key = (h-1)*8+i
+                    if bound_flash and bound_flash.binding then
+                        dim_track:set('i' .. key, icon_target)
+                    else
+                        icon_level = dim_track:value('i' .. key, icon_target, slot_fade)
+                    end
+                    grey = dim_track:value('t' .. key, grey_target, slot_fade)
+                end
+                icon_level = math.floor(icon_level + .5)
+                self.hotbars[h].slot_icon[i]:color(icon_level, icon_level, icon_level)
+                local label = self.slot_label_color
+                if grey <= 0 then
+                    self.hotbars[h].slot_text[i]:color(unpack(label))
                 else
-                    self.hotbars[h].slot_icon[i]:color(shade, shade, shade)
-                    self.hotbars[h].slot_text[i]:color(unpack(self.slot_label_color))
+                    self.hotbars[h].slot_text[i]:color(
+                        math.floor(label[1] + (130-label[1])*grey + .5),
+                        math.floor(label[2] + (130-label[2])*grey + .5),
+                        math.floor(label[3] + (130-label[3])*grey + .5))
+                end
+                if self.wave_peaks then
+                    self.wave_peaks[(h-1)*8+i] = not occupied and 145
+                        or (unavailable or self.hotbars[h].slot_icon[i]:alpha() < 255) and 190 or 250
                 end
                 if glow then
                     if not occupied then glow.brightness = 145
@@ -2942,6 +3060,11 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self:clear_default_cover(h, i)
                 self:clear_recast(h, i)
                 if observe_recasts then self:clear_recast_flash(h,i) end
+                -- A bank that comes back (a trigger held) snaps to its dim
+                -- level; only slots that stay on screen ease.
+                if dim_track then
+                    dim_track:forget('i' .. ((h-1)*8+i)); dim_track:forget('t' .. ((h-1)*8+i))
+                end
             end
 
             self:hide_controller_icons(h)

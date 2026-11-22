@@ -1,3 +1,23 @@
+## Current Development Status — 2026-11-21 (America/Chicago), edit-mode transition
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. First commit `bcebad4`: docs-only AGENTS sync to canon 2026-11-21.3. installed_base: assumed `ed12602` (Inferred; asked A), so the package carries every file changed since `ed12602`.
+
+**Changes (Verified, read this session)**
+- `ui/fade_track.lua` (new): clock-driven ease-out values per key; a new target starts from the current value (reversal is smooth); first sight or no duration snaps; `busy()` keeps the prerender redrawing.
+- `ui.lua` `check_recasts`: each drawn slot's icon brightness (130 unavailable / 205 menu / 255) and label grey ease through `fade_track`. Menu open uses `dim_fade_enter`, close `dim_fade_exit`, any other change (set switch, availability) `dim_fade_change`. A bind flash still drives the icon directly. A bank that is not drawn forgets its values, so a trigger-held bank snaps in. Covers (`mark_default_set_action`) scale text, stroke and wash alpha by `cover_level`, which eases 0->1 on menu open after `cover_fade_delay`.
+- Set-switch dim flicker: `ui:clear_slot` no longer writes white (when the fade layer exists). Cause Inferred: `load_player_hotbar` reset each icon to white, which could render for a frame before `check_recasts` re-applied the grey.
+- All-slots glow wave: `ui:start_slot_wave()` on the menu-open edge (in `check_recasts`) and in `ui:cue_set_switch()`. Every drawn slot gets `slot-glow.png` (48x48, the pressed-slot glow) at the press-glow levels (250 bound, 190 unavailable, 145 empty), fading quadratically over `slot_wave_duration`. Shown with the menu open. Closing the menu does not wave.
+- Tunables (top of the block in `ui.lua`, seconds): `dim_fade_enter` .15, `dim_fade_exit` .10, `dim_fade_change` .15, `cover_fade_delay` .04, `slot_wave_duration` .4; switches `dim_fade_enabled`, `slot_wave_enabled` (on).
+- `xivcrossbar.lua`: `//xb dimfade [on|off|<seconds>]` (sets enter and change, exit = 2/3), `//xb slotwave [on|off|<seconds>|test]`; settings `DimFade`, `DimFadeTime`, `SlotWave`, `SlotWaveTime` (on unless false); prerender ticks the wave and keeps redrawing while the dim moves.
+- Not built (scope): fading out recast/chain/success glows when the menu opens (still cut); GripRumble tick on entry (needs a new GripRumble event); amber bar plates unchanged (A: keep). Covers still vanish at once on menu close.
+- Tests: new `tests/edit_transition.lua`. README entry. AGENTS REPO block: CHECKS and KNOWN_FAILS.
+
+**Checks run (host):** `pip install lupa --break-system-packages`; Lua 5.1 `loadstring` on `ui.lua`, `xivcrossbar.lua`, `ui/fade_track.lua`, `tests/edit_transition.lua`: OK. `python3 tests/run_lua.py tests/<each>.lua`: 81 pass, `profile_lifecycle` fails (KNOWN_FAILS).
+
+**Inferred risks.** Availability changes in combat now take 0.15 s to brighten (TP reaching 1000, MP back); `//xb dimfade 0` restores instant. Wave images are created on first use, so they draw above surfaces created earlier. If the crossbar was hidden (autohide) when the menu opens, the dim snaps (the fade state is cleared on hide); the wave still plays.
+
+**Live:** none. **Pending:** checklist. **Next:** A's look; then the selected-slot animated border glow in edit mode (A's idea).
+
 ## Current Development Status — 2026-11-21 (America/Chicago), polish batch
 
 **Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/text-covers-20261121`, on `b588be6` (Basic Set) <- `9484d38` (Text Covers) <- `aa01545`. installed_base: assumed `ed12602` (Inferred). Not pushed: GitHub push access was denied again this session.
