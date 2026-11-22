@@ -1,0 +1,5 @@
+local d=require('crossbar_destinations')
+assert(d.cs_for('all-jobs-default')=='\\cs(222,178,86)')
+assert(d.cs_for('job-default')=='\\cs(255,232,150)' and d.cs_for('default')=='\\cs(255,232,150)')
+assert(d.cs_for('shared')=='\\cs(255,216,112)' and d.cs_for(nil)=='\\cs(255,216,112)')
+print('set colours: ALL darker, JOB and JOB/SUB brighter, others amber')

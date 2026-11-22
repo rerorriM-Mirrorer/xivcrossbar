@@ -1363,8 +1363,11 @@ function action_binder:create_slot_line()
     return line
 end
 
-function action_binder:set_slot_line(line, cx, y, set_name, bank, slot)
+function action_binder:set_slot_line(line, cx, y, set_name, bank, slot, set_key)
     line.cx, line.y, line.width = cx, y, nil
+    -- A (2026-11-22): set name in its layer colour (JOB, JOB/SUB brighter).
+    local c = require('crossbar_destinations').color_for(set_key)
+    line.label:color(c[1], c[2], c[3])
     if not set_name then
         line.label:hide()
         for i = 1, slot_line_icon_count do line.icons[i]:hide() end
@@ -1430,7 +1433,7 @@ function action_binder:display_swap_screen()
     view.flash:color(255, 245, 205); view.flash:alpha(0); view.flash:hide()
     self.images:append(view.flash)
     view.source_line = self:create_slot_line()
-    self:set_slot_line(view.source_line, cx, self.base_y + 160, src.set_name, src.bank, src.slot)
+    self:set_slot_line(view.source_line, cx, self.base_y + 160, src.set_name, src.bank, src.slot, src.environment)
     view.target_icon, view.target_frame = slot_picture(self, cx - 20, self.base_y + 225, nil)
     view.prompt = self:create_text('Select set and crossbar slot to swap binds with:', cx, self.base_y + 280)
     view.prompt:size(14)
@@ -1460,7 +1463,7 @@ function action_binder:update_swap_target()
     view.target_icon:path(t and t.icon or blank)
     if t then
         view.prompt:hide()
-        self:set_slot_line(view.target_line, view.cx, self.base_y + 275, t.set_name, t.bank, t.slot)
+        self:set_slot_line(view.target_line, view.cx, self.base_y + 275, t.set_name, t.bank, t.slot, t.environment)
     else
         self:set_slot_line(view.target_line, view.cx, self.base_y + 275, nil)
         view.prompt:show()
@@ -1666,6 +1669,9 @@ function action_binder:update_destination_footer()
         end
         f.prompt:hide()
         if f.label:text() ~= name .. ':' then f.label:text(name .. ':') end
+        -- A (2026-11-22): the set name in its layer colour.
+        local c = require('crossbar_destinations').color_for(self:active_set_key())
+        f.label:color(c[1], c[2], c[3])
         f.label:show()
         local paths = self:destination_icons(d.bank, d.slot)
         f.count = #paths
@@ -3054,8 +3060,9 @@ function action_binder:show_set_title(label)
     local name = bar and (bar.name or key) or key or ''
     local defaults = {default=true, ['job-default']=true, ['all-jobs-default']=true, shared=true}
     -- Set names in amber (the set label's colour), defaults and own sets alike.
-    -- ALL is a little darker (crossbar_destinations.all_color).
-    local color = key == 'all-jobs-default' and require('crossbar_destinations').all_cs() or '\\cs(255,216,112)'
+    -- ALL is a little darker, JOB and JOB/SUB a little brighter
+    -- (crossbar_destinations.color_for).
+    local color = require('crossbar_destinations').cs_for(key)
     self:set_title(label .. ' — ' .. color .. name .. ' Crossbar\\cr')
     self.title:show()
     if self.chooser_active then self.title:alpha(math.floor((self.chooser_title_alpha or 255)*0.45)) end

@@ -5,7 +5,20 @@ local M = {}
 -- is a little darker than the other set names wherever ALL is named (set
 -- chooser, menu title, crossbar cover). The usual amber is 255,216,112.
 M.all_color = {222, 178, 86}
-function M.all_cs() return ('\\cs(%d,%d,%d)'):format(M.all_color[1], M.all_color[2], M.all_color[3]) end
+-- A (2026-11-22): the job layers (JOB and JOB/SUB) a little brighter than
+-- the usual amber, wherever they are named (covers, set chooser, menu title,
+-- footer and swap lines). Tunables: all_color, job_color, amber (RGB).
+M.job_color = {255, 232, 150}
+M.amber = {255, 216, 112}
+local job_keys = {['job-default'] = true, default = true}
+function M.color_for(key)
+    if key == 'all-jobs-default' then return M.all_color end
+    if job_keys[key] then return M.job_color end
+    return M.amber
+end
+local function cs(c) return ('\\cs(%d,%d,%d)'):format(c[1], c[2], c[3]) end
+function M.all_cs() return cs(M.all_color) end
+function M.cs_for(key) return cs(M.color_for(key)) end
 function M.xi_label(key, name, main_job, sub_job)
     if key == 'all-jobs-default' then return 'ALL' end
     if key == 'basic' then return 'Main' end

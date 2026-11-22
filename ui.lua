@@ -2277,9 +2277,9 @@ function ui:mark_default_set_action(h, i, environment, current)
         local text = bar.cover_text[i]
         text:size(self.default_cover_size)
         text:text(label)
-        -- A (2026-11-22): ALL in its slightly darker amber.
-        text:color(unpack(environment == 'all-jobs-default'
-            and require('crossbar_destinations').all_color or self.default_cover_color))
+        -- A (2026-11-22): ALL in its slightly darker amber, JOB and JOB/SUB
+        -- a little brighter (crossbar_destinations.color_for).
+        text:color(unpack(require('crossbar_destinations').color_for(environment)))
         -- A bank that just came back on screen (trigger held) shows its
         -- covers at once, like its dim; otherwise a new cover fades in.
         if track then track:set('c' .. key, self.cover_snap[key] and 1 or 0) end

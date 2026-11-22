@@ -38,7 +38,8 @@ local function cover(i, label, depth)
     assert(text:visible() and text:text() == label, i..': '..tostring(text:text()))
     local r,g,b = text:color()
     if label == 'ALL' then assert(r==222 and g==178 and b==86, 'ALL in the darker amber')
-    else assert(r==255 and g==216 and b==112, 'amber') end
+    -- A (2026-11-22): JOB and /SUB a little brighter than the usual amber.
+    else assert(r==255 and g==232 and b==150, 'job layers in the brighter amber') end
     r,g,b = text:stroke_color(); assert(r==0 and g==0 and b==0, 'black outline')
     assert(text:bold() == true)
     assert(text:size() == 10, 'one size for every label')

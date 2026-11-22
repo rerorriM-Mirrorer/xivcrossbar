@@ -181,8 +181,7 @@ assert(entry2.objects[2].ref.values.size==32 and entry2.objects[2].x==entry2.obj
 
 -- Set chooser and diagnostics (source checks).
 local chooser=io.open('environment_chooser.lua'):read('*a')
-assert(chooser:find("or '\\\\cs(255,216,112)'",1,true) and chooser:find("HAIRLINE .. color .. HIDDEN_SPACE .. name",1,true)
-    and chooser:find("environment.key == 'all-jobs-default' and require('crossbar_destinations').all_cs()",1,true) and not chooser:find("\\\\cs(0,128,255)' .. HIDDEN_SPACE .. name",1,true), 'default sets amber')
+assert(chooser:find("require('crossbar_destinations').cs_for(environment.key)",1,true) and chooser:find("HAIRLINE .. color .. HIDDEN_SPACE .. name",1,true) and not chooser:find("\\\\cs(0,128,255)' .. HIDDEN_SPACE .. name",1,true), 'default sets amber')
 assert(chooser:find("if self.heading then self.heading:hide() end",1,true) and chooser:find('get_name_y(count) - 5',1,true), 'no heading; background fits the list')
 assert(not chooser:find('self:maybe_show_default_sets_tooltip(',1,true), 'no default-sets tooltip')
 local main=io.open('xivcrossbar.lua'):read('*a')
