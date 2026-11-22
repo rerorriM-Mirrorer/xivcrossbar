@@ -81,6 +81,7 @@ local gamepad = require('gamepad')
 local transport = require('controller_transport')
 local shoulder_banks = require('shoulder_banks')
 local text_input_guard = require('text_input_guard')
+local chat_enter = require('libs/chat_enter_grace').new(require('socket').gettime)
 local review_keyboard = require('libs/controller/review_keyboard').new()
 local visibility = require('visibility')
 local player = require('player')
@@ -1008,6 +1009,11 @@ function apply_appearance_settings()
     t = tonumber(settings.SlotWaveTime)
     if t and t >= 0 then ui.slot_wave_duration = t end
     if not ui.slot_wave_enabled and ui.is_setup then ui:clear_slot_wave() end
+    ui.cover_depth_enabled = settings.CoverDepth ~= false
+    t = tonumber(settings.CoverLift)
+    if t then ui.default_cover_long_lift = t end
+    t = tonumber(settings.LabelLift)
+    if t and t >= 0 then ui.label_menu_lift = t end
 end
 
 function set_battle_environment(in_battle)
@@ -1696,6 +1702,45 @@ windower.register_event('addon command', function(command, ...)
         if not on and ui.is_setup then ui:clear_chain_glows() end
         chat_format.say(207, '[XIVCrossbar] ' .. (command == 'chainglow' and 'Skillchain' or 'Magic Burst') ..
             ' glow: ' .. (on and 'ON' or 'OFF') .. '.')
+        return
+    elseif command == 'coverdepth' or command == 'coverlift' or command == 'labellift' then
+        -- A (2026-11-21): coverdepth [on|off] = deeper inherited covers look
+        -- recessed; coverlift <px> = how far two-line covers (WHM over SCH)
+        -- move up; labellift <0-255> = alpha the labels gain in the menu (0 off).
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        local value = mode and tonumber(mode)
+        if command == 'coverdepth' then
+            if mode ~= nil and mode ~= 'on' and mode ~= 'off' then
+                chat_format.say(123, '[XIVCrossbar] Use //xb coverdepth [on|off].')
+                return
+            end
+            local on = settings.CoverDepth ~= false
+            if mode == nil then on = not on else on = mode == 'on' end
+            settings.CoverDepth = on
+        elseif command == 'coverlift' then
+            if not value or value < -20 or value > 20 then
+                chat_format.say(123, '[XIVCrossbar] Use //xb coverlift <pixels -20 to 20> (now '
+                    .. tostring(ui.default_cover_long_lift) .. ').')
+                return
+            end
+            settings.CoverLift = value
+        else
+            if mode == 'off' then value = 0 elseif mode == 'on' then value = 50 end
+            if not value or value < 0 or value > 255 then
+                chat_format.say(123, '[XIVCrossbar] Use //xb labellift <0-255>|on|off (now '
+                    .. tostring(ui.label_menu_lift) .. ').')
+                return
+            end
+            settings.LabelLift = value
+        end
+        config.save(settings)
+        apply_appearance_settings()
+        if ui.is_setup then
+            for key in pairs(ui.cover_states or {}) do ui.cover_states[key].cx = nil end
+        end
+        chat_format.say(207, ('[XIVCrossbar] Cover depth %s, two-line cover lift %s px, menu label lift %s.'):format(
+            ui.cover_depth_enabled and 'ON' or 'OFF', tostring(ui.default_cover_long_lift), tostring(ui.label_menu_lift)))
+        ui_dirty = true
         return
     elseif command == 'dimfade' or command == 'slotwave' then
         -- A (2026-11-21): dimfade = eased slot dim (menu entry, set switch,
@@ -2746,14 +2791,24 @@ local function controller_keyboard(dik, pressed, flags, blocked)
     -- A (2026-11-21): Insert opens the Windower console at all times. Menu
     -- navigation holds keyboard_blockinput, which swallows it, so toggle
     -- the console ourselves while the block is on.
+    if dik == 210 and diagnostic then
+        -- A (2026-11-21): diagnostics for "Insert opens the console but does
+        -- not close it with the menu open" (//xb diagnose).
+        diagnostic:record('CONSOLE', ('insert pressed=%s guard=%s menu=%s'):format(tostring(pressed),
+            tostring(text_input_guard.active), tostring(crossbar_menu_open())))
+    end
     if dik == 210 and text_input_guard.active then
         if pressed then windower.send_command('console_toggle') end
         return true
     end
     -- A: with FFXI chat open, Enter belongs to chat on every XIV Crossbar menu.
-    if pressed and (dik == keyboard.enter or dik == 156) and crossbar_menu_open() then
-        local info = windower.ffxi.get_info()
-        if info and info.chat_open then return false end
+    -- A (2026-11-21): plus a short grace after it (libs/chat_enter_grace).
+    if dik == keyboard.enter or dik == 156 then
+        local menu = crossbar_menu_open()
+        local info = menu and windower.ffxi.get_info()
+        local verdict = chat_enter:edge(true, pressed, menu, info and info.chat_open)
+        if verdict == 'pass' then return false end
+        if verdict == 'swallow' then return true end
     end
     local modal_action
     local field = (not action_binder.chooser_active and action_binder:is_capturing_text()) or env_chooser.capturing
@@ -3262,6 +3317,12 @@ windower.register_event('prerender',function()
     local keyboard_context = focused and not restart_pending
     local navigation = keyboard_context and (gamepad_mapper.is_showing or action_binder:is_keyboard_review()
         or gamepad_mapper:has_owned_key() or review_keyboard:has_owned_key()) or false
+    -- A (2026-11-21): FFXI chat open = the keyboard belongs to chat, so the
+    -- menu's navigation block steps aside (typing and Enter reach the game).
+    if navigation and crossbar_menu_open() then
+        local chat_info = windower.ffxi.get_info()
+        if chat_info and chat_info.chat_open then navigation = false end
+    end
     text_input_guard:update(keyboard_context and (action_binder:is_capturing_text() or env_chooser.capturing),
         windower.send_command, navigation)
     if ui.is_setup then ui:set_chooser_open(env_chooser:is_showing()) end
@@ -3360,6 +3421,8 @@ windower.register_event('prerender',function()
     end
 
     if visible and ui.is_setup then
+        -- A (2026-11-21): covers name the real jobs (WHM, WHM over SCH).
+        ui.cover_main_job, ui.cover_sub_job = player.main_job, player.sub_job
         local dim_default_slots = not action_binder.is_hidden        
         ui:check_recasts(player.hotbar, player.vitals, player.hotbar_settings.active_environment, player.current_spells, gamepad_state, skillchains, consumables, dim_default_slots, xivcrossbar.in_battle, menu_open,
             action_binder:get_binding_preview_bank(), action_binder:get_tentative_binding_slot(), display_bank,

@@ -1,3 +1,24 @@
+## Current Development Status — 2026-11-21 (America/Chicago), covers/labels/chat Enter
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `25b452f`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: assumed `ed12602` (Inferred; OPEN_Q to A); package cumulative since `ed12602`.
+
+**Live (A, 2026-11-21, Edit Transition Test1):** cover opacity good; `//xb basicset` / `//xb sharedset` work with no bugs; creating Basic while hidden shows the block and the command; the dim fade on menu open and close is nice; slot wave liked at 0.9 s (asked for a dimmer peak). Seen: the JOB/SUB cover sits low and spills below its slot (screenshot); the wave played when Share opened the set chooser without a set change; Insert opens the console but does not close it with the menu open.
+
+**Changes (Verified, read this session)**
+- Covers on their own surfaces (`cover_wash`, `cover_text` per slot, created after `slot_recast` / `slot_recast_text`), so they fade independently of recast timers. `mark_default_set_action(h,i,inherited,current)`; `fade_default_cover` (0.06 s `cover_fade_out`), `clear_default_cover` (instant, banks not drawn). New covers fade in over `dim_fade_enter` after `cover_fade_delay` on menu open and set switch; a bank returning to the screen snaps (`cover_snap`). The inherited branch now calls `clear_recast` (the timer is no longer overwritten by the cover).
+- Labels: `cover_label` gives ALL / main job / main over sub (falls back to JOB, JOB/SUB; NON/NOSUB gives main only). Jobs come from `player.main_job/sub_job` each draw.
+- Two-line lift: `default_cover_long_lift` 7 px (Inferred from A's screenshot). `//xb coverlift <px>`.
+- Depth: rank default 1, job-default 2, all-jobs-default 3, minus the active set's rank (0 for other sets), clamped 1-3. Wash `{110,130,148}`, text `{200,165,135}`, stroke scaled with text. `//xb coverdepth on|off`.
+- Labels: `ui:label_alpha()` = opacity + eased `label_lift` (0 to `label_menu_lift` 50 over the enter/exit fades); bank labels and the set name; the set flash uses it as its base. Zero opacity stays off. `//xb labellift <0-255|on|off>`.
+- Wave: `slot_wave_duration` .9, `slot_wave_peak` .8; the menu-open edge does not wave while `chooser_open`.
+- Enter: `libs/chat_enter_grace.lua` (grace .3 s, extended by each swallowed press). With the menu open: chat open -> Enter passes to FFXI; within the grace, Enter presses are swallowed (blocked from menu and game), key-ups pass. The navigation keyboard block (`keyboard_blockinput`) is released while chat is open (Inferred: needed for chat to receive keys).
+- Insert: not fixed. Diagnostic line `CONSOLE insert pressed=.. guard=.. menu=..` under `//xb diagnose` to see whether the second Insert reaches the addon.
+- Tests: `default_set_covers` rewritten (surfaces, depth, job names, lift); `edit_transition` (cover fade-out, label lift, 0.9 s / 80% wave, chooser no-wave); `review_keyboard` (grace); `command_returns`, `ui_lifecycle` updated. README entry.
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on all changed .lua: OK. `python3 tests/run_lua.py tests/<each>.lua`: 81 pass, `profile_lifecycle` fails (KNOWN_FAILS).
+
+**Live:** none for this batch. **Pending:** checklist; Insert log. **Next:** A's look; Insert fix from the log; selected-slot animated border glow.
+
 ## Current Development Status — 2026-11-21 (America/Chicago), edit-mode transition
 
 **Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. First commit `bcebad4`: docs-only AGENTS sync to canon 2026-11-21.3. installed_base: assumed `ed12602` (Inferred; asked A), so the package carries every file changed since `ed12602`.

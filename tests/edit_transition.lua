@@ -31,6 +31,7 @@ options.fade_enabled = false
 local ui = require('ui')
 ui:setup(options, {})
 ui.geometry:set_opacity(1)
+ui.chooser_open = false
 ui.display_skillchain_indicator=function() end
 ui.display_aa_indicator=function() end
 local skills = {get_skillchain_window=function() return 0,0 end, get_skillchain_result=function() end}
@@ -64,41 +65,60 @@ assert(frame.path:find('images/assets/slot-glow.png',1,true), 'same image as the
 assert(frame.width == 48 and frame.height == 48)
 assert(ui.wave_views[2]:visible() and ui.wave_views[8]:visible(), 'all slots, empty ones too')
 local start_alpha = view:alpha()
-assert(start_alpha >= 240, 'occupied slot starts bright: ' .. start_alpha)
-assert(ui.wave_views[8]:alpha() <= 145, 'empty slot is dimmer')
+assert(start_alpha == 200, 'occupied slot starts at 80% of the press glow: ' .. start_alpha)
+assert(ui.wave_views[8]:alpha() == 116, 'empty slot is dimmer')
 assert(ui:has_dim_fade(), 'redraw requested while easing')
-local text = bar.slot_recast_text[2]
+local text = bar.cover_text[2]
 assert(text:text() == 'ALL', 'cover drawn')
 assert(text:alpha() == 0, 'cover still waiting on its delay')
+local labels_before = ui:label_alpha()
 
 now = .1; draw(true)
 local l = level(1)
 assert(l < 255 and l > 205, 'dim part way: ' .. l)
 local a = text:alpha()
-assert(a > 0 and a < 200, 'cover fading in: ' .. a)
+assert(a > 0 and a < 135, 'cover fading in (ALL on Basic is three layers down): ' .. a)
+local lifting = ui:label_alpha()
+assert(lifting > labels_before or labels_before == 255, 'labels brightening')
 assert(view:alpha() < start_alpha, 'wave fading')
 
 now = .25; draw(true)
 assert(level(1) == 205, 'menu dim reached')
-assert(text:alpha() == 200, 'cover at full strength')
+assert(text:alpha() == 135, 'cover at full strength for its depth')
+assert(ui:label_alpha() == math.min(255, ui.bank_label_opacity + 50), 'labels lifted by 50')
+local name = ui.set_name_label and ui.geometry.surfaces[ui.set_name_label]
+if name and ui.bank_label_opacity < 205 then assert(name.alpha == ui.bank_label_opacity + 50, 'set name lifted') end
 assert(not ui:has_dim_fade(), 'settled')
-now = .41; draw(true)
-assert(ui.slot_wave == nil and not view:visible(), 'wave ends after 0.4 s')
+now = .5; draw(true)
+assert(ui.slot_wave ~= nil, 'wave still fading at 0.5 s (0.9 s long)')
+now = .91; draw(true)
+assert(ui.slot_wave == nil and not view:visible(), 'wave ends after 0.9 s')
 
 -- A one-frame flip of the target (set reload) cannot blink: it only moves a little.
 ui:clear_slot(1, 1)
 local r = bar.slot_icon[1]:color()
 assert(r == 205, 'clear_slot leaves the colour to check_recasts: ' .. r)
 
--- Menu closes: quicker exit.
+-- Menu closes: quicker exit; covers fade out over 0.06 s.
 now = 1; draw(false)
+assert(text:visible() and text:alpha() > 0, 'cover fading out, not cut')
 now = 1.05; draw(false)
 l = level(1); assert(l > 205 and l < 255, 'brightening: ' .. l)
+now = 1.07; draw(false)
+assert(not text:visible() and not ui.default_covers[2], 'cover gone after its fade-out')
 now = 1.11; draw(false)
 assert(level(1) == 255, 'exit done within 0.1 s')
+assert(ui:label_alpha() == ui.bank_label_opacity or ui.bank_label_opacity <= 0, 'labels back')
 assert(ui.slot_wave == nil, 'closing does not wave')
 
--- Set change (Share) waves; switch off stops it.
+-- Opening the set chooser (Share) does not wave; the set change does.
+ui.chooser_open = true
+now = 1.5; draw(true)
+assert(ui.slot_wave == nil, 'chooser open: no wave')
+now = 1.6; draw(false)
+ui.chooser_open = false
+
+-- Set change waves; switch off stops it.
 ui:cue_set_switch()
 assert(ui.slot_wave ~= nil, 'set switch waves')
 ui.slot_wave_enabled = false

@@ -87,7 +87,9 @@ for _, compact in ipairs({false,true}) do
     ui:load_player_hotbar(actions,{},'basic')
     assert(#paths==3 and paths[3]:match('/all%.png$'),'inherited icon was rewritten unnecessarily')
     local cost=ui.hotbars[1].slot_cost[1]
-    local badge=ui.hotbars[1].slot_recast[1]
+    -- A (2026-11-21): covers have their own surfaces; fades off for this check.
+    ui.dim_fade_enabled=false
+    local badge=ui.hotbars[1].cover_wash[1]
     local raw_badge=ui.geometry.surfaces[badge].object
     local raw_cost=ui.geometry.surfaces[cost].object
     local badge_hide, cost_show=raw_badge.hide,raw_cost.show
@@ -99,7 +101,7 @@ for _, compact in ipairs({false,true}) do
     end
     -- A (2026-11-21): the cover is a light wash plus ALL text, not the cover image.
     assert(badge:visible() and badge:path():match('/black%-square%.png$'))
-    assert(ui.hotbars[1].slot_recast_text[1]:text()=='ALL')
+    assert(ui.hotbars[1].cover_text[1]:text()=='ALL')
     assert(not cost:visible() and hides==0 and shows==0,'inherited badge or cost toggled during render')
     ui:check_recasts(actions,{},'basic',{},selected,skillchains,{},false,false,true)
     assert(not badge:visible() and cost:visible(),'regular overlay did not return')

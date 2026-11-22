@@ -1005,6 +1005,21 @@ and fades out together over 0.4 s.
 //xb dimfade [on|off|<seconds>] and //xb slotwave [on|off|<seconds>|test];
 both on by default (saved). Lua simulation only; live testing pending.
 
+2026-11-21: Covers, labels and chat Enter (second pass). Inherited-slot covers
+now name your jobs (ALL, WHM, and WHM over SCH on two lines, centred on the
+slot) and look recessed the further down the inheritance they come from: on
+the JOB/SUB set, JOB covers are one layer down and ALL two; on any other set,
+JOB/SUB one, JOB two, ALL three, each a little darker and dimmer. Covers fade
+in just after a set switch or menu open and fade out quickly (0.06 s) on set
+switch and menu close. In the menu the bank labels and set name brighten by
+about as much as the slots dim. The all-slots glow is now 0.9 s at 80% of the
+pressed-glow brightness, and opening the set chooser no longer plays it (a
+real set change still does). With FFXI chat open, the menu lets go of the
+keyboard so typing and Enter reach chat; for 0.3 s after that Enter, further
+Enter presses (a held key or a double press) are ignored by both the menu and
+the game. //xb coverdepth [on|off], //xb coverlift <px> (default 7),
+//xb labellift <0-255|on|off> (default 50). Lua simulation only; live testing pending.
+
 2026-11-21: Default-set text covers. In the menu, a slot that shows an action
 inherited from a default set now says which one in amber text with a black
 outline, centred like a recast timer: ALL (All Jobs Default), JOB (Job

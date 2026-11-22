@@ -583,14 +583,14 @@ function ui:load(theme_options)
     end
     geometry:setup_bank_scales(theme_options.shoulder_banks and 9 or self.render_banks[#self.render_banks])
     self.recast_samples, self.recast_flashes, self.recast_flash_views = {}, {}, {}
-    self.default_covers = {}
+    self.default_covers, self.cover_states, self.cover_snap = {}, {}, {}
     self.success_flashes, self.success_views = {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
     for _, view in pairs(self.wave_views or {}) do view:hide() end
     self.wave_views, self.wave_peaks, self.slot_wave = {}, {}, nil
     self.dim_track = require('ui/fade_track').new(self.recast_flash_clock)
-    self.last_menu_open, self.menu_changed_at, self.cover_level = nil, nil, 1
+    self.last_menu_open, self.menu_changed_at = nil, nil
     self.scale_visible, self.scale_active_bar = false, 0
     self.display_bank, self.center_release_deadline = 0, nil
     self.auto_hold = {}
@@ -665,6 +665,8 @@ function ui:load(theme_options)
         self.hotbars[h].slot_text = {}
         self.hotbars[h].slot_cost = {}
         self.hotbars[h].slot_recast_text = {}
+        self.hotbars[h].cover_wash = {}
+        self.hotbars[h].cover_text = {}
 
         -- set up the highlighting background for when a hotbar is active
         for i=1,8,1 do
@@ -675,11 +677,13 @@ function ui:load(theme_options)
             self.hotbars[h].slot_warmup[i] = new_image(images_setup)
             self.hotbars[h].slot_icon[i] = new_image(images_setup)
             self.hotbars[h].slot_recast[i] = new_image(images_setup)
+            self.hotbars[h].cover_wash[i] = new_image(images_setup)
             self.hotbars[h].slot_frame[i] = new_image(images_setup)
             self.hotbars[h].slot_element[i] = new_image(images_setup)
             self.hotbars[h].slot_text[i] = new_text(text_setup, true)
             self.hotbars[h].slot_cost[i] = new_text(right_text_setup)
             self.hotbars[h].slot_recast_text[i] = new_text(text_setup)
+            self.hotbars[h].cover_text[i] = new_text(text_setup)
             self.hotbars[h].slot_icon[i]:size(40, 40)
 
             prepare_image(self.hotbars[h].slot_background[i], windower.addon_path..'/themes/' .. (theme_options.slot_theme:lower()) .. '/slot.png')
@@ -706,6 +710,20 @@ function ui:load(theme_options)
             timer:color(255, 255, 255)
             timer:stroke_color(0, 0, 0)
             timer:center(slot_pos_x + 22, slot_pos_y + 13)
+            -- A (2026-11-21): default-set cover surfaces (see mark_default_set_action).
+            local cover_wash = self.hotbars[h].cover_wash[i]
+            prepare_image(cover_wash, windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
+            cover_wash:size(40, 40)
+            cover_wash:pos(slot_pos_x, slot_pos_y)
+            cover_wash:hide()
+            local cover = self.hotbars[h].cover_text[i]
+            setup_text(cover, theme_options, true)
+            cover:bold(true)
+            cover:size(10)
+            cover:color(unpack(ui.default_cover_color))
+            cover:stroke_color(0, 0, 0)
+            cover:center(slot_pos_x + 22, slot_pos_y + 13)
+            cover:hide()
         end
 
         -- special stuff for dpad and face buttons icons
@@ -1032,14 +1050,15 @@ end
 
 function ui:set_bank_label_opacity(opacity)
     self.bank_label_opacity = opacity
+    local drawn = self:label_alpha()
     for _, label in pairs(self.bank_labels or {}) do
-        label:alpha(opacity)
-        label:stroke_alpha(opacity)
+        label:alpha(drawn)
+        label:stroke_alpha(drawn)
         if opacity == 0 then label:hide(true) end
     end
     if self.set_name_label then
-        self.set_name_label:alpha(opacity)
-        self.set_name_label:stroke_alpha(opacity)
+        self.set_name_label:alpha(drawn)
+        self.set_name_label:stroke_alpha(drawn)
         if opacity == 0 then self.set_name_label:hide(true)
         elseif self.context_labels_visible and self.set_name_enabled and self.set_name_text ~= '' then
             self.set_name_label:show()
@@ -1082,18 +1101,24 @@ local set_flash_lift = .45
 --   dim_fade_change   .15   a slot's dim follows availability / set changes
 --   cover_fade_delay  .04   ALL/JOB/SUB covers start after the dim begins
 --   slot_wave_enabled true  //xb slotwave on|off
---   slot_wave_duration .4   all-slots glow fade (quadratic, like the success flash)
+--   slot_wave_duration .9   all-slots glow fade (quadratic); A 2026-11-21: 0.9 s
+--   slot_wave_peak     .8   fraction of the pressed-glow levels (250/190/145)
+--   label_menu_lift    50   alpha added to bank labels and set name in the menu
+--                           (about what the slots lose); //xb labellift <0-255>
 -- //xb dimfade <seconds> sets enter and change (exit = 2/3 of it);
 -- //xb slotwave <seconds> sets the wave length.
 ui.dim_fade_enabled = true
 ui.dim_fade_enter, ui.dim_fade_exit, ui.dim_fade_change = .15, .10, .15
 ui.cover_fade_delay = .04
 ui.slot_wave_enabled = true
-ui.slot_wave_duration = .4
+ui.slot_wave_duration = .9
+ui.slot_wave_peak = .8
+ui.label_menu_lift = 50
 
 -- All-slots glow wave: every drawn slot lights with the pressed-slot border
 -- glow (same image and brightness levels) and fades out together. Played on
--- menu open (Options) and on a real set change (Share, chooser).
+-- menu open (Options) and on a real set change. Opening the set chooser
+-- (Share) does not wave by itself; the change of set does.
 function ui:start_slot_wave()
     if self.slot_wave_enabled == false or not self.wave_views then return end
     self.slot_wave = {started=self.recast_flash_clock()}
@@ -1125,7 +1150,7 @@ function ui:tick_slot_wave()
                     self.wave_views[key] = view
                 end
                 view:pos(self:get_slot_x(h, slot)-slot_glow_padding, self:get_slot_y(h, slot)-slot_glow_padding)
-                view:alpha(math.floor((self.wave_peaks[key] or 145)*left*left + .5))
+                view:alpha(math.floor((self.wave_peaks[key] or 145)*(tonumber(self.slot_wave_peak) or 1)*left*left + .5))
                 view:show()
             elseif view then
                 view:hide()
@@ -1153,10 +1178,30 @@ function ui:cue_set_switch()
     end
 end
 
+-- A (2026-11-21): label opacity plus the eased menu lift (label_menu_lift).
+-- Zero opacity means the labels are turned off; the lift never reveals them.
+function ui:label_alpha()
+    local base = tonumber(self.bank_label_opacity) or 255
+    if base <= 0 then return 0 end
+    return math.min(255, base + (self.label_lift or 0))
+end
+
+function ui:apply_label_alpha()
+    local alpha = self:label_alpha()
+    for _, label in pairs(self.bank_labels or {}) do
+        label:alpha(alpha)
+        label:stroke_alpha(alpha)
+    end
+    if self.set_name_label and not self.set_flash then
+        self.set_name_label:alpha(alpha)
+        self.set_name_label:stroke_alpha(alpha)
+    end
+end
+
 local function restore_set_name_style(self)
     self.set_name_label:stroke_color(unpack(amber_stroke))
-    self.set_name_label:alpha(self.bank_label_opacity)
-    self.set_name_label:stroke_alpha(self.bank_label_opacity)
+    self.set_name_label:alpha(self:label_alpha())
+    self.set_name_label:stroke_alpha(self:label_alpha())
 end
 
 function ui:tick_set_flash()
@@ -1172,7 +1217,7 @@ function ui:tick_set_flash()
     end
     k = math.min(1, k)
     k = k*k*(3-2*k)
-    local base = self.bank_label_opacity
+    local base = self:label_alpha()
     -- Zero opacity means the label is turned off; never reveal it.
     if base <= 0 then return end
     local alpha = math.floor(base + (255-base)*set_flash_lift*k + .5)
@@ -2108,56 +2153,130 @@ end
 local last_log = os.clock()
 
 -- A (2026-11-21): default-set covers are text over the inherited action's
--- icon, centred like a recast timer: amber with a black outline on a light
--- wash, so the icon stays visible. They replace the opaque cover images.
--- The wash is lighter than a cooldown's (150) so a cover never reads as one.
--- A (2026-11-21, live): JOB/SUB on two centred lines; text a little see-through.
+-- icon, centred on the slot: amber with a black outline on a light wash, so
+-- the icon stays visible. They replace the opaque cover images.
+-- A (2026-11-21, live): text a little see-through; two-line labels.
+-- A (2026-11-21, second pass): the covers have their own surfaces (cover_wash,
+-- cover_text), so they can fade in and out independently of recast timers.
+-- Labels name the real jobs (ALL, WHM, WHM over SCH), falling back to JOB and
+-- JOB/SUB before a job is known. Depth: the further down the inheritance a
+-- slot's action comes from (default -> job-default -> all-jobs-default), the
+-- darker its wash and the dimmer its text, so deeper layers look recessed.
+-- Tunables:
+--   default_cover_alpha       200  text alpha at depth 1
+--   default_cover_wash        110  wash alpha at depth 1 (cooldown wash is 150)
+--   default_cover_depth_wash  {110,130,148} wash alpha at depth 1/2/3
+--   default_cover_depth_text  {200,165,135} text alpha at depth 1/2/3
+--   default_cover_size 10, default_cover_long_size 9 (two-line labels)
+--   default_cover_long_lift    7   px a two-line label moves up (//xb coverlift)
+--   cover_depth_enabled      true  //xb coverdepth on|off (off = depth 1 always)
+--   cover_fade_out            .06  s, cover fade-out (menu close, set switch)
 ui.default_cover_labels = {['all-jobs-default']='ALL', ['job-default']='JOB', ['default']='JOB\nSUB'}
 ui.default_cover_alpha = 200
 ui.default_cover_wash = 110
+ui.default_cover_depth_wash = {110, 130, 148}
+ui.default_cover_depth_text = {200, 165, 135}
 ui.default_cover_size = 10
-ui.default_cover_long_size = 9 -- two-line labels (JOB/SUB)
+ui.default_cover_long_size = 9
+ui.default_cover_long_lift = 7
 ui.default_cover_color = {255, 216, 112}
+ui.cover_depth_enabled = true
+ui.cover_fade_out = .06
+local cover_rank = {['default']=1, ['job-default']=2, ['all-jobs-default']=3}
 
-function ui:mark_default_set_action(h, i, environment)
-    local label = environment and self.default_cover_labels[environment]
-    if not label then return end
-    local bar = self.hotbars[h]
-    local wash = bar.slot_recast[i]
-    wash:path(windower.addon_path .. '/images/' .. get_icon_pathbase() .. '/ui/black-square.png')
-    local level = math.max(0, math.min(1, tonumber(self.cover_level) or 1))
-    wash:alpha(math.floor(self.default_cover_wash*level + .5))
-    wash:size(40, 40)
-    wash:pos(self:get_slot_x(h, i), self:get_slot_y(h, i))
-    wash:show()
-    local text = bar.slot_recast_text[i]
-    text:bold(true)
-    text:size(label:find('\n',1,true) and self.default_cover_long_size or self.default_cover_size)
-    text:color(unpack(self.default_cover_color))
-    text:stroke_color(0, 0, 0)
-    text:alpha(math.floor(self.default_cover_alpha*level + .5))
-    text:stroke_alpha(math.floor((self.text_stroke_alpha or 255)*level + .5))
-    text:text(label)
-    text:show()
-    bar.slot_cost[i]:hide()
-    self.default_covers[(h-1)*8+i] = true
+function ui:cover_label(inherited)
+    if inherited == 'all-jobs-default' then return 'ALL' end
+    local main, sub = self.cover_main_job, self.cover_sub_job
+    if not main or main == '' then return self.default_cover_labels[inherited] end
+    if inherited == 'job-default' then return main end
+    if inherited == 'default' then
+        if not sub or sub == '' or sub == 'NON' or sub == 'NOSUB' then return main end
+        return main .. '\n' .. sub
+    end
+    return self.default_cover_labels[inherited]
 end
 
--- Returns the timer text to its recast look once a slot stops inheriting.
+-- 1 = one layer below the active set; up to 3.
+function ui:cover_depth(inherited, current)
+    if self.cover_depth_enabled == false then return 1 end
+    local d = (cover_rank[inherited] or 1) - (cover_rank[current] or 0)
+    return math.max(1, math.min(3, d))
+end
+
+local function draw_cover(self, h, i, state, level)
+    local bar = self.hotbars[h]
+    local wash, text = bar.cover_wash[i], bar.cover_text[i]
+    local depth = state.depth or 1
+    local wash_alpha = (depth == 1 and self.default_cover_wash) or self.default_cover_depth_wash[depth] or self.default_cover_wash
+    local text_alpha = (depth == 1 and self.default_cover_alpha) or self.default_cover_depth_text[depth] or self.default_cover_alpha
+    local x, y = self:get_slot_x(h, i), self:get_slot_y(h, i)
+    wash:pos(x, y)
+    wash:alpha(math.floor(wash_alpha*level + .5))
+    wash:show()
+    local cy = y + 13 - (state.label:find('\n',1,true) and (tonumber(self.default_cover_long_lift) or 0) or 0)
+    if state.cx ~= x + 22 or state.cy ~= cy then
+        text:center(x + 22, cy)
+        state.cx, state.cy = x + 22, cy
+    end
+    text:alpha(math.floor(text_alpha*level + .5))
+    text:stroke_alpha(math.floor((self.text_stroke_alpha or 255)*(text_alpha/255)*level + .5))
+    text:show()
+end
+
+function ui:mark_default_set_action(h, i, environment, current)
+    local label = environment and self:cover_label(environment)
+    if not label then self:fade_default_cover(h, i); return end
+    local bar = self.hotbars[h]
+    if not bar.cover_text then return end
+    local key = (h-1)*8+i
+    local state = self.cover_states[key]
+    local track = self.dim_track
+    if not state or state.label ~= label then
+        state = {label=label}
+        self.cover_states[key] = state
+        local text = bar.cover_text[i]
+        text:size(label:find('\n',1,true) and self.default_cover_long_size or self.default_cover_size)
+        text:text(label)
+        -- A bank that just came back on screen (trigger held) shows its
+        -- covers at once, like its dim; otherwise a new cover fades in.
+        if track then track:set('c' .. key, self.cover_snap[key] and 1 or 0) end
+    end
+    self.cover_snap[key] = nil
+    state.depth = self:cover_depth(environment, current)
+    local level = 1
+    if track then
+        local on = self.dim_fade_enabled ~= false
+        level = track:value('c' .. key, 1, on and self.dim_fade_enter or 0, on and self.cover_fade_delay or 0)
+    end
+    draw_cover(self, h, i, state, level)
+    bar.slot_cost[i]:hide()
+    self.default_covers[key] = true
+end
+
+-- A slot that stops inheriting (menu close, set switch, local bind) fades
+-- its cover out quickly, then clears it.
+function ui:fade_default_cover(h, i)
+    local key = (h-1)*8+i
+    local state = self.cover_states[key]
+    if not state then self.cover_snap[key] = nil; return end
+    local track = self.dim_track
+    local fade = self.dim_fade_enabled ~= false and tonumber(self.cover_fade_out) or 0
+    local level = track and track:value('c' .. key, 0, fade) or 0
+    if level <= 0 then self:clear_default_cover(h, i); return end
+    draw_cover(self, h, i, state, level)
+end
+
 function ui:clear_default_cover(h, i)
     local key = (h-1)*8+i
-    if not self.default_covers[key] then return end
     self.default_covers[key] = nil
+    if self.dim_track then self.dim_track:forget('c' .. key) end
+    if not self.cover_states[key] then return end
+    self.cover_states[key] = nil
     local bar = self.hotbars[h]
-    local text = bar.slot_recast_text[i]
-    text:bold(false)
-    text:size(10)
-    text:color(255, 255, 255)
-    text:alpha(255)
-    text:stroke_alpha(self.text_stroke_alpha or 255)
-    text:text('')
-    text:hide()
-    bar.slot_recast[i]:hide()
+    if bar and bar.cover_text then
+        bar.cover_text[i]:hide()
+        bar.cover_wash[i]:hide()
+    end
 end
 
 local recast_flash_duration = .15
@@ -2388,7 +2507,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     local dim_now = self.recast_flash_clock()
     menu_open = menu_open and true or false
     if menu_open ~= self.last_menu_open then
-        if menu_open and self.last_menu_open ~= nil then self:start_slot_wave() end
+        if menu_open and self.last_menu_open ~= nil and not self.chooser_open then self:start_slot_wave() end
         self.last_menu_open, self.menu_changed_at = menu_open, dim_now
     end
     local dim_on = dim_track and self.dim_fade_enabled ~= false
@@ -2396,9 +2515,13 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     local slot_fade = not dim_on and 0 or menu_edge
         and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or self.dim_fade_change
     if dim_track then
-        self.cover_level = dim_track:value('cover', menu_open and 1 or 0,
-            dim_on and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or 0,
-            menu_open and self.cover_fade_delay or 0)
+        local lift = dim_track:value('labels', menu_open and (tonumber(self.label_menu_lift) or 0) or 0,
+            dim_on and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or 0)
+        lift = math.floor(lift + .5)
+        if lift ~= (self.label_lift or 0) then
+            self.label_lift = lift
+            self:apply_label_alpha()
+        end
     end
 
     local skillchain_delay, skillchain_window = skillchains.get_skillchain_window()
@@ -2574,10 +2697,11 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 local effective_type = action and (action.linked_type or action.type) or nil
                 -- In binding previews the source badge owns this overlay and
                 -- replaces the cost and recast display for inherited slots.
-                if not inherited_set then self:clear_default_cover(h, i) end
+                if not inherited_set then self:fade_default_cover(h, i) end
                 if inherited_set then
                     self.hotbars[h].slot_warmup[i]:hide()
-                    self:mark_default_set_action(h, i, inherited_set)
+                    self:clear_recast(h, i)
+                    self:mark_default_set_action(h, i, inherited_set, environment)
                 elseif action == nil or (effective_type ~= 'ma' and effective_type ~= 'ja' and effective_type ~= 'ws' and effective_type ~= 'pet' and effective_type ~= 'enchanteditem') then
                     self:clear_recast(h, i, action and action.trust_dismiss)
                     if observe_recasts then self:clear_recast_flash(h,i) end
@@ -3058,6 +3182,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
                 self.hotbars[h].slot_cost[i]:hide()
                 self.hotbars[h].slot_recast_text[i]:hide()
                 self:clear_default_cover(h, i)
+                self.cover_snap[(h-1)*8+i] = true
                 self:clear_recast(h, i)
                 if observe_recasts then self:clear_recast_flash(h,i) end
                 -- A bank that comes back (a trigger held) snaps to its dim

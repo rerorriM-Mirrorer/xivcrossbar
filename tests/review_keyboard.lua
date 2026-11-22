@@ -58,7 +58,9 @@ local prefix=source:sub(start,stop-1)..'return controller_keyboard'
 local sent, closed = {}, 0
 chat_open=false
 function binder:is_capturing_text() return self.capturing_text end
+enter_now=0
 local rootenv=setmetatable({
+    chat_enter=require('libs/chat_enter_grace').new(function() return enter_now end),
     review_keyboard=require('libs/controller/review_keyboard').new(),
     action_binder=binder,keyboard={enter=28,esc=1},transport={signals={}},
     text_input_guard={update=function() end},restart_pending=false,
@@ -112,6 +114,15 @@ dispatch(200,false,0,false)
 chat_open=false
 binder.state=17
 count=#calls
+-- 2026-11-21: a short grace after the chat Enter swallows further Enter
+-- presses (held key or double press), so they reach neither menu nor game.
+enter_now=.1
+assert(dispatch(28,true,0,false) and #calls==count, 'Enter inside the grace is swallowed')
+assert(not dispatch(28,false,0,false), 'its key-up still goes to the game')
+enter_now=.35
+assert(dispatch(28,true,0,false) and #calls==count, 'a repeat extends the grace')
+dispatch(28,false,0,false)
+enter_now=1
 assert(dispatch(28,true,0,false), 'Enter works again once chat closes')
 dispatch(28,false,0,false)
 local guard=require('text_input_guard')
