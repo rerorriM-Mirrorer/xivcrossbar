@@ -108,6 +108,27 @@ ta = tint:alpha(); assert(ta > 0 and ta < 120 and tint:pos() == ui:get_slot_x(1,
 now = 1.35; draw(true, nil)
 assert(not tint:visible(), 'tint gone after 0.14 s')
 
+-- A (2026-11-22): the selected slot's edit glow breathes (base 70, up to +45,
+-- back down) from the moment it is chosen; other slots stay steady.
+assert(ui.edit_breath_enabled and ui.edit_breath_period == 2.4 and ui.edit_breath_alpha == 45, 'breath defaults')
+ui.edit_breath_period = .4
+now = 1.4; draw(true, {bank=1, slot=5})
+local g5, g6 = ui.edit_glow_views[5], ui.edit_glow_views[6]
+assert(g5:alpha() == 70 and ui:has_edit_breath(), 'breath starts at the plain glow')
+now = 1.5; draw(true, {bank=1, slot=5})
+assert(g5:alpha() > 70 and g5:alpha() < 115 and g6:alpha() == 70, 'rising, neighbours steady: ' .. g5:alpha())
+now = 1.6; draw(true, {bank=1, slot=5})
+assert(g5:alpha() == 115, 'top of the breath: ' .. g5:alpha())
+now = 1.8; draw(true, {bank=1, slot=5})
+assert(g5:alpha() == 70, 'back to the plain glow')
+ui.edit_breath_enabled = false
+now = 1.9; draw(true, {bank=1, slot=5})
+assert(g5:alpha() == 70 and not ui:has_edit_breath(), 'editbreath off: steady')
+ui.edit_breath_enabled = true
+now = 1.95; draw(true, nil)
+assert(g5:alpha() == 70 and not ui:has_edit_breath(), 'deselect stops the breath')
+ui.edit_breath_period = 2.4
+
 -- A one-frame flip of the target (set reload) cannot blink: clear_slot no
 -- longer resets the colour.
 ui:clear_slot(1, 1)

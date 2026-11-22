@@ -1031,6 +1031,11 @@ function apply_appearance_settings()
     if t and t >= 0 then ui.edit_glow_alpha = t end
     t = tonumber(settings.LabelLift)
     if t and t >= 0 then ui.label_menu_lift = t end
+    ui.edit_breath_enabled = settings.EditBreath ~= false
+    t = tonumber(settings.EditBreathTime)
+    if t and t >= .2 then ui.edit_breath_period = t end
+    t = tonumber(settings.EditBreathAlpha)
+    if t and t >= 0 then ui.edit_breath_alpha = t end
 end
 
 function set_battle_environment(in_battle)
@@ -1769,6 +1774,28 @@ windower.register_event('addon command', function(command, ...)
         chat_format.say(207, ('[XIVCrossbar] Cover depth %s, cover offset %s %s px, menu label lift %s, edit glow %s (%s).'):format(
             ui.cover_depth_enabled and 'ON' or 'OFF', tostring(ui.cover_offset_x), tostring(ui.cover_offset_y),
             tostring(ui.label_menu_lift), ui.edit_glow_enabled and 'ON' or 'OFF', tostring(ui.edit_glow_alpha)))
+        ui_dirty = true
+        return
+    elseif command == 'editbreath' then
+        -- A (2026-11-22): the selected slot's edit glow breathes.
+        -- editbreath on|off, or editbreath <seconds per breath> [extra alpha].
+        local mode = type((...)) == 'string' and (...):lower() or nil
+        local seconds, extra = tonumber(mode), tonumber((select(2, ...)))
+        if mode == 'on' or mode == 'off' then settings.EditBreath = mode == 'on'
+        elseif mode == nil then settings.EditBreath = settings.EditBreath == false
+        elseif seconds and seconds >= .2 and seconds <= 10 and (extra == nil or (extra >= 0 and extra <= 255)) then
+            settings.EditBreath = true
+            settings.EditBreathTime = seconds
+            if extra then settings.EditBreathAlpha = extra end
+        else
+            chat_format.say(123, '[XIVCrossbar] Use //xb editbreath on|off|<seconds 0.2-10> [alpha 0-255] (now '
+                .. tostring(ui.edit_breath_period) .. ' s, ' .. tostring(ui.edit_breath_alpha) .. ').')
+            return
+        end
+        config.save(settings)
+        apply_appearance_settings()
+        chat_format.say(207, ('[XIVCrossbar] Edit breath %s: %.2f s, alpha +%s.'):format(
+            ui.edit_breath_enabled and 'ON' or 'OFF', ui.edit_breath_period, tostring(ui.edit_breath_alpha)))
         ui_dirty = true
         return
     elseif command == 'glowfade' then
@@ -3424,7 +3451,7 @@ windower.register_event('prerender',function()
         ui:tick_slot_wave()
         -- Keep redrawing while an edit-mode bind flash fades the slot's icon,
         -- and while the eased dim / cover fade is still moving.
-        if ui:has_binding_flash() or ui:has_dim_fade() or ui:has_glow_tail() then ui_dirty = true end
+        if ui:has_binding_flash() or ui:has_dim_fade() or ui:has_glow_tail() or ui:has_edit_breath() then ui_dirty = true end
         -- Ghost preview of the highlighted action in the selected slot.
         local ghost_path, ghost_bank, ghost_slot = action_binder:get_ghost()
         ui:update_ghost(ghost_path, ghost_bank, ghost_slot, not action_binder.is_hidden)

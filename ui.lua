@@ -588,6 +588,7 @@ function ui:load(theme_options)
     self.success_flashes, self.success_views = {}, {}
     self.recast_flash_enabled = theme_options.recast_flash_enabled
     self.recast_flash_clock = require('socket').gettime
+    self.breath_clock = require('socket').gettime
     for _, view in pairs(self.wave_views or {}) do view:hide() end
     for _, view in pairs(self.edit_glow_views or {}) do view:hide() end
     self.wave_views, self.wave_peaks, self.slot_wave = {}, {}, nil
@@ -1151,6 +1152,15 @@ ui.label_menu_lift = 50
 ui.edit_glow_enabled = true
 ui.edit_glow_alpha = 70
 ui.edit_glow_color = {190, 120, 40}
+-- A (2026-11-22): the selected slot's edit glow breathes: its alpha rises by
+-- up to edit_breath_alpha and falls again, slowly, starting from the plain
+-- edit glow each time a slot is chosen. Other slots keep the steady glow.
+--   edit_breath_enabled true    //xb editbreath on|off
+--   edit_breath_period  2.4     seconds per breath  (//xb editbreath <s> [alpha])
+--   edit_breath_alpha   45      extra alpha at the top of the breath
+ui.edit_breath_enabled = true
+ui.edit_breath_period = 2.4
+ui.edit_breath_alpha = 45
 -- A (2026-11-22): the selected-slot amber tint fades in time with the press
 -- animation (press pulse 0.06 s, release fade 0.14 s).
 --   dest_tint_in .06, dest_tint_out .14 (s)
@@ -1198,6 +1208,11 @@ end
 -- True while the eased dim or covers are still moving.
 function ui:has_dim_fade()
     return self.dim_track ~= nil and self.dim_track:busy()
+end
+
+-- True while the selected slot's edit glow is breathing (keeps redrawing).
+function ui:has_edit_breath()
+    return self.breathing == true
 end
 
 function ui:cue_set_switch()
@@ -3248,7 +3263,7 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
     if shown then
         local last = self.dest_shown
         if not last or last.bank ~= d.bank or last.slot ~= d.slot or last.gone then
-            self.dest_shown = {bank=d.bank, slot=d.slot}
+            self.dest_shown = {bank=d.bank, slot=d.slot, at=self.breath_clock()}
             if dim_track then dim_track:set('dest', 0) end
         end
         self.destination_tint:pos(self:get_slot_x(d.bank, d.slot), self:get_slot_y(d.bank, d.slot))
@@ -3278,14 +3293,27 @@ function ui:check_recasts(player_hotbar, player_vitals, environment, spells, gam
             self.dim_fade_enabled ~= false and (menu_open and self.dim_fade_enter or self.dim_fade_exit) or 0)
         self.edit_glow_level = level
         local alpha = math.floor((tonumber(self.edit_glow_alpha) or 0)*level + .5)
+        -- Selected slot: base glow plus the breath (0 -> edit_breath_alpha -> 0).
+        local breath_key, breath_alpha = nil, alpha
+        self.breathing = false
+        if shown and self.edit_breath_enabled ~= false and menu_open then
+            local period = math.max(tonumber(self.edit_breath_period) or 2.4, .2)
+            local t = self.breath_clock() - (self.dest_shown.at or 0)
+            local wave = .5 - .5*math.cos(2*math.pi*t/period)
+            breath_key = (d.bank-1)*8 + d.slot
+            breath_alpha = math.min(255, math.floor(alpha + (tonumber(self.edit_breath_alpha) or 0)*wave*level + .5))
+            self.breathing = true
+        end
         for _, h in ipairs(self.render_banks) do
-            local drawn = alpha > 0 and self.pulse_visible_bars[h] and self.hotbars[h]
+            local bank_drawn = self.pulse_visible_bars[h] and self.hotbars[h]
             for i = 1, 8 do
-                local view = self.edit_glow_views[(h-1)*8+i]
+                local key = (h-1)*8+i
+                local view = self.edit_glow_views[key]
+                local a = key == breath_key and breath_alpha or alpha
                 if view then
-                    if drawn then
+                    if bank_drawn and a > 0 then
                         view:pos(self:get_slot_x(h, i)-slot_glow_padding, self:get_slot_y(h, i)-slot_glow_padding)
-                        view:alpha(alpha)
+                        view:alpha(a)
                         view:show()
                     else
                         view:hide()
