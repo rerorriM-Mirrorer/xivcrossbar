@@ -1,3 +1,20 @@
+## Current Development Status — 2026-11-22 (America/Chicago), selected-slot breath
+
+**Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `c14081d`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: `4794fb5` (Live: Test4). Test5 delivered, install not confirmed, so Test6 is cumulative since `4794fb5` and includes all of Test5.
+
+**Live:** nothing new since Test4. A asked to try the selected-slot breath.
+
+**Changes (Verified, read this session)**
+- `ui.lua` edit-glow block: the selected destination's edit-glow view gets `alpha + edit_breath_alpha * (0.5 - 0.5 cos(2 pi t / period)) * level`, with t from the moment the slot was chosen (`dest_shown.at`), so each new choice starts at the plain glow. Other slots unchanged. `ui:has_edit_breath()` keeps the prerender redrawing while it breathes. `breath_clock` set in setup.
+- `xivcrossbar.lua`: `//xb editbreath on|off|<seconds 0.2-10> [alpha 0-255]`; settings `EditBreath`, `EditBreathTime`, `EditBreathAlpha`.
+- Tests: `edit_transition` (breath starts plain, rises with neighbours steady, peaks at +45, returns, off switch, stops on deselect).
+
+**Tunables:** `edit_breath_enabled` true, `edit_breath_period` 2.4 s, `edit_breath_alpha` 45 (on top of `edit_glow_alpha` 70).
+
+**Checks run (host):** Lua 5.1 `loadstring` (lupa) on changed .lua: OK. `python3 tests/run_lua.py tests/<each>.lua`: 82 pass, `profile_lifecycle` fails (KNOWN_FAILS).
+
+**Live:** none for this batch. **Pending:** Test5 and Test6 checklists. **Next:** reusable menu hints and footer icons; bind-moment glow.
+
 ## Current Development Status — 2026-11-22 (America/Chicago), job colour, late chat Enter
 
 **Repo/branch:** `rerorriM-Mirrorer/xivcrossbar` `feat/edit-transition-20261121`, on `4794fb5`. STACK: `feat/set-switch-flash-20261121@aa01545` -> `feat/text-covers-20261121@a67d78e` -> `feat/edit-transition-20261121`. installed_base: `4794fb5` (Live: A installed Test4). Package cumulative since `4794fb5`.

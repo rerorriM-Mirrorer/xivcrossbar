@@ -1051,6 +1051,12 @@ closed chat (seen after refocusing the window) now still counts as the chat
 Enter and no longer selects a menu row. Lua simulation only; live testing
 pending.
 
+2026-11-22: Selected slot breathes. In edit mode the slot you have chosen
+keeps the faint amber border glow but slowly brightens and fades again (one
+breath every 2.4 s, up to +45 alpha), starting from the plain glow each time
+you choose a slot. Every other slot stays steady. //xb editbreath on|off, or
+//xb editbreath <seconds> [alpha]. Lua simulation only; live testing pending.
+
 2026-11-21: Default-set text covers. In the menu, a slot that shows an action
 inherited from a default set now says which one in amber text with a black
 outline, centred like a recast timer: ALL (All Jobs Default), JOB (Job
